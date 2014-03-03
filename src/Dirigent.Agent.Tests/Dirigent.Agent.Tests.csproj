@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{62AFA897-D2ED-4F2A-BB84-5D609D245D61}</ProjectGuid>
+    <ProjectGuid>{9A05A0E9-D31A-4237-BD8D-03596EF64DF8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DirigentCommonsTests</RootNamespace>
-    <AssemblyName>DirigentCommonsTests</AssemblyName>
+    <RootNamespace>Dirigent.Agent.Tests</RootNamespace>
+    <AssemblyName>Dirigent.Agent.Tests</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -42,13 +42,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="AppStateMonitorTest.cs" />
+    <Compile Include="AppWaveListBuilderTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj">
+      <Project>{FAB65232-663A-48D9-B0A0-8DF9F82FB53D}</Project>
+      <Name>Dirigent.Agent.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj">
       <Project>{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}</Project>
-      <Name>DirigentCommons</Name>
+      <Name>Dirigent.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

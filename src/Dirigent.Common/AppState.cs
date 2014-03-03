@@ -7,12 +7,14 @@ using System.Net;
 namespace Dirigent.Common
 {
 
+    /// <summary>
+    /// App status shared among all Dirigent participants.
+    /// </summary>
     public class AppState
     {
+        public bool WasLaunched;
         public bool Running;
-        public int PID;
         public bool Initialized;
-        public AppDef AppDef;
     }
 
 

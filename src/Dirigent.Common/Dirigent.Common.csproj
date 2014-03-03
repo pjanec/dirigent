@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Dirigent.Common</RootNamespace>
     <AssemblyName>Dirigent.Common</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -43,6 +44,7 @@
     <Compile Include="AppDef.cs" />
     <Compile Include="AppState.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="IDirigentControl.cs" />
     <Compile Include="ILaunchPlan.cs" />
     <Compile Include="IAppInitializedDetector.cs" />

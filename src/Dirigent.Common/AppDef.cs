@@ -23,6 +23,7 @@ namespace Dirigent.Common
         public int StartupOrder;
         public bool RestartOnCrash;
         public string MachineId;
+        public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
         /// <summary>
         /// AppIds of applications that need to be initialized before this app can be started 

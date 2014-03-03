@@ -7,6 +7,10 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
+    /// <summary>
+    /// Applications are launched in waves; in a wave there are apps depending on apps from
+    /// the previously launched wave; the order of apps in a wave is not importanst.
+    /// </summary>
     public class AppWave
     {
         public List<AppDef> apps;
@@ -15,7 +19,19 @@ namespace Dirigent.Agent.Core
             this.apps = apps;
         }
     }
-    
+
+
+    public class CircularDependencyException : Exception
+    {
+    }
+
+    public class UnknownDependencyException : Exception
+    {
+        public UnknownDependencyException(string message)
+                : base(message)
+        {
+        }
+    }
     
     public static class AppWaveListBuilder
     {
@@ -26,7 +42,7 @@ namespace Dirigent.Agent.Core
         /// The second wave will contain the apps that depend on those from the first wave.
         /// Etc. untill all apps are processed.
         /// </summary>
-        static List<AppWave> build(List<AppDef> launchPlan)
+        public static List<AppWave> build(List<AppDef> launchPlan)
         {
 
             // seznam zbyvajicich aplikaci
@@ -37,7 +53,6 @@ namespace Dirigent.Agent.Core
             
             List<AppDef> remaining = new List<AppDef>( launchPlan ); // those not yet moved to any of the waves
             List<AppDef> used = new List<AppDef>(); // those already moved to some of waves
-            List<AppDef> currentWave = new List<AppDef>(); // the wave currently being built
             
             // allow fast lookup of appdef by its name
             Dictionary<string, AppDef> dictApps = new Dictionary<string, AppDef>();
@@ -53,26 +68,31 @@ namespace Dirigent.Agent.Core
             while (remaining.Count > 0)
             {
 
+                List<AppDef> currentWave = new List<AppDef>(); // the wave currently being built
+
                 foreach (var app in remaining)
                 {
                     bool allDepsSatisfied = true;
 
-                    foreach (var depName in app.Dependencies)
+                    if (app.Dependencies != null)
                     {
-                        if (!dictApps.ContainsKey(depName))
+                        foreach (var depName in app.Dependencies)
                         {
-                            // throw exception "Unknown dependency"
-                        }
+                            if (!dictApps.ContainsKey(depName))
+                            {
+                                // throw exception "Unknown dependency"
+                                throw new UnknownDependencyException(depName);
+                            }
 
-                        var dep = dictApps[depName];
-                        if (!used.Contains(dep))
-                        {
-                            allDepsSatisfied = false;
-                            break;
-                        }
+                            var dep = dictApps[depName];
+                            if (!used.Contains(dep))
+                            {
+                                allDepsSatisfied = false;
+                                break;
+                            }
 
+                        }
                     }
-
                     if (allDepsSatisfied)
                     {
                         currentWave.Add(app);
@@ -84,6 +104,7 @@ namespace Dirigent.Agent.Core
                 if (currentWave.Count == 0)
                 {
                     // throw exception "Circular dependency somewhere"
+                    throw new CircularDependencyException();
                 }
                 
                 // move apps that were added to the current wave from remaining to used
