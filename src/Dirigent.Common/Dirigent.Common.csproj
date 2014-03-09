@@ -34,6 +34,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Remoting" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,15 +43,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppDef.cs" />
+    <Compile Include="AppIdTuple.cs" />
     <Compile Include="AppState.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="LocalXmlConfigReader.cs" />
+    <Compile Include="MachineConfigHelper.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Exceptions.cs" />
+    <Compile Include="IAppStateMonitor.cs" />
+    <Compile Include="IClient.cs" />
     <Compile Include="IDirigentControl.cs" />
     <Compile Include="ILaunchPlan.cs" />
-    <Compile Include="IAppInitializedDetector.cs" />
+    <Compile Include="LaunchPlan.cs" />
     <Compile Include="MachineDef.cs" />
     <Compile Include="MachineState.cs" />
+    <Compile Include="Messages.cs" />
+    <Compile Include="NetworkControl.cs" />
+    <Compile Include="Server.cs" />
+    <Compile Include="ServerRemoteObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SharedXmlConfigReader.cs" />
+    <Compile Include="XmlConfigReaderUtils.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

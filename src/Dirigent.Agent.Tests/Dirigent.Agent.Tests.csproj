@@ -42,8 +42,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppStateMonitorTest.cs" />
-    <Compile Include="AppWaveListBuilderTest.cs" />
+    <Compile Include="LocalOpsTest.cs" />
+    <Compile Include="LaunchWavePlannerTest.cs" />
+    <Compile Include="LaunchDepsCheckerTest.cs" />
+    <Compile Include="LaunchSequencerTest.cs" />
+    <Compile Include="InitDetectorFactoryTest.cs" />
+    <Compile Include="InitDetectorTest.cs" />
+    <Compile Include="PlanRepo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

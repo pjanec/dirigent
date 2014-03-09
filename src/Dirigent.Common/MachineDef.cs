@@ -13,8 +13,7 @@ namespace Dirigent.Common
     public class MachineDef
     {
         public string MachineId;
-        public bool IsMaster;
-        public IPAddress IpAddr;
+        public string IpAddress;
     }
 
 

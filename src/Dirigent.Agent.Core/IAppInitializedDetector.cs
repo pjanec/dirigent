@@ -9,4 +9,9 @@ namespace Dirigent.Common
     {
         bool IsInitialized();
     }
+
+    public interface IAppInitializedDetectorFactory
+    {
+        IAppInitializedDetector create(AppDef appDef, AppState appState, string initConditionString);
+    }
 }

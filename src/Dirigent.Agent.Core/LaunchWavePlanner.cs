@@ -33,16 +33,19 @@ namespace Dirigent.Agent.Core
         }
     }
     
-    public static class AppWaveListBuilder
+    /// <summary>
+    /// Calculates the launch order of all applications in given plan.
+    /// </summary>
+    public static class LaunchWavePlanner
     {
         /// <summary>
-        /// Build the list of waves as the result of application interdependencies.
+        /// Builds the list of waves as the result of application interdependencies.
         /// 
         /// The first wawe will contain apps that do not depend on any other app.
         /// The second wave will contain the apps that depend on those from the first wave.
         /// Etc. untill all apps are processed.
         /// </summary>
-        public static List<AppWave> build(List<AppDef> launchPlan)
+        public static List<AppWave> build(IEnumerable<AppDef> launchPlan)
         {
 
             // seznam zbyvajicich aplikaci
@@ -55,10 +58,10 @@ namespace Dirigent.Agent.Core
             List<AppDef> used = new List<AppDef>(); // those already moved to some of waves
             
             // allow fast lookup of appdef by its name
-            Dictionary<string, AppDef> dictApps = new Dictionary<string, AppDef>();
+            Dictionary<AppIdTuple, AppDef> dictApps = new Dictionary<AppIdTuple, AppDef>();
             foreach (var app in remaining)
             {
-                dictApps[app.AppId] = app;
+                dictApps[app.AppIdTuple] = app;
             }
 
             var waves = new List<AppWave>(); // the resulting list of waves
@@ -78,13 +81,15 @@ namespace Dirigent.Agent.Core
                     {
                         foreach (var depName in app.Dependencies)
                         {
-                            if (!dictApps.ContainsKey(depName))
+                            AppIdTuple depId = AppIdTuple.fromString(depName, app.AppIdTuple.MachineId);
+
+                            if (!dictApps.ContainsKey(depId))
                             {
                                 // throw exception "Unknown dependency"
                                 throw new UnknownDependencyException(depName);
                             }
 
-                            var dep = dictApps[depName];
+                            var dep = dictApps[depId];
                             if (!used.Contains(dep))
                             {
                                 allDepsSatisfied = false;

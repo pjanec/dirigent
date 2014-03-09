@@ -1,0 +1,9 @@
+﻿Run server process automatically on agent start. Reset the server process if server already running.
+
+Allow for non-windowed mode (console app for linux?)
+
+Extract the preparation of agent configuration into a separate class and use it for non-windowed mode.
+
+Add log4net logging. In non-windowed mode, log the exceptions using log4net.
+
+Allow for the control GUI to connect remotely to a session without starting its own agent instance.

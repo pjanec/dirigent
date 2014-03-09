@@ -10,6 +10,7 @@ namespace Dirigent.Common
     /// <summary>
     /// App status shared among all Dirigent participants.
     /// </summary>
+    [Serializable]
     public class AppState
     {
         public bool WasLaunched;

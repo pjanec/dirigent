@@ -7,9 +7,20 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
-    public static class AppInitializedDetectorFactory
+
+    public class AppInitializedDetectorFactory : IAppInitializedDetectorFactory
     {
-        private static void parseInitCondString(string initConditionString, ref string name, ref string args)
+        delegate IAppInitializedDetector CreateDeleg(AppDef appDef, AppState appState, string args);
+        Dictionary<string, CreateDeleg> creators = new Dictionary<string, CreateDeleg>();
+
+        public AppInitializedDetectorFactory()
+        {
+            // register creators
+            creators[TimeOutInitDetector.Name] = TimeOutInitDetector.create;
+        }
+
+
+        private void parseInitCondString(string initConditionString, ref string name, ref string args)
         {
             initConditionString = initConditionString.Trim();
 
@@ -33,12 +44,24 @@ namespace Dirigent.Agent.Core
 
         }
 
-        public static IAppInitializedDetector get(string initConditionString)
+        public IAppInitializedDetector create(AppDef appDef, AppState appState, string initConditionString)
         {
+            if( initConditionString == null )
+            {
+                return new DummyInitDetector();
+            }
+
             string name="";
             string args="";
             parseInitCondString(initConditionString, ref name, ref args);
-            return null;
+
+            if( !creators.ContainsKey(name) )
+            {
+                throw new UnknownAppInitDetectorType( initConditionString );
+            }
+
+            CreateDeleg cd = creators[name];
+            return cd(appDef, appState, args);
         }
     }
 }

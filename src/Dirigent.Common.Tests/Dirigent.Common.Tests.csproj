@@ -8,8 +8,8 @@
     <ProjectGuid>{62AFA897-D2ED-4F2A-BB84-5D609D245D61}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DirigentCommonsTests</RootNamespace>
-    <AssemblyName>DirigentCommonsTests</AssemblyName>
+    <RootNamespace>Dirigent.Common.Tests</RootNamespace>
+    <AssemblyName>Dirigent.Common.Tests</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="XmlConfigReaderTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

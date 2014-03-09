@@ -9,45 +9,35 @@ namespace Dirigent.Common
 
     public interface IDirigentControl
     {
-        /// <summary>
-        /// what machine are we running on
-        /// </summary>
-        string LocalMachineId { get; }
-
-        Dirigent.Common.Configuration Config { get; }
-
         // chci zjistit stav konkretni aplikace
-        AppState getAppState( string machineId, string appId );
-
-        // chci zjistit stav vsech aplikaci
-        IEnumerable<AppState> getAllAppsState();
+        AppState GetAppState( AppIdTuple appIdTuple );
 
         // chci nacist novy plan (a tim zabit aplikace z predchoziho)
-        void loadPlan( ILaunchPlan plan );
+        void LoadPlan( ILaunchPlan plan );
 
         // chci znat aktualni plan
-        ILaunchPlan getPlan();
+        ILaunchPlan GetPlan();
 
         // chci spustit aplikace dle aktualniho planu
-        void startPlan();
+        void StartPlan();
 
         // chci zabit aplikace z aktualniho planu
-        void stopPlan();
+        void StopPlan();
 
         // chci znovuspustit vse z aktualniho planu
-        void restartPlan();
+        void RestartPlan();
 
         // chci spustit konkretni aplikaci z aktualniho planu
-        void runApp( string machineId, string appId );
+        void RunApp(AppIdTuple appIdTuple);
 
         // chci restartovat konkretni aplikaci z aktualniho planu
-        void restartApp( string machineId, string appId );
+        void RestartApp(AppIdTuple appIdTuple);
 
         // chci zabit konkretni aplikaci z aktualniho planu
-        void killApp( string machineId, string appId );
+        void KillApp(AppIdTuple appIdTuple);
 
-        // chci operativne vytvorit svuj novy plan na zaklade existujiciho
-        ILaunchPlan clonePlan( ILaunchPlan existingPlan );
+        //// chci operativne vytvorit svuj novy plan na zaklade existujiciho
+        //ILaunchPlan clonePlan( ILaunchPlan existingPlan );
     }
 
 }
