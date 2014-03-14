@@ -217,6 +217,10 @@ namespace Dirigent.Agent.Core
             if( !planRunning )
                 return;
 
+            // if no plan exists
+            if (launchDepChecker == null)
+                return;
+
             // feed the sequencer with apps whose dependencies and constraints have already been satisfied
             if( launchSequencer.IsEmpty() )
             {

@@ -1,4 +1,4 @@
-﻿namespace Dirigent.Agent.TrayApp
+﻿namespace Dirigent.Agent.Gui
 {
     partial class frmMain
     {
@@ -29,10 +29,10 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewItem listViewItem9 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
             "polozka1",
             "Running"}, -1);
-            System.Windows.Forms.ListViewItem listViewItem10 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] {
             "Polozka2",
             "Not Started"}, -1);
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -148,8 +148,9 @@
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(119, 24);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.aboutToolStripMenuItem.Text = "&About";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // lstvApps
             // 
@@ -162,8 +163,8 @@
             this.lstvApps.FullRowSelect = true;
             this.lstvApps.GridLines = true;
             this.lstvApps.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem9,
-            listViewItem10});
+            listViewItem1,
+            listViewItem2});
             this.lstvApps.Location = new System.Drawing.Point(0, 31);
             this.lstvApps.Name = "lstvApps";
             this.lstvApps.Size = new System.Drawing.Size(345, 202);

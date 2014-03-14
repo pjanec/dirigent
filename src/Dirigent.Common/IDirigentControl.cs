@@ -12,6 +12,8 @@ namespace Dirigent.Common
         // chci zjistit stav konkretni aplikace
         AppState GetAppState( AppIdTuple appIdTuple );
 
+        void SetAppState( AppIdTuple appIdTuple, AppState state );
+
         // chci nacist novy plan (a tim zabit aplikace z predchoziho)
         void LoadPlan( ILaunchPlan plan );
 

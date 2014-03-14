@@ -18,12 +18,12 @@ namespace Dirigent.Agent.Core
     {
         string machineId;
         IClient client;
-        LocalOperations localOps;
+        IDirigentControl localOps;
 
 
         public NetworkOperations(
                     IClient client,
-                    LocalOperations localOps )
+                    IDirigentControl localOps )
         {
             
             this.machineId = client.Name;
@@ -141,6 +141,12 @@ namespace Dirigent.Agent.Core
         public AppState GetAppState(AppIdTuple appIdTuple)
         {
             return localOps.GetAppState(appIdTuple);
+        }
+
+        public void SetAppState(AppIdTuple appIdTuple, AppState state)
+        {
+            // makes no sense
+            throw new NotImplementedException();
         }
 
         public void LoadPlan(ILaunchPlan plan)

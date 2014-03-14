@@ -19,8 +19,7 @@ namespace Dirigent.Agent.Core
         public Agent(
             string machineId,
             string masterIP,
-            int masterPort,
-            bool isMaster
+            int masterPort
         )
         {
             client = new Client(machineId, masterIP, masterPort);

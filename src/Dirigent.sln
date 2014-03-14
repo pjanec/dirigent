@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.TrayApp", "D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Master.TrayApp", "Dirigent.Master.TrayApp\Dirigent.Master.TrayApp.csproj", "{D2B327B1-FC90-4F03-88E9-C81E2B86728D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Gui", "Dirigent.Agent.Gui\Dirigent.Agent.Gui.csproj", "{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -119,6 +121,16 @@ Global
 		{D2B327B1-FC90-4F03-88E9-C81E2B86728D}.Release|Mixed Platforms.Build.0 = Release|x86
 		{D2B327B1-FC90-4F03-88E9-C81E2B86728D}.Release|x86.ActiveCfg = Release|x86
 		{D2B327B1-FC90-4F03-88E9-C81E2B86728D}.Release|x86.Build.0 = Release|x86
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
