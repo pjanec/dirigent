@@ -101,10 +101,9 @@ namespace Dirigent.Common
             return appsState[appIdTuple];
         }
 
-        public void SetAppState(AppIdTuple appIdTuple, AppState state)
+        public void SetRemoteAppState(AppIdTuple appIdTuple, AppState state)
         {
-            // makes no sense
-            throw new NotImplementedException();
+            appsState[appIdTuple] = state;
         }
 
         public void LoadPlan(ILaunchPlan plan)

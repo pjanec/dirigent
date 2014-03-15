@@ -87,6 +87,98 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+        void refreshAppList_smart()
+        {
+            // FIXME: still flickering!!!
+
+            ListViewItem selected = null;
+            
+            var plan = ctrl.GetPlan();
+            
+            // remmber apps from plan
+            Dictionary<string, AppDef> newApps = new Dictionary<string, AppDef>();
+
+            foreach( AppDef a in plan.getAppDefs() )
+            {
+                newApps[a.AppIdTuple.ToString()] = a;
+            }
+
+            // remember apps from list
+            Dictionary<string, ListViewItem> oldApps = new Dictionary<string, ListViewItem>();
+
+            foreach (ListViewItem item in lstvApps.Items)
+            {
+                var id = item.SubItems[0].Text;
+                oldApps[id] = item;
+
+                if( item.Selected )
+                {
+                    if( selected == null )
+                    {
+                        selected = item;
+                    }
+                }
+            }
+
+            // determine what to add and what to remove
+            List<ListViewItem> toRemove = new List<ListViewItem>();
+            List<ListViewItem> toAdd = new List<ListViewItem>();
+
+            foreach (ListViewItem item in lstvApps.Items)
+            {
+                var id = item.SubItems[0].Text;
+                if (!newApps.ContainsKey(id) )
+                {
+                    toRemove.Add( item );
+                }
+            }
+
+            foreach( AppDef a in plan.getAppDefs() )
+            {
+                var id = a.AppIdTuple.ToString();
+                if (!oldApps.ContainsKey(id) )
+                {
+                    toAdd.Add(
+                        new ListViewItem(
+                            new string[]
+                            {
+                                id,
+                                getStatusCode( ctrl.GetAppState(a.AppIdTuple) )
+
+                            }
+                        )
+                    );
+                }
+            }
+            
+            foreach( var i in toRemove )
+            {
+                lstvApps.Items.Remove( i );
+            }                
+
+            foreach( var i in toAdd )
+            {
+                lstvApps.Items.Add( i );
+            }                
+            
+            Dictionary<ListViewItem, string> toUpdate = new Dictionary<ListViewItem, string>();
+            foreach( var o in oldApps )
+            {
+                if( !toRemove.Contains(o.Value) )
+                {
+                    toUpdate[o.Value] = getStatusCode( ctrl.GetAppState(newApps[o.Key].AppIdTuple) );
+                }
+            }
+
+            foreach (var tu in toUpdate)
+            {
+                var item = tu.Key;
+                item.SubItems[1].Text = tu.Value;
+            }
+
+
+        }
+
         void refreshGui()
         {
             refreshAppList();

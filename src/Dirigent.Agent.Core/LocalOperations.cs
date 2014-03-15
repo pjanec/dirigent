@@ -77,7 +77,7 @@ namespace Dirigent.Agent.Core
         /// </summary>
         /// <param name="appIdTuple"></param>
         /// <param name="appState"></param>
-        public void SetAppState( AppIdTuple appIdTuple, AppState appState )
+        public void SetRemoteAppState( AppIdTuple appIdTuple, AppState appState )
         {
             appsState[appIdTuple] = appState;
         }

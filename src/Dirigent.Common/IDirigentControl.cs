@@ -9,10 +9,19 @@ namespace Dirigent.Common
 
     public interface IDirigentControl
     {
-        // chci zjistit stav konkretni aplikace
+        /// <summary>
+        /// Get the status of an application (no matter whether locl or remote)
+        /// </summary>
+        /// <param name="appIdTuple"></param>
+        /// <returns></returns>
         AppState GetAppState( AppIdTuple appIdTuple );
 
-        void SetAppState( AppIdTuple appIdTuple, AppState state );
+        /// <summary>
+        /// Set the status of a remote application (received from another agent through master for example)
+        /// </summary>
+        /// <param name="appIdTuple"></param>
+        /// <returns></returns>
+        void SetRemoteAppState( AppIdTuple appIdTuple, AppState state );
 
         // chci nacist novy plan (a tim zabit aplikace z predchoziho)
         void LoadPlan( ILaunchPlan plan );

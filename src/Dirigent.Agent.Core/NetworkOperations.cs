@@ -68,7 +68,7 @@ namespace Dirigent.Agent.Core
             {
                 if( kvp.Key.MachineId != machineId )
                 {
-                    localOps.SetAppState( kvp.Key, kvp.Value );
+                    localOps.SetRemoteAppState( kvp.Key, kvp.Value );
                 }
             }            
         }
@@ -143,10 +143,9 @@ namespace Dirigent.Agent.Core
             return localOps.GetAppState(appIdTuple);
         }
 
-        public void SetAppState(AppIdTuple appIdTuple, AppState state)
+        public void SetRemoteAppState(AppIdTuple appIdTuple, AppState state )
         {
-            // makes no sense
-            throw new NotImplementedException();
+            localOps.SetRemoteAppState(appIdTuple, state);
         }
 
         public void LoadPlan(ILaunchPlan plan)

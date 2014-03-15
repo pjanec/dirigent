@@ -1,9 +1,20 @@
-﻿Run server process automatically on agent start. Reset the server process if server already running.
+﻿Run server process om master machine automatically on agent start. Reset the server process if server already running.
 
-Allow for non-windowed mode (console app for linux?)
+Allow for non-windowed mode (console app for linux, windows service).
+
+Server as windows service.
+
+Add command line options to specify the config files, initial launch plan to follow etc.
 
 Extract the preparation of agent configuration into a separate class and use it for non-windowed mode.
 
 Add log4net logging. In non-windowed mode, log the exceptions using log4net.
 
-Allow for the control GUI to connect remotely to a session without starting its own agent instance.
+Separate main GUI form into a reusable library, requiring just IDirigentControl.
+
+Two flavors of GUI - with local agent and the one that connect remotely to a session without starting its own agent instance.
+
+NetworkOperations to use just IDirigentCOntrol instead of LocalOperations.
+
+Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..
+
