@@ -18,3 +18,12 @@ NetworkOperations to use just IDirigentCOntrol instead of LocalOperations.
 
 Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..
 
+One agent app for every purpose (local, networked, console app, service app, GUI app, remote control GUI etc.)
+
+Support for applications that are never started automatically, just manually.
+
+Support for disabling an application before starting a launch plan.
+
+Support for multiple retries when launching a problematically starting application.
+
+Failure timeout for boot up detector.
