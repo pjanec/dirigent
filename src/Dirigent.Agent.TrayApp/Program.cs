@@ -76,12 +76,12 @@ namespace Dirigent.Agent.TrayApp
 
             try
             {
-                SharedConfig shcfg = new SharedXmlConfigReader().Load(File.OpenText(sharedCfgFileName));
+                SharedConfig scfg = new SharedXmlConfigReader().Load(File.OpenText(sharedCfgFileName));
                 //LocalConfig lcfg = new LocalXmlConfigReader().Load(File.OpenText(localCfgFileName));
 
                 var agent = new Dirigent.Agent.Core.Agent( machineId, masterIP, masterPort );
 
-                Application.Run( new frmMain(agent.getControl(), agent.tick) );
+                Application.Run(new frmMain(agent.getControl(), agent.tick, scfg, machineId));
             }
             catch( Exception ex )
             {

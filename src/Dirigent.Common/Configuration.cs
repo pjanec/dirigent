@@ -17,7 +17,30 @@ namespace Dirigent.Common
         public int MasterPort = 0;
         public string MasterName = ""; // machineId of machine where master server shall be started
 
-        public string LocalMachineName = ""; // machine id of the computer where the agent is going to run
+        //public string LocalMachineName = ""; // machine id of the computer where the agent is going to run
+
+        public override bool Equals(object obj)
+        {
+            // If parameter is null return false.
+            if (obj == null)
+            {
+                return false;
+            }
+
+            // If parameter cannot be cast to Point return false.
+            SharedConfig p = obj as SharedConfig;
+            if ((System.Object)p == null)
+            {
+                return false;
+            }
+
+            // Return true if the fields match:
+            return (Machines == p.Machines)
+                && (Plans == p.Plans)
+                && (MasterPort == p.MasterPort)
+                && (MasterName == p.MasterName)
+                ;
+        }
     }
 
     public class LocalConfig

@@ -8,13 +8,17 @@ using Dirigent.Net;
 
 namespace Dirigent.Agent.Core
 {
+    /// <summary>
+    /// An endpoint in a distributed dirigent architecture. Manages local applications
+    /// and shares their status with other Agents. 
+    /// </summary>
     public class Agent
     {
         LocalOperations localOps;
         NetworkOperations netOps;
         
         Client client;
-        Server server;
+        //Server server;
 
         public Agent(
             string machineId,

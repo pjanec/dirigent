@@ -49,6 +49,18 @@ namespace Dirigent.Common
 
         //// chci operativne vytvorit svuj novy plan na zaklade existujiciho
         //ILaunchPlan clonePlan( ILaunchPlan existingPlan );
+
+        ///// <summary>
+        ///// A configuration received from another agent. The reciving agent is supposed to update its own
+        ///// configuration information if it differs. The event is fired by the master machine where
+        ///// the configuration is considered most up-to-date.
+        ///// </summary>
+        ///// 
+        //public delegate void SharedConfigReceived(SharedConfig config);
+
+        //void setSharedConfigReceivedDelegate(SharedConfigReceived deleg);
+
+
     }
 
 }

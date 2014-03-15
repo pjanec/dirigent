@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Reflection;
 
 using System.IO;
 
@@ -18,22 +19,50 @@ namespace Dirigent.Agent.Gui
         public delegate void TickDelegate();
 
         IDirigentControl ctrl;
+        string machineId;
         TickDelegate tickDeleg;
+
 
         //void terminateFromConstructor()
         //{
         //    Load += (s, e) => Close();
         //}
 
-        public frmMain( IDirigentControl ctrl, TickDelegate tickDeleg )
+        public static void setDoubleBuffered(Control control, bool enable)
+        {
+            var doubleBufferPropertyInfo = control.GetType().GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (doubleBufferPropertyInfo != null)
+            {
+                doubleBufferPropertyInfo.SetValue(control, enable, null);
+            }
+        }
+        
+        public frmMain( IDirigentControl ctrl, TickDelegate tickDeleg, SharedConfig scfg, string machineId )
         {
             this.ctrl = ctrl;
             this.tickDeleg = tickDeleg;
+            this.machineId = machineId;
 
             InitializeComponent();
+
+            setDoubleBuffered(lstvApps, true);
+            
+            // fill the Plan -> Load menu with items
+            foreach (var plan in scfg.Plans)
+            {
+                EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(plan.Value);
+                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Key, null, clickHandler);
+
+                loadToolStripMenuItem.DropDownItems.Add( menuItem );
+            }
             
             // start ticking
             tmrTick.Enabled = true;
+        }
+
+        void setTitle(string planName)
+        {
+            this.Text = string.Format("Dirigent [{0}] - {1}", machineId, planName);
         }
 
 
@@ -98,9 +127,12 @@ namespace Dirigent.Agent.Gui
             // remmber apps from plan
             Dictionary<string, AppDef> newApps = new Dictionary<string, AppDef>();
 
-            foreach( AppDef a in plan.getAppDefs() )
+            if (plan != null)
             {
-                newApps[a.AppIdTuple.ToString()] = a;
+                foreach( AppDef a in plan.getAppDefs() )
+                {
+                    newApps[a.AppIdTuple.ToString()] = a;
+                }
             }
 
             // remember apps from list
@@ -133,21 +165,24 @@ namespace Dirigent.Agent.Gui
                 }
             }
 
-            foreach( AppDef a in plan.getAppDefs() )
+            if (plan != null)
             {
-                var id = a.AppIdTuple.ToString();
-                if (!oldApps.ContainsKey(id) )
+                foreach (AppDef a in plan.getAppDefs())
                 {
-                    toAdd.Add(
-                        new ListViewItem(
-                            new string[]
-                            {
-                                id,
-                                getStatusCode( ctrl.GetAppState(a.AppIdTuple) )
+                    var id = a.AppIdTuple.ToString();
+                    if (!oldApps.ContainsKey(id))
+                    {
+                        toAdd.Add(
+                            new ListViewItem(
+                                new string[]
+                                {
+                                    id,
+                                    getStatusCode( ctrl.GetAppState(a.AppIdTuple) )
 
-                            }
-                        )
-                    );
+                                }
+                            )
+                        );
+                    }
                 }
             }
             
@@ -181,7 +216,8 @@ namespace Dirigent.Agent.Gui
 
         void refreshGui()
         {
-            refreshAppList();
+            //refreshAppList();
+            refreshAppList_smart();
         }
 
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
@@ -202,6 +238,46 @@ namespace Dirigent.Agent.Gui
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void loadPlanSubmenu_onClick( ILaunchPlan plan )
+        {
+            ctrl.LoadPlan( plan );
+            setTitle( plan.Name );
+        }
+
+        private void lstvApps_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                if (lstvApps.FocusedItem.Bounds.Contains(e.Location) == true)
+                {
+                    var focused = lstvApps.FocusedItem;
+                    var appIdTuple = new AppIdTuple(focused.Text);
+                    var st = ctrl.GetAppState(appIdTuple);
+
+                    // build popup menu
+                    var popup = new System.Windows.Forms.ContextMenuStrip(this.components);
+
+                    var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
+                    killItem.Click += (s, a) => ctrl.KillApp(appIdTuple);
+                    killItem.Enabled = st.Running;
+                    popup.Items.Add(killItem);
+
+                    var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
+                    launchItem.Click += (s, a) => ctrl.RunApp(appIdTuple);
+                    launchItem.Enabled = !st.Running;
+                    popup.Items.Add(launchItem);
+
+                    var restartItem = new System.Windows.Forms.ToolStripMenuItem("&Restart");
+                    restartItem.Click += (s, a) => ctrl.RestartApp(appIdTuple);
+                    restartItem.Enabled = st.Running;
+                    popup.Items.Add(restartItem);
+
+                    popup.Show(Cursor.Position);
+                    
+                }
+            }
         }
     }
 }
