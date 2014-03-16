@@ -1,57 +1,33 @@
-# Dirigent
-## Overview
+## Dirigent Overview
 Dirigent is an application life cycle management tool controlling a set of applications running on one or multiple networked computers. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
 
-It allows launching a given set of applications in given order according to predefined launch plan. The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application. The dependencies include both local and remote applications. 
+#### Launch plans
+Dirigent allows launching a given set of applications in given order according to predefined launch plan.
 
-Applications can also be terminated or restarted, either individually or all-at-once. An application that is supposed to run continuously can be automatically restarted after unexpected termination or crash.
+The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
 
+The dependencies are checked among both local and remote applications. 
+
+#### Individual applications control
+Applications can also be terminated or restarted, either individually or all-at-once.
+
+An application that is supposed to run continuously can be automatically restarted after unexpected termination or crash.
+
+#### Application status sharing
 The applications are continuously monitored whether they are already initialized and still running. Their status is distributed to all agents on all machines.
 
-All operations can be remotely controlled from any agent, from a separate remote control tool or programatically via a small .net library.
+#### Launching apps at startup
+A launch plan can be executed automatically on computer startup.
 
-A launch plan can be executed automatically on computer startup. To speedup the startup process of a system comprising multiple interdependent computers, certain applications (not dependent on those on other computers) can be launched even before the connection among computers is estabilished.
+To speedup the startup process of a system comprising multiple interdependent computers, certain applications (not dependent on those on other computers) can be launched even before the connection among computers is estabilished.
 
+#### Ways of control
+All operations can be controlled from any computer via a control GUI, from a separate remote control tool or programatically via a small .net library.
 
-A single agent executable can be configured to to run either in local or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control app.
+#### Local and networked mode
+Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control application.
 
-
-
-## Usage
-
-On each computer where some apps shall be started, install and setup an agent application.
-
-Define launch plans into the shared config file. Make sure all agents use identical shared configuration file.
-
-Start a master on an arbitraty selected computer. Master may not be necessary if the dirigent is used for managing apps on just a single computer.
-
-In the local configuration of each agent specify the IP address and port of the master, as well as the machineId of respective agent.
-
-### Agent command line arguments
-
-By default the agent executeble works as a command line tool to send commands to agents
- 
- agent.exe <command> <arg1> <arg2> etc.
- 
-Zero exit code is returned on success, positive error code on failure.
- 
-The following options changes the mode of operation:
- --daemon .... no UI at all, just a log file
- --traygui ... an icon in tray with gui control app accessible from the context menu
- --remotectrlgui ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
- 
-Another options: 
- --singlemachine .... no network, just single-machine operation (no master needed); forces --traygui automatically.
- --minimized .... start minimized (only with --traygui and --remotecontrolgui)
- --logfile xyz.log ... what log file to use
- --autostartplan <plan_name> ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
- 
- 
-
-
-## Architecture
-
-#### Agents and master
+#### Arhitecture
 
 Each computer is running an agent process. One of the computers runs a master process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents.
 
@@ -64,9 +40,85 @@ Agents publish the status of local applications to master which in turn spreads 
 All agents share the same configuration of launch plans - each one knows what applications the others are supposed to run.
 
 
+
+## Usage
+
+### Basic steps
+#### 1. Deploy master and agents
+Start a master process on one of the computers. Master is not necessary in single-machine mode of operation.
+
+On each computer install an agent application.  Either as a service or as a system tray GUI application.
+
+Specify the IP address and port of the master and machineId of in the local configuration of each respective agent.
+
+
+#### 2. Configure launch plans
+Define launch plans (what apps to start on what computer in what order) into a SharedConfig.xml config file. Deploy this config file to all agents. All agents need to use identical shared configuration file.
+
+#### 3. Load and start a launch plan
+Select a launch plan to start, issue a Load Plan command followed by a Start Plan command.
+
+### Agent command line arguments
+
+#### Command line control
+By default the agent executeble works as a command line tool to send commands to agents
+ 
+ `agent.exe <command> <arg1> <arg2> ...`
+ 
+Zero exit code is returned on success, positive error code on failure.
+ 
+#### Operation mode selection
+The following options changes the mode of operation:
+
+ `--daemon` .... no UI at all, just a log file
+ 
+ `--traygui` ... an icon in tray with gui control app accessible from the context menu
+ 
+ `--remotectrlgui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
+ 
+#### Another options
+
+ `--singlemachine` .... no network, just single-machine operation (no master needed); forces --traygui automatically.
+ 
+ `--minimized` .... start minimized (only with --traygui and --remotecontrolgui)
+
+ `--logfile xyz.log` ... what log file to use
+
+ `--autostartplan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
+ 
+ 
+### Launch Plan Operations
+
+ - **Load Plan.** The given plan becomes the current plan. Any previous plan is stopped, i.e. all its app are killed.
+
+ - **Start Plan.** The current plan starts to get executed. The launch order is determined and the applications launch process begins.
+
+ - **Stop Plan.** All apps that are part of the current lauch plan are killed.
+
+ - **Restart Plan.** The current plan is stopped and started again. All apps from the plan are first killed and then thei launch process begins.
+
+### Individual Apps Operations
+
+ - **Kill App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
+
+ - **Run App.** The app is launched if not already running, ignoring any dependency checks.
+
+ - **Restart App.** The app is first killed and then launched again.
+
+## Configuration
+
+Dirient configuration comprises of two parts - a shared configuration  and a local configuration.
+
+Shared configuration is shared among all agents. It deals mainly with the launch plans.
+
+Local configuration defines the network connection information and operation mode details of a single agent or master application.
+
+### Shared config
+Shared configuration is stored in the SharedConfig.xlm file. 
+
 #### Launch plan
 
-Launch plan comprises just a list of apps to be launched in given order. At most one plan at a time is active.
+Launch plan comprises just a list of apps to be launched in given order. At most one plan at a time can be active.
 
 Each app in the launch plan has the following attributes:
 
@@ -82,15 +134,26 @@ Each app in the launch plan has the following attributes:
  
 #### Templated launch plan definition
 
-Plan definition in an XML file uses a template sections allowing the inheritance of attributes. Every record in the plan can reference a template record. All the attributes are loaded first from the template and only then they can ge overwritten by equally named attributes from the referencing entry. A template record can reference another more generic template record.
+Plan definition in an XML file uses a template sections allowing the inheritance of attributes.
 
-#### Computer list
+Every record in the plan can reference a template record.
 
-For each computer there is a textual machine id and the IP address defined. One of the machines is marked as master. Such computer will run not just agent process but also the master process. UPDATE: computer list not used, the configuration of each agent is local in local app config files.
+All the attributes are loaded first from the template and only then they can ge overwritten by equally named attributes from the referencing entry. 
+
+A template record itself can reference another more generic template record.
+
+### Local config
+Local configuration is put together from multiple sources. The are listed in the descending order of priority:
+
+ - Command line arguments
+ - App.config file
+ - Shared config file
+ - Built-in defaults
+
 
 #### Autodetection of the machine id
 
-UPDATE: not used.
+[UPDATE] Not used.
 By comapring the computer's IP address with those available in the computer list the dirigent processes automaticaly determine on what machine they are running. There is no need to tell them what machine id they are going to use.
 
 
@@ -100,12 +163,20 @@ Some apps take a long time to boot up and initialize. Dirigent should not start 
 
 Dirigent supports multiple methods of detection whther an application is already up and running. The method can can be specified for each application in the launch plan.
 
-The simplest methods do not require any involvement of the application - for example the time measured from app launch. Such method are usually suboptimal - they usually need to wait longer than abosolutely necessary to safely avoid premature completion. Better methods rely on some observable results of application execution - like showing a window, creating a file, creating a global mutext etc. For optimal results the application may be required to implement a direct support for such a detection.
+The simplest methods do not require any involvement of the application - for example the time measured from app launch. Such method are usually suboptimal - they usually need to wait longer than abosolutely necessary to safely avoid premature completion.
+
+Better methods rely on some observable results of application execution - like showing a window, creating a file, creating a global mutext etc. For optimal results the application may be required to implement a direct support for such a detection.
  
 
 #### Dirigent control
 
 Dirigent can be controlled in multiple ways, each fitted for different use case. Everything can be controlled manually from the control GUI. Control commands can be sent to dirigent by executing its command line remote control application. Also a .net remote control library is available for embedding into user applications.
+
+#### Computer list
+
+[UPDATE] Not used.
+For each computer there is a textual machine id and the IP address defined. One of the machines is marked as master. Such computer will run not just agent process but also the master process. UPDATE: computer list not used, the configuration of each agent is local in local app config files.
+
  
 
 #### Execution of launch plan
@@ -126,28 +197,3 @@ Skonèí-li všechny pokusy o spuštìní nezdarem, provádìní spouštìcího plánu se zas
 
 
 
-#### Message among agents and the master
-
-Note: Master forwards an incoming message to all agents including the sender.
-
- - **start plan.** Master ádá všechny agenty o zahájení provádìní daného spouštìcího plánu. Agenti rozhodnou o poøadí aplikací (vypoètou vlny; kadı vychází ze stejné sdílené konfigurace) a zaènou spouštìt aplikace. Prùbìnì aktualizují stav aplikací z plánu. Neskonèí, dokud nejsou spuštìné všechny nebo nedostanou povel k ukonèení plánu. Úspìšné spuštìní všeho nijak zvláš nesignalizuje, master to pozná sám ze sdíleného stavu aplikací.
-
- - **stop plan.** Master posílá agentùm povel k ukonèení všech aplikací dosud spuštìnıch v rámci aktuálního plánu. Agenti aplikace pozabíjí a aktualizují sdílenı stav aplikací.
-
- - **Stav lokálních aplikací.** Agent posílá masterovi stav svıch lokálních aplikací. Master si zaktualizuje stav aplikací v repozitáøi a rozešle stav všech aplikací všem agentùm.
-
- - **Stav všech aplikací.** Master posílá všem agentùm stav všech aplikací tak, jak jej dostal od jednotlivıch agentù. 
-
- - **Chyba spouštìní plánu.** Agent informuje mastera o selhání jeho èásti spouštìcího plánu.
-
- - **Restartuj zvolenou aplikaci.** Master posílá agentovi poadavek na ukonèení a následné spuštìní vybrané aplikace z konkrétního plánu.
-
- - **Ukonèi zvolenou aplikaci.** Master posílá agentovi poadavek na ukonèení aplikace. Agent aplikaci zabije a aktualizuje sdílenı stav aplikace.
-
- - **Spus zvolenou aplikaci.** Master posílá agentovi poadavek na spuštìní zvolené aplikace z aktuálního plánu. Agent aplikaci spustí a aktualizuje sdílenı stav aplikace.
-
- - Pøedej poadavek masterovi. Agent ádá mastera o provedení akce, kterou potenciálnì nezvládne sám (napø. spuštìní aplikace najiném poèítaèi). Master poadavek pøepošle na agenta nebo agenty, kteøí poadavek dokáí splnit.
-
-
-
- 

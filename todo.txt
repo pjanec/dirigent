@@ -1,20 +1,9 @@
-﻿Run server process om master machine automatically on agent start. Reset the server process if server already running.
-
-Allow for non-windowed mode (console app for linux, windows service).
-
-Server as windows service.
-
-Add command line options to specify the config files, initial launch plan to follow etc.
-
-Extract the preparation of agent configuration into a separate class and use it for non-windowed mode.
-
+﻿
 Add log4net logging. In non-windowed mode, log the exceptions using log4net.
 
-Separate main GUI form into a reusable library, requiring just IDirigentControl.
+Server as windows service (maybe through a 3rd party service loader app??)
 
-Two flavors of GUI - with local agent and the one that connect remotely to a session without starting its own agent instance.
-
-NetworkOperations to use just IDirigentCOntrol instead of LocalOperations.
+Add command line options to specify the config files, initial launch plan to follow etc.
 
 Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..
 
@@ -27,3 +16,13 @@ Support for disabling an application before starting a launch plan.
 Support for multiple retries when launching a problematically starting application.
 
 Failure timeout for boot up detector.
+
+Synchronize shared configuration upon connection to master. Resolve conflicts with locally stored config.
+
+
+[REJECTED] Run server process om master machine automatically on agent start. Reset the server process if server already running.
+[DONE] Allow for non-windowed mode (console app for linux, windows service).
+[DONE] Extract the preparation of agent configuration into a separate class and use it for non-windowed mode.
+[DONE] Separate main GUI form into a reusable library, requiring just IDirigentControl.
+[DONE] NetworkOperations to use just IDirigentCOntrol instead of LocalOperations.
+[DONE] Two flavors of GUI - one with embedded agent and one that connect remotely to a session without starting its own agent instance.
