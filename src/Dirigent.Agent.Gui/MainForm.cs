@@ -17,10 +17,12 @@ namespace Dirigent.Agent.Gui
     public partial class frmMain : Form
     {
         public delegate void TickDelegate();
+        public delegate bool IsConnectedDelegate();
 
         IDirigentControl ctrl;
         string machineId;
         TickDelegate tickDeleg;
+        IsConnectedDelegate isConnectedDeleg;
 
 
         //void terminateFromConstructor()
@@ -36,12 +38,13 @@ namespace Dirigent.Agent.Gui
                 doubleBufferPropertyInfo.SetValue(control, enable, null);
             }
         }
-        
-        public frmMain( IDirigentControl ctrl, TickDelegate tickDeleg, SharedConfig scfg, string machineId )
+
+        public frmMain(IDirigentControl ctrl, TickDelegate tickDeleg, SharedConfig scfg, string machineId, IsConnectedDelegate isConnectedDeleg)
         {
             this.ctrl = ctrl;
             this.tickDeleg = tickDeleg;
             this.machineId = machineId;
+            this.isConnectedDeleg = isConnectedDeleg;
 
             InitializeComponent();
 
@@ -214,10 +217,36 @@ namespace Dirigent.Agent.Gui
 
         }
 
+        void refreshStatusBar()
+        {
+            if (isConnectedDeleg())
+            {
+                toolStripStatusLabel1.Text = "Connected.";
+
+            }
+            else
+            {
+                toolStripStatusLabel1.Text = "Diconnected.";
+            }
+
+        }
+
+        void refreshMenu()
+        {
+            bool isConnected = isConnectedDeleg();
+            bool hasPlan = ctrl.GetPlan() != null;
+            planToolStripMenuItem.Enabled = isConnected;
+            startToolStripMenuItem.Enabled = hasPlan;
+            stopToolStripMenuItem.Enabled = hasPlan;
+            restartToolStripMenuItem.Enabled = hasPlan;
+        }
+
         void refreshGui()
         {
             //refreshAppList();
             refreshAppList_smart();
+            refreshStatusBar();
+            refreshMenu();
         }
 
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
@@ -256,8 +285,11 @@ namespace Dirigent.Agent.Gui
                     var appIdTuple = new AppIdTuple(focused.Text);
                     var st = ctrl.GetAppState(appIdTuple);
 
+                    bool connected = isConnectedDeleg();
+
                     // build popup menu
                     var popup = new System.Windows.Forms.ContextMenuStrip(this.components);
+                    popup.Enabled = connected;
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
                     killItem.Click += (s, a) => ctrl.KillApp(appIdTuple);
@@ -279,5 +311,6 @@ namespace Dirigent.Agent.Gui
                 }
             }
         }
+
     }
 }

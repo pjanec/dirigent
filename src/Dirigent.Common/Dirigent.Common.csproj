@@ -52,6 +52,7 @@
     <Compile Include="AppIdTuple.cs" />
     <Compile Include="AppState.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="AutoconClient.cs" />
     <Compile Include="LocalXmlConfigReader.cs" />
     <Compile Include="MachineConfigHelper.cs" />
     <Compile Include="Configuration.cs" />

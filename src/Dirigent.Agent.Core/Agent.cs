@@ -17,22 +17,15 @@ namespace Dirigent.Agent.Core
         LocalOperations localOps;
         NetworkOperations netOps;
         
-        Client client;
-        //Server server;
-
         public Agent(
             string machineId,
-            string masterIP,
-            int masterPort
+            IClient client
         )
         {
-            client = new Client(machineId, masterIP, masterPort);
-            
             LauncherFactory launcherFactory = new LauncherFactory();
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
             localOps = new LocalOperations( machineId, launcherFactory, appInitializedDetectorFactory );
             netOps = new NetworkOperations( client, localOps );
-
         }
 
         public void tick()

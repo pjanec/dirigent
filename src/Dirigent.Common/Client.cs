@@ -63,5 +63,15 @@ namespace Dirigent.Net
         {
             serverObject.BroadcastMessage( name, msg );
         }
+
+        public bool IsConnected()
+        {
+            // we don't know whether wqe are still connected, we throw exceptions if not, just return true
+            return true;
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

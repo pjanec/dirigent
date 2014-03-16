@@ -79,9 +79,16 @@ namespace Dirigent.Agent.TrayApp
                 SharedConfig scfg = new SharedXmlConfigReader().Load(File.OpenText(sharedCfgFileName));
                 //LocalConfig lcfg = new LocalXmlConfigReader().Load(File.OpenText(localCfgFileName));
 
-                var agent = new Dirigent.Agent.Core.Agent( machineId, masterIP, masterPort );
+                //var client = new Dirigent.Net.Client(machineId, masterIP, masterPort);
+                //client.Connect(); // FIXME: add reconnection support!
 
-                Application.Run(new frmMain(agent.getControl(), agent.tick, scfg, machineId));
+                using (var client = new Dirigent.Net.AutoconClient(machineId, masterIP, masterPort))
+                {
+                    var agent = new Dirigent.Agent.Core.Agent(machineId, client);
+
+                    Application.Run(new frmMain(agent.getControl(), agent.tick, scfg, machineId, client.IsConnected));
+
+                }
             }
             catch( Exception ex )
             {

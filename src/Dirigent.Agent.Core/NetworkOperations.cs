@@ -21,24 +21,19 @@ namespace Dirigent.Agent.Core
         IDirigentControl localOps;
 
 
+        /// <summary>
+        /// Client needs to be already connected or autoconnecting!
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="localOps"></param>
         public NetworkOperations(
                     IClient client,
                     IDirigentControl localOps )
         {
-            
+                
             this.machineId = client.Name;
             this.client = client;
             this.localOps = localOps;
-
-            // try to connect to the server
-            try
-            {
-                client.Connect();
-            }
-            catch( Exception ex )
-            {
-                throw;
-            }
 
         }
 

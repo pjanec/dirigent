@@ -29,10 +29,10 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem5 = new System.Windows.Forms.ListViewItem(new string[] {
             "polozka1",
             "Running"}, -1);
-            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem6 = new System.Windows.Forms.ListViewItem(new string[] {
             "Polozka2",
             "Not Started"}, -1);
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -55,12 +55,16 @@
             this.killToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.tmrTick = new System.Windows.Forms.Timer(this.components);
+            this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.statusStrip.SuspendLayout();
             this.menuMain.SuspendLayout();
             this.ctxmAppList.SuspendLayout();
             this.SuspendLayout();
             // 
             // statusStrip
             // 
+            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripStatusLabel1});
             this.statusStrip.Location = new System.Drawing.Point(0, 233);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(345, 22);
@@ -163,8 +167,8 @@
             this.lstvApps.FullRowSelect = true;
             this.lstvApps.GridLines = true;
             this.lstvApps.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem1,
-            listViewItem2});
+            listViewItem5,
+            listViewItem6});
             this.lstvApps.Location = new System.Drawing.Point(0, 31);
             this.lstvApps.Name = "lstvApps";
             this.lstvApps.Size = new System.Drawing.Size(345, 202);
@@ -215,6 +219,11 @@
             this.tmrTick.Interval = 500;
             this.tmrTick.Tick += new System.EventHandler(this.tmrTick_Tick);
             // 
+            // toolStripStatusLabel1
+            // 
+            this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -226,6 +235,8 @@
             this.MainMenuStrip = this.menuMain;
             this.Name = "frmMain";
             this.Text = "Dirigent";
+            this.statusStrip.ResumeLayout(false);
+            this.statusStrip.PerformLayout();
             this.menuMain.ResumeLayout(false);
             this.menuMain.PerformLayout();
             this.ctxmAppList.ResumeLayout(false);
@@ -256,6 +267,7 @@
         private System.Windows.Forms.ToolStripMenuItem killToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem1;
         private System.Windows.Forms.Timer tmrTick;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
     }
 }
 
