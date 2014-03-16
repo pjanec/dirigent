@@ -27,7 +27,7 @@ All operations can be controlled from any computer via a control GUI, from a sep
 #### Local and networked mode
 Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control application.
 
-#### Arhitecture
+#### Architecture
 
 Each computer is running an agent process. One of the computers runs a master process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents.
 
@@ -44,10 +44,13 @@ All agents share the same configuration of launch plans - each one knows what ap
 ## Usage
 
 ### Basic steps
-#### 1. Deploy master and agents
-Start a master process on one of the computers. Master is not necessary in single-machine mode of operation.
+#### 1. Setup a master
+Start a master process on one of the machines. Master is not necessary in single-machine mode of operation.
 
-On each computer install an agent application.  Either as a service or as a system tray GUI application.
+#### Deploy agents
+On each machine install an agent application.
+
+Assign a unique machineId to each agent so it could identify its application in the launch plan.
 
 Specify the IP address and port of the master and machineId of in the local configuration of each respective agent.
 
@@ -58,19 +61,35 @@ Define launch plans (what apps to start on what computer in what order) into a S
 #### 3. Load and start a launch plan
 Select a launch plan to start, issue a Load Plan command followed by a Start Plan command.
 
-### Agent command line arguments
+### Available Actions
+The Dirigent can perform actions related either to a set of applications grouped into a launch plan or to individual applications that are part of the currently loaded launch plan.
 
-#### Command line control
-By default the agent executeble works as a command line tool to send commands to agents
- 
- `agent.exe <command> <arg1> <arg2> ...`
- 
-Zero exit code is returned on success, positive error code on failure.
- 
+#### Launch Plan Actions
+
+ - **Load Plan.** The given plan becomes the current plan. Any previous plan is stopped, i.e. all its app are killed.
+
+ - **Start Plan.** The current plan starts to get executed. The launch order is determined and the applications launch process begins.
+
+ - **Stop Plan.** All apps that are part of the current lauch plan are killed.
+
+ - **Restart Plan.** The current plan is stopped and started again. All apps from the plan are first killed and then thei launch process begins.
+
+#### Individual Apps Actions
+
+ - **Kill App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
+
+ - **Run App.** The app is launched if not already running, ignoring any dependency checks.
+
+ - **Restart App.** The app is first killed and then launched again.
+
+### Agent command line arguments
+`Agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
+
 #### Operation mode selection
+
 The following options changes the mode of operation:
 
- `--daemon` .... no UI at all, just a log file
+ `--daemon` .... no user inteface at all, just a log file
  
  `--traygui` ... an icon in tray with gui control app accessible from the context menu
  
@@ -86,32 +105,34 @@ The following options changes the mode of operation:
 
  `--autostartplan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
  
+### Agent Console Command Line Utility
+
+There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
  
-### Launch Plan Operations
+ `agentcmd.exe <command> <arg1> <arg2> ...`
+ 
+Zero exit code is returned on success, positive error code on failure.
 
- - **Load Plan.** The given plan becomes the current plan. Any previous plan is stopped, i.e. all its app are killed.
+The commands just simply follow the available agent actions, please see chapter *Available Actions* for more details.
 
- - **Start Plan.** The current plan starts to get executed. The launch order is determined and the applications launch process begins.
+    loadPlan <planId>
+    startPlan <planId>
+    stopPlan <planId>
+    restartPlan <planId>
+    
+    runApp <appId>
+    killApp <appId>
+    restarApp <appId>
+    
 
- - **Stop Plan.** All apps that are part of the current lauch plan are killed.
-
- - **Restart Plan.** The current plan is stopped and started again. All apps from the plan are first killed and then thei launch process begins.
-
-### Individual Apps Operations
-
- - **Kill App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
-
- - **Run App.** The app is launched if not already running, ignoring any dependency checks.
-
- - **Restart App.** The app is first killed and then launched again.
-
+ 
 ## Configuration
 
-Dirient configuration comprises of two parts - a shared configuration  and a local configuration.
+Dirigent configuration comprises of two parts - a shared configuration  and a local configuration.
 
-Shared configuration is shared among all agents. It deals mainly with the launch plans.
+Shared configuration is shared among all agents. It deals mainly with the launch plans but can be used also for common network settings like master's IP and port.
 
-Local configuration defines the network connection information and operation mode details of a single agent or master application.
+Local configuration defines the network settings and operation mode details of a single agent or master application.
 
 ### Shared config
 Shared configuration is stored in the SharedConfig.xlm file. 
@@ -122,7 +143,7 @@ Launch plan comprises just a list of apps to be launched in given order. At most
 
 Each app in the launch plan has the following attributes:
 
- - unique text id of the application; togeher with the machine id it makes a unique id
+ - unique text id of the application instance; comes together with the machine id
  - application binary file full path
  - startup directory
  - command line arguments
@@ -132,6 +153,7 @@ Each app in the launch plan has the following attributes:
  - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
  - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.)
  
+
 #### Templated launch plan definition
 
 Plan definition in an XML file uses a template sections allowing the inheritance of attributes.
@@ -142,44 +164,44 @@ All the attributes are loaded first from the template and only then they can ge 
 
 A template record itself can reference another more generic template record.
 
+#### Identifying an application
+
+The application instance is uniquely addressed by the name of the computer it is running on and by the name chosen for particular instance of an application. These two are separated by a dot, having format `machineId.applicationInstanceId`.
+
+The `machineId` is unique globally. 
+
+The `applicationInstanceId` is unique within the launch plan where it is used.
+
+#### Selecting a boot up completion detector
+
+Some apps take a long time to boot up and initialize. Dirigent should not start a dependent app until its dependecies are satisfied. By 'satisfied' it is meant that the all the dependencies are already running and that they have completed their initialization phase.
+
+Dirigent supports multiple methods of detection whether an application is already up and running. The method together with its parameters can be specified for each application in the launch plan.
+
+Following methods are available
+
+ - `immediate` - An app is considered initialized immediately after the launching of an application. This is the default.
+
+ - `timeout <seconds>` - After specified amount of seconds after launching the app
+
+ - `exitcode <number>` - After the app have terminated and its exit code matches the number specified. This can be combined with an auto-restart option of the application, resulting in a repetitive launches until given exitcode is returned.
+ 
+
 ### Local config
 Local configuration is put together from multiple sources. The are listed in the descending order of priority:
 
  - Command line arguments
  - App.config file
- - Shared config file
+ - Shared config file (can be used for network setting like master IP and port)
  - Built-in defaults
 
 
 #### Autodetection of the machine id
+Computer's NetBIOS name is used as a default machineId if not specified otherwise.
 
-[UPDATE] Not used.
-By comapring the computer's IP address with those available in the computer list the dirigent processes automaticaly determine on what machine they are running. There is no need to tell them what machine id they are going to use.
+## Further Details
 
-
-### Application boot up completion detection
-
-Some apps take a long time to boot up and initialize. Dirigent should not start a dependent app until its dependecies are satisfied. By 'satisfied' it is meant that the all the dependencies are already running and that they have completed their initialization phase.
-
-Dirigent supports multiple methods of detection whther an application is already up and running. The method can can be specified for each application in the launch plan.
-
-The simplest methods do not require any involvement of the application - for example the time measured from app launch. Such method are usually suboptimal - they usually need to wait longer than abosolutely necessary to safely avoid premature completion.
-
-Better methods rely on some observable results of application execution - like showing a window, creating a file, creating a global mutext etc. For optimal results the application may be required to implement a direct support for such a detection.
- 
-
-#### Dirigent control
-
-Dirigent can be controlled in multiple ways, each fitted for different use case. Everything can be controlled manually from the control GUI. Control commands can be sent to dirigent by executing its command line remote control application. Also a .net remote control library is available for embedding into user applications.
-
-#### Computer list
-
-[UPDATE] Not used.
-For each computer there is a textual machine id and the IP address defined. One of the machines is marked as master. Such computer will run not just agent process but also the master process. UPDATE: computer list not used, the configuration of each agent is local in local app config files.
-
- 
-
-#### Execution of launch plan
+### Execution of a launch plan
 
 A new launch plan automatically cancels any previous plan, i.e. all apps from the previous plan are killed. The application from the new plan are initially assigned the state 'not launched'.
 
@@ -191,9 +213,6 @@ If some application fails to start, dirigent can be configured to retry the laun
 
 If all attempts fail, the plaunch plan is stopped and an error is returned.
 
-Pokud se nÏkter· z aplikacÌ nepoda¯Ì spustit, dirigent (v z·vislosti na nastavenÌ tÈ kterÈ aplikace) m˘ûe pokus o spuötÏnÌ i nÏkolik·t opakovat.
-
-SkonËÌ-li vöechny pokusy o spuötÏnÌ nezdarem, prov·dÏnÌ spouötÏcÌho pl·nu se zastavÌ a nahl·sÌ se chyba. Chyba se hl·sÌ vöem ˙ËastnÌk˘m. Zobrazit uûivateli by ji mÏl ale pouze zadavatel povelu pro spouötÏnÌ pl·nu. Pokud byl pl·n spuötÏn z dirigentova GUI, objevÌ se chyba v tomto GUI. Pokud o spuötÏnÌ pl·nu poû·dala jin· aplikace (nap¯. p¯es sÌù), dostane chybovou zpr·vu zpÏt po stejnÈm kan·lu.
 
 
 
