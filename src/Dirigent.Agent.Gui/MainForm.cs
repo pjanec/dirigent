@@ -18,11 +18,17 @@ namespace Dirigent.Agent.Gui
     {
         public delegate void TickDelegate();
         public delegate bool IsConnectedDelegate();
+        public delegate void OnCloseDelegate(FormClosingEventArgs e);
+        public delegate void OnMinimizeDelegate();
 
         IDirigentControl ctrl;
         string machineId;
         TickDelegate tickDeleg;
         IsConnectedDelegate isConnectedDeleg;
+        
+        // the following delegates are used by the trayapp to keep the form initialized (just hidden) on close
+        public OnCloseDelegate onCloseDeleg = delegate {};
+        public OnMinimizeDelegate onMinimizeDeleg = delegate {};
 
 
         //void terminateFromConstructor()
@@ -39,7 +45,12 @@ namespace Dirigent.Agent.Gui
             }
         }
 
-        public frmMain(IDirigentControl ctrl, TickDelegate tickDeleg, SharedConfig scfg, string machineId, IsConnectedDelegate isConnectedDeleg)
+        public frmMain(
+            IDirigentControl ctrl,
+            TickDelegate tickDeleg,
+            SharedConfig scfg,
+            string machineId,
+            IsConnectedDelegate isConnectedDeleg )
         {
             this.ctrl = ctrl;
             this.tickDeleg = tickDeleg;
@@ -119,6 +130,10 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+        /// <summary>
+        /// Update the list of apps by doing minimal changes to avoid losing focus.
+        /// Adding what is not yet there and deleting what has disappeared.
+        /// </summary>
         void refreshAppList_smart()
         {
             // FIXME: still flickering!!!
@@ -264,11 +279,6 @@ namespace Dirigent.Agent.Gui
             ctrl.RestartPlan();
         }
 
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void loadPlanSubmenu_onClick( ILaunchPlan plan )
         {
             ctrl.LoadPlan( plan );
@@ -312,5 +322,30 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(
+                "Dirigent app launcher\nby pjanec\nMIT license",
+                "About Dirigent",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        private void frmMain_Resize(object sender, EventArgs e)
+        {
+            if (FormWindowState.Minimized == this.WindowState)
+            {
+                onMinimizeDeleg();
+            }
+
+            //else if (FormWindowState.Normal == this.WindowState)
+            //{
+            //}
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            onCloseDeleg(e);
+        }
     }
 }

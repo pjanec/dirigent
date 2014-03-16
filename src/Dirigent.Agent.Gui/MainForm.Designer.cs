@@ -29,16 +29,16 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewItem listViewItem5 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
             "polozka1",
             "Running"}, -1);
-            System.Windows.Forms.ListViewItem listViewItem6 = new System.Windows.Forms.ListViewItem(new string[] {
+            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] {
             "Polozka2",
             "Not Started"}, -1);
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.statusStrip = new System.Windows.Forms.StatusStrip();
+            this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuMain = new System.Windows.Forms.MenuStrip();
-            this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.planToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.startToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -55,7 +55,7 @@
             this.killToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.tmrTick = new System.Windows.Forms.Timer(this.components);
-            this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.statusStrip.SuspendLayout();
             this.menuMain.SuspendLayout();
             this.ctxmAppList.SuspendLayout();
@@ -71,10 +71,14 @@
             this.statusStrip.TabIndex = 0;
             this.statusStrip.Text = "statusStrip1";
             // 
+            // toolStripStatusLabel1
+            // 
+            this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
+            // 
             // menuMain
             // 
             this.menuMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.fileToolStripMenuItem,
             this.planToolStripMenuItem,
             this.helpToolStripMenuItem});
             this.menuMain.Location = new System.Drawing.Point(0, 0);
@@ -82,20 +86,6 @@
             this.menuMain.Size = new System.Drawing.Size(345, 28);
             this.menuMain.TabIndex = 1;
             this.menuMain.Text = "menuStrip1";
-            // 
-            // fileToolStripMenuItem
-            // 
-            this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.exitToolStripMenuItem});
-            this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(44, 24);
-            this.fileToolStripMenuItem.Text = "File";
-            // 
-            // exitToolStripMenuItem
-            // 
-            this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(102, 24);
-            this.exitToolStripMenuItem.Text = "&Exit";
             // 
             // planToolStripMenuItem
             // 
@@ -167,8 +157,8 @@
             this.lstvApps.FullRowSelect = true;
             this.lstvApps.GridLines = true;
             this.lstvApps.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem5,
-            listViewItem6});
+            listViewItem1,
+            listViewItem2});
             this.lstvApps.Location = new System.Drawing.Point(0, 31);
             this.lstvApps.Name = "lstvApps";
             this.lstvApps.Size = new System.Drawing.Size(345, 202);
@@ -219,10 +209,10 @@
             this.tmrTick.Interval = 500;
             this.tmrTick.Tick += new System.EventHandler(this.tmrTick_Tick);
             // 
-            // toolStripStatusLabel1
+            // notifyIcon1
             // 
-            this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "Dirigent";
             // 
             // frmMain
             // 
@@ -232,9 +222,12 @@
             this.Controls.Add(this.lstvApps);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.menuMain);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuMain;
             this.Name = "frmMain";
             this.Text = "Dirigent";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
+            this.Resize += new System.EventHandler(this.frmMain_Resize);
             this.statusStrip.ResumeLayout(false);
             this.statusStrip.PerformLayout();
             this.menuMain.ResumeLayout(false);
@@ -249,8 +242,6 @@
 
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.MenuStrip menuMain;
-        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem planToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem stopToolStripMenuItem;
@@ -268,6 +259,7 @@
         private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem1;
         private System.Windows.Forms.Timer tmrTick;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
+        private System.Windows.Forms.NotifyIcon notifyIcon1;
     }
 }
 
