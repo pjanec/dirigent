@@ -25,6 +25,7 @@ namespace Dirigent.Common
 
         IClient client;
         ILaunchPlan plan;
+        List<ILaunchPlan> planRepo;
         
         public NetworkControl( IClient client )
         {
@@ -112,9 +113,19 @@ namespace Dirigent.Common
             client.BroadcastMessage( new LoadPlanMessage( plan ) );
         }
 
-        public ILaunchPlan GetPlan()
+        public ILaunchPlan GetCurrentPlan()
         {
             return plan;
+        }
+
+        public IEnumerable<ILaunchPlan> GetPlanRepo()
+        {
+            return planRepo;
+        }
+
+        public void SetPlanRepo(IEnumerable<ILaunchPlan> planRepo)
+        {
+            client.BroadcastMessage(new PlanRepoMessage(planRepo) );
         }
 
         public void StartPlan()
@@ -146,5 +157,6 @@ namespace Dirigent.Common
         {
             client.BroadcastMessage( new KillAppMessage( appIdTuple ) );
         }
-    }
+
+}
 }

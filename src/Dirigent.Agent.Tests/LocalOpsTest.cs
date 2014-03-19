@@ -82,7 +82,7 @@ namespace Dirigent.Agent.Tests
         public string getAppsWithMatchingState(LocalOperations lo, Predicate<AppState> predicate)
         {
             var appIds =
-                from a in lo.GetPlan().getAppDefs() 
+                from a in lo.GetCurrentPlan().getAppDefs() 
                 where predicate( lo.GetAppState(a.AppIdTuple) )
                 orderby a.AppIdTuple.ToString()
                 select a.AppIdTuple.ToString();

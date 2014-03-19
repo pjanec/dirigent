@@ -87,4 +87,34 @@ namespace Dirigent.Net
     {
     }
 
+    /// <summary>
+    /// Master tells new client about the current launch plan
+    /// </summary>
+    [Serializable]
+    public class CurrentPlanMessage : Message
+    {
+        public ILaunchPlan plan;
+
+        public CurrentPlanMessage(ILaunchPlan plan)
+        {
+            this.plan = plan;
+        }
+
+    }
+
+    /// <summary>
+    /// Master tells new client about existing plans
+    /// </summary>
+    [Serializable]
+    public class PlanRepoMessage : Message
+    {
+        public IEnumerable<ILaunchPlan> repo;
+
+        public PlanRepoMessage(IEnumerable<ILaunchPlan> repo)
+        {
+            this.repo = repo;
+        }
+
+    }
+
 }

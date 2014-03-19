@@ -89,5 +89,22 @@ namespace Dirigent.Common
         {
             return MachineId.GetHashCode() ^ AppId.GetHashCode();
         }
+
+
+        public static bool operator ==(AppIdTuple person1, AppIdTuple person2)
+        {
+            if ((object)person1 == null || ((object)person2) == null)
+                return Object.Equals(person1, person2);
+
+            return person1.Equals(person2);
+        }
+
+        public static bool operator !=(AppIdTuple person1, AppIdTuple person2)
+        {
+            if (person1 == null || person2 == null)
+                return !Object.Equals(person1, person2);
+
+            return !(person1.Equals(person2));
+        }
     }
 }

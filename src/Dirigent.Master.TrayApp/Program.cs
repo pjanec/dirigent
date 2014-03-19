@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading;
+using System.Configuration;
 
 using Dirigent.Net;
-using System.Threading;
 
 namespace Dirigent.Master.TrayApp
 {

@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+
+using Dirigent.Common;
 
 namespace Dirigent.Net
 {
@@ -11,6 +14,7 @@ namespace Dirigent.Net
     {
         public string Name;
         public List<Message> MsgQueue;
+        public long lastActivityTicks;
     }
 
     /// <summary>
@@ -20,8 +24,46 @@ namespace Dirigent.Net
     /// Both client or server can broadcast a message.
     /// </summary>
     public class ServerRemoteObject : System.MarshalByRefObject
-    { 
+    {
+        private static ServerRemoteObject instance;
+
         Dictionary<string, ClientInfo> clients = new Dictionary<string, ClientInfo>();
+
+
+        // cached currennt plan repository
+        // loaded from shared config file on server startup
+        // set via PlanRepoMessage
+        // communicated via message so that clients do not need an extra public intefrace for reading this
+        List<ILaunchPlan> PlanRepo;
+
+        // cached current plan;
+        // set via LoadPlanMessage
+        ILaunchPlan CurrentPlan;
+
+        Timer disconTimer;
+
+        public static ServerRemoteObject Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new ServerRemoteObject();
+                }
+                return instance;
+            }
+        }
+        
+        
+        private ServerRemoteObject()
+        {
+            disconTimer = new Timer(DetectDisconnections, null, 0, 2000);
+        }
+
+        public override object InitializeLifetimeService()
+        {
+            return (null);
+        }
 
         /// <summary>
         /// Register a client.
@@ -31,37 +73,82 @@ namespace Dirigent.Net
         {
             if (name != null) 
             {
+                Console.WriteLine("Adding client '{0}'", name);
                 lock (clients)
                 {
                     var ci = new ClientInfo();
                     ci.Name = name;
                     ci.MsgQueue = new List<Message>();
+                    ci.lastActivityTicks = DateTime.UtcNow.Ticks;
 
                     clients[name] = ci;
+
+                    // inform new clients about current shared state
+                    ci.MsgQueue.Add( new CurrentPlanMessage(CurrentPlan));
+                    ci.MsgQueue.Add( new PlanRepoMessage(PlanRepo));
+
                 }
             }
         }
 
         public void RemoveClient(String name) 
         {
+            Console.WriteLine("Removing client '{0}'", name);
             lock (clients) 
             {
                 clients.Remove(name);
             }
         }
-        
+
+        /// <summary>
+        /// returns true if the message was fully handled and shall not be further processed
+        /// </summary>
+        /// <param name="clientName"></param>
+        /// <param name="msg"></param>
+        /// <returns></returns>
+        private bool HandleMessage(string clientName, Message msg)
+        {
+            Type t = msg.GetType();
+
+            if (t == typeof(LoadPlanMessage))
+            {
+                var m = msg as LoadPlanMessage;
+                lock (clients)
+                {
+                    CurrentPlan = m.plan;
+                }
+            }
+            else
+            if (t == typeof(PlanRepoMessage))
+            {
+                var m = msg as PlanRepoMessage;
+                lock (clients)
+                {
+                    PlanRepo = new List<ILaunchPlan>(m.repo);
+                }
+            }
+
+
+            return false;
+        }
+
         public void BroadcastMessage( string clientName, Message msg )
         {
+
+            if (HandleMessage(clientName, msg))
+            {
+                Console.WriteLine("Message handled: {0}", msg.ToString());
+                return;
+            }
+
             Console.WriteLine("Broadcasting message: {0}", msg.ToString());
-            // put to message queue for each client
+
+            // put to message queue for each client, including the sender (agents rely on that!)
             lock( clients )
             {
                 foreach( var ci in clients.Values )
                 {
-                    //if( ci.Name != clientName ) // do not send back to sender
-                    {
-                        ci.MsgQueue.Add( msg );
-                    }
+                    ci.MsgQueue.Add( msg );
                 }
             }
         }
@@ -73,10 +160,14 @@ namespace Dirigent.Net
 
         public IEnumerable<Message> ClientMessages( string clientName ) 
         {
-            var msgList = new List<Message>( clients[clientName].MsgQueue );
+            var ci = clients[clientName];
+            var msgList = new List<Message>( ci.MsgQueue );
             
             // messages saved, clear the list of waiting messages
-            clients[clientName].MsgQueue.Clear();
+            ci.MsgQueue.Clear();
+
+            // refresh inactivity timer
+            ci.lastActivityTicks = DateTime.UtcNow.Ticks;
 
             return msgList;
         }
@@ -87,6 +178,35 @@ namespace Dirigent.Net
         public void Reset()
         {
             clients.Clear();
+        }
+
+        private void DetectDisconnections( object state )
+        {
+            long currTicks = DateTime.UtcNow.Ticks;
+
+            lock (clients)
+            {
+                var toRemove = new List<string>();
+
+                foreach( var client in clients.Values )
+                {
+                    var ts = new TimeSpan(DateTime.UtcNow.Ticks - client.lastActivityTicks);
+                    var inactivityPeriod = ts.TotalSeconds;
+
+                    if (inactivityPeriod > 5.0)
+                    {
+                        toRemove.Add(client.Name);
+                    }
+
+                }
+
+                foreach( var name in toRemove )
+                {
+                    Console.WriteLine("Timing out client '{0}'", name);
+                    clients.Remove(name);
+                }
+            }
+
         }
 
     }

@@ -26,8 +26,24 @@ namespace Dirigent.Common
         // chci nacist novy plan (a tim zabit aplikace z predchoziho)
         void LoadPlan( ILaunchPlan plan );
 
-        // chci znat aktualni plan
-        ILaunchPlan GetPlan();
+        /// <summary>
+        /// Returns the currently loaded launch plan (or null if none loaded yet)
+        /// </summary>
+        /// <returns></returns>
+        ILaunchPlan GetCurrentPlan();
+
+        /// <summary>
+        /// Returns the available launch plans.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerable<ILaunchPlan> GetPlanRepo();
+
+        /// <summary>
+        /// Sets a new plan repository to be returned by GetPlanRepo().
+        /// Does not affect the current plan.
+        /// </summary>
+        /// <param name="planRepo"></param>
+        void SetPlanRepo( IEnumerable<ILaunchPlan> planRepo );
 
         // chci spustit aplikace dle aktualniho planu
         void StartPlan();

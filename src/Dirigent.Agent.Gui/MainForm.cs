@@ -30,6 +30,9 @@ namespace Dirigent.Agent.Gui
         public OnCloseDelegate onCloseDeleg = delegate {};
         public OnMinimizeDelegate onMinimizeDeleg = delegate {};
 
+        ILaunchPlan plan; // current plan
+        List<ILaunchPlan> planRepo; // current plan repo
+
 
         //void terminateFromConstructor()
         //{
@@ -60,20 +63,30 @@ namespace Dirigent.Agent.Gui
             InitializeComponent();
 
             setDoubleBuffered(lstvApps, true);
-            
-            // fill the Plan -> Load menu with items
-            foreach (var plan in scfg.Plans)
-            {
-                EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(plan.Value);
-                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Key, null, clickHandler);
 
-                loadToolStripMenuItem.DropDownItems.Add( menuItem );
-            }
+            this.plan = null;
+            this.planRepo = scfg.Plans;
+
+            PopulatePlanListMenu( scfg.Plans );
             
             // start ticking
             tmrTick.Enabled = true;
         }
 
+        void PopulatePlanListMenu( IEnumerable<ILaunchPlan> planRepo )
+        {
+            loadToolStripMenuItem.DropDownItems.Clear();
+
+            // fill the Plan -> Load menu with items
+            foreach (var plan in planRepo)
+            {
+                EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(plan);
+                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
+
+                loadToolStripMenuItem.DropDownItems.Add(menuItem);
+            }
+        }
+        
         void setTitle(string planName)
         {
             this.Text = string.Format("Dirigent [{0}] - {1}", machineId, planName);
@@ -109,7 +122,7 @@ namespace Dirigent.Agent.Gui
 
         void refreshAppList()
         {
-            var plan = ctrl.GetPlan();
+            var plan = ctrl.GetCurrentPlan();
             
             lstvApps.Items.Clear();
 
@@ -140,7 +153,7 @@ namespace Dirigent.Agent.Gui
 
             ListViewItem selected = null;
             
-            var plan = ctrl.GetPlan();
+            var plan = ctrl.GetCurrentPlan();
             
             // remmber apps from plan
             Dictionary<string, AppDef> newApps = new Dictionary<string, AppDef>();
@@ -249,11 +262,22 @@ namespace Dirigent.Agent.Gui
         void refreshMenu()
         {
             bool isConnected = isConnectedDeleg();
-            bool hasPlan = ctrl.GetPlan() != null;
+            bool hasPlan = ctrl.GetCurrentPlan() != null;
             planToolStripMenuItem.Enabled = isConnected;
             startToolStripMenuItem.Enabled = hasPlan;
             stopToolStripMenuItem.Enabled = hasPlan;
             restartToolStripMenuItem.Enabled = hasPlan;
+        }
+
+        void refreshPlans()
+        {
+            // check for new plans and update local copy/menu if they are different
+            var newPlanRepo = ctrl.GetPlanRepo();
+            if (!newPlanRepo.SequenceEqual(planRepo))
+            {
+                planRepo = new List<ILaunchPlan>( newPlanRepo );
+                PopulatePlanListMenu(planRepo);
+            }
         }
 
         void refreshGui()
@@ -262,6 +286,7 @@ namespace Dirigent.Agent.Gui
             refreshAppList_smart();
             refreshStatusBar();
             refreshMenu();
+            refreshPlans();
         }
 
         private void startToolStripMenuItem_Click(object sender, EventArgs e)

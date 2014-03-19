@@ -68,7 +68,7 @@ namespace Dirigent.Net
             {
                 try 
                 {
-                    serverObject = new ServerRemoteObject();
+                    serverObject = ServerRemoteObject.Instance;
 
                     serverObject.AddClient(name);
 

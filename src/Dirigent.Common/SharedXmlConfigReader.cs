@@ -25,8 +25,8 @@ namespace Dirigent.Common
 
             
             loadPlans();
-            loadMachines();
-            loadMaster();
+            //loadMachines();
+            //loadMaster();
 
             return cfg;
         }
@@ -105,7 +105,6 @@ namespace Dirigent.Common
                 }
                 
                 cfg.Plans.Add(
-                    planName,
                     new LaunchPlan(
                         planName,
                         new List<AppDef>( apps )
@@ -115,38 +114,38 @@ namespace Dirigent.Common
 
         }
 
-        MachineDef readMachineElement( XElement e )
-        {
-            MachineDef m = new MachineDef();
-            m.MachineId = X.getStringAttr(e, "Name");
-            m.IpAddress = X.getStringAttr(e, "IpAddress");
-            return m;
-        }
+        //MachineDef readMachineElement( XElement e )
+        //{
+        //    MachineDef m = new MachineDef();
+        //    m.MachineId = X.getStringAttr(e, "Name");
+        //    m.IpAddress = X.getStringAttr(e, "IpAddress");
+        //    return m;
+        //}
 
-        void loadMachines()
-        {
-            var machines = from m in doc.Element("Shared").Descendants("Machine")
-                         select readMachineElement(m);
+        //void loadMachines()
+        //{
+        //    var machines = from m in doc.Element("Shared").Descendants("Machine")
+        //                 select readMachineElement(m);
             
-            foreach( var ma in machines )
-            {
-                cfg.Machines.Add( ma.MachineId, ma );
-            }
-        }
+        //    foreach( var ma in machines )
+        //    {
+        //        cfg.Machines.Add( ma.MachineId, ma );
+        //    }
+        //}
 
-        void loadMaster()
-        {
-            var master = doc.Element("Shared").Element("Master");
-            cfg.MasterPort = X.getIntAttr( master, "Port" );
-            cfg.MasterName = X.getStringAttr( master, "Name" );
-        }
+        //void loadMaster()
+        //{
+        //    var master = doc.Element("Shared").Element("Master");
+        //    cfg.MasterPort = X.getIntAttr( master, "Port" );
+        //    cfg.MasterName = X.getStringAttr( master, "Name" );
+        //}
 
-        void loadLocalMachineId()
-        {
-            var master = doc.Element("Shared").Element("Local");
-            cfg.MasterPort = X.getIntAttr( master, "MasterPort" );
-            cfg.MasterName = X.getStringAttr( master, "MasterName" );
-        }
+        //void loadLocalMachineId()
+        //{
+        //    var master = doc.Element("Shared").Element("Local");
+        //    cfg.MasterPort = X.getIntAttr( master, "MasterPort" );
+        //    cfg.MasterName = X.getStringAttr( master, "MasterName" );
+        //}
 
     }
 }

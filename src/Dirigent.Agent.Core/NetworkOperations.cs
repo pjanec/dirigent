@@ -42,7 +42,7 @@ namespace Dirigent.Agent.Core
             // get status of local apps and send to others
             Dictionary<AppIdTuple, AppState> localAppsState = new Dictionary<AppIdTuple, AppState>();
             
-            var plan = localOps.GetPlan();
+            var plan = localOps.GetCurrentPlan();
             if( plan == null ) return;
 
             foreach( var appDef in plan.getAppDefs() )
@@ -121,6 +121,19 @@ namespace Dirigent.Agent.Core
                     var m = msg as RestartPlanMessage;
                     localOps.RestartPlan();
                 }
+                else
+                if (t == typeof(CurrentPlanMessage))
+                {
+                    var m = msg as CurrentPlanMessage;
+                    localOps.LoadPlan( m.plan );
+                }
+                else
+                if (t == typeof(PlanRepoMessage))
+                {
+                    var m = msg as PlanRepoMessage;
+                    localOps.SetPlanRepo( m.repo );
+                }
+
             }
         }
         
@@ -148,10 +161,21 @@ namespace Dirigent.Agent.Core
             client.BroadcastMessage( new LoadPlanMessage( plan ) );
         }
 
-        public ILaunchPlan GetPlan()
+        public ILaunchPlan GetCurrentPlan()
         {
-            return localOps.GetPlan();
+            return localOps.GetCurrentPlan();
         }
+
+        public IEnumerable<ILaunchPlan> GetPlanRepo()
+        {
+            return localOps.GetPlanRepo();
+        }
+
+        public void SetPlanRepo(IEnumerable<ILaunchPlan> planRepo)
+        {
+            client.BroadcastMessage( new PlanRepoMessage( planRepo ) );
+        }
+
 
         public void StartPlan()
         {

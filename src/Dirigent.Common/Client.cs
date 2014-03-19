@@ -44,7 +44,7 @@ namespace Dirigent.Net
                 string.Format("tcp://{0}:{1}/Dirigent", ipaddr, port)
             );
 
-            serverObject = new ServerRemoteObject();
+            serverObject = ServerRemoteObject.Instance;
 
             serverObject.AddClient( name );
         }

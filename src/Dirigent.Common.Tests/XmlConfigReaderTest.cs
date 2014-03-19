@@ -60,8 +60,8 @@ namespace DirigentCommons.Test
             var r = new SharedXmlConfigReader();
             var cfg = r.Load( new StringReader(xml) );
 
-            Assert.IsNotNull(cfg.Plans["plan1"].getAppDefs());
-            Assert.AreEqual( "m1.a", cfg.Plans["plan1"].getAppDefs().First().AppIdTuple.ToString() );
+            Assert.IsNotNull(cfg.Plans[0].getAppDefs());
+            Assert.AreEqual( "m1.a", cfg.Plans[0].getAppDefs().First().AppIdTuple.ToString() );
 
         }
     }

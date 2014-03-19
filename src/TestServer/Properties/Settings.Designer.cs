@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Dirigent.Agent.TrayApp.Properties {
+namespace TestServer.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -25,24 +25,6 @@ namespace Dirigent.Agent.TrayApp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
-        public string MasterIP {
-            get {
-                return ((string)(this["MasterIP"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("m1")]
-        public string MachineId {
-            get {
-                return ((string)(this["MachineId"]));
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("5045")]
         public int MasterPort {
             get {
@@ -52,7 +34,7 @@ namespace Dirigent.Agent.TrayApp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("../../../../data/SharedConfig.xml")]
+        [global::System.Configuration.DefaultSettingValueAttribute("../../../../data/SharedConfig-server.xml")]
         public string SharedConfigFile {
             get {
                 return ((string)(this["SharedConfigFile"]));

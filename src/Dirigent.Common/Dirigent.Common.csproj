@@ -53,7 +53,6 @@
     <Compile Include="AppState.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="AutoconClient.cs" />
-    <Compile Include="LocalXmlConfigReader.cs" />
     <Compile Include="MachineConfigHelper.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Exceptions.cs" />
@@ -65,7 +64,6 @@
     <Compile Include="MachineDef.cs" />
     <Compile Include="MachineState.cs" />
     <Compile Include="Messages.cs" />
-    <Compile Include="NetworkControl.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="ServerRemoteObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

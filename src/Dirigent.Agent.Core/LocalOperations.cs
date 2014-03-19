@@ -14,7 +14,7 @@ namespace Dirigent.Agent.Core
     public class LocalOperations : IDirigentControl
     {
         string machineId;
-        
+
         /// <summary>
         /// public state of all apps from current launch plan
         /// </summary>
@@ -30,9 +30,16 @@ namespace Dirigent.Agent.Core
         /// </summary>
         ILaunchPlan currentPlan;
 
+        /// <summary>
+        /// cached reference to all plans as received from master
+        /// </summary>
+        List<ILaunchPlan> planRepo;
+
         ILauncherFactory launcherFactory;
         LaunchDepsChecker launchDepChecker;
         LaunchSequencer launchSequencer;
+
+
         
         /// <summary>
         /// Whether we should launch apps during tick. False when plan is paused.
@@ -54,6 +61,7 @@ namespace Dirigent.Agent.Core
             appsState = new Dictionary<AppIdTuple,AppState>();
             localApps = new Dictionary<AppIdTuple,LocalApp>();
             currentPlan = null;
+            planRepo = new List<ILaunchPlan>();
             this.machineId = machineId;
 
             launchSequencer = new LaunchSequencer();
@@ -95,6 +103,14 @@ namespace Dirigent.Agent.Core
             
             appsState.Clear();
             localApps.Clear();
+            launchDepChecker = null;
+            planRunning = false;
+
+            if (plan == null)
+            {
+                return;
+            }
+
 
             foreach( var a in plan.getAppDefs() )
             {
@@ -115,14 +131,30 @@ namespace Dirigent.Agent.Core
 
             List<AppWave> waves = LaunchWavePlanner.build( plan.getAppDefs() );
             launchDepChecker = new LaunchDepsChecker( machineId, appsState, waves );
-            planRunning = false;
         }
 
-        public ILaunchPlan  GetPlan()
+        public ILaunchPlan  GetCurrentPlan()
         {
  	        return currentPlan;
         }
 
+        public IEnumerable<ILaunchPlan> GetPlanRepo()
+        {
+            return planRepo;
+        }
+
+        public void SetPlanRepo(IEnumerable<ILaunchPlan> planRepo)
+        {
+            if (planRepo == null)
+            {
+                this.planRepo = new List<ILaunchPlan>();
+            }
+            else
+            {
+                this.planRepo = new List<ILaunchPlan>(planRepo);
+            }
+        }
+        
         /// <summary>
         /// Starts launching local apps according to current plan.
         /// </summary>

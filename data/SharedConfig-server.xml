@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Shared>
+    <Plan Name="plan2">
+    	<App
+    	    AppIdTuple = "m1.a"
+    		Template = "apps.notepad"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "aaa.txt"
+    	/>
+
+    	<App
+    	    AppIdTuple = "m1.b"
+    		Template = "apps.notepad"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "bbb.txt"
+    	/>
+    </Plan>
+
+    <AppTemplate Name="apps.notepad"
+    		Template = ""
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = ""
+    		StartupOrder = "0"
+    		RestartOnCrash = "1"
+    		InitCondition = "timeout 2.0"
+    		SeparationInterval = "0.5"
+    />
+
+    <Machine Name="m1" IpAddress = "127.0.0.1" />
+
+    <Master	Name = "m1" Port = "12345" />
+
+</Shared>
