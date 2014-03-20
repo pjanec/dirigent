@@ -125,7 +125,13 @@ namespace Dirigent.Agent.Core
                 if (t == typeof(CurrentPlanMessage))
                 {
                     var m = msg as CurrentPlanMessage;
-                    localOps.LoadPlan( m.plan );
+                    
+                    // if master's plan is same as ours, do not do anything, othewise load master's plan
+                    var localPlan = localOps.GetCurrentPlan();
+                    if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)) )
+                    {
+                        localOps.LoadPlan( m.plan );
+                    }
                 }
                 else
                 if (t == typeof(PlanRepoMessage))

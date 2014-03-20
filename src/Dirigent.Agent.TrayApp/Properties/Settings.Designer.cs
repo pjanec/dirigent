@@ -58,5 +58,23 @@ namespace Dirigent.Agent.TrayApp.Properties {
                 return ((string)(this["SharedConfigFile"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string StartupPlan {
+            get {
+                return ((string)(this["StartupPlan"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public string StartHidden {
+            get {
+                return ((string)(this["StartHidden"]));
+            }
+        }
     }
 }

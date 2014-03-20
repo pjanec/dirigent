@@ -14,13 +14,16 @@ namespace Dirigent.Net
     {
         int port;
 
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         /// <summary>
         /// The "message broker" for forwarding messages to clients.
         /// Just instantiate the class to make the server working.
         /// The clients remotely access the ServerRemoteObject.
         /// </summary>
         /// <param name="port"></param>
-        public Server( int port, IEnumerable<ILaunchPlan> planRepo=null )
+        public Server( int port, IEnumerable<ILaunchPlan> planRepo=null, string startupPlanName="" )
         {
             this.port = port;
 
@@ -32,7 +35,29 @@ namespace Dirigent.Net
             
             // although there can't be any clients connected, this caches the planRepo internally
             // this cached one is then sent to the client when it first connects
-            ServerRemoteObject.Instance.BroadcastMessage("<master>", new PlanRepoMessage(planRepo));
+            if (planRepo != null)
+            {
+                log.InfoFormat("Forcing plan repository ({0} items)", planRepo.Count() );
+                ServerRemoteObject.Instance.BroadcastMessage("<master>", new PlanRepoMessage(planRepo));
+            }
+
+            // start the initial launch plan if specified
+            if (planRepo != null && startupPlanName != null && startupPlanName != "")
+            {
+                ILaunchPlan startupPlan;
+                try
+                {
+                     startupPlan = planRepo.First((i) => i.Name == startupPlanName);
+                }
+                catch
+                {
+                    throw new UnknownPlanName(startupPlanName);
+                }
+
+                log.InfoFormat("Forcing plan '{0}'", startupPlan.Name);
+                ServerRemoteObject.Instance.BroadcastMessage("<master>", new CurrentPlanMessage(startupPlan));
+            }
+        
         }
     }
 }

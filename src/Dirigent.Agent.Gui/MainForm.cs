@@ -51,7 +51,7 @@ namespace Dirigent.Agent.Gui
         public frmMain(
             IDirigentControl ctrl,
             TickDelegate tickDeleg,
-            SharedConfig scfg,
+            IEnumerable<ILaunchPlan> planRepo, // planRepo to be used until a new one is received from the master; null if none
             string machineId,
             IsConnectedDelegate isConnectedDeleg )
         {
@@ -65,9 +65,11 @@ namespace Dirigent.Agent.Gui
             setDoubleBuffered(lstvApps, true);
 
             this.plan = null;
-            this.planRepo = scfg.Plans;
-
-            PopulatePlanListMenu( scfg.Plans );
+            if (planRepo != null)
+            {
+                this.planRepo = new List<ILaunchPlan>(planRepo);
+                PopulatePlanListMenu(this.planRepo);
+            }
             
             // start ticking
             tmrTick.Enabled = true;
@@ -263,7 +265,7 @@ namespace Dirigent.Agent.Gui
         {
             bool isConnected = isConnectedDeleg();
             bool hasPlan = ctrl.GetCurrentPlan() != null;
-            planToolStripMenuItem.Enabled = isConnected;
+            //planToolStripMenuItem.Enabled = isConnected;
             startToolStripMenuItem.Enabled = hasPlan;
             stopToolStripMenuItem.Enabled = hasPlan;
             restartToolStripMenuItem.Enabled = hasPlan;

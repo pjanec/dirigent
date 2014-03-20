@@ -1,15 +1,15 @@
 ﻿
 [DONE] Make the master know the shared config and provide it to agents. Synchronize shared configuration upon connection to master. Resolve conflicts with locally stored config.
 
-Make shared config at agent optional. Make the use of it only until the connection to master is estabilished.
+[DONE] Make shared config at agent optional. Make the use of it only until the connection to master is estabilished.
 
 [DONE] Make the master know the current lauch plan and provide it to agents. Agent loads it upon connection to master.
 
 [DONE] Add log4net logging. In non-windowed mode, log the exceptions using log4net.
 
-Server as windows service (maybe through a 3rd party service loader app??) Or just TrayApp will be used instead? Service would allow starting processes on without any user logged in (which is not much useful).
+[DONE] Add command line options to specify the config files, initial launch plan to follow etc.
 
-Add command line options to specify the config files, initial launch plan to follow etc.
+[REJECTED] Server as windows service (maybe through a 3rd party service loader app??) Or just TrayApp will be used instead? Service would allow starting processes on without any user logged in (which is not much useful).
 
 Combine multiple operational modes into one single agent app (local, networked, console app, service, tray GUI app...)
 

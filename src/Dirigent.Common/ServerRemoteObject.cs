@@ -25,6 +25,9 @@ namespace Dirigent.Net
     /// </summary>
     public class ServerRemoteObject : System.MarshalByRefObject
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         private static ServerRemoteObject instance;
 
         Dictionary<string, ClientInfo> clients = new Dictionary<string, ClientInfo>();
@@ -73,7 +76,7 @@ namespace Dirigent.Net
         {
             if (name != null) 
             {
-                Console.WriteLine("Adding client '{0}'", name);
+                log.Info(string.Format("Adding client '{0}'", name));
                 lock (clients)
                 {
                     var ci = new ClientInfo();
@@ -84,8 +87,8 @@ namespace Dirigent.Net
                     clients[name] = ci;
 
                     // inform new clients about current shared state
-                    ci.MsgQueue.Add( new CurrentPlanMessage(CurrentPlan));
                     ci.MsgQueue.Add( new PlanRepoMessage(PlanRepo));
+                    ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlan));
 
                 }
             }
@@ -93,7 +96,7 @@ namespace Dirigent.Net
 
         public void RemoveClient(String name) 
         {
-            Console.WriteLine("Removing client '{0}'", name);
+            log.Info(string.Format("Removing client '{0}'", name));
             lock (clients) 
             {
                 clients.Remove(name);
@@ -119,6 +122,15 @@ namespace Dirigent.Net
                 }
             }
             else
+            if (t == typeof(CurrentPlanMessage))
+            {
+                var m = msg as CurrentPlanMessage;
+                lock (clients)
+                {
+                    CurrentPlan = m.plan;
+                }
+            }
+            else
             if (t == typeof(PlanRepoMessage))
             {
                 var m = msg as PlanRepoMessage;
@@ -137,11 +149,11 @@ namespace Dirigent.Net
 
             if (HandleMessage(clientName, msg))
             {
-                Console.WriteLine("Message handled: {0}", msg.ToString());
+                log.Debug(string.Format("Message handled: {0}", msg.ToString()));
                 return;
             }
 
-            Console.WriteLine("Broadcasting message: {0}", msg.ToString());
+            log.Debug(string.Format("Broadcasting message: {0}", msg.ToString()));
 
             // put to message queue for each client, including the sender (agents rely on that!)
             lock( clients )
@@ -202,7 +214,7 @@ namespace Dirigent.Net
 
                 foreach( var name in toRemove )
                 {
-                    Console.WriteLine("Timing out client '{0}'", name);
+                    log.Info(string.Format("Timing out client '{0}'", name));
                     clients.Remove(name);
                 }
             }

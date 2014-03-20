@@ -40,5 +40,14 @@ namespace TestServer.Properties {
                 return ((string)(this["SharedConfigFile"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("plan2")]
+        public string StartupPlan {
+            get {
+                return ((string)(this["StartupPlan"]));
+            }
+        }
     }
 }

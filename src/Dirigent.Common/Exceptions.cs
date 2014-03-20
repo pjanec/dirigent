@@ -59,5 +59,15 @@ namespace Dirigent.Common
         }
     }
 
+    public class UnknownPlanName : Exception
+    {
+        public string name;
+
+        public UnknownPlanName(string name)
+            : base("Launch plan '" + name + "' was not found.")
+        {
+            this.name = name;
+        }
+    }
 
 }

@@ -16,6 +16,8 @@ namespace Dirigent.Agent.Core
     {
         LocalOperations localOps;
         NetworkOperations netOps;
+        DirigentControlSwitchableProxy proxy;
+        IClient client;
         
         public Agent(
             string machineId,
@@ -24,23 +26,50 @@ namespace Dirigent.Agent.Core
         {
             LauncherFactory launcherFactory = new LauncherFactory();
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-            localOps = new LocalOperations( machineId, launcherFactory, appInitializedDetectorFactory );
-            netOps = new NetworkOperations( client, localOps );
+            this.localOps = new LocalOperations(machineId, launcherFactory, appInitializedDetectorFactory);
+            this.netOps = new NetworkOperations( client, localOps );
+            this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
+            this.client = client;
         }
 
         public void tick()
         {
             double currentTime = (double)DateTime.UtcNow.Ticks / TimeSpan.TicksPerSecond;
 
+            proxy.SwitchImpl(selectProxyImpl(client.IsConnected()));
+
             localOps.tick( currentTime );
             netOps.tick( currentTime );
+
         }
 
-        public IDirigentControl getControl()
+        /// <summary>
+        /// Returns a proxy object which uses local operations if not connected to master and 
+        /// network operations if connected to master.
+        /// </summary>
+        /// <returns></returns>
+        public IDirigentControl Control
         {
-            return netOps;
+            get
+            {
+                return proxy;
+            }
+        }
+
+        private IDirigentControl selectProxyImpl( bool isConnected )
+        {
+            return isConnected ? (IDirigentControl)netOps : (IDirigentControl) localOps;
+        }
+
+        public LocalOperations LocalOps
+        {
+            get
+            {
+                return localOps;
+            }
         }
 
 
     }
+
 }
