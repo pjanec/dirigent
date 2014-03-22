@@ -102,33 +102,33 @@
             // startToolStripMenuItem
             // 
             this.startToolStripMenuItem.Name = "startToolStripMenuItem";
-            this.startToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.startToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.startToolStripMenuItem.Text = "Start";
             this.startToolStripMenuItem.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
             // 
             // stopToolStripMenuItem
             // 
             this.stopToolStripMenuItem.Name = "stopToolStripMenuItem";
-            this.stopToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.stopToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.stopToolStripMenuItem.Text = "Stop";
             this.stopToolStripMenuItem.Click += new System.EventHandler(this.stopToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(121, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
             // 
             // loadToolStripMenuItem
             // 
             this.loadToolStripMenuItem.Name = "loadToolStripMenuItem";
-            this.loadToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.loadToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.loadToolStripMenuItem.Text = "Load";
             // 
             // helpToolStripMenuItem
@@ -184,24 +184,24 @@
             this.killToolStripMenuItem,
             this.restartToolStripMenuItem1});
             this.ctxmAppList.Name = "ctxmAppList";
-            this.ctxmAppList.Size = new System.Drawing.Size(125, 76);
+            this.ctxmAppList.Size = new System.Drawing.Size(153, 98);
             // 
             // runToolStripMenuItem
             // 
             this.runToolStripMenuItem.Name = "runToolStripMenuItem";
-            this.runToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.runToolStripMenuItem.Text = "&Launch";
+            this.runToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.runToolStripMenuItem.Text = "&Start";
             // 
             // killToolStripMenuItem
             // 
             this.killToolStripMenuItem.Name = "killToolStripMenuItem";
-            this.killToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.killToolStripMenuItem.Text = "&Kill";
+            this.killToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.killToolStripMenuItem.Text = "&Stop";
             // 
             // restartToolStripMenuItem1
             // 
             this.restartToolStripMenuItem1.Name = "restartToolStripMenuItem1";
-            this.restartToolStripMenuItem1.Size = new System.Drawing.Size(124, 24);
+            this.restartToolStripMenuItem1.Size = new System.Drawing.Size(152, 24);
             this.restartToolStripMenuItem1.Text = "&Restart";
             // 
             // tmrTick

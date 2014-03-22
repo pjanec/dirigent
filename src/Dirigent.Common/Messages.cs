@@ -27,26 +27,37 @@ namespace Dirigent.Net
     }
 
     [Serializable]
-    public class RunAppMessage : Message
+    public class StartAppMessage : Message
     {
         public AppIdTuple appIdTuple;
 
-        public RunAppMessage( AppIdTuple appIdTuple )
+        public StartAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("StartApp {0}", appIdTuple.ToString());
         }
 
     }
 
     [Serializable]
-    public class KillAppMessage : Message
+    public class StopAppMessage : Message
     {
         public AppIdTuple appIdTuple;
 
-        public KillAppMessage( AppIdTuple appIdTuple )
+        public StopAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
         }
+
+        public override string ToString()
+        {
+            return string.Format("StopApp {0}", appIdTuple.ToString());
+        }
+
     }
 
     [Serializable]
@@ -58,6 +69,11 @@ namespace Dirigent.Net
         {
             this.appIdTuple = appIdTuple;
         }
+        public override string ToString()
+        {
+            return string.Format("RestartApp {0}", appIdTuple.ToString());
+        }
+
     }
 
     [Serializable]
@@ -70,21 +86,29 @@ namespace Dirigent.Net
             this.plan = plan;
         }
 
+        public override string ToString()
+        {
+            return string.Format("LoadPlan {0}", plan.Name);
+        }
+
     }
 
     [Serializable]
     public class StartPlanMessage : Message
     {
+        public override string ToString() { return "StartPlan"; }
     }
 
     [Serializable]
     public class StopPlanMessage : Message
     {
+        public override string ToString() { return "StopPlan"; }
     }
 
     [Serializable]
     public class RestartPlanMessage : Message
     {
+        public override string ToString() { return "RestartPlan"; }
     }
 
     /// <summary>
@@ -100,6 +124,10 @@ namespace Dirigent.Net
             this.plan = plan;
         }
 
+        public override string ToString()
+        {
+            return string.Format("CurrentPlan {0}", plan.Name);
+        }
     }
 
     /// <summary>
@@ -115,6 +143,10 @@ namespace Dirigent.Net
             this.repo = repo;
         }
 
+        public override string ToString()
+        {
+            return string.Format("PlanRepo ({0} plans)", repo.Count());
+        }
     }
 
 }

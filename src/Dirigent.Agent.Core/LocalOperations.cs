@@ -172,7 +172,7 @@ namespace Dirigent.Agent.Core
  	        // kill all local apps
             foreach( var a in localApps.Keys )
             {
-                KillApp( a );
+                StopApp( a );
             }
             
             // stop the launch sequencer
@@ -189,7 +189,7 @@ namespace Dirigent.Agent.Core
         /// Launches a local app if not already running.
         /// </summary>
         /// <param name="appIdTuple"></param>
-        public void  RunApp(AppIdTuple appIdTuple)
+        public void  StartApp(AppIdTuple appIdTuple)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -214,15 +214,15 @@ namespace Dirigent.Agent.Core
 
         public void  RestartApp(AppIdTuple appIdTuple)
         {
- 	        KillApp( appIdTuple );
-            RunApp( appIdTuple );
+ 	        StopApp( appIdTuple );
+            StartApp( appIdTuple );
         }
 
         /// <summary>
         /// Kills a local app.
         /// </summary>
         /// <param name="appIdTuple"></param>
-        public void  KillApp(AppIdTuple appIdTuple)
+        public void  StopApp(AppIdTuple appIdTuple)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -267,7 +267,7 @@ namespace Dirigent.Agent.Core
             AppDef appToLaunch = launchSequencer.GetNext( currentTime );
             if( appToLaunch != null )
             {
-                RunApp( appToLaunch.AppIdTuple );
+                StartApp( appToLaunch.AppIdTuple );
             }
         }
 

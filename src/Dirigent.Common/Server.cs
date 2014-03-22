@@ -32,6 +32,8 @@ namespace Dirigent.Net
             
             // makes the single instance available to all the clients
             var rem = RemotingServices.Marshal(ServerRemoteObject.Instance, "Dirigent");
+
+            ServerRemoteObject.Instance.SetInactivityTimeOut(1000);
             
             // although there can't be any clients connected, this caches the planRepo internally
             // this cached one is then sent to the client when it first connects

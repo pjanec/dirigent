@@ -150,7 +150,7 @@ namespace Dirigent.Agent.Tests
             Assert.AreEqual( st.Running, false, "not yet running" );
             Assert.AreEqual( st.Initialized, false, "not yet initialized" );
 
-            lo.RunApp( ads["a"].AppIdTuple );
+            lo.StartApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );
@@ -158,7 +158,7 @@ namespace Dirigent.Agent.Tests
             Assert.AreEqual( st.Running, true, "running" );
             Assert.AreEqual( st.Initialized, true, "initialized" );
 
-            lo.KillApp( ads["a"].AppIdTuple );
+            lo.StopApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );

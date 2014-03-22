@@ -65,9 +65,9 @@ namespace Dirigent.Agent.Core
             impl.RestartPlan();
         }
 
-        public void RunApp(AppIdTuple appIdTuple)
+        public void StartApp(AppIdTuple appIdTuple)
         {
-            impl.RunApp(appIdTuple);
+            impl.StartApp(appIdTuple);
         }
 
         public void RestartApp(AppIdTuple appIdTuple)
@@ -75,9 +75,9 @@ namespace Dirigent.Agent.Core
             impl.RestartApp(appIdTuple);
         }
 
-        public void KillApp(AppIdTuple appIdTuple)
+        public void StopApp(AppIdTuple appIdTuple)
         {
-            impl.KillApp(appIdTuple);
+            impl.StopApp(appIdTuple);
         }
     }
 }

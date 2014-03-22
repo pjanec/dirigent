@@ -6,8 +6,33 @@ using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 
+
 namespace Dirigent.Net
 {
+    public class MasterConnectionTimeoutException : Exception
+    {
+        public string ip;
+        public int port;
+
+        public MasterConnectionTimeoutException(string ip, int port)
+            : base(string.Format("Failed to connect to master {0}:{1}", ip, port))
+        {
+            this.ip = ip;
+            this.port = port;
+        }
+    }
+
+    public class UnknownClientName : Exception
+    {
+        public string name;
+
+        public UnknownClientName(string name)
+            : base(string.Format("Unknown client name '{0}'", name))
+        {
+            this.name =name;
+        }
+    }
+
     public class Client : IClient
     {
         string name;
@@ -46,7 +71,15 @@ namespace Dirigent.Net
 
             serverObject = ServerRemoteObject.Instance;
 
-            serverObject.AddClient( name );
+            try
+            {
+                serverObject.AddClient(name);
+            }
+            catch
+            {
+                throw new MasterConnectionTimeoutException(ipaddr, port);
+            }
+
         }
 
         public void Disconnect()
@@ -56,7 +89,14 @@ namespace Dirigent.Net
 
         public IEnumerable<Message> ReadMessages()
         {
-            return serverObject.ClientMessages( name );
+            try
+            {
+                return serverObject.ClientMessages(name);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                throw new UnknownClientName(name);
+            }
         }
 
         public void BroadcastMessage( Message msg )

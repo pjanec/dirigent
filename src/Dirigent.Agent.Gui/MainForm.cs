@@ -329,12 +329,12 @@ namespace Dirigent.Agent.Gui
                     popup.Enabled = connected;
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
-                    killItem.Click += (s, a) => ctrl.KillApp(appIdTuple);
+                    killItem.Click += (s, a) => ctrl.StopApp(appIdTuple);
                     killItem.Enabled = st.Running;
                     popup.Items.Add(killItem);
 
                     var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
-                    launchItem.Click += (s, a) => ctrl.RunApp(appIdTuple);
+                    launchItem.Click += (s, a) => ctrl.StartApp(appIdTuple);
                     launchItem.Enabled = !st.Running;
                     popup.Items.Add(launchItem);
 

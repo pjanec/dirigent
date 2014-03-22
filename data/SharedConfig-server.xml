@@ -22,7 +22,7 @@
     		StartupDir = "c:\"
     		CmdLineArgs = ""
     		StartupOrder = "0"
-    		RestartOnCrash = "1"
+    		RestartOnCrash = "0"
     		InitCondition = "timeout 2.0"
     		SeparationInterval = "0.5"
     />

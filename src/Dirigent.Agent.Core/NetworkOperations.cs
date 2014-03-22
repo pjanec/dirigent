@@ -86,16 +86,16 @@ namespace Dirigent.Agent.Core
                     localOps.LoadPlan( m.plan );
                 }
                 else
-                if( t == typeof(RunAppMessage) )
+                if( t == typeof(StartAppMessage) )
                 {
-                    var m = msg as RunAppMessage;
-                    localOps.RunApp( m.appIdTuple );
+                    var m = msg as StartAppMessage;
+                    localOps.StartApp( m.appIdTuple );
                 }
                 else
-                if( t == typeof(KillAppMessage) )
+                if( t == typeof(StopAppMessage) )
                 {
-                    var m = msg as KillAppMessage;
-                    localOps.KillApp( m.appIdTuple );
+                    var m = msg as StopAppMessage;
+                    localOps.StopApp( m.appIdTuple );
                 }
                 else
                 if( t == typeof(RestartAppMessage) )
@@ -198,9 +198,9 @@ namespace Dirigent.Agent.Core
             client.BroadcastMessage( new RestartPlanMessage() );
         }
 
-        public void RunApp(AppIdTuple appIdTuple)
+        public void StartApp(AppIdTuple appIdTuple)
         {
-            client.BroadcastMessage( new RunAppMessage( appIdTuple ) );
+            client.BroadcastMessage( new StartAppMessage( appIdTuple ) );
         }
 
         public void RestartApp(AppIdTuple appIdTuple)
@@ -208,9 +208,9 @@ namespace Dirigent.Agent.Core
             client.BroadcastMessage( new RestartAppMessage( appIdTuple ) );
         }
 
-        public void KillApp(AppIdTuple appIdTuple)
+        public void StopApp(AppIdTuple appIdTuple)
         {
-            client.BroadcastMessage( new KillAppMessage( appIdTuple ) );
+            client.BroadcastMessage( new StopAppMessage( appIdTuple ) );
         }
     }
 }

@@ -18,10 +18,12 @@ namespace Dirigent.Agent.Core
         NetworkOperations netOps;
         DirigentControlSwitchableProxy proxy;
         IClient client;
+        bool fallbackToLocalOnDisconnection;
         
         public Agent(
             string machineId,
-            IClient client
+            IClient client,
+            bool fallbackToLocalOnDisconnection
         )
         {
             LauncherFactory launcherFactory = new LauncherFactory();
@@ -30,6 +32,7 @@ namespace Dirigent.Agent.Core
             this.netOps = new NetworkOperations( client, localOps );
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;
+            this.fallbackToLocalOnDisconnection = fallbackToLocalOnDisconnection;
         }
 
         public void tick()
@@ -58,7 +61,14 @@ namespace Dirigent.Agent.Core
 
         private IDirigentControl selectProxyImpl( bool isConnected )
         {
-            return isConnected ? (IDirigentControl)netOps : (IDirigentControl) localOps;
+            if (fallbackToLocalOnDisconnection)
+            {
+                return isConnected ? (IDirigentControl)netOps : (IDirigentControl)localOps;
+            }
+            else // always use netOps
+            {
+                return netOps;
+            }
         }
 
         public LocalOperations LocalOps

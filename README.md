@@ -29,7 +29,7 @@ Dirigent can be configured to to run either in single-machine or networked mode,
 
 #### Architecture
 
-Each computer is running an agent process. One of the computers runs a master process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents.
+Each computer is running an agent process. One of the computers runs a master server process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents and share the launch plans.
 
 Agent manages the processes running locally on the same machine where the agent is running. Agent takes care of local application launching, killing, restarting and status monitoring. 
 
@@ -38,7 +38,6 @@ Agents listens to and executes application management commands from master.
 Agents publish the status of local applications to master which in turn spreads it to all other agents. The status include whether the app is running, whether it is already initialized etc.
 
 All agents share the same configuration of launch plans - each one knows what applications the others are supposed to run.
-
 
 
 ## Usage
@@ -76,14 +75,14 @@ The Dirigent can perform actions related either to a set of applications grouped
 
 #### Individual Apps Actions
 
- - **Kill App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
+ - **Stop App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
 
- - **Run App.** The app is launched if not already running, ignoring any dependency checks.
+ - **Start App.** The app is launched if not already running, ignoring any dependency checks.
 
  - **Restart App.** The app is first killed and then launched again.
 
 ### Agent command line arguments
-`Agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
+`agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
 
 #### Operation mode selection
 
@@ -115,14 +114,14 @@ Zero exit code is returned on success, positive error code on failure.
 
 The commands just simply follow the available agent actions, please see chapter *Available Actions* for more details.
 
-    loadPlan <planId>
-    startPlan <planId>
-    stopPlan <planId>
-    restartPlan <planId>
+    LoadPlan <planId>
+    StartPlan <planId>
+    StopPlan <planId>
+    RestartPlan <planId>
     
-    runApp <appId>
-    killApp <appId>
-    restarApp <appId>
+    StartApp <appId>
+    StopApp <appId>
+    RestarApp <appId>
     
 
  

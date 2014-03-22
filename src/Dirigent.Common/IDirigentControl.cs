@@ -55,13 +55,13 @@ namespace Dirigent.Common
         void RestartPlan();
 
         // chci spustit konkretni aplikaci z aktualniho planu
-        void RunApp(AppIdTuple appIdTuple);
+        void StartApp(AppIdTuple appIdTuple);
 
         // chci restartovat konkretni aplikaci z aktualniho planu
         void RestartApp(AppIdTuple appIdTuple);
 
         // chci zabit konkretni aplikaci z aktualniho planu
-        void KillApp(AppIdTuple appIdTuple);
+        void StopApp(AppIdTuple appIdTuple);
 
         //// chci operativne vytvorit svuj novy plan na zaklade existujiciho
         //ILaunchPlan clonePlan( ILaunchPlan existingPlan );

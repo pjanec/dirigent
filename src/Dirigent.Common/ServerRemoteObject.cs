@@ -45,6 +45,8 @@ namespace Dirigent.Net
 
         Timer disconTimer;
 
+        double inactivityTimeout = 5.0;
+
         public static ServerRemoteObject Instance
         {
             get
@@ -60,8 +62,14 @@ namespace Dirigent.Net
         
         private ServerRemoteObject()
         {
-            disconTimer = new Timer(DetectDisconnections, null, 0, 2000);
+            disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
         }
+
+        public void SetInactivityTimeOut( double timeoutSeconds )
+        {
+            this.inactivityTimeout = timeoutSeconds;
+        }
+
 
         public override object InitializeLifetimeService()
         {
@@ -205,7 +213,7 @@ namespace Dirigent.Net
                     var ts = new TimeSpan(DateTime.UtcNow.Ticks - client.lastActivityTicks);
                     var inactivityPeriod = ts.TotalSeconds;
 
-                    if (inactivityPeriod > 5.0)
+                    if (inactivityPeriod >= inactivityTimeout)
                     {
                         toRemove.Add(client.Name);
                     }
