@@ -90,9 +90,9 @@ The following options changes the mode of operation:
 
  `--daemon` .... no user inteface at all, just a log file
  
- `--traygui` ... an icon in tray with gui control app accessible from the context menu
+ `--traygui` ... an icon in tray with gui control app accessible from the context menu; the default
  
- `--remotectrlgui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
+ `--remotecontrolgui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
  
 #### Another options
 

@@ -108,6 +108,11 @@ namespace Dirigent.Agent.TrayApp
                 if (options.StartHidden != "") ac.startHidden = options.StartHidden;
             }
 
+            if (ac.logFileName != "")
+            {
+                SetLogFileName(Path.GetFullPath(ac.logFileName));
+            }
+
             if (ac.sharedCfgFileName != "")
             {
                 ac.sharedCfgFileName = Path.GetFullPath(ac.sharedCfgFileName);
@@ -203,18 +208,30 @@ namespace Dirigent.Agent.TrayApp
             {
                 var ac = getAppConfig();
 
-                if (ac.logFileName != "")
+                log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}", ac.machineId, ac.masterIP, ac.masterPort);
+
+                Dirigent.Agent.Core.Agent agent;
+
+                bool runningAsRemoteControlGui = (ac.machineId == "none");
+
+                if (runningAsRemoteControlGui) // running just as observation GUI?
                 {
-                    SetLogFileName(Path.GetFullPath(ac.logFileName));
+                    // we act like agent with no apps assigned
+                    // generate unique GUID to avoid matching any machineId in the launch plans
+                    string machineId = Guid.NewGuid().ToString();
+
+                    client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort);
+
+                    agent = new Dirigent.Agent.Core.Agent(machineId, client, false); // don't go local if not connected
                 }
+                else // running as local app launcher
+                {
+                    client = new Dirigent.Net.AutoconClient(ac.machineId, ac.masterIP, ac.masterPort);
 
-                log.InfoFormat("Running with machineId={0}, masterIp={1}, mastrePort={2}", ac.machineId, ac.masterIP, ac.masterPort);
-
-                client = new Dirigent.Net.AutoconClient(ac.machineId, ac.masterIP, ac.masterPort);
-
-                var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true);
-
+                    agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true);
+                }
                 
+
                 IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;
 
                 // if there is some local plan repo defined, use it for local operations
@@ -232,11 +249,15 @@ namespace Dirigent.Agent.TrayApp
                         agent.LocalOps.LoadPlan(startupPlan);
                     }
                 }
-                    
-                mainForm = new frmMain(agent.Control, agent.tick, planRepo, ac.machineId, client.IsConnected);
+
+                var callbacks = new GuiAppCallbacks();
+                callbacks.isConnectedDeleg = client.IsConnected;
+                callbacks.onTickDeleg = agent.tick;
+                
+                mainForm = new frmMain(agent.Control, planRepo, ac.machineId, notifyIcon, !runningAsRemoteControlGui, callbacks);
 
                 // if form is user-closed, don't destroy it, just hide it
-                mainForm.onCloseDeleg += (e) =>
+                callbacks.onCloseDeleg += (e) =>
                 {
                     if (e.CloseReason == CloseReason.UserClosing)
                     {
@@ -287,9 +308,9 @@ namespace Dirigent.Agent.TrayApp
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            InitializeContext();
             if (InitializeMainForm())
             {
-                InitializeContext();
                 //Show();
                 Application.Run(new MyApplicationContext());
             }

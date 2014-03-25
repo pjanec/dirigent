@@ -16,19 +16,23 @@ namespace Dirigent.Agent.Gui
 {
     public partial class frmMain : Form
     {
-        public delegate void TickDelegate();
-        public delegate bool IsConnectedDelegate();
-        public delegate void OnCloseDelegate(FormClosingEventArgs e);
-        public delegate void OnMinimizeDelegate();
+        NotifyIcon notifyIcon;
+        bool allowLocalIfDisconnected = false;
+        GuiAppCallbacks callbacks;
+        //public delegate void OnTickDelegate();
+        //public delegate bool IsConnectedDelegate();
+        //public delegate void OnCloseDelegate(FormClosingEventArgs e);
+        //public delegate void OnMinimizeDelegate();
+        //public delegate void OnMinimizeDelegate();
 
         IDirigentControl ctrl;
         string machineId;
-        TickDelegate tickDeleg;
-        IsConnectedDelegate isConnectedDeleg;
+        //OnTickDelegate tickDeleg;
+        //IsConnectedDelegate isConnectedDeleg;
         
-        // the following delegates are used by the trayapp to keep the form initialized (just hidden) on close
-        public OnCloseDelegate onCloseDeleg = delegate {};
-        public OnMinimizeDelegate onMinimizeDeleg = delegate {};
+        //// the following delegates are used by the trayapp to keep the form initialized (just hidden) on close
+        //public OnCloseDelegate onCloseDeleg = delegate {};
+        //public OnMinimizeDelegate onMinimizeDeleg = delegate {};
 
         ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
@@ -48,17 +52,29 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+        /// <summary>
+        /// Main form constructor
+        /// </summary>
+        /// <param name="ctrl"></param>
+        /// <param name="planRepo"></param>
+        /// <param name="machineId"></param>
+        /// <param name="notifyIcon"></param>
+        /// <param name="allowLocalIfDisconnected">apps and plans can be operated locally even if not connected to master</param>
+        /// <param name="callbacks"></param>
         public frmMain(
             IDirigentControl ctrl,
-            TickDelegate tickDeleg,
             IEnumerable<ILaunchPlan> planRepo, // planRepo to be used until a new one is received from the master; null if none
             string machineId,
-            IsConnectedDelegate isConnectedDeleg )
+            NotifyIcon notifyIcon,
+            bool allowLocalIfDisconnected,
+            GuiAppCallbacks callbacks
+            )
         {
             this.ctrl = ctrl;
-            this.tickDeleg = tickDeleg;
             this.machineId = machineId;
-            this.isConnectedDeleg = isConnectedDeleg;
+            this.callbacks = callbacks;
+            this.notifyIcon = notifyIcon;
+            this.allowLocalIfDisconnected = allowLocalIfDisconnected;
 
             InitializeComponent();
 
@@ -92,12 +108,16 @@ namespace Dirigent.Agent.Gui
         void setTitle(string planName)
         {
             this.Text = string.Format("Dirigent [{0}] - {1}", machineId, planName);
+            if (this.notifyIcon != null)
+            {
+                this.notifyIcon.Text = string.Format("Dirigent [{0}] - {1}", machineId, planName);
+            }
         }
 
 
         private void tmrTick_Tick(object sender, EventArgs e)
         {
-            tickDeleg();
+            callbacks.onTickDeleg();
             refreshGui();
         }
 
@@ -249,7 +269,7 @@ namespace Dirigent.Agent.Gui
 
         void refreshStatusBar()
         {
-            if (isConnectedDeleg())
+            if (callbacks.isConnectedDeleg())
             {
                 toolStripStatusLabel1.Text = "Connected.";
 
@@ -263,9 +283,9 @@ namespace Dirigent.Agent.Gui
 
         void refreshMenu()
         {
-            bool isConnected = isConnectedDeleg();
+            bool isConnected = callbacks.isConnectedDeleg();
             bool hasPlan = ctrl.GetCurrentPlan() != null;
-            //planToolStripMenuItem.Enabled = isConnected;
+            planToolStripMenuItem.Enabled = isConnected || allowLocalIfDisconnected;
             startToolStripMenuItem.Enabled = hasPlan;
             stopToolStripMenuItem.Enabled = hasPlan;
             restartToolStripMenuItem.Enabled = hasPlan;
@@ -322,11 +342,11 @@ namespace Dirigent.Agent.Gui
                     var appIdTuple = new AppIdTuple(focused.Text);
                     var st = ctrl.GetAppState(appIdTuple);
 
-                    bool connected = isConnectedDeleg();
+                    bool connected = callbacks.isConnectedDeleg();
 
                     // build popup menu
                     var popup = new System.Windows.Forms.ContextMenuStrip(this.components);
-                    popup.Enabled = connected;
+                    popup.Enabled = connected || allowLocalIfDisconnected;
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
                     killItem.Click += (s, a) => ctrl.StopApp(appIdTuple);
@@ -362,7 +382,7 @@ namespace Dirigent.Agent.Gui
         {
             if (FormWindowState.Minimized == this.WindowState)
             {
-                onMinimizeDeleg();
+                callbacks.onMinimizeDeleg();
             }
 
             //else if (FormWindowState.Normal == this.WindowState)
@@ -372,7 +392,7 @@ namespace Dirigent.Agent.Gui
 
         private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            onCloseDeleg(e);
+            callbacks.onCloseDeleg(e);
         }
     }
 }

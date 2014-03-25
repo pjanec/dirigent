@@ -6,7 +6,7 @@
       <Value Profile="(Default)">127.0.0.1</Value>
     </Setting>
     <Setting Name="MachineId" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">m1</Value>
+      <Value Profile="(Default)">none</Value>
     </Setting>
     <Setting Name="MasterPort" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">5045</Value>

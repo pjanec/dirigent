@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="ConfigReaders.cs" />
     <Compile Include="ExceptionDialog.cs" />
+    <Compile Include="GuiAppCallbacks.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

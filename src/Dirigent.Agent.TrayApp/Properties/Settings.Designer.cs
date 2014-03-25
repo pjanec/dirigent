@@ -34,7 +34,7 @@ namespace Dirigent.Agent.TrayApp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("m1")]
+        [global::System.Configuration.DefaultSettingValueAttribute("none")]
         public string MachineId {
             get {
                 return ((string)(this["MachineId"]));

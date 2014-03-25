@@ -52,7 +52,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj">
       <Project>{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}</Project>
-      <Name>DirigentCommons</Name>
+      <Name>Dirigent.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
