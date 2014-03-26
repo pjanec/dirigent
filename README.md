@@ -88,21 +88,23 @@ The Dirigent can perform actions related either to a set of applications grouped
 
 The following options changes the mode of operation:
 
- `--daemon` .... no user inteface at all, just a log file
+ `--mode deamon|trayGui|remoteControlGui` .... select mode of operation
  
- `--traygui` ... an icon in tray with gui control app accessible from the context menu; the default
- 
- `--remotecontrolgui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
+ - **deamon** ... no user inteface at all, just a log file
+     
+ - **trayGui** ... an icon in tray with gui control app accessible from the context menu; the default
+     
+ - **remoteControlGui** ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
  
 #### Another options
 
- `--singlemachine` .... no network, just single-machine operation (no master needed); forces --traygui automatically.
+ `--singleMachine` .... no network, just single-machine operation (no master needed); forces --traygui automatically.
  
- `--minimized` .... start minimized (only with --traygui and --remotecontrolgui)
+ `--startHidden 0|1` .... start minimized (only with --traygui and --remotecontrolgui)
 
- `--logfile xyz.log` ... what log file to use
+ `--logFile xyz.log` ... what log file to use
 
- `--autostartplan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
+ `--startupPlan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
  
 ### Agent Console Command Line Utility
 

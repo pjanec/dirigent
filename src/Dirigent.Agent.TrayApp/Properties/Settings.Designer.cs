@@ -34,7 +34,7 @@ namespace Dirigent.Agent.TrayApp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("none")]
+        [global::System.Configuration.DefaultSettingValueAttribute("m1")]
         public string MachineId {
             get {
                 return ((string)(this["MachineId"]));
@@ -74,6 +74,15 @@ namespace Dirigent.Agent.TrayApp.Properties {
         public string StartHidden {
             get {
                 return ((string)(this["StartHidden"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("trayGui")]
+        public string Mode {
+            get {
+                return ((string)(this["Mode"]));
             }
         }
     }

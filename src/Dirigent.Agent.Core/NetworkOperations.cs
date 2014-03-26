@@ -89,19 +89,28 @@ namespace Dirigent.Agent.Core
                 if( t == typeof(StartAppMessage) )
                 {
                     var m = msg as StartAppMessage;
-                    localOps.StartApp( m.appIdTuple );
+                    if (m.appIdTuple.MachineId == machineId)
+                    {
+                        localOps.StartApp(m.appIdTuple);
+                    }
                 }
                 else
                 if( t == typeof(StopAppMessage) )
                 {
                     var m = msg as StopAppMessage;
-                    localOps.StopApp( m.appIdTuple );
+                    if (m.appIdTuple.MachineId == machineId)
+                    {
+                        localOps.StopApp(m.appIdTuple);
+                    }
                 }
                 else
                 if( t == typeof(RestartAppMessage) )
                 {
                     var m = msg as RestartAppMessage;
-                    localOps.RestartApp( m.appIdTuple );
+                    if (m.appIdTuple.MachineId == machineId)
+                    {
+                        localOps.RestartApp(m.appIdTuple);
+                    }
                 }
                 else
                 if( t == typeof(StartPlanMessage) )

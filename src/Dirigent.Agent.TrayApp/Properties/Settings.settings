@@ -6,7 +6,7 @@
       <Value Profile="(Default)">127.0.0.1</Value>
     </Setting>
     <Setting Name="MachineId" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">none</Value>
+      <Value Profile="(Default)">m1</Value>
     </Setting>
     <Setting Name="MasterPort" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">5045</Value>
@@ -19,6 +19,9 @@
     </Setting>
     <Setting Name="StartHidden" Type="System.String" Scope="Application">
       <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="Mode" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">trayGui</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -158,7 +158,10 @@ namespace Dirigent.Net
                     Connect();
                 }
 
-                Thread.Sleep(3000);
+                // sleep between tries
+                if (!terminate) Thread.Sleep(1000);
+                if (!terminate) Thread.Sleep(1000);
+                if (!terminate) Thread.Sleep(1000);
             }            
         }
 

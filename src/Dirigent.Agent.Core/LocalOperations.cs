@@ -121,12 +121,15 @@ namespace Dirigent.Agent.Core
                         WasLaunched = false
                     };
 
-                localApps[a.AppIdTuple] = new LocalApp()
-                    {
-                        AppDef = a,
-                        launcher = null,
-                        appInitDetector = null
-                    };
+                if (a.AppIdTuple.MachineId == machineId)
+                {
+                    localApps[a.AppIdTuple] = new LocalApp()
+                        {
+                            AppDef = a,
+                            launcher = null,
+                            appInitDetector = null
+                        };
+                }
             }
 
             List<AppWave> waves = LaunchWavePlanner.build( plan.getAppDefs() );
