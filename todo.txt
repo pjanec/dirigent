@@ -1,9 +1,5 @@
 ﻿
 
-Create commandline tool for sending commands to agents.
-
-Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..
-
 Support for applications that are never started automatically, just manually.
 
 Support for disabling an application before starting a launch plan.
@@ -36,3 +32,7 @@ Prevent multiple instances of agent with the same name (machineId:port)
 [REJECTED] Server as windows service (maybe through a 3rd party service loader app??) Or just TrayApp will be used instead? Service would allow starting processes on without any user logged in (which is not much useful).
 
 [DONE] Combine multiple operational modes into one single agent app (local, networked, tray GUI app...)
+
+[DONE] Create commandline tool for sending commands to agents.
+
+[DONE] Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..

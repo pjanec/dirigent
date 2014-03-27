@@ -1,5 +1,5 @@
 ## Dirigent Overview
-Dirigent is an application life cycle management tool controlling a set of applications running on one or multiple networked computers. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
+Dirigent is an application life cycle management and diagnostic tool. It can controll a set of applications running on one or multiple networked computers. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
 
 #### Launch plans
 Dirigent allows launching a given set of applications in given order according to predefined launch plan.
@@ -9,7 +9,7 @@ The plan specifies what applications to launch, on what computers, in what order
 The dependencies are checked among both local and remote applications. 
 
 #### Individual applications control
-Applications can also be terminated or restarted, either individually or all-at-once.
+Applications can be launched, terminated or restarted, either individually or all-at-once.
 
 An application that is supposed to run continuously can be automatically restarted after unexpected termination or crash.
 
@@ -19,25 +19,29 @@ The applications are continuously monitored whether they are already initialized
 #### Launching apps at startup
 A launch plan can be executed automatically on computer startup.
 
-To speedup the startup process of a system comprising multiple interdependent computers, certain applications (not dependent on those on other computers) can be launched even before the connection among computers is estabilished.
+To speedup the boot process of a system comprising multiple interdependent computers, certain applications (independent on those on other computers) can be launched even before the connection among computers is established.
 
 #### Ways of control
-All operations can be controlled from any computer via a control GUI, from a separate remote control tool or programatically via a small .net library.
+All operations can be controlled from any computer via a control GUI, from a separate remote control tool or programmatically via a .net library.
 
 #### Local and networked mode
 Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control application.
 
 #### Architecture
 
-Each computer is running an agent process. One of the computers runs a master server process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents and share the launch plans.
+Each computer is running an agent process. One of the computers runs a master server process. Agents connect to a single master. The master's role is to broadcast messages from agents to all other agents and share the launch plans (stored in shared config).
 
 Agent manages the processes running locally on the same machine where the agent is running. Agent takes care of local application launching, killing, restarting and status monitoring. 
 
-Agents listens to and executes application management commands from master.
+An agent listens to and executes application management commands from master.
 
 Agents publish the status of local applications to master which in turn spreads it to all other agents. The status include whether the app is running, whether it is already initialized etc.
 
 All agents share the same configuration of launch plans - each one knows what applications the others are supposed to run.
+
+The master inform agents about the current launch plan automatically when the agent connects to the master.
+
+The shared configuration file can be present either just on master or an identical copy of it must be present on every agent.
 
 
 ## Usage
@@ -81,8 +85,17 @@ The Dirigent can perform actions related either to a set of applications grouped
 
  - **Restart App.** The app is first killed and then launched again.
 
-### Agent command line arguments
+### Agent configuration options
 `agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
+
+The options can be specified either on the command line (prefixed with double dash `--`, for example `--optionName`) or in the `agent.config` file located next to the agent executable.
+
+#### Specifying the machine name
+
+The applications are supposed to run on a specific computer. More precisely, to be launched by an agent configured to the same machine id as the application.
+
+ `--machineId m1` ...id of the computer where the agent is running on
+
 
 #### Operation mode selection
 
@@ -90,22 +103,39 @@ The following options changes the mode of operation:
 
  `--mode deamon|trayGui|remoteControlGui` .... select mode of operation
  
- - **deamon** ... no user inteface at all, just a log file
+ - `deamon` ... no user inteface at all, just a log file
      
- - **trayGui** ... an icon in tray with gui control app accessible from the context menu; the default
+ - `trayGui` ... an icon in tray with gui control app accessible from the context menu; the default
      
- - **remoteControlGui** ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
+ - `remoteControlGui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
  
+`--startHidden 0|1` .... start minimized (only works with `--trayGui` and `--remoteControlGui`)
+
+
 #### Another options
 
- `--singleMachine` .... no network, just single-machine operation (no master needed); forces --traygui automatically.
- 
- `--startHidden 0|1` .... start minimized (only with --traygui and --remotecontrolgui)
+ `--masterPort 5042` ... mater's port number
+
+ `--masterIp 1.2.3.4` ... mater's IP address
 
  `--logFile xyz.log` ... what log file to use
 
  `--startupPlan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
+
+ `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
  
+### Master configuration options
+`master.exe` is a console application designed to run in background on one of the computers.
+
+ `--masterPort 5042` ... what TPC port to run on
+
+ `--logFile xyz.log` ... what log file to use
+
+ `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
+
+ `--startupPlan <plan_name>` ... what plan to be forced on agents when they connect to master
+
+
 ### Agent Console Command Line Utility
 
 There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
@@ -121,9 +151,9 @@ The commands just simply follow the available agent actions, please see chapter 
     StopPlan <planId>
     RestartPlan <planId>
     
-    StartApp <appId>
-    StopApp <appId>
-    RestarApp <appId>
+    StartApp <appId> [<appId2>...]
+    StopApp <appId> [<appId2>...]
+    RestartApp <appId> [<appId2>...]
     
 
  
@@ -131,12 +161,12 @@ The commands just simply follow the available agent actions, please see chapter 
 
 Dirigent configuration comprises of two parts - a shared configuration  and a local configuration.
 
-Shared configuration is shared among all agents. It deals mainly with the launch plans but can be used also for common network settings like master's IP and port.
+Shared configuration is shared among all agents. It specifies the launch plans but can be used also for another information like the names of all the machines involved etc.
 
 Local configuration defines the network settings and operation mode details of a single agent or master application.
 
 ### Shared config
-Shared configuration is stored in the SharedConfig.xlm file. 
+Shared configuration is stored in the `SharedConfig.xlm` file. The location of the file can be set through application option `sharedConfigFile`.
 
 #### Launch plan
 
@@ -154,16 +184,16 @@ Each app in the launch plan has the following attributes:
  - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
  - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.)
  
-
 #### Templated launch plan definition
 
 Plan definition in an XML file uses a template sections allowing the inheritance of attributes.
 
 Every record in the plan can reference a template record.
 
-All the attributes are loaded first from the template and only then they can ge overwritten by equally named attributes from the referencing entry. 
+All the attributes are loaded first from the template and only then they can get overwritten by equally named attributes from the referencing entry. 
 
 A template record itself can reference another more generic template record.
+
 
 #### Identifying an application
 
@@ -172,6 +202,38 @@ The application instance is uniquely addressed by the name of the computer it is
 The `machineId` is unique globally. 
 
 The `applicationInstanceId` is unique within the launch plan where it is used.
+
+#### Launch plan example
+The following plan example specify two instances of a notepad editor, named `a` and `b`. Both are based on the same template `apps.notepad`, just with specific command line argument (different files to edit).
+
+The apps will be run on a computer where the agent is configured to  machineId `m1`.
+
+        <Plan Name="plan1">
+        	<App
+        	    AppIdTuple = "m1.a"
+        		Template = "apps.notepad"
+        		StartupDir = "c:\"
+        		CmdLineArgs = "aaa.txt"
+        	/>
+        
+        	<App
+        	    AppIdTuple = "m1.b"
+        		Template = "apps.notepad"
+        		StartupDir = "c:\"
+        		CmdLineArgs = "bbb.txt"
+        	/>
+        </Plan>
+        
+        <AppTemplate Name="apps.notepad"
+        		Template = ""
+        		ExeFullPath = "c:\windows\notepad.exe"
+        		StartupDir = "c:\"
+        		CmdLineArgs = ""
+        		StartupOrder = "0"
+        		RestartOnCrash = "1"
+        		InitCondition = "timeout 2.0"
+        		SeparationInterval = "0.5"
+        />
 
 #### Selecting a boot up completion detector
 
@@ -187,6 +249,12 @@ Following methods are available
 
  - `exitcode <number>` - After the app have terminated and its exit code matches the number specified. This can be combined with an auto-restart option of the application, resulting in a repetitive launches until given exitcode is returned.
  
+#### Starting with local copy of Shared config
+Before the agent connects to master, it is using its local copy of SharedConfig. This is useful if agent needs to start applications event before the connection to master is established.
+
+#### Adopting master's plan upon connection
+As soon as an agent connects to master, it receives and adopts the master's copy of the shared config. The local copy should be of course identical to the master's copy. If it is not, the currently running agent's plan is stopped, i.e. the all the apps launched by the agent so far are killed nad the new master's plan takes place.
+
 
 ### Local config
 Local configuration is put together from multiple sources. The are listed in the descending order of priority:
@@ -199,6 +267,10 @@ Local configuration is put together from multiple sources. The are listed in the
 
 #### Autodetection of the machine id
 Computer's NetBIOS name is used as a default machineId if not specified otherwise.
+
+#### Logging
+
+Both agent and master support logging of errors, warnigns etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of local configuration. 
 
 ## Further Details
 
@@ -213,6 +285,7 @@ The waves are launched sequentially one after another until all apps from all wa
 If some application fails to start, dirigent can be configured to retry the launch attempt multiple times.
 
 If all attempts fail, the plaunch plan is stopped and an error is returned.
+
 
 
 
