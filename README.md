@@ -47,22 +47,75 @@ The shared configuration file can be present either just on master or an identic
 ## Usage
 
 ### Basic steps
-#### 1. Setup a master
+
+#### Configure launch plans
+Define launch plans, i.e. what apps to start on what computer in what order. Store it into a `SharedConfig.xml` config file next to `master.exe`.
+
+For example the following plan opens a notepad app first on machine `m1` with file `c:\aaa.txt`. Then, after 2 seconds, opens another notepad on machine `m2` with file `c:\bbb.txt`.
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Shared>
+        <Plan Name="plan1">
+        	<App
+        	    AppIdTuple = "m1.a"
+        		Template = "apps.notepad"
+        		StartupDir = "c:\"
+        		CmdLineArgs = "aaa.txt"
+        	/>
+    
+        	<App
+        	    AppIdTuple = "m2.b"
+        		Template = "apps.notepad"
+        		StartupDir = "c:\"
+        		CmdLineArgs = "bbb.txt"
+        	/>
+        </Plan>
+    
+        <AppTemplate Name="apps.notepad"
+        		Template = ""
+        		ExeFullPath = "c:\windows\notepad.exe"
+        		StartupDir = "c:\"
+        		CmdLineArgs = ""
+        		StartupOrder = "0"
+        		RestartOnCrash = "1"
+        		InitCondition = "timeout 2.0"
+        		SeparationInterval = "0.5"
+        />
+    
+    </Shared>
+
+Deploy this config file to all agents if you want agents to start their plans without first waiting for master. All agents should to use identical shared configuration file.
+
+
+#### Setup a master
 Start a master process on one of the machines. Master is not necessary in single-machine mode of operation.
+
+On master machine:
+
+    master.exe --masterPort 5045 --startupPlan plan1
 
 #### Deploy agents
 On each machine install an agent application.
 
 Assign a unique machineId to each agent so it could identify its application in the launch plan.
 
-Specify the IP address and port of the master and machineId of in the local configuration of each respective agent.
+You can specify the IP address and port of the master and machineId of in the local configuration of each respective agent.
 
+On first machine:
 
-#### 2. Configure launch plans
-Define launch plans (what apps to start on what computer in what order) into a SharedConfig.xml config file. Deploy this config file to all agents. All agents need to use identical shared configuration file.
+    agent.exe --machineId m1 --trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
-#### 3. Load and start a launch plan
+On second machine:
+
+    agent.exe --machineId m2 --trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
+
+#### Load and start a launch plan
 Select a launch plan to start, issue a Load Plan command followed by a Start Plan command.
+
+For example using a command ling control app:
+
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 LoadPlan plan1
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
 
 ### Available Actions
 The Dirigent can perform actions related either to a set of applications grouped into a launch plan or to individual applications that are part of the currently loaded launch plan.
