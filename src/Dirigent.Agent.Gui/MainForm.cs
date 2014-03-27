@@ -86,6 +86,8 @@ namespace Dirigent.Agent.Gui
                 this.planRepo = new List<ILaunchPlan>(planRepo);
                 PopulatePlanListMenu(this.planRepo);
             }
+
+            setTitle(ctrl.GetCurrentPlan().Name);
             
             // start ticking
             tmrTick.Enabled = true;
@@ -299,6 +301,7 @@ namespace Dirigent.Agent.Gui
             {
                 planRepo = new List<ILaunchPlan>( newPlanRepo );
                 PopulatePlanListMenu(planRepo);
+                setTitle(ctrl.GetCurrentPlan().Name);
             }
         }
 

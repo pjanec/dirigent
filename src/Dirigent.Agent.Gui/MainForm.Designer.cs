@@ -29,12 +29,6 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
-            "polozka1",
-            "Running"}, -1);
-            System.Windows.Forms.ListViewItem listViewItem2 = new System.Windows.Forms.ListViewItem(new string[] {
-            "Polozka2",
-            "Not Started"}, -1);
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -155,9 +149,6 @@
             this.hdrStatus});
             this.lstvApps.FullRowSelect = true;
             this.lstvApps.GridLines = true;
-            this.lstvApps.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem1,
-            listViewItem2});
             this.lstvApps.Location = new System.Drawing.Point(0, 31);
             this.lstvApps.Name = "lstvApps";
             this.lstvApps.Size = new System.Drawing.Size(345, 202);

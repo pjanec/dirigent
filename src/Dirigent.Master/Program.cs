@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 using System.IO;
+using System.Threading;
 
 using CommandLine;
 using CommandLine.Text;
@@ -132,8 +133,9 @@ namespace Dirigent.Master
         static void Main(string[] args)
         {
             Initialize();
-            Console.WriteLine("Press a key to exit the server.");
-            Console.ReadLine();
+            Console.WriteLine("Press Ctr+C to stop the server.");
+            //Console.ReadLine();
+            Thread.Sleep(Timeout.Infinite);
         }
 
     }

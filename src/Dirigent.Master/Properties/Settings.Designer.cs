@@ -34,7 +34,7 @@ namespace Dirigent.Master.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("../../../../data/SharedConfig-server.xml")]
+        [global::System.Configuration.DefaultSettingValueAttribute("SharedConfig.xml")]
         public string SharedConfigFile {
             get {
                 return ((string)(this["SharedConfigFile"]));
@@ -43,7 +43,7 @@ namespace Dirigent.Master.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("plan2")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string StartupPlan {
             get {
                 return ((string)(this["StartupPlan"]));

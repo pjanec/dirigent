@@ -9,7 +9,7 @@
       <Value Profile="(Default)">5045</Value>
     </Setting>
     <Setting Name="SharedConfigFile" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">../../../../data/SharedConfig.xml</Value>
+      <Value Profile="(Default)">SharedConfig.xml</Value>
     </Setting>
   </Settings>
 </SettingsFile>

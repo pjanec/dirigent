@@ -52,7 +52,7 @@ namespace Dirigent.Agent.TrayApp.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("../../../../data/SharedConfig.xml")]
+        [global::System.Configuration.DefaultSettingValueAttribute("SharedConfig.xml")]
         public string SharedConfigFile {
             get {
                 return ((string)(this["SharedConfigFile"]));
