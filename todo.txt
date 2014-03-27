@@ -12,6 +12,8 @@ Support for application window attributes (hidden, minimized, maximized, topmost
 
 Prevent multiple instances of agent with the same name (machineId:port)
 
+CS-Script based script file procesing for agentcmd.
+
 [REJECTED] Run server process om master machine automatically on agent start. Reset the server process if server already running.
 [DONE] Allow for non-windowed mode (console app for linux, windows service).
 [DONE] Extract the preparation of agent configuration into a separate class and use it for non-windowed mode.

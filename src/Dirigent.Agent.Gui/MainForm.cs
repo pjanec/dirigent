@@ -87,8 +87,6 @@ namespace Dirigent.Agent.Gui
                 PopulatePlanListMenu(this.planRepo);
             }
 
-            setTitle(ctrl.GetCurrentPlan().Name);
-            
             // start ticking
             tmrTick.Enabled = true;
         }
@@ -107,8 +105,16 @@ namespace Dirigent.Agent.Gui
             }
         }
         
-        void setTitle(string planName)
+        void setTitle()
         {
+            string planName = "<no plan>";
+
+            var currPlan = ctrl.GetCurrentPlan();
+            if( currPlan != null )
+            {
+                planName = currPlan.Name;
+            }
+
             this.Text = string.Format("Dirigent [{0}] - {1}", machineId, planName);
             if (this.notifyIcon != null)
             {
@@ -301,8 +307,9 @@ namespace Dirigent.Agent.Gui
             {
                 planRepo = new List<ILaunchPlan>( newPlanRepo );
                 PopulatePlanListMenu(planRepo);
-                setTitle(ctrl.GetCurrentPlan().Name);
             }
+
+            setTitle();
         }
 
         void refreshGui()
@@ -332,7 +339,6 @@ namespace Dirigent.Agent.Gui
         private void loadPlanSubmenu_onClick( ILaunchPlan plan )
         {
             ctrl.LoadPlan( plan );
-            setTitle( plan.Name );
         }
 
         private void lstvApps_MouseClick(object sender, MouseEventArgs e)
