@@ -13,6 +13,7 @@
     		Template = "apps.notepad"
     		StartupDir = "c:\"
     		CmdLineArgs = "bbb.txt"
+    		Dependencies = "m1.a;"
     	/>
     </Plan>
 

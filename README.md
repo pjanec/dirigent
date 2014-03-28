@@ -51,7 +51,7 @@ The shared configuration file can be present either just on master or an identic
 #### Configure launch plans
 Define launch plans, i.e. what apps to start on what computer in what order. Store it into a `SharedConfig.xml` config file next to `master.exe`.
 
-For example the following plan opens a notepad app first on machine `m1` with file `c:\aaa.txt`. Then, after 2 seconds, opens another notepad on machine `m2` with file `c:\bbb.txt`.
+For example the following plan opens a notepad app first on machine `m1` with file `c:\aaa.txt`. Then, in 2 seconds from launching the notepad on machine m1, it opens another notepad on machine `m2` with file `c:\bbb.txt`. Because of the dependency between those apps, the second notepad won't be launched if the first notepad doesn't start (from any reason).
 
     <?xml version="1.0" encoding="UTF-8"?>
     <Shared>
@@ -68,6 +68,7 @@ For example the following plan opens a notepad app first on machine `m1` with fi
         		Template = "apps.notepad"
         		StartupDir = "c:\"
         		CmdLineArgs = "bbb.txt"
+				Dependencies = "m1.a"
         	/>
         </Plan>
     

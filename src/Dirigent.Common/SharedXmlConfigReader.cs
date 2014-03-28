@@ -60,6 +60,7 @@ namespace Dirigent.Common
                 RestartOnCrash = (string) e.Attribute("RestartOnCrash") ?? "0",
                 InitCondition = (string) e.Attribute("InitCondition"),
                 SeparationInterval = (string) e.Attribute("SeparationInterval") ?? "0.0",
+                Dependecies = (string) e.Attribute("Dependencies"),
             };
 
             // then overwrite templated values with current content
@@ -71,6 +72,20 @@ namespace Dirigent.Common
             if( x.RestartOnCrash != null ) a.RestartOnCrash = (int.Parse( x.RestartOnCrash ) != 0);
             if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
             if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse(x.SeparationInterval, CultureInfo.InvariantCulture );
+            if (x.Dependecies != null)
+            {
+                var deps = new List<string>();
+                foreach( var d in x.Dependecies.Split(';'))
+                {
+                    var stripped = d.Trim();
+                    if( stripped != "" )
+                    {
+                        deps.Add( d );
+                    }
+
+                }
+                a.Dependencies = deps;
+            }
 
             return a;
         }

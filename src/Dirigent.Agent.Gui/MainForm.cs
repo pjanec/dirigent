@@ -19,21 +19,10 @@ namespace Dirigent.Agent.Gui
         NotifyIcon notifyIcon;
         bool allowLocalIfDisconnected = false;
         GuiAppCallbacks callbacks;
-        //public delegate void OnTickDelegate();
-        //public delegate bool IsConnectedDelegate();
-        //public delegate void OnCloseDelegate(FormClosingEventArgs e);
-        //public delegate void OnMinimizeDelegate();
-        //public delegate void OnMinimizeDelegate();
 
         IDirigentControl ctrl;
         string machineId;
-        //OnTickDelegate tickDeleg;
-        //IsConnectedDelegate isConnectedDeleg;
         
-        //// the following delegates are used by the trayapp to keep the form initialized (just hidden) on close
-        //public OnCloseDelegate onCloseDeleg = delegate {};
-        //public OnMinimizeDelegate onMinimizeDeleg = delegate {};
-
         ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
 
@@ -179,8 +168,6 @@ namespace Dirigent.Agent.Gui
         /// </summary>
         void refreshAppList_smart()
         {
-            // FIXME: still flickering!!!
-
             ListViewItem selected = null;
             
             var plan = ctrl.GetCurrentPlan();
