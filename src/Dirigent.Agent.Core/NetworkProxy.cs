@@ -14,7 +14,7 @@ namespace Dirigent.Agent.Core
     ///  - reception of messages from master
     ///  - publishing info to master
     /// </summary>
-    public class NetworkOperations : IDirigentControl
+    public class NetworkProxy : IDirigentControl
     {
         string machineId;
         IClient client;
@@ -26,12 +26,13 @@ namespace Dirigent.Agent.Core
         /// </summary>
         /// <param name="client"></param>
         /// <param name="localOps"></param>
-        public NetworkOperations(
+        public NetworkProxy(
+                    string machineId,
                     IClient client,
                     IDirigentControl localOps )
         {
                 
-            this.machineId = client.Name;
+            this.machineId = machineId;
             this.client = client;
             this.localOps = localOps;
 
@@ -68,87 +69,119 @@ namespace Dirigent.Agent.Core
             }            
         }
 
+        void processIncomingMessage(Message msg)
+        {
+            Type t = msg.GetType();
+
+            if (t == typeof(AppsStateMessage))
+            {
+                var m = msg as AppsStateMessage;
+                updateRemoteAppState(m.appsState);
+            }
+            else
+            if (t == typeof(LoadPlanMessage))
+            {
+                var m = msg as LoadPlanMessage;
+                localOps.LoadPlan(m.plan);
+            }
+            else
+            if (t == typeof(StartAppMessage))
+            {
+                var m = msg as StartAppMessage;
+                if (m.appIdTuple.MachineId == machineId)
+                {
+                    localOps.StartApp(m.appIdTuple);
+                }
+            }
+            else
+            if (t == typeof(StopAppMessage))
+            {
+                var m = msg as StopAppMessage;
+                if (m.appIdTuple.MachineId == machineId)
+                {
+                    localOps.StopApp(m.appIdTuple);
+                }
+            }
+            else
+            if (t == typeof(RestartAppMessage))
+            {
+                var m = msg as RestartAppMessage;
+                if (m.appIdTuple.MachineId == machineId)
+                {
+                    localOps.RestartApp(m.appIdTuple);
+                }
+            }
+            else
+            if (t == typeof(StartPlanMessage))
+            {
+                var m = msg as StartPlanMessage;
+                localOps.StartPlan();
+            }
+            else
+            if (t == typeof(StopPlanMessage))
+            {
+                var m = msg as StopPlanMessage;
+                localOps.StopPlan();
+            }
+            else
+            if (t == typeof(RestartPlanMessage))
+            {
+                var m = msg as RestartPlanMessage;
+                localOps.RestartPlan();
+            }
+            else
+            if (t == typeof(CurrentPlanMessage))
+            {
+                var m = msg as CurrentPlanMessage;
+
+                // if master's plan is same as ours, do not do anything, othewise load master's plan
+                var localPlan = localOps.GetCurrentPlan();
+                if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)))
+                {
+                    localOps.LoadPlan(m.plan);
+                }
+            }
+            else
+            if (t == typeof(PlanRepoMessage))
+            {
+                var m = msg as PlanRepoMessage;
+                localOps.SetPlanRepo(m.repo);
+            }
+            else
+            if (t == typeof(RemoteOperationErrorMessage))
+            {
+                var m = msg as RemoteOperationErrorMessage;
+                throw new RemoteOperationErrorException(m.Requestor, m.Message, m.Attributes);
+            }
+        }
+
         void processIncomingMessages()
         {
             foreach( var msg in client.ReadMessages() )
             {
-                Type t = msg.GetType();
-                
-                if( t == typeof(AppsStateMessage) )
+                try
                 {
-                    var m = msg as AppsStateMessage;
-                    updateRemoteAppState( m.appsState );
+                    processIncomingMessage(msg);
                 }
-                else
-                if( t == typeof(LoadPlanMessage) )
+                catch (RemoteOperationErrorException) // an error from another agent received
                 {
-                    var m = msg as LoadPlanMessage;
-                    localOps.LoadPlan( m.plan );
+                    throw; // just forward up the stack, DO NOT broadcast an error msg (would cause an endless loop & network flooding)
                 }
-                else
-                if( t == typeof(StartAppMessage) )
+                catch (Exception ex) // some local operation error as a result of remote request from another agent
                 {
-                    var m = msg as StartAppMessage;
-                    if (m.appIdTuple.MachineId == machineId)
-                    {
-                        localOps.StartApp(m.appIdTuple);
-                    }
+                    // send an error message to agents
+                    // the requestor is supposed to present an error message to the user
+                    client.BroadcastMessage(
+                        new RemoteOperationErrorMessage(
+                                msg.Sender, // agent that requested the local operation here
+                                ex.Message, // description of the problem
+                                new Dictionary<string, string>() // additional info to the problem
+                                {
+                                    { "Exception", ex.ToString() }
+                                }
+                        )
+                    );
                 }
-                else
-                if( t == typeof(StopAppMessage) )
-                {
-                    var m = msg as StopAppMessage;
-                    if (m.appIdTuple.MachineId == machineId)
-                    {
-                        localOps.StopApp(m.appIdTuple);
-                    }
-                }
-                else
-                if( t == typeof(RestartAppMessage) )
-                {
-                    var m = msg as RestartAppMessage;
-                    if (m.appIdTuple.MachineId == machineId)
-                    {
-                        localOps.RestartApp(m.appIdTuple);
-                    }
-                }
-                else
-                if( t == typeof(StartPlanMessage) )
-                {
-                    var m = msg as StartPlanMessage;
-                    localOps.StartPlan();
-                }
-                else
-                if( t == typeof(StopPlanMessage) )
-                {
-                    var m = msg as StopPlanMessage;
-                    localOps.StopPlan();
-                }
-                else
-                if( t == typeof(RestartPlanMessage) )
-                {
-                    var m = msg as RestartPlanMessage;
-                    localOps.RestartPlan();
-                }
-                else
-                if (t == typeof(CurrentPlanMessage))
-                {
-                    var m = msg as CurrentPlanMessage;
-                    
-                    // if master's plan is same as ours, do not do anything, othewise load master's plan
-                    var localPlan = localOps.GetCurrentPlan();
-                    if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)) )
-                    {
-                        localOps.LoadPlan( m.plan );
-                    }
-                }
-                else
-                if (t == typeof(PlanRepoMessage))
-                {
-                    var m = msg as PlanRepoMessage;
-                    localOps.SetPlanRepo( m.repo );
-                }
-
             }
         }
         

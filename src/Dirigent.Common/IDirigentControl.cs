@@ -7,6 +7,8 @@ using System.Net;
 namespace Dirigent.Common
 {
 
+    /// <summary>
+    /// </summary>
     public interface IDirigentControl
     {
         /// <summary>

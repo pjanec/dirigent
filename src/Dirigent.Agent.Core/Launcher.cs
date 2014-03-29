@@ -26,7 +26,14 @@ namespace Dirigent.Agent.Core
             psi.Arguments = appDef.CmdLineArgs;
             psi.WorkingDirectory = appDef.StartupDir;
 
-            proc = Process.Start( psi );
+            try
+            {
+                proc = Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                throw new AppStartFailureException(appDef.AppIdTuple, ex.Message, ex);
+            }
         }
 
         public void Kill()

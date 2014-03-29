@@ -101,7 +101,8 @@ namespace Dirigent.Net
 
         public void BroadcastMessage( Message msg )
         {
-            serverObject.BroadcastMessage( name, msg );
+            msg.Sender = name;
+            serverObject.BroadcastMessage( msg );
         }
 
         public bool IsConnected()

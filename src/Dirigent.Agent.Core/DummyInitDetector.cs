@@ -6,11 +6,20 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
-    class DummyInitDetector : IAppInitializedDetector
+    class AlwaysInitializedInitDetector : IAppInitializedDetector
     {
         public bool IsInitialized()
         {
             return true;
+        }
+    }
+
+
+    class NeverInitializedInitDetector : IAppInitializedDetector
+    {
+        public bool IsInitialized()
+        {
+            return false;
         }
     }
 }

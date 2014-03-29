@@ -93,7 +93,9 @@ namespace Dirigent.Agent.TrayApp
             }
             else // running as local app launcher
             {
-                client = new Dirigent.Net.AutoconClient(ac.machineId, ac.masterIP, ac.masterPort);
+                string clientId = "agent-" + ac.machineId;
+                
+                client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort);
 
                 agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true);
             }
@@ -121,7 +123,7 @@ namespace Dirigent.Agent.TrayApp
             callbacks.isConnectedDeleg = client.IsConnected;
             callbacks.onTickDeleg = agent.tick;
 
-            mainForm = new frmMain(agent.Control, planRepo, ac.machineId, notifyIcon, !runningAsRemoteControlGui, callbacks);
+            mainForm = new frmMain(agent.Control, planRepo, ac.machineId, client.Name, notifyIcon, !runningAsRemoteControlGui, callbacks);
 
             // if form is user-closed, don't destroy it, just hide it
             callbacks.onCloseDeleg += (e) =>

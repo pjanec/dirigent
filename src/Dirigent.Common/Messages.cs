@@ -13,6 +13,25 @@ namespace Dirigent.Net
     [Serializable]
     public class Message
     {
+        public string Sender { get; set; }
+    }
+
+    [Serializable]
+    public class RemoteOperationErrorMessage : Message
+    {
+        public string Requestor;
+        public string Message; // Error description 
+        public Dictionary<string, string> Attributes; // additional attribute pairs (name, value)
+
+        public RemoteOperationErrorMessage(string requestor, string msg, Dictionary<string, string> attribs = null)
+        {
+            this.Requestor = requestor;
+            this.Message = msg;
+            if( attribs != null )
+            {
+                this.Attributes = attribs;
+            }
+        }
     }
 
     [Serializable]

@@ -117,7 +117,7 @@ namespace Dirigent.Net
         /// <param name="clientName"></param>
         /// <param name="msg"></param>
         /// <returns></returns>
-        private bool HandleMessage(string clientName, Message msg)
+        private bool HandleMessage(Message msg)
         {
             Type t = msg.GetType();
 
@@ -152,10 +152,10 @@ namespace Dirigent.Net
             return false;
         }
 
-        public void BroadcastMessage( string clientName, Message msg )
+        public void BroadcastMessage( Message msg )
         {
 
-            if (HandleMessage(clientName, msg))
+            if (HandleMessage(msg))
             {
                 log.Debug(string.Format("Message handled: {0}", msg.ToString()));
                 return;
@@ -172,7 +172,13 @@ namespace Dirigent.Net
                 }
             }
         }
-        
+
+        public void BroadcastMessage(string sender, Message msg)
+        {
+            msg.Sender = sender;
+            BroadcastMessage(msg);
+        }
+
         public List<string> Clients() 
         {
             return new List<string>( clients.Keys );

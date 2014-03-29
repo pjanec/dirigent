@@ -16,12 +16,17 @@ namespace Dirigent.Agent.Gui
 {
     public partial class frmMain : Form
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         NotifyIcon notifyIcon;
         bool allowLocalIfDisconnected = false;
         GuiAppCallbacks callbacks;
 
         IDirigentControl ctrl;
         string machineId;
+        string clientId; // name of the network client; messages are marked with that
+        
         
         ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
@@ -42,18 +47,20 @@ namespace Dirigent.Agent.Gui
         }
 
         /// <summary>
-        /// Main form constructor
+        /// Dirigent Agent GUI main form constructor
         /// </summary>
-        /// <param name="ctrl"></param>
-        /// <param name="planRepo"></param>
-        /// <param name="machineId"></param>
-        /// <param name="notifyIcon"></param>
-        /// <param name="allowLocalIfDisconnected">apps and plans can be operated locally even if not connected to master</param>
-        /// <param name="callbacks"></param>
+        /// <param name="ctrl">instance of object providing dirigent operations</param>
+        /// <param name="planRepo">planRepo to be used until a new one is received from the master; null if none</param>
+        /// <param name="machineId">machine id (part of application id in launch plans); informative only; used to be presented to the user</param>
+        /// <param name="clientId">name of network client used to mark the network messages; informative only; used to recognize incoming errors caused by request from this agent</param>
+        /// <param name="notifyIcon">instance of notify icon</param>
+        /// <param name="allowLocalIfDisconnected">if true, apps and plans can be operated locally even if not connected to master</param>
+        /// <param name="callbacks">bunch of callbacks</param>
         public frmMain(
             IDirigentControl ctrl,
-            IEnumerable<ILaunchPlan> planRepo, // planRepo to be used until a new one is received from the master; null if none
+            IEnumerable<ILaunchPlan> planRepo,
             string machineId,
+            string clientId,
             NotifyIcon notifyIcon,
             bool allowLocalIfDisconnected,
             GuiAppCallbacks callbacks
@@ -112,9 +119,33 @@ namespace Dirigent.Agent.Gui
         }
 
 
+        private void handleOperationError(Exception ex)
+        {
+            this.notifyIcon.ShowBalloonTip(5000, "Dirigent Operation Error", ex.Message, ToolTipIcon.Error);
+            log.Error(ex.Message);
+        }
+
         private void tmrTick_Tick(object sender, EventArgs e)
         {
-            callbacks.onTickDeleg();
+            try
+            {
+                callbacks.onTickDeleg();
+            }
+            catch (RemoteOperationErrorException ex) // operation exception (not necesarily remote, could be also local
+                                                     // as all operational requests always go through the network if
+                                                     // connected to master
+            {
+                // if this GUI was the requestor of the operation that failed
+                if (ex.Requestor == clientId)
+                {
+                    handleOperationError(ex);
+                }
+            }
+            catch (Exception ex) // local operation exception
+            {
+                handleOperationError(ex);
+            }
+
             refreshGui();
         }
 
@@ -308,25 +339,42 @@ namespace Dirigent.Agent.Gui
             refreshPlans();
         }
 
+        /// <summary>
+        /// Executes a delegate and show exception window on exception
+        /// </summary>
+        private static void guardedOp(MethodInvoker mi)
+        {
+            try
+            {
+                mi.Invoke();
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex);
+                ExceptionDialog.showException(ex, "Dirigent Exception", "");
+            }
+        }
+
         private void startToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ctrl.StartPlan();
+            guardedOp( ()=> ctrl.StartPlan() );
         }
 
         private void stopToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ctrl.StopPlan();
+            guardedOp(() => ctrl.StopPlan() );
         }
 
         private void restartToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ctrl.RestartPlan();
+            guardedOp(() => ctrl.RestartPlan());
         }
 
         private void loadPlanSubmenu_onClick( ILaunchPlan plan )
         {
-            ctrl.LoadPlan( plan );
+            guardedOp( ()=> ctrl.LoadPlan( plan ) );
         }
+
 
         private void lstvApps_MouseClick(object sender, MouseEventArgs e)
         {
@@ -345,17 +393,17 @@ namespace Dirigent.Agent.Gui
                     popup.Enabled = connected || allowLocalIfDisconnected;
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
-                    killItem.Click += (s, a) => ctrl.StopApp(appIdTuple);
+                    killItem.Click += (s, a) => guardedOp( () => ctrl.StopApp(appIdTuple) );
                     killItem.Enabled = st.Running;
                     popup.Items.Add(killItem);
 
                     var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
-                    launchItem.Click += (s, a) => ctrl.StartApp(appIdTuple);
+                    launchItem.Click += (s, a) => guardedOp( () => ctrl.StartApp(appIdTuple) );
                     launchItem.Enabled = !st.Running;
                     popup.Items.Add(launchItem);
 
                     var restartItem = new System.Windows.Forms.ToolStripMenuItem("&Restart");
-                    restartItem.Click += (s, a) => ctrl.RestartApp(appIdTuple);
+                    restartItem.Click += (s, a) => guardedOp( () => ctrl.RestartApp(appIdTuple) );
                     restartItem.Enabled = st.Running;
                     popup.Items.Add(restartItem);
 

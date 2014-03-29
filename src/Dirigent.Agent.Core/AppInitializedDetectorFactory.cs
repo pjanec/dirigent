@@ -48,7 +48,7 @@ namespace Dirigent.Agent.Core
         {
             if( initConditionString == null )
             {
-                return new DummyInitDetector();
+                return new AlwaysInitializedInitDetector();
             }
 
             string name="";

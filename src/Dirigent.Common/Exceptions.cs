@@ -70,5 +70,36 @@ namespace Dirigent.Common
         }
     }
 
+    public class AppStartFailureException : Exception
+    {
+        public AppIdTuple appIdTuple;
+        public string reason;
 
+        public AppStartFailureException(AppIdTuple appIdTuple, string reason, Exception innerEx=null)
+            : base(
+                string.Format( "Application '{0}' failed to start. Reason: {1}", appIdTuple, reason),
+                innerEx )
+        {
+            this.appIdTuple = appIdTuple;
+            this.reason = reason;
+        }
+    }
+
+    // error, caused by some dirigent operation, coming from some remote dirigent agent;
+    // to be reported to the user
+    public class RemoteOperationErrorException : Exception
+    {
+        public string Requestor; // what agent requested the operation that caused the error
+        public Dictionary<string, string> Attributes; // additional attribute pairs (name, value)
+
+        public RemoteOperationErrorException(string requestor, string msg, Dictionary<string, string> attribs=null)
+            : base(msg)
+        {
+            if (attribs != null)
+            {
+                this.Requestor = requestor;
+                this.Attributes = attribs;
+            }
+        }
+    }
 }

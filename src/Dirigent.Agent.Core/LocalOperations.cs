@@ -209,10 +209,20 @@ namespace Dirigent.Agent.Core
             
             // launch the application
             la.launcher = launcherFactory.createLauncher( la.AppDef );
-            la.launcher.Launch();
-            
-            // instantiate the app init detector
-            la.appInitDetector = appInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.AppDef.InitializedCondition );
+
+            try
+            {
+                la.launcher.Launch();
+
+                // instantiate the app init detector
+                la.appInitDetector = appInitializedDetectorFactory.create(la.AppDef, appsState[appIdTuple], la.AppDef.InitializedCondition);
+            }
+            catch // app launching failed
+            {
+                // use just dummy detector
+                la.appInitDetector = new NeverInitializedInitDetector();
+                throw;
+            }
         }
 
         public void  RestartApp(AppIdTuple appIdTuple)
