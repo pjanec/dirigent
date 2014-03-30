@@ -44,7 +44,7 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Whether we should launch apps during tick. False when plan is paused.
         /// </summary>
-        bool planRunning;
+        //bool planRunning;
         
 
         IAppInitializedDetectorFactory appInitializedDetectorFactory;
@@ -96,6 +96,11 @@ namespace Dirigent.Agent.Core
         /// <param name="plan"></param>
         public void  LoadPlan(ILaunchPlan plan)
         {
+            //if (plan == null)
+            //{
+            //    throw new ArgumentNullException("plan");
+            //}
+            
             // first kills all apps from previous plan
             StopPlan();
             
@@ -104,13 +109,13 @@ namespace Dirigent.Agent.Core
             appsState.Clear();
             localApps.Clear();
             launchDepChecker = null;
-            planRunning = false;
 
             if (plan == null)
             {
                 return;
             }
 
+            currentPlan.Running = false;
 
             foreach( var a in plan.getAppDefs() )
             {
@@ -118,7 +123,7 @@ namespace Dirigent.Agent.Core
                     {
                         Initialized = false,
                         Running = false,
-                        WasLaunched = false
+                        Started = false
                     };
 
                 if (a.AppIdTuple.MachineId == machineId)
@@ -164,7 +169,10 @@ namespace Dirigent.Agent.Core
         public void  StartPlan()
         {
  	        // trigger the launch sequencer
-            planRunning = true;
+            if (currentPlan != null)
+            {
+                currentPlan.Running = true;
+            }
         }
 
         /// <summary>
@@ -176,10 +184,25 @@ namespace Dirigent.Agent.Core
             foreach( var a in localApps.Keys )
             {
                 StopApp( a );
+                
+                // enable to be plan-started again
+                var la = localApps[a];
+                var appState = appsState[la.AppDef.AppIdTuple];
+                appState.PlanApplied = false;
+                
+                appState.Started = false;
+                appState.StartFailed = false;
+                appState.Killed = false;
+                appState.Initialized = false;
+                appState.Running = false;
+
             }
             
             // stop the launch sequencer
-            planRunning = false;
+            if (currentPlan != null)
+            {
+                currentPlan.Running = false;
+            }
         }
 
         public void  RestartPlan()
@@ -200,25 +223,32 @@ namespace Dirigent.Agent.Core
             }
 
             var la = localApps[appIdTuple];
+            var appState = appsState[la.AppDef.AppIdTuple];
 
             // don't do anything if the app is already running
-            if( la.launcher != null && la.launcher.IsRunning() )
+            if( la.launcher != null && la.launcher.Running )
             {
                 return;
             }
             
             // launch the application
+            appState.Started = false;
+            appState.StartFailed = false;
+            appState.Killed = false;
+            
             la.launcher = launcherFactory.createLauncher( la.AppDef );
 
             try
             {
                 la.launcher.Launch();
+                appState.Started = true;
 
                 // instantiate the app init detector
                 la.appInitDetector = appInitializedDetectorFactory.create(la.AppDef, appsState[appIdTuple], la.AppDef.InitializedCondition);
             }
             catch // app launching failed
             {
+                appState.StartFailed = true;
                 // use just dummy detector
                 la.appInitDetector = new NeverInitializedInitDetector();
                 throw;
@@ -243,11 +273,19 @@ namespace Dirigent.Agent.Core
             }
 
             var la = localApps[appIdTuple];
+            var appState = appsState[la.AppDef.AppIdTuple];
 
             if( la.launcher != null ) // already started?
             {
+                if (la.launcher.Running)
+                {
+                    appState.Killed = true;
+                }
+
                 la.launcher.Kill();
                 la.launcher = null;
+
+                
             }
         }
 
@@ -259,7 +297,7 @@ namespace Dirigent.Agent.Core
         void processPlan( double currentTime )
         {
             // if plan is stopped, don't start contained apps
-            if( !planRunning )
+            if( currentPlan==null || !currentPlan.Running )
                 return;
 
             // if no plan exists
@@ -280,7 +318,13 @@ namespace Dirigent.Agent.Core
             AppDef appToLaunch = launchSequencer.GetNext( currentTime );
             if( appToLaunch != null )
             {
-                StartApp( appToLaunch.AppIdTuple );
+                // remember that the app was already processed by the launch plan and should not be touched again
+                // note: must be called before StartApp otherwise it would be enlessly re-tried by the launch plan if it throws exception during StartUp
+                var la = localApps[appToLaunch.AppIdTuple];
+                var appState = appsState[la.AppDef.AppIdTuple];
+                appState.PlanApplied = true;
+                
+                StartApp(appToLaunch.AppIdTuple);
             }
         }
 
@@ -296,8 +340,8 @@ namespace Dirigent.Agent.Core
 
                 if( la.launcher != null ) // already launched
                 {
-                    appState.WasLaunched = true;
-                    appState.Running = la.launcher.IsRunning();
+                    appState.Running = la.launcher.Running;
+                    appState.ExitCode = la.launcher.ExitCode;
 
                     if( !appState.Initialized
                               &&
@@ -309,7 +353,6 @@ namespace Dirigent.Agent.Core
                 }
                 else // not yet launched or killed
                 {
-                    appState.WasLaunched = false;
                     appState.Running = false;
                     appState.Initialized = false;
                 }

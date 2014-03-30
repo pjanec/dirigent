@@ -46,7 +46,7 @@ namespace Dirigent.Agent.Core
                     {
                         var aps = appsState[appDef.AppIdTuple];
                         //var la = localApps[appDef.AppIdTuple];
-                        if( aps.WasLaunched == false ) // not yet started
+                        if (!aps.PlanApplied) // not yet processed by the plan
                         {
                             if( areAllDepsSatisfied( appDef ) )
                             {

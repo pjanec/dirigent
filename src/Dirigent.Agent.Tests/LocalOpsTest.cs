@@ -34,9 +34,20 @@ namespace Dirigent.Agent.Tests
  	        running = false;
         }
 
-        public bool  IsRunning()
+        public bool  Running
         {
- 	        return running;
+            get
+            {
+                return running;
+            }
+        }
+
+        public int ExitCode
+        {
+            get
+            {
+                return 0;
+            }
         }
     }
 
@@ -146,24 +157,27 @@ namespace Dirigent.Agent.Tests
             AppState st;
             
             st = lo.GetAppState( ads["a"].AppIdTuple );
-            Assert.AreEqual( st.WasLaunched, false, "not yet launched" );
+            Assert.AreEqual( st.Started, false, "not yet launched" );
             Assert.AreEqual( st.Running, false, "not yet running" );
-            Assert.AreEqual( st.Initialized, false, "not yet initialized" );
+            Assert.AreEqual( st.Killed, false, "not yet killed");
+            Assert.AreEqual(st.Initialized, false, "not yet initialized");
 
             lo.StartApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );
-            Assert.AreEqual( st.WasLaunched, true, "launched" );
+            Assert.AreEqual( st.Started, true, "launched" );
             Assert.AreEqual( st.Running, true, "running" );
-            Assert.AreEqual( st.Initialized, true, "initialized" );
+            Assert.AreEqual(st.Killed, false, "not yet killed");
+            Assert.AreEqual(st.Initialized, true, "initialized");
 
             lo.StopApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );
-            Assert.AreEqual( st.WasLaunched, false, "not launched after kill" );
-            Assert.AreEqual( st.Running, false, "not running after kill" );
+            Assert.AreEqual( st.Started, true, "started after kill" );
+            Assert.AreEqual(st.Killed, true, "killed after kill");
+            Assert.AreEqual(st.Running, false, "not running after kill");
             Assert.AreEqual( st.Initialized, false, "not initialized after kill" );
         }
 

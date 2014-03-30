@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Agent.cs" />
+    <Compile Include="ExitCodeInitDetector.cs" />
     <Compile Include="DirigentControlSwitchableProxy.cs" />
     <Compile Include="LaunchSequencer.cs" />
     <Compile Include="DummyInitDetector.cs" />

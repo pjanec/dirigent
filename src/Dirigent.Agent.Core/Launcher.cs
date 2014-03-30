@@ -47,13 +47,28 @@ namespace Dirigent.Agent.Core
             }
         }
 
-        public bool IsRunning()
+        public bool Running
         {
-            if( proc != null  && !proc.HasExited )
+            get
             {
-                return true;
+                if (proc != null && !proc.HasExited)
+                {
+                    return true;
+                }
+                return false;
             }
-            return false;
+        }
+
+        public int ExitCode
+        {
+            get
+            {
+                if (proc != null && proc.HasExited)
+                {
+                    return proc.ExitCode;
+                }
+                return 0; // default
+            }
         }
     }
 

@@ -153,17 +153,40 @@ namespace Dirigent.Agent.Gui
         {
             string stCode = "Not running";
 
-            if( st.Running && !st.Initialized )
+            var currPlan = ctrl.GetCurrentPlan();
+            bool planRunning = (currPlan != null) && currPlan.Running;
+
+            if( planRunning && !st.PlanApplied )
             {
-                stCode = "Initializing";
+                stCode = "Planned";
             }
-            if( st.Running && st.Initialized )
+
+            if (st.Started)
             {
-                stCode = "Running";
+                if (st.Running && !st.Initialized)
+                {
+                    stCode = "Initializing";
+                }
+                if (st.Running && st.Initialized)
+                {
+                    stCode = "Running";
+                }
+                if (!st.Running)
+                {
+                    if (st.Killed)
+                    {
+                        stCode = "Killed";
+                    }
+                    else
+                    {
+                        stCode = string.Format("Terminated ({0})", st.ExitCode);
+                    }
+                }
             }
-            if( st.WasLaunched && !st.Running )
+            else
+            if (st.StartFailed)
             {
-                stCode = "Terminated";
+                stCode = "Failed to start";
             }
 
             
@@ -392,15 +415,15 @@ namespace Dirigent.Agent.Gui
                     var popup = new System.Windows.Forms.ContextMenuStrip(this.components);
                     popup.Enabled = connected || allowLocalIfDisconnected;
 
+                    var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
+                    launchItem.Click += (s, a) => guardedOp(() => ctrl.StartApp(appIdTuple));
+                    launchItem.Enabled = !st.Running;
+                    popup.Items.Add(launchItem);
+
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
                     killItem.Click += (s, a) => guardedOp( () => ctrl.StopApp(appIdTuple) );
                     killItem.Enabled = st.Running;
                     popup.Items.Add(killItem);
-
-                    var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
-                    launchItem.Click += (s, a) => guardedOp( () => ctrl.StartApp(appIdTuple) );
-                    launchItem.Enabled = !st.Running;
-                    popup.Items.Add(launchItem);
 
                     var restartItem = new System.Windows.Forms.ToolStripMenuItem("&Restart");
                     restartItem.Click += (s, a) => guardedOp( () => ctrl.RestartApp(appIdTuple) );

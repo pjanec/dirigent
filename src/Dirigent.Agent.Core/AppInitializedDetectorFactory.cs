@@ -17,6 +17,7 @@ namespace Dirigent.Agent.Core
         {
             // register creators
             creators[TimeOutInitDetector.Name] = TimeOutInitDetector.create;
+            creators[ExitCodeInitDetector.Name] = ExitCodeInitDetector.create;
         }
 
 

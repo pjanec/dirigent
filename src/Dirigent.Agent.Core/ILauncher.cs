@@ -11,7 +11,8 @@ namespace Dirigent.Agent.Core
     {
         void Launch();
         void Kill();
-        bool IsRunning();
+        bool Running { get; }
+        int ExitCode { get; }
     }
 
     public interface ILauncherFactory

@@ -39,7 +39,8 @@ namespace Dirigent.Agent.Tests
 
         public void makeLaunched( AppIdTuple id )
         {
-            appsState[id].WasLaunched = true;
+            appsState[id].PlanApplied = true;
+            appsState[id].Started = true;
             appsState[id].Running = true;
         }
 

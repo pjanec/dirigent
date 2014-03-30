@@ -10,11 +10,13 @@ namespace Dirigent.Common
     {
         List<AppDef> appDefs;
         string name;
+        bool running;
         
         public LaunchPlan( string name, List<AppDef> appDefs )
         {
             this.name = name;
             this.appDefs = appDefs;
+            this.running = false;
         }
 
         public IEnumerable<AppDef> getAppDefs()
@@ -25,6 +27,12 @@ namespace Dirigent.Common
         public string Name
         {
             get { return name; }
+        }
+
+        public bool Running
+        {
+            get { return running; }
+            set { running = value; }
         }
 
         public bool Equals(ILaunchPlan other)

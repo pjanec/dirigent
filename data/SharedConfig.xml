@@ -4,8 +4,10 @@
     	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
     		StartupDir = "c:\"
     		CmdLineArgs = "aaa.txt"
+    		InitCondition = "exitcode 0"
     	/>
 
     	<App
@@ -15,6 +17,15 @@
     		CmdLineArgs = "bbb.txt"
     		Dependencies = "m1.a;"
     	/>
+
+    	<App
+    	    AppIdTuple = "m1.c"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "ccc.txt"
+    	/>
+
     </Plan>
 
     <AppTemplate Name="apps.notepad"

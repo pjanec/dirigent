@@ -1,4 +1,4 @@
-﻿
+﻿Kill whole process tree on StopApp, not just a single process.
 
 Support for applications that are never started automatically, just manually.
 

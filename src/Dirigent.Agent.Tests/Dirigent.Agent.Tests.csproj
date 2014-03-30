@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExitCodeInitDetectorTest.cs" />
     <Compile Include="LocalOpsTest.cs" />
     <Compile Include="LaunchWavePlannerTest.cs" />
     <Compile Include="LaunchDepsCheckerTest.cs" />
