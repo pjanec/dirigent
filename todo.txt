@@ -1,6 +1,9 @@
-﻿Kill whole process tree on StopApp, not just a single process.
+﻿
+Application groups in the launch plan (bulk start/stop/restart).
 
-Support for applications that are never started automatically, just manually.
+Application Multiselect & bulk operations in the Control GUI.
+
+Support for applications that are never started automatically, just manually (always excluded from plan).
 
 Support for disabling an application before starting a launch plan.
 
@@ -8,7 +11,7 @@ Support for multiple retries when launching a problematically starting applicati
 
 Failure timeout for boot up detector.
 
-Support for application window attributes (hidden, minimized, maximized, topmost, always on top, position, size)
+Support for application window attributes (topmost, always on top, position, size)
 
 Prevent multiple instances of agent with the same name (machineId:port)
 
@@ -38,3 +41,7 @@ CS-Script based script file procesing for agentcmd.
 [DONE] Create commandline tool for sending commands to agents.
 
 [DONE] Support for autorestart of app after unexpected termination. Add crashed app to launch sequencer when crash is detected..
+
+[DONE] Kill whole process tree on StopApp, not just a single process.
+
+[DONE] Support for application windowstyle  attributes (hidden, minimized, maximized)
