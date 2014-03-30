@@ -61,6 +61,7 @@ namespace Dirigent.Common
                 InitCondition = (string) e.Attribute("InitCondition"),
                 SeparationInterval = (string) e.Attribute("SeparationInterval") ?? "0.0",
                 Dependecies = (string) e.Attribute("Dependencies"),
+                KillTree = (string)e.Attribute("KillTree"),
             };
 
             // then overwrite templated values with current content
@@ -86,6 +87,8 @@ namespace Dirigent.Common
                 }
                 a.Dependencies = deps;
             }
+
+            if (x.KillTree != null) a.KillTree = (int.Parse(x.KillTree) != 0);
 
             return a;
         }

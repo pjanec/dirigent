@@ -33,6 +33,8 @@ namespace Dirigent.Common
 
         public bool Enabled;
 
+        public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
+
 
 
         public bool Equals(AppDef other)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Management;
 
 using Dirigent.Common;
 
@@ -36,12 +37,45 @@ namespace Dirigent.Agent.Core
             }
         }
 
+        /// <summary>
+        /// Kill a process, and all of its children.
+        /// </summary>
+        /// <param name="pid">Process ID.</param>
+        private static void KillProcessAndChildren(int pid)
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * From Win32_Process Where ParentProcessID=" + pid);
+            ManagementObjectCollection moc = searcher.Get();
+            foreach (ManagementObject mo in moc)
+            {
+                KillProcessAndChildren(Convert.ToInt32(mo["ProcessID"]));
+            }
+            try
+            {
+                Process proc = Process.GetProcessById(pid);
+                proc.Kill();
+            }
+            catch (ArgumentException)
+            {
+                // Process already exited.
+            }
+        }
+        
         public void Kill()
         {
+            // bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
+            
             // kill the process and wait until it dies
             if( proc != null  && !proc.HasExited )
             {
-                proc.Kill();
+                if (appDef.KillTree)
+                {
+                    KillProcessAndChildren(proc.Id);
+                }
+                else
+                {
+                    proc.Kill();
+                }
+
                 proc.WaitForExit();
                 proc = null;
             }

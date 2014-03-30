@@ -26,6 +26,13 @@
     		CmdLineArgs = "ccc.txt"
     	/>
 
+    	<App
+    	    AppIdTuple = "m1.d"
+    		Template = "apps.cmd"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "/c c:\ddd.bat"
+    	/>
+
     </Plan>
 
     <AppTemplate Name="apps.notepad"
@@ -37,6 +44,18 @@
     		RestartOnCrash = "1"
     		InitCondition = "timeout 2.0"
     		SeparationInterval = "0.5"
+    />
+
+    <AppTemplate Name="apps.cmd"
+    		Template = ""
+    		ExeFullPath = "c:\windows\system32\cmd.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = ""
+    		StartupOrder = "0"
+    		RestartOnCrash = "0"
+    		InitCondition = "timeout 2.0"
+    		SeparationInterval = "0.5"
+    		KillTree = "1"
     />
 
     <Machine Name="m1" IpAddress = "127.0.0.1" />
