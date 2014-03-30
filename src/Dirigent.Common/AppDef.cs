@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
+using System.Diagnostics;
 
 namespace Dirigent.Common
 {
@@ -34,6 +35,8 @@ namespace Dirigent.Common
         public bool Enabled;
 
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
+
+        public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
 
 
 

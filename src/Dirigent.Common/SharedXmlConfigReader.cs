@@ -8,6 +8,7 @@ using System.Xml.Linq;
 using Dirigent.Common;
 
 using X = Dirigent.Common.XmlConfigReaderUtils;
+using System.Diagnostics;
 
 namespace Dirigent.Common
 {
@@ -62,6 +63,7 @@ namespace Dirigent.Common
                 SeparationInterval = (string) e.Attribute("SeparationInterval") ?? "0.0",
                 Dependecies = (string) e.Attribute("Dependencies"),
                 KillTree = (string)e.Attribute("KillTree"),
+                WindowStyle = (string)e.Attribute("WindowStyle"),
             };
 
             // then overwrite templated values with current content
@@ -89,6 +91,17 @@ namespace Dirigent.Common
             }
 
             if (x.KillTree != null) a.KillTree = (int.Parse(x.KillTree) != 0);
+            
+            if (x.WindowStyle != null)
+            {
+                if (x.WindowStyle.ToLower() == "minimized") a.WindowStyle = ProcessWindowStyle.Minimized;
+                else
+                if (x.WindowStyle.ToLower() == "maximized") a.WindowStyle = ProcessWindowStyle.Maximized;
+                else
+                if (x.WindowStyle.ToLower() == "normal") a.WindowStyle = ProcessWindowStyle.Normal;
+                else
+                if (x.WindowStyle.ToLower() == "hidden") a.WindowStyle = ProcessWindowStyle.Hidden;
+            }
 
             return a;
         }

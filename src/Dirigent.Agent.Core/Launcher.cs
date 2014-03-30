@@ -26,6 +26,7 @@ namespace Dirigent.Agent.Core
             psi.FileName =  appDef.ExeFullPath;
             psi.Arguments = appDef.CmdLineArgs;
             psi.WorkingDirectory = appDef.StartupDir;
+            psi.WindowStyle = appDef.WindowStyle;
 
             try
             {

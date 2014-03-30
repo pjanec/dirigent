@@ -228,15 +228,18 @@ Launch plan comprises just a list of apps to be launched in given order. At most
 
 Each app in the launch plan has the following attributes:
 
- - unique text id of the application instance; comes together with the machine id
- - application binary file full path
- - startup directory
- - command line arguments
- - the launch order in case of same priority of multiple apps
- - whether to automatically restart the app after crash
- - what computer to launch the application on (unique machine id as text string)
- - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
- - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.)
+ - AppIdTuple - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
+ - ExeFullPath - application binary file full path
+ - StartupDir - startup directory
+ - CmdLineArgs - command line arguments
+ - StartupOrder - the launch order in case of same priority of multiple apps
+ - RestartOnCrash 0|1 - whether to automatically restart the app after crash
+ - Dependencies - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
+ - InitCondition - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.)
+ - WindowStyle - "normal" (default), "minimized", "maximized", "hidden"
+ - Template - where to load default settings from; the name of a AppTemplate section in the same XML file
+ - KillTree 0|1 - whether to kill not just the single process but also all its child processes
+ - SeparationInterval seconds - how much time to wait before starting the next application
  
 #### Templated launch plan definition
 
