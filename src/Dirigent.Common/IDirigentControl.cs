@@ -26,7 +26,7 @@ namespace Dirigent.Common
         void SetRemoteAppState( AppIdTuple appIdTuple, AppState state );
 
         // chci nacist novy plan (a tim zabit aplikace z predchoziho)
-        void LoadPlan( ILaunchPlan plan );
+        void SelectPlan( ILaunchPlan plan );
 
         /// <summary>
         /// Returns the currently loaded launch plan (or null if none loaded yet)
@@ -50,20 +50,23 @@ namespace Dirigent.Common
         // chci spustit aplikace dle aktualniho planu
         void StartPlan();
 
-        // chci zabit aplikace z aktualniho planu
+        // stop starting next planned applications from selected plan
         void StopPlan();
+
+        // stop all apps from the plan
+        void KillPlan();
 
         // chci znovuspustit vse z aktualniho planu
         void RestartPlan();
 
         // chci spustit konkretni aplikaci z aktualniho planu
-        void StartApp(AppIdTuple appIdTuple);
+        void LaunchApp(AppIdTuple appIdTuple);
 
-        // chci restartovat konkretni aplikaci z aktualniho planu
+        // kill and then start given app (must be part of some plan)
         void RestartApp(AppIdTuple appIdTuple);
 
-        // chci zabit konkretni aplikaci z aktualniho planu
-        void StopApp(AppIdTuple appIdTuple);
+        // kill specified app
+        void KillApp(AppIdTuple appIdTuple);
 
         //// chci operativne vytvorit svuj novy plan na zaklade existujiciho
         //ILaunchPlan clonePlan( ILaunchPlan existingPlan );

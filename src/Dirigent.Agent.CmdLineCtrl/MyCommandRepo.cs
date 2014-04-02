@@ -22,11 +22,12 @@ namespace Dirigent.Agent.CmdLineCtrl
 
             Register(new Commands.StartPlan(ctrl));
             Register(new Commands.StopPlan(ctrl));
+            Register(new Commands.KillPlan(ctrl));
             Register(new Commands.RestartPlan(ctrl));
-            Register(new Commands.StartApp(ctrl));
-            Register(new Commands.StopApp(ctrl));
+            Register(new Commands.LaunchApp(ctrl));
+            Register(new Commands.KillApp(ctrl));
             Register(new Commands.RestartApp(ctrl));
-            Register(new Commands.LoadPlan(ctrl));
+            Register(new Commands.SelectPlan(ctrl));
         }
 
     }

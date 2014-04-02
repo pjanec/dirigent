@@ -79,27 +79,27 @@ namespace Dirigent.Agent.Core
                 updateRemoteAppState(m.appsState);
             }
             else
-            if (t == typeof(LoadPlanMessage))
+            if (t == typeof(SelectPlanMessage))
             {
-                var m = msg as LoadPlanMessage;
-                localOps.LoadPlan(m.plan);
+                var m = msg as SelectPlanMessage;
+                localOps.SelectPlan(m.plan);
             }
             else
-            if (t == typeof(StartAppMessage))
+            if (t == typeof(LaunchAppMessage))
             {
-                var m = msg as StartAppMessage;
+                var m = msg as LaunchAppMessage;
                 if (m.appIdTuple.MachineId == machineId)
                 {
-                    localOps.StartApp(m.appIdTuple);
+                    localOps.LaunchApp(m.appIdTuple);
                 }
             }
             else
-            if (t == typeof(StopAppMessage))
+            if (t == typeof(KillAppMessage))
             {
-                var m = msg as StopAppMessage;
+                var m = msg as KillAppMessage;
                 if (m.appIdTuple.MachineId == machineId)
                 {
-                    localOps.StopApp(m.appIdTuple);
+                    localOps.KillApp(m.appIdTuple);
                 }
             }
             else
@@ -124,6 +124,12 @@ namespace Dirigent.Agent.Core
                 localOps.StopPlan();
             }
             else
+            if (t == typeof(KillPlanMessage))
+            {
+                var m = msg as KillPlanMessage;
+                localOps.KillPlan();
+            }
+            else
             if (t == typeof(RestartPlanMessage))
             {
                 var m = msg as RestartPlanMessage;
@@ -138,7 +144,7 @@ namespace Dirigent.Agent.Core
                 var localPlan = localOps.GetCurrentPlan();
                 if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)))
                 {
-                    localOps.LoadPlan(m.plan);
+                    localOps.SelectPlan(m.plan);
                 }
             }
             else
@@ -204,9 +210,9 @@ namespace Dirigent.Agent.Core
             localOps.SetRemoteAppState(appIdTuple, state);
         }
 
-        public void LoadPlan(ILaunchPlan plan)
+        public void SelectPlan(ILaunchPlan plan)
         {
-            client.BroadcastMessage( new LoadPlanMessage( plan ) );
+            client.BroadcastMessage( new SelectPlanMessage( plan ) );
         }
 
         public ILaunchPlan GetCurrentPlan()
@@ -232,7 +238,12 @@ namespace Dirigent.Agent.Core
 
         public void StopPlan()
         {
-            client.BroadcastMessage( new StopPlanMessage() );
+            client.BroadcastMessage(new StopPlanMessage());
+        }
+
+        public void KillPlan()
+        {
+            client.BroadcastMessage( new KillPlanMessage() );
         }
 
         public void RestartPlan()
@@ -240,9 +251,9 @@ namespace Dirigent.Agent.Core
             client.BroadcastMessage( new RestartPlanMessage() );
         }
 
-        public void StartApp(AppIdTuple appIdTuple)
+        public void LaunchApp(AppIdTuple appIdTuple)
         {
-            client.BroadcastMessage( new StartAppMessage( appIdTuple ) );
+            client.BroadcastMessage( new LaunchAppMessage( appIdTuple ) );
         }
 
         public void RestartApp(AppIdTuple appIdTuple)
@@ -250,9 +261,9 @@ namespace Dirigent.Agent.Core
             client.BroadcastMessage( new RestartAppMessage( appIdTuple ) );
         }
 
-        public void StopApp(AppIdTuple appIdTuple)
+        public void KillApp(AppIdTuple appIdTuple)
         {
-            client.BroadcastMessage( new StopAppMessage( appIdTuple ) );
+            client.BroadcastMessage( new KillAppMessage( appIdTuple ) );
         }
     }
 }

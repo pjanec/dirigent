@@ -41,7 +41,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
         }
 
         [Test]
-        public void testLoadPlan()
+        public void testSelectPlan()
         {
             var ctrlMock = new Mock<IDirigentControl>();
             var appIdTuple = new AppIdTuple("m1.a");
@@ -49,11 +49,11 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
             var plan = new LaunchPlan("plan1", new List<AppDef>() { appDef } );
             var planRepo = new List<ILaunchPlan>() { plan };
             ctrlMock.Setup(f => f.GetPlanRepo()).Returns(planRepo);
-            ctrlMock.Setup(f => f.LoadPlan(plan)).Verifiable();
+            ctrlMock.Setup(f => f.SelectPlan(plan)).Verifiable();
 
             var cmdRepo = new CommandRepository();
-            cmdRepo.Register( new Commands.LoadPlan(ctrlMock.Object) );
-            cmdRepo.ParseAndExecute(new List<string>() { "LoadPlan", "plan1" });
+            cmdRepo.Register( new Commands.SelectPlan(ctrlMock.Object) );
+            cmdRepo.ParseAndExecute(new List<string>() { "SelectPlan", "plan1" });
 
             ctrlMock.Verify();
 
@@ -65,10 +65,10 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
         {
             var ctrlMock = new Mock<IDirigentControl>();
             var appIdTuple = new AppIdTuple("m1.a");
-            ctrlMock.Setup(f => f.StopApp(appIdTuple)).Verifiable();
+            ctrlMock.Setup(f => f.KillApp(appIdTuple)).Verifiable();
 
             var cmdRepo = new CommandRepository();
-            cmdRepo.Register(new Commands.StopApp(ctrlMock.Object));
+            cmdRepo.Register(new Commands.KillApp(ctrlMock.Object));
             cmdRepo.ParseAndExecute(new List<string>() { "KillApp", "m1.a" });
 
             ctrlMock.Verify();
@@ -82,10 +82,10 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
         {
             var ctrlMock = new Mock<IDirigentControl>();
             var appIdTuple = new AppIdTuple("justmachine.");
-            ctrlMock.Setup(f => f.StopApp(appIdTuple));
+            ctrlMock.Setup(f => f.KillApp(appIdTuple));
 
             var cmdRepo = new CommandRepository();
-            cmdRepo.Register(new Commands.StopApp(ctrlMock.Object));
+            cmdRepo.Register(new Commands.KillApp(ctrlMock.Object));
             cmdRepo.ParseAndExecute(new List<string>() { "KillApp", "justmachine." });
 
             //Assert.AreEqual(");

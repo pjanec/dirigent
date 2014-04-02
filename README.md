@@ -115,7 +115,7 @@ Select a launch plan to start, issue a Load Plan command followed by a Start Pla
 
 For example using a command ling control app:
 
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 LoadPlan plan1
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
 
 ### Available Actions
@@ -200,14 +200,15 @@ Zero exit code is returned on success, positive error code on failure.
 
 The commands just simply follow the available agent actions, please see chapter *Available Actions* for more details.
 
-    LoadPlan <planId>
-    StartPlan <planId>
-    StopPlan <planId>
-    RestartPlan <planId>
+    SelectPlan <planId>
+    StartPlan
+    StopPlan 
+    KillPlan
+    RestartPlan
     
-    StartApp <appId> [<appId2>...]
-    StopApp <appId> [<appId2>...]
-    RestartApp <appId> [<appId2>...]
+    LanuchApp <appId>
+    KillApp <appId>
+    RestartApp <appId>
     
 
  
@@ -331,9 +332,23 @@ Both agent and master support logging of errors, warnigns etc. into a log file t
 
 ## Further Details
 
+#### Multiple coexisting plans 
+
+Dirigent works with the union of all the applications found in the plans from the plan repository. Any of the plans can be selected and manipulated at any time. All application that are still running and coming from some previously started plan are adopted by the new plan if their name matches one of the new plan's apps. 
+
+`SelectPlan`. Adds new apps to the list of managed apps. Merges the new apps with currently managed ones. Marks the new plan as selected one.
+
+`StartPlan`. Starts executing apps from given plan. If some app from the plan is already running, keep it unless it is marked `KillOnAdopt`.
+
+`StopPlan`. Stops launching next apps from the plan.
+
+`KillPlan`. Stops (kills) all the application from that particular plan.
+
+
+
 ### Execution of a launch plan
 
-A new launch plan automatically cancels any previous plan, i.e. all apps from the previous plan are killed. The application from the new plan are initially assigned the state 'not launched'.
+The application from the new plan are initially assigned the state 'not launched'.
 
 The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose depedencied have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on enything else. In the next wawe there are apps dependent on the apps from the previous wave.
 

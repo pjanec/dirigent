@@ -40,7 +40,7 @@ namespace Dirigent.Net
         List<ILaunchPlan> PlanRepo;
 
         // cached current plan;
-        // set via LoadPlanMessage
+        // set via SelectPlanMessage
         ILaunchPlan CurrentPlan;
 
         Timer disconTimer;
@@ -121,9 +121,9 @@ namespace Dirigent.Net
         {
             Type t = msg.GetType();
 
-            if (t == typeof(LoadPlanMessage))
+            if (t == typeof(SelectPlanMessage))
             {
-                var m = msg as LoadPlanMessage;
+                var m = msg as SelectPlanMessage;
                 lock (clients)
                 {
                     CurrentPlan = m.plan;

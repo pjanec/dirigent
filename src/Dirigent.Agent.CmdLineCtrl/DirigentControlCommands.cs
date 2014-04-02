@@ -42,7 +42,6 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
         }
     }
 
-
     public class StopPlan : DirigentControlCommand
     {
         public StopPlan(IDirigentControl ctrl)
@@ -53,6 +52,19 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
         public override void Execute(IList<string> args)
         {
             ctrl.StopPlan();
+        }
+    }
+
+    public class KillPlan : DirigentControlCommand
+    {
+        public KillPlan(IDirigentControl ctrl)
+            : base(ctrl)
+        {
+        }
+
+        public override void Execute(IList<string> args)
+        {
+            ctrl.KillPlan();
         }
     }
 
@@ -70,9 +82,9 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
     }
 
 
-    public class StartApp : DirigentControlCommand
+    public class LaunchApp : DirigentControlCommand
     {
-        public StartApp(IDirigentControl ctrl)
+        public LaunchApp(IDirigentControl ctrl)
             : base(ctrl)
         {
         }
@@ -82,13 +94,13 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
             if( args.Count == 0 ) throw new MissingArgumentException("appIdTuple", "AppIdTuple expected.");
             var t = new AppIdTuple(args[0]);
             if (t.AppId == "") throw new ArgumentSyntaxErrorException("appIdTuple", args[0], "\"machineId.appId\" expected");
-            ctrl.StartApp(t);
+            ctrl.LaunchApp(t);
         }
     }
 
-    public class StopApp : DirigentControlCommand
+    public class KillApp : DirigentControlCommand
     {
-        public StopApp(IDirigentControl ctrl)
+        public KillApp(IDirigentControl ctrl)
             : base(ctrl)
         {
         }
@@ -98,7 +110,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
             if (args.Count == 0) throw new MissingArgumentException("appIdTuple", "AppIdTuple expected.");
             var t = new AppIdTuple(args[0]);
             if (t.AppId == "") throw new ArgumentSyntaxErrorException("appIdTuple", args[0], "\"machineId.appId\" expected");
-            ctrl.StopApp(t);
+            ctrl.KillApp(t);
         }
     }
 
@@ -118,9 +130,9 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
         }
     }
 
-    public class LoadPlan : DirigentControlCommand
+    public class SelectPlan : DirigentControlCommand
     {
-        public LoadPlan(IDirigentControl ctrl)
+        public SelectPlan(IDirigentControl ctrl)
             : base(ctrl)
         {
         }
@@ -143,7 +155,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
                 throw new UnknownPlanName(planName);
             }
 
-            ctrl.LoadPlan(plan);
+            ctrl.SelectPlan(plan);
         }
     }
 

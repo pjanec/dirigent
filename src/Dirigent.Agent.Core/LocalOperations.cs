@@ -91,54 +91,57 @@ namespace Dirigent.Agent.Core
         }
 
         /// <summary>
-        /// Prepares for starting a new plan. Kills all apps from the current plan if any.
+        /// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
         /// </summary>
         /// <param name="plan"></param>
-        public void  LoadPlan(ILaunchPlan plan)
+        public void  SelectPlan(ILaunchPlan plan)
         {
             //if (plan == null)
             //{
             //    throw new ArgumentNullException("plan");
             //}
-            
-            // first kills all apps from previous plan
+
+            // stop the current plan
             StopPlan();
             
+            // change the current plan to this one
             currentPlan = plan;
             
-            appsState.Clear();
-            localApps.Clear();
-            launchDepChecker = null;
-
             if (plan == null)
             {
                 return;
             }
 
-            currentPlan.Running = false;
-
-            foreach( var a in plan.getAppDefs() )
+            // add record for not yet existing apps
+            foreach (var a in plan.getAppDefs())
             {
-                appsState[a.AppIdTuple] = new AppState()
+                if (!appsState.ContainsKey(a.AppIdTuple))
+                {
+                    appsState[a.AppIdTuple] = new AppState()
                     {
                         Initialized = false,
                         Running = false,
                         Started = false
                     };
+                }
 
                 if (a.AppIdTuple.MachineId == machineId)
                 {
-                    localApps[a.AppIdTuple] = new LocalApp()
+                    if (!localApps.ContainsKey(a.AppIdTuple))
+                    {
+                        localApps[a.AppIdTuple] = new LocalApp()
                         {
                             AppDef = a,
                             launcher = null,
                             appInitDetector = null
                         };
+                    }
+                    else // app already exists, just update its appdef to be used on next launch
+                    {
+                        localApps[a.AppIdTuple].AppDef = a;
+                    }
                 }
             }
-
-            List<AppWave> waves = LaunchWavePlanner.build( plan.getAppDefs() );
-            launchDepChecker = new LaunchDepsChecker( machineId, appsState, waves );
         }
 
         public ILaunchPlan  GetCurrentPlan()
@@ -168,25 +171,56 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void  StartPlan()
         {
- 	        // trigger the launch sequencer
-            if (currentPlan != null)
+            if (currentPlan == null)
+                return;
+
+            if (!currentPlan.Running)
             {
+                // trigger the launch sequencer
                 currentPlan.Running = true;
-            }
+
+                List<AppWave> waves = LaunchWavePlanner.build(currentPlan.getAppDefs());
+                launchDepChecker = new LaunchDepsChecker(machineId, appsState, waves);
+            }                    
+        }
+
+        /// <summary>
+        /// Stops executing a launch plan (stop starting next applications)
+        /// </summary>
+        public void StopPlan()
+        {
+            if (currentPlan == null)
+                return;
+
+            currentPlan.Running = false;
+            launchDepChecker = null;
+
+            foreach (var a in localApps.Keys)
+            {
+                appsState[a].PlanApplied = false;
+            }        
         }
 
         /// <summary>
         /// Kills all local apps from current plan.
         /// </summary>
-        public void  StopPlan()
+        public void  KillPlan()
         {
- 	        // kill all local apps
-            foreach( var a in localApps.Keys )
+ 	        if( currentPlan == null )
+                return;
+            
+            
+            // kill all local apps belonging to the current plan
+            foreach( var a in currentPlan.getAppDefs() )
             {
-                StopApp( a );
+                if( !localApps.ContainsKey( a.AppIdTuple ) )
+                    continue;
+
+
+                KillApp( a.AppIdTuple );
                 
                 // enable to be plan-started again
-                var la = localApps[a];
+                var la = localApps[a.AppIdTuple];
                 var appState = appsState[la.AppDef.AppIdTuple];
                 appState.PlanApplied = false;
                 
@@ -207,7 +241,7 @@ namespace Dirigent.Agent.Core
 
         public void  RestartPlan()
         {
- 	        StopPlan();
+ 	        KillPlan();
             StartPlan();
         }
 
@@ -215,7 +249,7 @@ namespace Dirigent.Agent.Core
         /// Launches a local app if not already running.
         /// </summary>
         /// <param name="appIdTuple"></param>
-        public void  StartApp(AppIdTuple appIdTuple)
+        public void  LaunchApp(AppIdTuple appIdTuple)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -257,15 +291,15 @@ namespace Dirigent.Agent.Core
 
         public void  RestartApp(AppIdTuple appIdTuple)
         {
- 	        StopApp( appIdTuple );
-            StartApp( appIdTuple );
+ 	        KillApp( appIdTuple );
+            LaunchApp( appIdTuple );
         }
 
         /// <summary>
         /// Kills a local app.
         /// </summary>
         /// <param name="appIdTuple"></param>
-        public void  StopApp(AppIdTuple appIdTuple)
+        public void  KillApp(AppIdTuple appIdTuple)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -324,7 +358,7 @@ namespace Dirigent.Agent.Core
                 var appState = appsState[la.AppDef.AppIdTuple];
                 appState.PlanApplied = true;
                 
-                StartApp(appToLaunch.AppIdTuple);
+                LaunchApp(appToLaunch.AppIdTuple);
             }
         }
 

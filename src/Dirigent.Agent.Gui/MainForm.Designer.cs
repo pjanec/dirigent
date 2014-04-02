@@ -35,10 +35,11 @@
             this.menuMain = new System.Windows.Forms.MenuStrip();
             this.planToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.startToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.stopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.stopPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.killPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
-            this.loadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lstvApps = new System.Windows.Forms.ListView();
@@ -49,9 +50,16 @@
             this.killToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.restartToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.tmrTick = new System.Windows.Forms.Timer(this.components);
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this.btnSelectPlan = new System.Windows.Forms.ToolStripButton();
+            this.btnStartPlan = new System.Windows.Forms.ToolStripButton();
+            this.btnStopPlan = new System.Windows.Forms.ToolStripButton();
+            this.btnKillPlan = new System.Windows.Forms.ToolStripButton();
+            this.btnRestartPlan = new System.Windows.Forms.ToolStripButton();
             this.statusStrip.SuspendLayout();
             this.menuMain.SuspendLayout();
             this.ctxmAppList.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // statusStrip
@@ -84,10 +92,11 @@
             // 
             this.planToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.startToolStripMenuItem,
-            this.stopToolStripMenuItem,
+            this.stopPlanToolStripMenuItem,
             this.restartToolStripMenuItem,
+            this.killPlanToolStripMenuItem,
             this.toolStripMenuItem1,
-            this.loadToolStripMenuItem});
+            this.selectPlanToolStripMenuItem});
             this.planToolStripMenuItem.Name = "planToolStripMenuItem";
             this.planToolStripMenuItem.Size = new System.Drawing.Size(49, 24);
             this.planToolStripMenuItem.Text = "Plan";
@@ -95,34 +104,41 @@
             // startToolStripMenuItem
             // 
             this.startToolStripMenuItem.Name = "startToolStripMenuItem";
-            this.startToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.startToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.startToolStripMenuItem.Text = "Start";
             this.startToolStripMenuItem.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
             // 
-            // stopToolStripMenuItem
+            // stopPlanToolStripMenuItem
             // 
-            this.stopToolStripMenuItem.Name = "stopToolStripMenuItem";
-            this.stopToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.stopToolStripMenuItem.Text = "Stop";
-            this.stopToolStripMenuItem.Click += new System.EventHandler(this.stopToolStripMenuItem_Click);
+            this.stopPlanToolStripMenuItem.Name = "stopPlanToolStripMenuItem";
+            this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.stopPlanToolStripMenuItem.Text = "Stop";
+            this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
+            // 
+            // killPlanToolStripMenuItem
+            // 
+            this.killPlanToolStripMenuItem.Name = "killPlanToolStripMenuItem";
+            this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.killPlanToolStripMenuItem.Text = "Kill";
+            this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(121, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
             // 
-            // loadToolStripMenuItem
+            // selectPlanToolStripMenuItem
             // 
-            this.loadToolStripMenuItem.Name = "loadToolStripMenuItem";
-            this.loadToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.loadToolStripMenuItem.Text = "Load";
+            this.selectPlanToolStripMenuItem.Name = "selectPlanToolStripMenuItem";
+            this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.selectPlanToolStripMenuItem.Text = "Select";
             // 
             // helpToolStripMenuItem
             // 
@@ -199,11 +215,76 @@
             this.tmrTick.Interval = 500;
             this.tmrTick.Tick += new System.EventHandler(this.tmrTick_Tick);
             // 
+            // toolStrip1
+            // 
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.btnSelectPlan,
+            this.btnStartPlan,
+            this.btnStopPlan,
+            this.btnKillPlan,
+            this.btnRestartPlan});
+            this.toolStrip1.Location = new System.Drawing.Point(0, 28);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.Size = new System.Drawing.Size(345, 25);
+            this.toolStrip1.TabIndex = 3;
+            this.toolStrip1.Text = "toolStrip1";
+            // 
+            // btnSelectPlan
+            // 
+            this.btnSelectPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnSelectPlan.Image = global::Dirigent.Agent.Gui.Resource1.open;
+            this.btnSelectPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnSelectPlan.Name = "btnSelectPlan";
+            this.btnSelectPlan.Size = new System.Drawing.Size(23, 22);
+            this.btnSelectPlan.Text = "btnSelectPlan";
+            this.btnSelectPlan.Click += new System.EventHandler(this.btnSelectPlan_Click);
+            // 
+            // btnStartPlan
+            // 
+            this.btnStartPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnStartPlan.Image = global::Dirigent.Agent.Gui.Resource1.play;
+            this.btnStartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnStartPlan.Name = "btnStartPlan";
+            this.btnStartPlan.Size = new System.Drawing.Size(23, 22);
+            this.btnStartPlan.Text = "btnStartPlan";
+            this.btnStartPlan.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
+            // 
+            // btnStopPlan
+            // 
+            this.btnStopPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnStopPlan.Image = global::Dirigent.Agent.Gui.Resource1.stop;
+            this.btnStopPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnStopPlan.Name = "btnStopPlan";
+            this.btnStopPlan.Size = new System.Drawing.Size(23, 22);
+            this.btnStopPlan.Text = "btnStopPlan";
+            this.btnStopPlan.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
+            // 
+            // btnKillPlan
+            // 
+            this.btnKillPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnKillPlan.Image = global::Dirigent.Agent.Gui.Resource1.delete;
+            this.btnKillPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnKillPlan.Name = "btnKillPlan";
+            this.btnKillPlan.Size = new System.Drawing.Size(23, 22);
+            this.btnKillPlan.Text = "btnKillPlan";
+            this.btnKillPlan.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
+            // 
+            // btnRestartPlan
+            // 
+            this.btnRestartPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.btnRestartPlan.Image = global::Dirigent.Agent.Gui.Resource1.refresh;
+            this.btnRestartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.btnRestartPlan.Name = "btnRestartPlan";
+            this.btnRestartPlan.Size = new System.Drawing.Size(23, 22);
+            this.btnRestartPlan.Text = "btnRestartPlan";
+            this.btnRestartPlan.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(345, 255);
+            this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.lstvApps);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.menuMain);
@@ -218,6 +299,8 @@
             this.menuMain.ResumeLayout(false);
             this.menuMain.PerformLayout();
             this.ctxmAppList.ResumeLayout(false);
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -229,10 +312,10 @@
         private System.Windows.Forms.MenuStrip menuMain;
         private System.Windows.Forms.ToolStripMenuItem planToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem stopToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem killPlanToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
-        private System.Windows.Forms.ToolStripMenuItem loadToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectPlanToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.ListView lstvApps;
@@ -244,6 +327,13 @@
         private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem1;
         private System.Windows.Forms.Timer tmrTick;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
+        private System.Windows.Forms.ToolStripMenuItem stopPlanToolStripMenuItem;
+        private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.ToolStripButton btnSelectPlan;
+        private System.Windows.Forms.ToolStripButton btnStartPlan;
+        private System.Windows.Forms.ToolStripButton btnStopPlan;
+        private System.Windows.Forms.ToolStripButton btnKillPlan;
+        private System.Windows.Forms.ToolStripButton btnRestartPlan;
     }
 }
 

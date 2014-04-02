@@ -89,7 +89,7 @@ namespace Dirigent.Agent.Gui
 
         void PopulatePlanListMenu( IEnumerable<ILaunchPlan> planRepo )
         {
-            loadToolStripMenuItem.DropDownItems.Clear();
+            selectPlanToolStripMenuItem.DropDownItems.Clear();
 
             // fill the Plan -> Load menu with items
             foreach (var plan in planRepo)
@@ -97,7 +97,7 @@ namespace Dirigent.Agent.Gui
                 EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(plan);
                 var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
 
-                loadToolStripMenuItem.DropDownItems.Add(menuItem);
+                selectPlanToolStripMenuItem.DropDownItems.Add(menuItem);
             }
         }
         
@@ -336,7 +336,8 @@ namespace Dirigent.Agent.Gui
             bool hasPlan = ctrl.GetCurrentPlan() != null;
             planToolStripMenuItem.Enabled = isConnected || allowLocalIfDisconnected;
             startToolStripMenuItem.Enabled = hasPlan;
-            stopToolStripMenuItem.Enabled = hasPlan;
+            stopPlanToolStripMenuItem.Enabled = hasPlan;
+            killPlanToolStripMenuItem.Enabled = hasPlan;
             restartToolStripMenuItem.Enabled = hasPlan;
         }
 
@@ -383,9 +384,14 @@ namespace Dirigent.Agent.Gui
             guardedOp( ()=> ctrl.StartPlan() );
         }
 
-        private void stopToolStripMenuItem_Click(object sender, EventArgs e)
+        private void stopPlanToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp(() => ctrl.StopPlan() );
+            guardedOp(() => ctrl.StopPlan());
+        }
+
+        private void killPlanToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            guardedOp(() => ctrl.KillPlan() );
         }
 
         private void restartToolStripMenuItem_Click(object sender, EventArgs e)
@@ -395,7 +401,7 @@ namespace Dirigent.Agent.Gui
 
         private void loadPlanSubmenu_onClick( ILaunchPlan plan )
         {
-            guardedOp( ()=> ctrl.LoadPlan( plan ) );
+            guardedOp( ()=> ctrl.SelectPlan( plan ) );
         }
 
 
@@ -416,12 +422,12 @@ namespace Dirigent.Agent.Gui
                     popup.Enabled = connected || allowLocalIfDisconnected;
 
                     var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
-                    launchItem.Click += (s, a) => guardedOp(() => ctrl.StartApp(appIdTuple));
+                    launchItem.Click += (s, a) => guardedOp(() => ctrl.LaunchApp(appIdTuple));
                     launchItem.Enabled = !st.Running;
                     popup.Items.Add(launchItem);
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
-                    killItem.Click += (s, a) => guardedOp( () => ctrl.StopApp(appIdTuple) );
+                    killItem.Click += (s, a) => guardedOp( () => ctrl.KillApp(appIdTuple) );
                     killItem.Enabled = st.Running;
                     popup.Items.Add(killItem);
 
@@ -461,5 +467,11 @@ namespace Dirigent.Agent.Gui
         {
             callbacks.onCloseDeleg(e);
         }
+
+        private void btnSelectPlan_Click(object sender, EventArgs e)
+        {
+            selectPlanToolStripMenuItem.ShowDropDown();
+        }
+
     }
 }

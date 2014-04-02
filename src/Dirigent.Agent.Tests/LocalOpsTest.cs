@@ -110,7 +110,7 @@ namespace Dirigent.Agent.Tests
         {
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
-            lo.LoadPlan( PlanRepo.plans["p1"] );
+            lo.SelectPlan( PlanRepo.plans["p1"] );
             
             // start the plan
             lo.StartPlan();
@@ -152,7 +152,7 @@ namespace Dirigent.Agent.Tests
         {
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
-            lo.LoadPlan( PlanRepo.plans["p1"] );
+            lo.SelectPlan( PlanRepo.plans["p1"] );
             
             AppState st;
             
@@ -162,7 +162,7 @@ namespace Dirigent.Agent.Tests
             Assert.AreEqual( st.Killed, false, "not yet killed");
             Assert.AreEqual(st.Initialized, false, "not yet initialized");
 
-            lo.StartApp( ads["a"].AppIdTuple );
+            lo.LaunchApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );
@@ -171,7 +171,7 @@ namespace Dirigent.Agent.Tests
             Assert.AreEqual(st.Killed, false, "not yet killed");
             Assert.AreEqual(st.Initialized, true, "initialized");
 
-            lo.StopApp( ads["a"].AppIdTuple );
+            lo.KillApp( ads["a"].AppIdTuple );
             lo.tick( 10.0 );
 
             st = lo.GetAppState( ads["a"].AppIdTuple );
@@ -186,13 +186,13 @@ namespace Dirigent.Agent.Tests
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
             var plan =  PlanRepo.plans["p1"];
-            lo.LoadPlan( plan );
+            lo.SelectPlan( plan );
             lo.StartPlan();
             for(int i=0; i < 10; i++ ) lo.tick(i); // give enought ticks to start all 
             Assert.AreEqual( "m1.a,m1.b,m1.c,m1.d", getAppsWithMatchingState(lo, st => st.Running ), "all aps running after Start()" );
 
             
-            lo.StopPlan();
+            lo.KillPlan();
             lo.tick(20.0);
             Assert.AreEqual( "", getAppsWithMatchingState(lo, st => st.Running ), "no app running after Stop()" );
         }

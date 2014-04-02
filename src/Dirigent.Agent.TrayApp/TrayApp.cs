@@ -115,7 +115,7 @@ namespace Dirigent.Agent.TrayApp
                 ILaunchPlan startupPlan = AppHelper.GetPlanByName(planRepo, ac.startupPlanName);
                 if (startupPlan != null)
                 {
-                    agent.LocalOps.LoadPlan(startupPlan);
+                    agent.LocalOps.SelectPlan(startupPlan);
                 }
             }
 

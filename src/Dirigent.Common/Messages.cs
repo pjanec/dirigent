@@ -46,11 +46,11 @@ namespace Dirigent.Net
     }
 
     [Serializable]
-    public class StartAppMessage : Message
+    public class LaunchAppMessage : Message
     {
         public AppIdTuple appIdTuple;
 
-        public StartAppMessage( AppIdTuple appIdTuple )
+        public LaunchAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
         }
@@ -63,11 +63,11 @@ namespace Dirigent.Net
     }
 
     [Serializable]
-    public class StopAppMessage : Message
+    public class KillAppMessage : Message
     {
         public AppIdTuple appIdTuple;
 
-        public StopAppMessage( AppIdTuple appIdTuple )
+        public KillAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
         }
@@ -96,18 +96,18 @@ namespace Dirigent.Net
     }
 
     [Serializable]
-    public class LoadPlanMessage : Message
+    public class SelectPlanMessage : Message
     {
         public ILaunchPlan plan;
 
-        public LoadPlanMessage( ILaunchPlan plan )
+        public SelectPlanMessage( ILaunchPlan plan )
         {
             this.plan = plan;
         }
 
         public override string ToString()
         {
-            return string.Format("LoadPlan {0}", plan.Name);
+            return string.Format("SelectPlan {0}", plan.Name);
         }
 
     }
@@ -122,6 +122,12 @@ namespace Dirigent.Net
     public class StopPlanMessage : Message
     {
         public override string ToString() { return "StopPlan"; }
+    }
+
+    [Serializable]
+    public class KillPlanMessage : Message
+    {
+        public override string ToString() { return "KillPlan"; }
     }
 
     [Serializable]

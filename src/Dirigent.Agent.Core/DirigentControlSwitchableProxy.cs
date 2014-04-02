@@ -30,9 +30,9 @@ namespace Dirigent.Agent.Core
             impl.SetRemoteAppState(appIdTuple, state);
         }
 
-        public void LoadPlan(ILaunchPlan plan)
+        public void SelectPlan(ILaunchPlan plan)
         {
-            impl.LoadPlan(plan);
+            impl.SelectPlan(plan);
         }
 
         public ILaunchPlan GetCurrentPlan()
@@ -60,14 +60,19 @@ namespace Dirigent.Agent.Core
             impl.StopPlan();
         }
 
+        public void KillPlan()
+        {
+            impl.KillPlan();
+        }
+
         public void RestartPlan()
         {
             impl.RestartPlan();
         }
 
-        public void StartApp(AppIdTuple appIdTuple)
+        public void LaunchApp(AppIdTuple appIdTuple)
         {
-            impl.StartApp(appIdTuple);
+            impl.LaunchApp(appIdTuple);
         }
 
         public void RestartApp(AppIdTuple appIdTuple)
@@ -75,9 +80,9 @@ namespace Dirigent.Agent.Core
             impl.RestartApp(appIdTuple);
         }
 
-        public void StopApp(AppIdTuple appIdTuple)
+        public void KillApp(AppIdTuple appIdTuple)
         {
-            impl.StopApp(appIdTuple);
+            impl.KillApp(appIdTuple);
         }
     }
 }
