@@ -1,8 +1,7 @@
 ## Dirigent Overview
-Dirigent is an application life cycle management and diagnostic tool. It can controll a set of applications running on one or multiple networked computers. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
+Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
 
 #### Launch plans
-Dirigent allows launching a given set of applications in given order according to predefined launch plan.
 
 The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
 
@@ -22,8 +21,14 @@ A launch plan can be executed automatically on computer startup.
 To speedup the boot process of a system comprising multiple interdependent computers, certain applications (independent on those on other computers) can be launched even before the connection among computers is established.
 
 #### Ways of control
-All operations can be controlled from any computer via a control GUI, from a separate remote control tool or programmatically via a .net library.
+All operations can be controlled
 
+ * from any computer via a control GUI
+
+ * from a command line tool or
+
+ * programmatically via a .net library.
+ 
 #### Local and networked mode
 Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control application.
 
@@ -123,19 +128,21 @@ The Dirigent can perform actions related either to a set of applications grouped
 
 #### Launch Plan Actions
 
- - **Load Plan.** The given plan becomes the current plan. Any previous plan is stopped, i.e. all its app are killed.
+ - **Select Plan.** The given plan becomes the current plan. New apps defined by this plan are added to the list of operated ones.
 
- - **Start Plan.** The current plan starts to get executed. The launch order is determined and the applications launch process begins.
+ - **Start Plan.** Apps from the current plan start to be lauched according to the plan.
 
- - **Stop Plan.** All apps that are part of the current lauch plan are killed.
+ - **Stop Plan.** Stop launching of apps from the current plan. No apps are killed.
 
- - **Restart Plan.** The current plan is stopped and started again. All apps from the plan are first killed and then thei launch process begins.
+ - **Kill Plan.** All apps that are part of the current lauch plan are killed.
+
+ - **Restart Plan.** All apps from the current plan are first killed and then the plan starts.
 
 #### Individual Apps Actions
 
- - **Stop App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
+ - **Kill App.** The app is killed immediately if already running. The auto-restart (if configured) is disabled so that the app stays killed and is not started again automatically.
 
- - **Start App.** The app is launched if not already running, ignoring any dependency checks.
+ - **Launch App.** The app is launched if not already running, ignoring any dependency checks.
 
  - **Restart App.** The app is first killed and then launched again.
 
@@ -229,18 +236,29 @@ Launch plan comprises just a list of apps to be launched in given order. At most
 
 Each app in the launch plan has the following attributes:
 
- - AppIdTuple - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
- - ExeFullPath - application binary file full path
- - StartupDir - startup directory
- - CmdLineArgs - command line arguments
- - StartupOrder - the launch order in case of same priority of multiple apps
- - RestartOnCrash 0|1 - whether to automatically restart the app after crash
- - Dependencies - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
- - InitCondition - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.)
- - WindowStyle - "normal" (default), "minimized", "maximized", "hidden"
- - Template - where to load default settings from; the name of a AppTemplate section in the same XML file
- - KillTree 0|1 - whether to kill not just the single process but also all its child processes
- - SeparationInterval seconds - how much time to wait before starting the next application
+ - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
+ 
+ - `ExeFullPath` - application binary file full path
+
+ - `StartupDir` - startup directory
+
+ - `CmdLineArgs` - command line arguments
+
+ - `StartupOrder` - the launch order in case of same priority of multiple apps
+
+ - `RestartOnCrash 0|1` - whether to automatically restart the app after crash
+
+ - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
+
+ - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.) See chapter *Selecting a boot up completion detector*.
+
+ - `WindowStyle` - "normal" (default), "minimized", "maximized", "hidden"
+
+ - `Template` - where to load default settings from; the name of a AppTemplate section in the same XML file
+
+ - `KillTree 0|1` - whether to kill not just the single process but also all its child processes
+
+ - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
  
 #### Templated launch plan definition
 
@@ -335,15 +353,6 @@ Both agent and master support logging of errors, warnigns etc. into a log file t
 #### Multiple coexisting plans 
 
 Dirigent works with the union of all the applications found in the plans from the plan repository. Any of the plans can be selected and manipulated at any time. All application that are still running and coming from some previously started plan are adopted by the new plan if their name matches one of the new plan's apps. 
-
-`SelectPlan`. Adds new apps to the list of managed apps. Merges the new apps with currently managed ones. Marks the new plan as selected one.
-
-`StartPlan`. Starts executing apps from given plan. If some app from the plan is already running, keep it unless it is marked `KillOnAdopt`.
-
-`StopPlan`. Stops launching next apps from the plan.
-
-`KillPlan`. Stops (kills) all the application from that particular plan.
-
 
 
 ### Execution of a launch plan

@@ -1,12 +1,12 @@
 ﻿
-Application groups in the launch plan (bulk start/stop/restart). Or multiple coexisting plans that share the applications.
 
+Application Multiselect & bulk operations in the Control GUI.
+
+New option for the apps: `KillOnAdopt`. If an application is already running when starting a plan that contains an app with the same name, the running one is killed. This is usefull if the app has the same name but different attributes and we want it to be started with those attributes from the new plan.
 
 Remote monitoring of machines. Shutting them down, starting them up. Works only if the machines are listed in the shared config together with their MAC addresses.
 
 Remote execution of ANY command on selected machine(s). 
-
-Application Multiselect & bulk operations in the Control GUI.
 
 Support for applications that are never started automatically, just manually (always excluded from plan).
 
@@ -51,17 +51,6 @@ CS-Script based script file procesing for agentcmd.
 
 [DONE] Support for application windowstyle  attributes (hidden, minimized, maximized)
 
-
-
-New option for the apps: `KillOnAdopt`. If an application is already running when starting a plan that contains an app with the same name, the running one is killed. This is usefull if the app has the same name but different attributes and we want it to be started with those attributes from the new plan.
-
-plan "IGs"
-plan "IOS"
-plan "IOS-noIG"
-
-Merging new plan with already running applications:
-  Replace the AppDef in LocalOperations.localApps.
-  Make sure for launch planning this new one is used.
-  Make sure when launching the new one is used for ILauncher and IAppInitDetector
+[DONE] Multiple coexisting plans that share the applications.
 
 
