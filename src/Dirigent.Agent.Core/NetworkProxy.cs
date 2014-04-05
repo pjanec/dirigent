@@ -11,7 +11,8 @@ namespace Dirigent.Agent.Core
     /// <summary>
     /// Handles communication with master
     ///  - connection to master
-    ///  - reception of messages from master
+    ///  - forwarding requests to master
+    ///  - reception of messages from masters; command targetting owned applications are executed locally
     ///  - publishing info to master
     /// </summary>
     public class NetworkProxy : IDirigentControl
@@ -205,7 +206,12 @@ namespace Dirigent.Agent.Core
             return localOps.GetAppState(appIdTuple);
         }
 
-        public void SetRemoteAppState(AppIdTuple appIdTuple, AppState state )
+        public Dictionary<AppIdTuple, AppState> GetAllAppsState()
+        {
+            return localOps.GetAllAppsState();
+        }
+
+        public void SetRemoteAppState(AppIdTuple appIdTuple, AppState state)
         {
             localOps.SetRemoteAppState(appIdTuple, state);
         }

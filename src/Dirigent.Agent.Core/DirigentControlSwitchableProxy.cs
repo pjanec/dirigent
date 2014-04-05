@@ -25,6 +25,11 @@ namespace Dirigent.Agent.Core
             return impl.GetAppState(appIdTuple);
         }
 
+        public Dictionary<AppIdTuple, AppState> GetAllAppsState()
+        {
+            return impl.GetAllAppsState();
+        }
+        
         public void SetRemoteAppState(AppIdTuple appIdTuple, AppState state)
         {
             impl.SetRemoteAppState(appIdTuple, state);

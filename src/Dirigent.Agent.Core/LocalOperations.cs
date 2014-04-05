@@ -79,6 +79,11 @@ namespace Dirigent.Agent.Core
             }
         }
 
+        public Dictionary<AppIdTuple, AppState> GetAllAppsState()
+        {
+            return new Dictionary<AppIdTuple, AppState>(appsState);
+        }
+        
         /// <summary>
         /// Sets new status info for given app.
         /// To be used for remote apps whose status gets received from master.
@@ -195,9 +200,9 @@ namespace Dirigent.Agent.Core
             currentPlan.Running = false;
             launchDepChecker = null;
 
-            foreach (var a in localApps.Keys)
+            foreach (var a in currentPlan.getAppDefs())
             {
-                appsState[a].PlanApplied = false;
+                appsState[a.AppIdTuple].PlanApplied = false;
             }        
         }
 

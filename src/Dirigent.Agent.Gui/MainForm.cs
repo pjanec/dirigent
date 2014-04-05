@@ -31,6 +31,7 @@ namespace Dirigent.Agent.Gui
         ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
 
+        ContextMenu mnuPlanList;  // context menu for the 'Open' toolbar button
 
         //void terminateFromConstructor()
         //{
@@ -89,15 +90,21 @@ namespace Dirigent.Agent.Gui
 
         void PopulatePlanListMenu( IEnumerable<ILaunchPlan> planRepo )
         {
+            mnuPlanList = new ContextMenu();
+
             selectPlanToolStripMenuItem.DropDownItems.Clear();
 
             // fill the Plan -> Load menu with items
             foreach (var plan in planRepo)
             {
-                EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(plan);
-                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
+                var planCopy = plan; // independent variable to be remebered by the lambda below
+                EventHandler clickHandler = (sender, args) => loadPlanSubmenu_onClick(planCopy);
 
+                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
                 selectPlanToolStripMenuItem.DropDownItems.Add(menuItem);
+
+                var menuItem2 = new System.Windows.Forms.MenuItem(plan.Name, clickHandler);
+                mnuPlanList.MenuItems.Add(menuItem2);
             }
         }
         
@@ -149,12 +156,12 @@ namespace Dirigent.Agent.Gui
             refreshGui();
         }
 
-        string getStatusCode( AppState st )
+        string getStatusCode( AppState st, bool isPartOfPlan )
         {
             string stCode = "Not running";
 
             var currPlan = ctrl.GetCurrentPlan();
-            bool planRunning = (currPlan != null) && currPlan.Running;
+            bool planRunning = (currPlan != null) && currPlan.Running && isPartOfPlan;
 
             if( planRunning && !st.PlanApplied )
             {
@@ -208,7 +215,7 @@ namespace Dirigent.Agent.Gui
                             new string[]
                             {
                                 a.AppIdTuple.ToString(),
-                                getStatusCode( ctrl.GetAppState(a.AppIdTuple) )
+                                getStatusCode( ctrl.GetAppState(a.AppIdTuple), true )
                             }
                         )
                     );
@@ -225,16 +232,15 @@ namespace Dirigent.Agent.Gui
             ListViewItem selected = null;
             
             var plan = ctrl.GetCurrentPlan();
+            var planApps = (plan != null) ? (from ad in plan.getAppDefs() select ad.AppIdTuple).ToList() : new List<AppIdTuple>();
+            var appStates = ctrl.GetAllAppsState();
             
-            // remmber apps from plan
-            Dictionary<string, AppDef> newApps = new Dictionary<string, AppDef>();
+            // remember apps from plan
+            Dictionary<string, AppIdTuple> newApps = new Dictionary<string, AppIdTuple>();
 
-            if (plan != null)
+            foreach (AppIdTuple a in appStates.Keys)
             {
-                foreach( AppDef a in plan.getAppDefs() )
-                {
-                    newApps[a.AppIdTuple.ToString()] = a;
-                }
+                newApps[a.ToString()] = a;
             }
 
             // remember apps from list
@@ -267,24 +273,21 @@ namespace Dirigent.Agent.Gui
                 }
             }
 
-            if (plan != null)
+            foreach (var x in appStates)
             {
-                foreach (AppDef a in plan.getAppDefs())
+                var id = x.Key.ToString();
+                if (!oldApps.ContainsKey(id))
                 {
-                    var id = a.AppIdTuple.ToString();
-                    if (!oldApps.ContainsKey(id))
-                    {
-                        toAdd.Add(
-                            new ListViewItem(
-                                new string[]
-                                {
-                                    id,
-                                    getStatusCode( ctrl.GetAppState(a.AppIdTuple) )
+                    toAdd.Add(
+                        new ListViewItem(
+                            new string[]
+                            {
+                                id,
+                                getStatusCode( x.Value, planApps.Contains(x.Key) )
 
-                                }
-                            )
-                        );
-                    }
+                            }
+                        )
+                    );
                 }
             }
             
@@ -303,7 +306,7 @@ namespace Dirigent.Agent.Gui
             {
                 if( !toRemove.Contains(o.Value) )
                 {
-                    toUpdate[o.Value] = getStatusCode( ctrl.GetAppState(newApps[o.Key].AppIdTuple) );
+                    toUpdate[o.Value] = getStatusCode( ctrl.GetAppState(newApps[o.Key]), planApps.Contains(newApps[o.Key]) );
                 }
             }
 
@@ -313,7 +316,20 @@ namespace Dirigent.Agent.Gui
                 item.SubItems[1].Text = tu.Value;
             }
 
-
+            // colorize the background of items from current plan
+            List<string> planAppIds = (from ad in planApps select ad.ToString()).ToList();
+            foreach (ListViewItem item in lstvApps.Items)
+            {
+                var id = item.SubItems[0].Text;
+                if (planAppIds.Contains(id))
+                {
+                    item.BackColor = Color.LightGoldenrodYellow;
+                }
+                else
+                {
+                    item.BackColor = SystemColors.Control;
+                }
+            }
         }
 
         void refreshStatusBar()
@@ -470,7 +486,8 @@ namespace Dirigent.Agent.Gui
 
         private void btnSelectPlan_Click(object sender, EventArgs e)
         {
-            selectPlanToolStripMenuItem.ShowDropDown();
+            //selectPlanToolStripMenuItem.ShowDropDown();
+            mnuPlanList.Show(this, this.PointToClient(Cursor.Position) );
         }
 
     }

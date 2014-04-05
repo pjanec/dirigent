@@ -1,6 +1,8 @@
 ## Dirigent Overview
 Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. It runs on .net and Mono platforms, supporting both Windows and Linux operating systems.
 
+![dirigent-agent](dirigent-agent.png)
+
 #### Launch plans
 
 The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.

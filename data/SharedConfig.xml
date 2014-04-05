@@ -35,6 +35,42 @@
 
     </Plan>
 
+    <Plan Name="plan2">
+    	<App
+    	    AppIdTuple = "m1.b"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "bbb.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="plan3">
+    	<App
+    	    AppIdTuple = "m1.c"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "CCCx.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="planX">
+    	<App
+    	    AppIdTuple = "m1.x"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "xxx.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="empty">
+    </Plan>
+
     <AppTemplate Name="apps.notepad"
     		Template = ""
     		ExeFullPath = "c:\windows\notepad.exe"

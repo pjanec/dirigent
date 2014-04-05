@@ -19,6 +19,12 @@ namespace Dirigent.Common
         AppState GetAppState( AppIdTuple appIdTuple );
 
         /// <summary>
+        /// Get the status of all applications (no matter whether locl or remote)
+        /// </summary>
+        /// <returns></returns>
+        Dictionary<AppIdTuple, AppState> GetAllAppsState();
+
+        /// <summary>
         /// Set the status of a remote application (received from another agent through master for example)
         /// </summary>
         /// <param name="appIdTuple"></param>
