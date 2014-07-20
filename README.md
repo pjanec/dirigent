@@ -40,6 +40,8 @@ Each computer is running an agent process. One of the computers runs a master se
 
 Agent manages the processes running locally on the same machine where the agent is running. Agent takes care of local application launching, killing, restarting and status monitoring. 
 
+![dirigent-internals](doc/DirigentInternalStructure.png)
+
 An agent listens to and executes application management commands from master.
 
 Agents publish the status of local applications to master which in turn spreads it to all other agents. The status include whether the app is running, whether it is already initialized etc.
@@ -92,7 +94,7 @@ For example the following plan opens a notepad app first on machine `m1` with fi
     
     </Shared>
 
-Deploy this config file to all agents if you want agents to start their plans without first waiting for master. All agents should to use identical shared configuration file.
+Deploy this config file to all agents if you want agents to start their plans without first waiting for master. All agents should use identical shared configuration file.
 
 
 #### Setup a master
@@ -118,7 +120,7 @@ On second machine:
     agent.exe --machineId m2 --trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
 #### Load and start a launch plan
-Select a launch plan to start, issue a Load Plan command followed by a Start Plan command.
+Select a launch plan to start, issue a Select Plan command followed by a Start Plan command.
 
 For example using a command ling control app:
 
@@ -126,7 +128,7 @@ For example using a command ling control app:
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
 
 ### Available Actions
-The Dirigent can perform actions related either to a set of applications grouped into a launch plan or to individual applications that are part of the currently loaded launch plan.
+The Dirigent can work either with whole launch plan or with an individual application that is part of the currently selected launch plan.
 
 #### Launch Plan Actions
 

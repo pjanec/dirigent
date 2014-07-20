@@ -1,4 +1,4 @@
-﻿
+﻿Build installer
 
 Application Multiselect & bulk operations in the Control GUI.
 

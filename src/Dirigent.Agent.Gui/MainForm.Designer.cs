@@ -104,40 +104,40 @@
             // startToolStripMenuItem
             // 
             this.startToolStripMenuItem.Name = "startToolStripMenuItem";
-            this.startToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.startToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.startToolStripMenuItem.Text = "Start";
             this.startToolStripMenuItem.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
             // 
             // stopPlanToolStripMenuItem
             // 
             this.stopPlanToolStripMenuItem.Name = "stopPlanToolStripMenuItem";
-            this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.stopPlanToolStripMenuItem.Text = "Stop";
             this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
             // 
             // restartToolStripMenuItem
             // 
             this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.restartToolStripMenuItem.Text = "Restart";
             this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
             // 
             // killPlanToolStripMenuItem
             // 
             this.killPlanToolStripMenuItem.Name = "killPlanToolStripMenuItem";
-            this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.killPlanToolStripMenuItem.Text = "Kill";
             this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(121, 6);
             // 
             // selectPlanToolStripMenuItem
             // 
             this.selectPlanToolStripMenuItem.Name = "selectPlanToolStripMenuItem";
-            this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.selectPlanToolStripMenuItem.Text = "Select";
             // 
             // helpToolStripMenuItem
@@ -157,9 +157,9 @@
             // 
             // lstvApps
             // 
-            this.lstvApps.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lstvApps.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
             this.lstvApps.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.hdrName,
             this.hdrStatus});
@@ -172,6 +172,7 @@
             this.lstvApps.UseCompatibleStateImageBehavior = false;
             this.lstvApps.View = System.Windows.Forms.View.Details;
             this.lstvApps.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lstvApps_MouseClick);
+            this.lstvApps.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lstvApps_MouseDoubleClick);
             // 
             // hdrName
             // 
@@ -236,7 +237,7 @@
             this.btnSelectPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnSelectPlan.Name = "btnSelectPlan";
             this.btnSelectPlan.Size = new System.Drawing.Size(23, 22);
-            this.btnSelectPlan.Text = "btnSelectPlan";
+            this.btnSelectPlan.Text = "Select Plan";
             this.btnSelectPlan.Click += new System.EventHandler(this.btnSelectPlan_Click);
             // 
             // btnStartPlan
@@ -246,7 +247,7 @@
             this.btnStartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnStartPlan.Name = "btnStartPlan";
             this.btnStartPlan.Size = new System.Drawing.Size(23, 22);
-            this.btnStartPlan.Text = "btnStartPlan";
+            this.btnStartPlan.Text = "Start Plan";
             this.btnStartPlan.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
             // 
             // btnStopPlan
@@ -256,7 +257,7 @@
             this.btnStopPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnStopPlan.Name = "btnStopPlan";
             this.btnStopPlan.Size = new System.Drawing.Size(23, 22);
-            this.btnStopPlan.Text = "btnStopPlan";
+            this.btnStopPlan.Text = "Stop Plan";
             this.btnStopPlan.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
             // 
             // btnKillPlan
@@ -266,7 +267,7 @@
             this.btnKillPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnKillPlan.Name = "btnKillPlan";
             this.btnKillPlan.Size = new System.Drawing.Size(23, 22);
-            this.btnKillPlan.Text = "btnKillPlan";
+            this.btnKillPlan.Text = "Kill Plan";
             this.btnKillPlan.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
             // 
             // btnRestartPlan
@@ -276,7 +277,7 @@
             this.btnRestartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.btnRestartPlan.Name = "btnRestartPlan";
             this.btnRestartPlan.Size = new System.Drawing.Size(23, 22);
-            this.btnRestartPlan.Text = "btnRestartPlan";
+            this.btnRestartPlan.Text = "Restart Plan";
             this.btnRestartPlan.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
             // 
             // frmMain

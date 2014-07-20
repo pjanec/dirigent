@@ -458,6 +458,23 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+        private void lstvApps_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            // launch app on left dblclick
+            if (e.Button == MouseButtons.Left)
+            {
+                if (lstvApps.FocusedItem.Bounds.Contains(e.Location) == true)
+                {
+                    var focused = lstvApps.FocusedItem;
+                    var appIdTuple = new AppIdTuple(focused.Text);
+                    var st = ctrl.GetAppState(appIdTuple);
+                    
+                    guardedOp(() => ctrl.LaunchApp(appIdTuple));
+                }
+            }
+        }
+
+
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show(
