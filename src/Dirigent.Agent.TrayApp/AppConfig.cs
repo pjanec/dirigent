@@ -19,7 +19,7 @@ namespace Dirigent.Agent.TrayApp
         [Option("masterPort", Required = false, DefaultValue = 0, HelpText = "Master's TCP port.")]
         public int MasterPort { get; set; }
 
-        [Option("masterIP", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
+        [Option("masterIp", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
         public string MasterIP { get; set; }
 
         [Option("machineId", Required = false, DefaultValue = "", HelpText = "Machine Id.")]
@@ -68,6 +68,15 @@ namespace Dirigent.Agent.TrayApp
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        public bool HadErrors = false;
+        
+        public string GetUsageHelpText()
+        {
+            return options.GetUsage();
+        }
+
+        Options options = new Options();
+
         public AppConfig()
         {
             // overwrite with application config
@@ -80,8 +89,9 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
 
             // overwrite with command line options
-            var options = new Options();
-            if (CommandLine.Parser.Default.ParseArguments(System.Environment.GetCommandLineArgs(), options))
+            var args = System.Environment.GetCommandLineArgs();
+            string aaa = HelpText.AutoBuild(options);
+            if (CommandLine.Parser.Default.ParseArguments(args, options))
             {
                 if (options.MachineId != "") machineId = options.MachineId;
                 if (options.MasterIP != "") masterIP = options.MasterIP;
@@ -92,6 +102,11 @@ namespace Dirigent.Agent.TrayApp
                 if (options.StartHidden != "") startHidden = options.StartHidden;
                 if (options.Mode != "") mode = options.Mode;
             }
+            else
+            {
+                HadErrors = true;
+            }
+
 
             if (logFileName != "")
             {

@@ -113,11 +113,11 @@ You can specify the IP address and port of the master and machineId of in the lo
 
 On first machine:
 
-    agent.exe --machineId m1 --trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
+    agent.exe --machineId m1 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
 On second machine:
 
-    agent.exe --machineId m2 --trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
+    agent.exe --machineId m2 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
 #### Load and start a launch plan
 Select a launch plan to start, issue a Select Plan command followed by a Start Plan command.
@@ -370,8 +370,5 @@ The waves are launched sequentially one after another until all apps from all wa
 If some application fails to start, dirigent can be configured to retry the launch attempt multiple times.
 
 If all attempts fail, the plaunch plan is stopped and an error is returned.
-
-
-
 
 

@@ -40,19 +40,34 @@ namespace Dirigent.Agent.TrayApp
             try
             {
                 var ac = new AppConfig();
+
                 App app;
                 if (ac.mode.ToLower() == "daemon")
                 {
                     app = new DaemonApp(ac);
+                    if( ac.HadErrors )
+                    {
+                        log.Error("Error parsing command line arguments.\n"+ac.GetUsageHelpText());
+                    }
                 }
                 else
                 if (ac.mode.ToLower() == "remotecontrolgui")
                 {
+                    if( ac.HadErrors )
+                    {
+                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsinbg command line arguments" );
+                    }
+
                     ac.machineId = "none";
                     app = new TrayApp(ac);
                 }
                 else // trayApp (the default)
                 {
+                    if( ac.HadErrors )
+                    {
+                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsinbg command line arguments" );
+                    }
+
                     app = new TrayApp(ac);
                 }
                 app.run();
