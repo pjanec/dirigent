@@ -16,6 +16,22 @@
     	/>
     </Plan>
 
+    <Plan Name="plan2">
+    	<App
+    	    AppIdTuple = "m1.c"
+    		Template = "apps.notepad"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "ccc.txt"
+    	/>
+
+    	<App
+    	    AppIdTuple = "m1.d"
+    		Template = "apps.notepad"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "ddd.txt"
+    	/>
+    </Plan>
+
     <AppTemplate Name="apps.notepad"
     		Template = ""
     		ExeFullPath = "c:\windows\notepad.exe"

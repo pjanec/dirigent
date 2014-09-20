@@ -252,7 +252,7 @@ Each app in the launch plan has the following attributes:
 
  - `RestartOnCrash 0|1` - whether to automatically restart the app after crash
 
- - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started
+ - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
  - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.) See chapter *Selecting a boot up completion detector*.
 

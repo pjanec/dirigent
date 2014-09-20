@@ -34,41 +34,53 @@
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuMain = new System.Windows.Forms.MenuStrip();
             this.planToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.startToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.startPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stopPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.restartPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.killPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.selectPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.lstvApps = new System.Windows.Forms.ListView();
-            this.hdrName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.hdrStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.ctxmAppList = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.runToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.killToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.restartToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.tmrTick = new System.Windows.Forms.Timer(this.components);
+            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tabPageApps = new System.Windows.Forms.TabPage();
+            this.gridApps = new System.Windows.Forms.DataGridView();
+            this.hdrName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.hdrStatus = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.hdrLaunchIcon = new System.Windows.Forms.DataGridViewImageColumn();
+            this.hdrKillIcon = new System.Windows.Forms.DataGridViewImageColumn();
+            this.hdrRestartIcon = new System.Windows.Forms.DataGridViewImageColumn();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.btnSelectPlan = new System.Windows.Forms.ToolStripButton();
             this.btnStartPlan = new System.Windows.Forms.ToolStripButton();
             this.btnStopPlan = new System.Windows.Forms.ToolStripButton();
             this.btnKillPlan = new System.Windows.Forms.ToolStripButton();
             this.btnRestartPlan = new System.Windows.Forms.ToolStripButton();
+            this.tabPagePlans = new System.Windows.Forms.TabPage();
+            this.gridPlans = new System.Windows.Forms.DataGridView();
+            this.hdrPlanName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.hdrPlanStart = new System.Windows.Forms.DataGridViewImageColumn();
+            this.hdrPlanStop = new System.Windows.Forms.DataGridViewImageColumn();
+            this.hdrPlanKill = new System.Windows.Forms.DataGridViewImageColumn();
+            this.hdrPlanRestart = new System.Windows.Forms.DataGridViewImageColumn();
             this.statusStrip.SuspendLayout();
             this.menuMain.SuspendLayout();
-            this.ctxmAppList.SuspendLayout();
+            this.tabControl1.SuspendLayout();
+            this.tabPageApps.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.gridApps)).BeginInit();
             this.toolStrip1.SuspendLayout();
+            this.tabPagePlans.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.gridPlans)).BeginInit();
             this.SuspendLayout();
             // 
             // statusStrip
             // 
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatusLabel1});
-            this.statusStrip.Location = new System.Drawing.Point(0, 233);
+            this.statusStrip.Location = new System.Drawing.Point(0, 313);
             this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(345, 22);
+            this.statusStrip.Size = new System.Drawing.Size(439, 22);
             this.statusStrip.TabIndex = 0;
             this.statusStrip.Text = "statusStrip1";
             // 
@@ -84,16 +96,16 @@
             this.helpToolStripMenuItem});
             this.menuMain.Location = new System.Drawing.Point(0, 0);
             this.menuMain.Name = "menuMain";
-            this.menuMain.Size = new System.Drawing.Size(345, 28);
+            this.menuMain.Size = new System.Drawing.Size(439, 28);
             this.menuMain.TabIndex = 1;
             this.menuMain.Text = "menuStrip1";
             // 
             // planToolStripMenuItem
             // 
             this.planToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.startToolStripMenuItem,
+            this.startPlanToolStripMenuItem,
             this.stopPlanToolStripMenuItem,
-            this.restartToolStripMenuItem,
+            this.restartPlanToolStripMenuItem,
             this.killPlanToolStripMenuItem,
             this.toolStripMenuItem1,
             this.selectPlanToolStripMenuItem});
@@ -101,33 +113,33 @@
             this.planToolStripMenuItem.Size = new System.Drawing.Size(49, 24);
             this.planToolStripMenuItem.Text = "Plan";
             // 
-            // startToolStripMenuItem
+            // startPlanToolStripMenuItem
             // 
-            this.startToolStripMenuItem.Name = "startToolStripMenuItem";
-            this.startToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.startToolStripMenuItem.Text = "Start";
-            this.startToolStripMenuItem.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
+            this.startPlanToolStripMenuItem.Name = "startPlanToolStripMenuItem";
+            this.startPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.startPlanToolStripMenuItem.Text = "Start";
+            this.startPlanToolStripMenuItem.Click += new System.EventHandler(this.startPlanMenuItem_Click);
             // 
             // stopPlanToolStripMenuItem
             // 
             this.stopPlanToolStripMenuItem.Name = "stopPlanToolStripMenuItem";
             this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.stopPlanToolStripMenuItem.Text = "Stop";
-            this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
+            this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanMenuItem_Click);
             // 
-            // restartToolStripMenuItem
+            // restartPlanToolStripMenuItem
             // 
-            this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
-            this.restartToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.restartToolStripMenuItem.Text = "Restart";
-            this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
+            this.restartPlanToolStripMenuItem.Name = "restartPlanToolStripMenuItem";
+            this.restartPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
+            this.restartPlanToolStripMenuItem.Text = "Restart";
+            this.restartPlanToolStripMenuItem.Click += new System.EventHandler(this.restartPlanMenuItem_Click);
             // 
             // killPlanToolStripMenuItem
             // 
             this.killPlanToolStripMenuItem.Name = "killPlanToolStripMenuItem";
             this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
             this.killPlanToolStripMenuItem.Text = "Kill";
-            this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
+            this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanMenuItem_Click);
             // 
             // toolStripMenuItem1
             // 
@@ -153,68 +165,94 @@
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(119, 24);
             this.aboutToolStripMenuItem.Text = "&About";
-            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
-            // 
-            // lstvApps
-            // 
-            this.lstvApps.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.lstvApps.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.hdrName,
-            this.hdrStatus});
-            this.lstvApps.FullRowSelect = true;
-            this.lstvApps.GridLines = true;
-            this.lstvApps.Location = new System.Drawing.Point(0, 31);
-            this.lstvApps.Name = "lstvApps";
-            this.lstvApps.Size = new System.Drawing.Size(345, 202);
-            this.lstvApps.TabIndex = 2;
-            this.lstvApps.UseCompatibleStateImageBehavior = false;
-            this.lstvApps.View = System.Windows.Forms.View.Details;
-            this.lstvApps.MouseClick += new System.Windows.Forms.MouseEventHandler(this.lstvApps_MouseClick);
-            this.lstvApps.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lstvApps_MouseDoubleClick);
-            // 
-            // hdrName
-            // 
-            this.hdrName.Text = "Application Name";
-            this.hdrName.Width = 241;
-            // 
-            // hdrStatus
-            // 
-            this.hdrStatus.Text = "Status";
-            this.hdrStatus.Width = 100;
-            // 
-            // ctxmAppList
-            // 
-            this.ctxmAppList.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.runToolStripMenuItem,
-            this.killToolStripMenuItem,
-            this.restartToolStripMenuItem1});
-            this.ctxmAppList.Name = "ctxmAppList";
-            this.ctxmAppList.Size = new System.Drawing.Size(125, 76);
-            // 
-            // runToolStripMenuItem
-            // 
-            this.runToolStripMenuItem.Name = "runToolStripMenuItem";
-            this.runToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.runToolStripMenuItem.Text = "&Start";
-            // 
-            // killToolStripMenuItem
-            // 
-            this.killToolStripMenuItem.Name = "killToolStripMenuItem";
-            this.killToolStripMenuItem.Size = new System.Drawing.Size(124, 24);
-            this.killToolStripMenuItem.Text = "&Stop";
-            // 
-            // restartToolStripMenuItem1
-            // 
-            this.restartToolStripMenuItem1.Name = "restartToolStripMenuItem1";
-            this.restartToolStripMenuItem1.Size = new System.Drawing.Size(124, 24);
-            this.restartToolStripMenuItem1.Text = "&Restart";
+            this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
             // 
             // tmrTick
             // 
             this.tmrTick.Interval = 500;
             this.tmrTick.Tick += new System.EventHandler(this.tmrTick_Tick);
+            // 
+            // tabControl1
+            // 
+            this.tabControl1.Controls.Add(this.tabPageApps);
+            this.tabControl1.Controls.Add(this.tabPagePlans);
+            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl1.Location = new System.Drawing.Point(0, 28);
+            this.tabControl1.Name = "tabControl1";
+            this.tabControl1.SelectedIndex = 0;
+            this.tabControl1.Size = new System.Drawing.Size(439, 285);
+            this.tabControl1.TabIndex = 4;
+            // 
+            // tabPageApps
+            // 
+            this.tabPageApps.Controls.Add(this.gridApps);
+            this.tabPageApps.Controls.Add(this.toolStrip1);
+            this.tabPageApps.Location = new System.Drawing.Point(4, 25);
+            this.tabPageApps.Name = "tabPageApps";
+            this.tabPageApps.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageApps.Size = new System.Drawing.Size(431, 256);
+            this.tabPageApps.TabIndex = 0;
+            this.tabPageApps.Text = "Apps";
+            this.tabPageApps.UseVisualStyleBackColor = true;
+            // 
+            // gridApps
+            // 
+            this.gridApps.AllowUserToAddRows = false;
+            this.gridApps.AllowUserToDeleteRows = false;
+            this.gridApps.BackgroundColor = System.Drawing.SystemColors.Window;
+            this.gridApps.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.gridApps.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.hdrName,
+            this.hdrStatus,
+            this.hdrLaunchIcon,
+            this.hdrKillIcon,
+            this.hdrRestartIcon});
+            this.gridApps.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gridApps.Location = new System.Drawing.Point(3, 28);
+            this.gridApps.MultiSelect = false;
+            this.gridApps.Name = "gridApps";
+            this.gridApps.ReadOnly = true;
+            this.gridApps.RowHeadersVisible = false;
+            this.gridApps.RowTemplate.Height = 24;
+            this.gridApps.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.gridApps.Size = new System.Drawing.Size(425, 225);
+            this.gridApps.TabIndex = 6;
+            this.gridApps.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseClick);
+            this.gridApps.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseDoubleClick);
+            // 
+            // hdrName
+            // 
+            this.hdrName.HeaderText = "Application Name";
+            this.hdrName.Name = "hdrName";
+            this.hdrName.ReadOnly = true;
+            this.hdrName.Width = 250;
+            // 
+            // hdrStatus
+            // 
+            this.hdrStatus.HeaderText = "Status";
+            this.hdrStatus.Name = "hdrStatus";
+            this.hdrStatus.ReadOnly = true;
+            // 
+            // hdrLaunchIcon
+            // 
+            this.hdrLaunchIcon.HeaderText = "";
+            this.hdrLaunchIcon.Name = "hdrLaunchIcon";
+            this.hdrLaunchIcon.ReadOnly = true;
+            this.hdrLaunchIcon.Width = 24;
+            // 
+            // hdrKillIcon
+            // 
+            this.hdrKillIcon.HeaderText = "";
+            this.hdrKillIcon.Name = "hdrKillIcon";
+            this.hdrKillIcon.ReadOnly = true;
+            this.hdrKillIcon.Width = 24;
+            // 
+            // hdrRestartIcon
+            // 
+            this.hdrRestartIcon.HeaderText = "";
+            this.hdrRestartIcon.Name = "hdrRestartIcon";
+            this.hdrRestartIcon.ReadOnly = true;
+            this.hdrRestartIcon.Width = 24;
             // 
             // toolStrip1
             // 
@@ -224,10 +262,10 @@
             this.btnStopPlan,
             this.btnKillPlan,
             this.btnRestartPlan});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 28);
+            this.toolStrip1.Location = new System.Drawing.Point(3, 3);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(345, 25);
-            this.toolStrip1.TabIndex = 3;
+            this.toolStrip1.Size = new System.Drawing.Size(425, 25);
+            this.toolStrip1.TabIndex = 4;
             this.toolStrip1.Text = "toolStrip1";
             // 
             // btnSelectPlan
@@ -238,7 +276,7 @@
             this.btnSelectPlan.Name = "btnSelectPlan";
             this.btnSelectPlan.Size = new System.Drawing.Size(23, 22);
             this.btnSelectPlan.Text = "Select Plan";
-            this.btnSelectPlan.Click += new System.EventHandler(this.btnSelectPlan_Click);
+            this.btnSelectPlan.Click += new System.EventHandler(this.selectPlanMenuItem_Click);
             // 
             // btnStartPlan
             // 
@@ -248,7 +286,7 @@
             this.btnStartPlan.Name = "btnStartPlan";
             this.btnStartPlan.Size = new System.Drawing.Size(23, 22);
             this.btnStartPlan.Text = "Start Plan";
-            this.btnStartPlan.Click += new System.EventHandler(this.startToolStripMenuItem_Click);
+            this.btnStartPlan.Click += new System.EventHandler(this.startPlanMenuItem_Click);
             // 
             // btnStopPlan
             // 
@@ -258,7 +296,7 @@
             this.btnStopPlan.Name = "btnStopPlan";
             this.btnStopPlan.Size = new System.Drawing.Size(23, 22);
             this.btnStopPlan.Text = "Stop Plan";
-            this.btnStopPlan.Click += new System.EventHandler(this.stopPlanToolStripMenuItem_Click);
+            this.btnStopPlan.Click += new System.EventHandler(this.stopPlanMenuItem_Click);
             // 
             // btnKillPlan
             // 
@@ -268,7 +306,7 @@
             this.btnKillPlan.Name = "btnKillPlan";
             this.btnKillPlan.Size = new System.Drawing.Size(23, 22);
             this.btnKillPlan.Text = "Kill Plan";
-            this.btnKillPlan.Click += new System.EventHandler(this.killPlanToolStripMenuItem_Click);
+            this.btnKillPlan.Click += new System.EventHandler(this.killPlanMenuItem_Click);
             // 
             // btnRestartPlan
             // 
@@ -278,15 +316,85 @@
             this.btnRestartPlan.Name = "btnRestartPlan";
             this.btnRestartPlan.Size = new System.Drawing.Size(23, 22);
             this.btnRestartPlan.Text = "Restart Plan";
-            this.btnRestartPlan.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
+            this.btnRestartPlan.Click += new System.EventHandler(this.restartPlanMenuItem_Click);
+            // 
+            // tabPagePlans
+            // 
+            this.tabPagePlans.Controls.Add(this.gridPlans);
+            this.tabPagePlans.Location = new System.Drawing.Point(4, 25);
+            this.tabPagePlans.Name = "tabPagePlans";
+            this.tabPagePlans.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPagePlans.Size = new System.Drawing.Size(431, 256);
+            this.tabPagePlans.TabIndex = 1;
+            this.tabPagePlans.Text = "Plans";
+            this.tabPagePlans.UseVisualStyleBackColor = true;
+            // 
+            // gridPlans
+            // 
+            this.gridPlans.AllowUserToAddRows = false;
+            this.gridPlans.AllowUserToDeleteRows = false;
+            this.gridPlans.BackgroundColor = System.Drawing.SystemColors.Window;
+            this.gridPlans.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.gridPlans.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.hdrPlanName,
+            this.hdrPlanStart,
+            this.hdrPlanStop,
+            this.hdrPlanKill,
+            this.hdrPlanRestart});
+            this.gridPlans.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gridPlans.Location = new System.Drawing.Point(3, 3);
+            this.gridPlans.MultiSelect = false;
+            this.gridPlans.Name = "gridPlans";
+            this.gridPlans.ReadOnly = true;
+            this.gridPlans.RowHeadersVisible = false;
+            this.gridPlans.RowTemplate.Height = 24;
+            this.gridPlans.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.gridPlans.Size = new System.Drawing.Size(425, 250);
+            this.gridPlans.TabIndex = 0;
+            this.gridPlans.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseClick);
+            this.gridPlans.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseDoubleClick);
+            // 
+            // hdrPlanName
+            // 
+            this.hdrPlanName.HeaderText = "Plan Name";
+            this.hdrPlanName.Name = "hdrPlanName";
+            this.hdrPlanName.ReadOnly = true;
+            this.hdrPlanName.Width = 324;
+            // 
+            // hdrPlanStart
+            // 
+            this.hdrPlanStart.HeaderText = "";
+            this.hdrPlanStart.Name = "hdrPlanStart";
+            this.hdrPlanStart.ReadOnly = true;
+            this.hdrPlanStart.Width = 24;
+            // 
+            // hdrPlanStop
+            // 
+            this.hdrPlanStop.HeaderText = "";
+            this.hdrPlanStop.Name = "hdrPlanStop";
+            this.hdrPlanStop.ReadOnly = true;
+            this.hdrPlanStop.Width = 24;
+            // 
+            // hdrPlanKill
+            // 
+            this.hdrPlanKill.HeaderText = "";
+            this.hdrPlanKill.Name = "hdrPlanKill";
+            this.hdrPlanKill.ReadOnly = true;
+            this.hdrPlanKill.Width = 24;
+            // 
+            // hdrPlanRestart
+            // 
+            this.hdrPlanRestart.HeaderText = "";
+            this.hdrPlanRestart.Name = "hdrPlanRestart";
+            this.hdrPlanRestart.ReadOnly = true;
+            this.hdrPlanRestart.Width = 24;
             // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(345, 255);
-            this.Controls.Add(this.toolStrip1);
-            this.Controls.Add(this.lstvApps);
+            this.ClientSize = new System.Drawing.Size(439, 335);
+            this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.menuMain);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -299,9 +407,14 @@
             this.statusStrip.PerformLayout();
             this.menuMain.ResumeLayout(false);
             this.menuMain.PerformLayout();
-            this.ctxmAppList.ResumeLayout(false);
+            this.tabControl1.ResumeLayout(false);
+            this.tabPageApps.ResumeLayout(false);
+            this.tabPageApps.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.gridApps)).EndInit();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
+            this.tabPagePlans.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.gridPlans)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -312,29 +425,37 @@
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.MenuStrip menuMain;
         private System.Windows.Forms.ToolStripMenuItem planToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem startPlanToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem killPlanToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem restartPlanToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem selectPlanToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
-        private System.Windows.Forms.ListView lstvApps;
-        private System.Windows.Forms.ColumnHeader hdrName;
-        private System.Windows.Forms.ColumnHeader hdrStatus;
-        private System.Windows.Forms.ContextMenuStrip ctxmAppList;
-        private System.Windows.Forms.ToolStripMenuItem runToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem killToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem1;
         private System.Windows.Forms.Timer tmrTick;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
         private System.Windows.Forms.ToolStripMenuItem stopPlanToolStripMenuItem;
+        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.TabPage tabPageApps;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton btnSelectPlan;
         private System.Windows.Forms.ToolStripButton btnStartPlan;
         private System.Windows.Forms.ToolStripButton btnStopPlan;
         private System.Windows.Forms.ToolStripButton btnKillPlan;
         private System.Windows.Forms.ToolStripButton btnRestartPlan;
+        private System.Windows.Forms.TabPage tabPagePlans;
+        private System.Windows.Forms.DataGridView gridApps;
+        private System.Windows.Forms.DataGridViewTextBoxColumn hdrName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn hdrStatus;
+        private System.Windows.Forms.DataGridViewImageColumn hdrLaunchIcon;
+        private System.Windows.Forms.DataGridViewImageColumn hdrKillIcon;
+        private System.Windows.Forms.DataGridViewImageColumn hdrRestartIcon;
+        private System.Windows.Forms.DataGridView gridPlans;
+        private System.Windows.Forms.DataGridViewTextBoxColumn hdrPlanName;
+        private System.Windows.Forms.DataGridViewImageColumn hdrPlanStart;
+        private System.Windows.Forms.DataGridViewImageColumn hdrPlanStop;
+        private System.Windows.Forms.DataGridViewImageColumn hdrPlanKill;
+        private System.Windows.Forms.DataGridViewImageColumn hdrPlanRestart;
     }
 }
 
