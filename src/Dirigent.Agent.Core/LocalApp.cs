@@ -7,10 +7,14 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
+    /// <summary>
+    /// The control structure of an application that should be running on a local machine
+    /// </summary>
     public class LocalApp
     {
         public AppDef AppDef;
         public ILauncher launcher; // null if not launched or if killed
-        public IAppInitializedDetector appInitDetector;
+        //public IAppInitializedDetector appInitDetector;
+        public List<IAppWatcher> watchers;
     }
 }

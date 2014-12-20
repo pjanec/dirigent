@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 using Dirigent.Common;
 
@@ -47,16 +48,16 @@ namespace Dirigent.Agent.Core
         //bool planRunning;
         
 
-        IAppInitializedDetectorFactory appInitializedDetectorFactory;
+        IAppInitializedDetectorFactory appAppInitializedDetectorFactory;
 
         
         public LocalOperations(
             string machineId,
             ILauncherFactory launcherFactory,
-            IAppInitializedDetectorFactory appInitializedDetectorFactory )
+            IAppInitializedDetectorFactory appAppInitializedDetectorFactory )
         {
             this.launcherFactory = launcherFactory;
-            this.appInitializedDetectorFactory = appInitializedDetectorFactory;
+            this.appAppInitializedDetectorFactory = appAppInitializedDetectorFactory;
 
             appsState = new Dictionary<AppIdTuple,AppState>();
             localApps = new Dictionary<AppIdTuple,LocalApp>();
@@ -138,7 +139,7 @@ namespace Dirigent.Agent.Core
                         {
                             AppDef = a,
                             launcher = null,
-                            appInitDetector = null
+                            watchers = new List<IAppWatcher>()
                         };
                     }
                     else // app already exists, just update its appdef to be used on next launch
@@ -281,15 +282,30 @@ namespace Dirigent.Agent.Core
             {
                 la.launcher.Launch();
                 appState.Started = true;
+                appState.Initialized = true; // a watcher can set it to false upon its creation if it works like an AppInitDetector
 
-                // instantiate the app init detector
-                la.appInitDetector = appInitializedDetectorFactory.create(la.AppDef, appsState[appIdTuple], la.AppDef.InitializedCondition);
+                //// instantiate app watchers
+                //foreach( var watcherDef in la.AppDef.Watchers )
+                //{
+                //    var w = appWatcherFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, watcherDef);
+                //    la.watchers.Add( w );
+                //}
+
+                // instantiate init detector (also a watcher)
+                var aid = appAppInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, la.AppDef.InitializedCondition);
+                la.watchers.Add( aid );
+
+                // instantiate window positioner
+                if( !string.IsNullOrEmpty( la.AppDef.WindowPosXml ) )
+                {
+                    var wpo = new WindowPositioner( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(la.AppDef.WindowPosXml) );
+                    la.watchers.Add( wpo );
+                }
+
             }
             catch // app launching failed
             {
                 appState.StartFailed = true;
-                // use just dummy detector
-                la.appInitDetector = new NeverInitializedInitDetector();
                 throw;
             }
         }
@@ -367,6 +383,22 @@ namespace Dirigent.Agent.Core
             }
         }
 
+        void tickWachers( LocalApp la )
+        {
+            var toRemove = new List<IAppWatcher>();
+            foreach( var w in la.watchers )
+            {
+                w.Tick();
+                if( w.ShallBeRemoved ) toRemove.Add(w);
+            }
+            
+            foreach( var w in toRemove )
+            {
+                la.watchers.Remove(w);
+            }
+        }
+
+        
         /// <summary>
         /// Updates the status info for all local apps.
         /// </summary>
@@ -382,13 +414,7 @@ namespace Dirigent.Agent.Core
                     appState.Running = la.launcher.Running;
                     appState.ExitCode = la.launcher.ExitCode;
 
-                    if( !appState.Initialized
-                              &&
-                        la.appInitDetector.IsInitialized()
-                        )
-                    {
-                        appState.Initialized = true;
-                    }
+                    tickWachers( la );
                 }
                 else // not yet launched or killed
                 {

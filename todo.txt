@@ -1,4 +1,8 @@
-﻿Build installer
+﻿Multiple independent <WindowPos /> sections per single application to control multiple application windows.
+
+Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc.
+
+Build installer
 
 Application Multiselect & bulk operations in the Control GUI.
 
@@ -15,8 +19,6 @@ Support for disabling an application before starting a launch plan.
 Support for multiple retries when launching a problematically starting application.
 
 Failure timeout for boot up detector.
-
-Support for application window attributes (topmost, always on top, position, size)
 
 Prevent multiple instances of agent with the same name (machineId:port)
 
@@ -53,4 +55,8 @@ CS-Script based script file procesing for agentcmd.
 
 [DONE] Multiple coexisting plans that share the applications.
 
+[DONE] Support for additional application window attributes (topmost, always on top) - through WindowStyle attribute
 
+[DONE] Generic AppWatchers. Watch the app and do something. COnfigured from XML node which is parsed by AppWatcher, not by a global parser.
+
+[DONE] Support for applying application window position and size shortly after the window with given title appears. Through section <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" /> 

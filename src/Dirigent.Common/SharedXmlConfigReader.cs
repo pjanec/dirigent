@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Globalization;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 using Dirigent.Common;
 
@@ -64,6 +65,7 @@ namespace Dirigent.Common
                 Dependecies = (string) e.Attribute("Dependencies"),
                 KillTree = (string)e.Attribute("KillTree"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
+                WindowPos = e.Element("WindowPos"),
             };
 
             // then overwrite templated values with current content
@@ -101,6 +103,11 @@ namespace Dirigent.Common
                 if (x.WindowStyle.ToLower() == "normal") a.WindowStyle = ProcessWindowStyle.Normal;
                 else
                 if (x.WindowStyle.ToLower() == "hidden") a.WindowStyle = ProcessWindowStyle.Hidden;
+            }
+
+            if( x.WindowPos != null )
+            {
+                a.WindowPosXml = x.WindowPos.ToString();
             }
 
             return a;

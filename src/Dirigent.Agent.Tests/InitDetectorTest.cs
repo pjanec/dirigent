@@ -26,11 +26,11 @@ namespace Dirigent.Agent.Tests
             AppState appState = new AppState();
 
             var initialTicks = DateTime.UtcNow.Ticks;
-            var d = new TimeOutInitDetector(appDef, appState, "0.1");
+            IAppInitializedDetector d = new TimeOutInitDetector(appDef, appState, 0, "0.1");
 
-            Assert.AreEqual(false, d.IsInitialized(), "not initialized immediately");
+            Assert.AreEqual(false, d.IsInitialized, "not initialized immediately");
             Thread.Sleep(100);
-            Assert.AreEqual(true, d.IsInitialized(), "initialized after time out");
+            Assert.AreEqual(true, d.IsInitialized, "initialized after time out");
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace Dirigent.Agent.Tests
         {
             AppDef appDef = new AppDef();
             AppState appState = new AppState();
-            var d = new TimeOutInitDetector(appDef, appState, "abcd-not-a-double");
+            var d = new TimeOutInitDetector(appDef, appState, 0, "abcd-not-a-double");
         }
     }
 }

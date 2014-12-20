@@ -5,13 +5,13 @@ using System.Text;
 
 namespace Dirigent.Common
 {
-    public interface IAppInitializedDetector
+    public interface IAppInitializedDetector : IAppWatcher
     {
-        bool IsInitialized();
+        bool IsInitialized { get; }
     }
 
     public interface IAppInitializedDetectorFactory
     {
-        IAppInitializedDetector create(AppDef appDef, AppState appState, string initConditionString);
+        IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string parameters);
     }
 }

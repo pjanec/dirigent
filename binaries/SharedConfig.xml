@@ -6,7 +6,9 @@
     		Template = "apps.notepad"
     		StartupDir = "c:\"
     		CmdLineArgs = "aaa.txt"
-    	/>
+    	    >
+    		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+    	</App>
 
     	<App
     	    AppIdTuple = "m1.b"

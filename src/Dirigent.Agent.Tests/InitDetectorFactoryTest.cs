@@ -26,7 +26,7 @@ namespace Dirigent.Agent.Core
 
             var f = new AppInitializedDetectorFactory();
 
-            var d = f.create( appDef, appState, "timeout 0.1" );
+            IAppInitializedDetector d = f.create( appDef, appState, 0, "timeout 0.1" );
             
             Assert.AreEqual(typeof(TimeOutInitDetector), d.GetType(), "correct detector type created");
         }
@@ -40,7 +40,7 @@ namespace Dirigent.Agent.Core
 
             var f = new AppInitializedDetectorFactory();
 
-            var d = f.create( appDef, appState, "unknown any-params" );
+            var d = f.create( appDef, appState, 0, "unknown any-params" );
         }
     }
 }

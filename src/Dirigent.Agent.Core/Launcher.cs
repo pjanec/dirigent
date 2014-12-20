@@ -105,6 +105,15 @@ namespace Dirigent.Agent.Core
                 return 0; // default
             }
         }
+
+        public int ProcessId
+        {
+            get
+            {
+                if (proc != null ) return proc.Id;
+                return -1;
+            }
+        }
     }
 
     public class LauncherFactory : ILauncherFactory

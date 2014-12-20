@@ -49,6 +49,14 @@ namespace Dirigent.Agent.Tests
                 return 0;
             }
         }
+
+        public int ProcessId
+        {
+            get
+            {
+                return 0;
+            }
+        }
     }
 
     /// <summary>

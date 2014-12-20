@@ -5,6 +5,7 @@ using System.Text;
 using Dirigent.Common;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Dirigent.Agent.Core
 {
@@ -12,8 +13,9 @@ namespace Dirigent.Agent.Core
     {
         List<int> exitCodes = new List<int>(); // list of exit codes meaning that the app was succesfull
         AppState appState;
+        bool shallBeRemoved = false;
 
-        public ExitCodeInitDetector(AppDef appDef, AppState appState, string args)
+        public ExitCodeInitDetector(AppDef appDef, AppState appState, int processId, string args)
         {
             this.appState = appState;
 
@@ -54,6 +56,9 @@ namespace Dirigent.Agent.Core
                 {
                     throw new InvalidAppInitDetectorArguments(Name, args);
                 }
+
+                appState.Initialized = false; // will be set to true as soon as the exit code condition is met
+
             }
             catch( Exception ex )
             {
@@ -65,7 +70,14 @@ namespace Dirigent.Agent.Core
             }
         }
 
-        public bool IsInitialized()
+        static public string Name { get { return "exitcode"; } }
+        static public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string args)
+        {
+            return new ExitCodeInitDetector(appDef, appState, processId, args);
+        }
+
+
+        bool IsInitialized()
         {
             if( appState.Started && !appState.Running && !appState.Killed )
             {
@@ -77,10 +89,29 @@ namespace Dirigent.Agent.Core
             return false;
         }
 
-        static public string Name { get { return "exitcode"; } }
-        static public IAppInitializedDetector create(AppDef appDef, AppState appState, string args)
+        bool IAppInitializedDetector.IsInitialized
         {
-            return new ExitCodeInitDetector(appDef, appState, args);
+            get
+            {
+                return IsInitialized();
+            }
+        }
+
+        void IAppWatcher.Tick()
+        {
+            if( IsInitialized() )
+            {
+                appState.Initialized = true;
+                shallBeRemoved = true;
+            }
+        }
+
+        bool IAppWatcher.ShallBeRemoved
+        {
+            get
+            {
+                return shallBeRemoved;
+            }
         }
     }
 }

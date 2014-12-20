@@ -27,6 +27,43 @@ namespace Dirigent.Common
         }
     }
 
+    public class UnknownAppWatcherType : Exception
+    {
+        public string definitionString;
+        
+        public UnknownAppWatcherType( string definitionString )
+            : base( "Unknown watcher type '"+definitionString+"'." )
+        {
+            this.definitionString = definitionString;
+        }
+    }
+
+    public class InvalidAppConfig : Exception
+    {
+        public AppIdTuple app;
+        public string msg;
+        
+        public InvalidAppConfig( AppIdTuple app, string msg )
+            : base( string.Format("Invalid app '{0}' config: '{1}'.", app, msg ) )
+        {
+            this.app = app;
+            this.msg = msg;
+        }
+    }
+
+    public class InvalidAppWatcherArguments : Exception
+    {
+        public string name;
+        public string args;
+        
+        public InvalidAppWatcherArguments( string name, string args )
+            : base( string.Format("Invalid app watcher '{0}' arguments '{1}'.", name, args ) )
+        {
+            this.name = name;
+            this.args = args;
+        }
+    }
+
     public class UnknownAppInitDetectorType : Exception
     {
         public string initConditions;

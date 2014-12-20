@@ -2,17 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 
 using Dirigent.Common;
 
+/*
 namespace Dirigent.Agent.Core
 {
-    public class AppInitializedDetectorFactory : IAppInitializedDetectorFactory
+
+    public class AppWatcherFactory : IAppWatcherFactory
     {
-        delegate IAppInitializedDetector CreateDeleg(AppDef appDef, AppState appState, int processId, string args);
+        delegate IAppWatcher CreateDeleg(AppDef appDef, AppState appState, int processId, string args);
         Dictionary<string, CreateDeleg> creators = new Dictionary<string, CreateDeleg>();
 
-        public AppInitializedDetectorFactory()
+        public AppWatcherFactory()
         {
             // register creators
             creators[TimeOutInitDetector.Name] = TimeOutInitDetector.create;
@@ -44,7 +47,7 @@ namespace Dirigent.Agent.Core
 
         }
 
-        public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string definitionString)
+        public IAppWatcher create(AppDef appDef, AppState appState, int processId, string definitionString)
         {
             string name="";
             string args="";
@@ -59,4 +62,5 @@ namespace Dirigent.Agent.Core
             return cd(appDef, appState, processId, args);
         }
     }
-  }
+}
+*/

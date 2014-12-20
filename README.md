@@ -70,7 +70,9 @@ For example the following plan opens a notepad app first on machine `m1` with fi
         		Template = "apps.notepad"
         		StartupDir = "c:\"
         		CmdLineArgs = "aaa.txt"
-        	/>
+    	        >
+    		    <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+    	    </App>
     
         	<App
         	    AppIdTuple = "m2.b"
@@ -254,7 +256,7 @@ Each app in the launch plan has the following attributes:
 
  - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
- - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by a global mutex, by exit code etc.) See chapter *Selecting a boot up completion detector*.
+ - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*.
 
  - `WindowStyle` - "normal" (default), "minimized", "maximized", "hidden"
 
@@ -263,6 +265,18 @@ Each app in the launch plan has the following attributes:
  - `KillTree 0|1` - whether to kill not just the single process but also all its child processes
 
  - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
+ 
+App sub-sections:
+
+  - <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" /> 
+	
+	- 'titleregexp' - regular expression to search in the window title
+	
+	- 'rect' - desired screen coordinates [left,top,width,height] of the window relative to the given screen
+	
+	- 'screen' - screen number to place the window at; 0=main screen (default)
+	
+	- 'keep' - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates
  
 #### Templated launch plan definition
 
@@ -294,8 +308,10 @@ The apps will be run on a computer where the agent is configured to  machineId `
         		Template = "apps.notepad"
         		StartupDir = "c:\"
         		CmdLineArgs = "aaa.txt"
-        	/>
-        
+                >
+    		    <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+    	    </App>
+         
         	<App
         	    AppIdTuple = "m1.b"
         		Template = "apps.notepad"

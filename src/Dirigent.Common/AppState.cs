@@ -13,13 +13,43 @@ namespace Dirigent.Common
     [Serializable]
     public class AppState
     {
-        public bool Started; // process was launched successfully
-        public bool StartFailed; // process was launched but failed to start
-        public bool Running; // process is currently running
-        public bool Killed; // forced to terminate
-        public bool Initialized; // process init condition satisfied
-        public int ExitCode; // process exit code; valid only if is Started && !Running && !Killed
-        public bool PlanApplied; // process was processed by the launch plan already, won't be touched by the launch plan again (until plan is stopped)
+        /// <summary>
+        /// process was launched successfully
+        /// </summary>
+        public bool Started;
+
+        /// <summary>
+        /// process was launched but failed to start
+        /// </summary>
+        public bool StartFailed;
+
+        /// <summary>
+        /// process is currently running
+        /// </summary>
+        public bool Running;
+
+        /// <summary>
+        /// forced to terminate
+        /// </summary>
+        public bool Killed;
+        
+        /// <summary>
+        /// Process init condition satisfied;
+        /// 
+        /// By default true upon launching but can be immediately reset by a freshly instantiated AppWatcher acting like an InitDetector.
+        /// This is to avoid app to stay in unitialized if an Initdetector-class watcher is not defined
+        /// </summary>
+        public bool Initialized;
+        
+        /// <summary>
+        /// process exit code; valid only if is Started && !Running && !Killed
+        /// </summary>
+        public int ExitCode;
+
+        /// <summary>
+        /// process was processed by the launch plan already, won't be touched by the launch plan again (until plan is stopped)
+        /// </summary>
+        public bool PlanApplied;
     }
 
 

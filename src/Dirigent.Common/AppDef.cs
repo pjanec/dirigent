@@ -25,6 +25,7 @@ namespace Dirigent.Common
         public int StartupOrder;
         public bool RestartOnCrash;
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
+        //public List<string> Watchers = new List<string>();
         public double SeparationInterval; // seconds before next app can be started on the same computer
 
         /// <summary>
@@ -37,6 +38,7 @@ namespace Dirigent.Common
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
 
         public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
+        public string WindowPosXml;
 
 
 
@@ -63,6 +65,9 @@ namespace Dirigent.Common
                     this.Dependencies.SequenceEqual(other.Dependencies)
                   )
                 ) &&
+                this.WindowStyle == other.WindowStyle &&
+                this.WindowPosXml == other.WindowPosXml &&
+                //this.Watchers.SequenceEqual(other.Watchers) &&
                 true
             )
                 return true;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 
 using Dirigent.Common;
 
@@ -13,6 +14,7 @@ namespace Dirigent.Agent.Core
         void Kill();
         bool Running { get; }
         int ExitCode { get; }
+        int ProcessId { get; }
     }
 
     public interface ILauncherFactory

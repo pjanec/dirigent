@@ -6,6 +6,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
+/*
     class AlwaysInitializedInitDetector : IAppInitializedDetector
     {
         public bool IsInitialized()
@@ -22,4 +23,6 @@ namespace Dirigent.Agent.Core
             return false;
         }
     }
-}
+
+ */
+  }

@@ -26,5 +26,11 @@ namespace Dirigent.Common
             return (s == null)? def : double.Parse(s);
         }
 
+        public static bool getBoolAttr( XElement e, string attrName, bool def=false )
+        {
+            var s = (string) e.Attribute(attrName);
+            return ( s == null )? def : (s == "1");
+        }
+
     }
 }
