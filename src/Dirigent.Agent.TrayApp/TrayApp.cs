@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Configuration;
+using System.Drawing;
 
 using Dirigent.Common;
 using Dirigent.Agent.Core;
@@ -125,6 +126,19 @@ namespace Dirigent.Agent.TrayApp
 
             mainForm = new frmMain(agent.Control, planRepo, ac.machineId, client.Name, notifyIcon, !runningAsRemoteControlGui, callbacks);
 
+            // restore saved location if SHIFT not held
+            if ((Control.ModifierKeys & Keys.Shift) == 0)
+            {
+                string initLocation = Properties.Settings.Default.MainFormLocation;
+ 
+                mainForm.RestoreWindowSettings(initLocation);
+            }
+            else  // for default I just want the form to start in the top-left corner.
+            {
+                Point topLeftCorner = new Point(0, 0);
+                mainForm.Location = topLeftCorner;
+            }
+
             // if form is user-closed, don't destroy it, just hide it
             callbacks.onCloseDeleg += (e) =>
             {
@@ -147,6 +161,12 @@ namespace Dirigent.Agent.TrayApp
         {
             if (mainForm != null)
             {
+                // save main form's location and size
+                if ((Control.ModifierKeys & Keys.Shift) == 0)
+                {
+                    mainForm.SaveWindowSettings("MainFormLocation");
+                }
+
                 mainForm.Close();
                 mainForm.Dispose();
                 mainForm = null;
@@ -185,4 +205,42 @@ namespace Dirigent.Agent.TrayApp
 
     }
 
+    // http://www.codeproject.com/Tips/543631/Save-and-restore-your-form-size-and-location
+    static class ExtensionMethods
+    {
+        public static void RestoreWindowSettings(this Form form, string initLocation)
+        {
+                Point il = new Point(0, 0);
+                Size sz = form.Size;
+                if (!string.IsNullOrEmpty(initLocation))
+                {
+                    string[] parts = initLocation.Split(',');
+                    if (parts.Length >= 2)
+                    {
+                        il = new Point(int.Parse(parts[0]), int.Parse(parts[1]));
+                    }
+                    if (parts.Length >= 4)
+                    {
+                        sz = new Size(int.Parse(parts[2]), int.Parse(parts[3]));
+                    }
+                }
+                form.Size = sz;
+                form.Location = il;
+        }
+ 
+        /// Each window must have its own setting name (e.g. MainFormLocation, etc) in Settings.settings
+        public static void SaveWindowSettings(this Form form, string settingsNameForLocation)
+        {
+            Point location = form.Location;
+            Size size = form.Size;
+            if (form.WindowState != FormWindowState.Normal)
+            {
+                location = form.RestoreBounds.Location;
+                size = form.RestoreBounds.Size;
+            }
+            string initLocation = string.Join(",", new string[] { location.X.ToString(), location.Y.ToString(), size.Width.ToString(), size.Height.ToString() } );
+            Properties.Settings.Default[settingsNameForLocation] = initLocation;
+            Properties.Settings.Default.Save();
+        }
+    }
 }
