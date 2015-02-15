@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Runtime.Remoting;
-using System.Runtime.Remoting.Channels;
-using System.Runtime.Remoting.Channels.Tcp;
 
+using System.ServiceModel;
+using System.ServiceModel.Channels;
 
 namespace Dirigent.Net
 {
@@ -33,13 +32,30 @@ namespace Dirigent.Net
         }
     }
 
+    public class MasterServiceClient : DuplexClientBase<IDirigentMasterContract>
+    {
+        public MasterServiceClient(object callbackInstance, Binding binding, EndpointAddress remoteAddress)
+            : base(callbackInstance, binding, remoteAddress) { }
+    }
+
+    public class MasterServiceCallback : IDirigentMasterContractCallback
+    {
+        public void MessageFromServer(  Message msg )
+        {
+            //Console.WriteLine("Text from server: {0}", line);
+        }
+    }
+
     public class Client : IClient
     {
         string name;
         string ipaddr;
         int port;
-        ServerRemoteObject serverObject;
 
+        MasterServiceClient client;
+        MasterServiceCallback callback;
+        IDirigentMasterContract server;  // server proxy
+        
         public string Name { get { return name;} }
 
         public Client( string name, string ipaddr, int port )
@@ -51,29 +67,16 @@ namespace Dirigent.Net
         
         public void Connect()
         {
-            //System.Collections.IDictionary properties = new System.Collections.Hashtable();
-            //properties["timeout"] = 500; // PJ: value not taken into account, connection timeout still aroun 1000msec
-
-            //TcpChannel channel = new TcpChannel(
-            //                        properties,
-            //                        null,
-            //                        new BinaryServerFormatterSinkProvider()
-            //                        );
-
-            TcpChannel channel = new TcpChannel();
-
-            ChannelServices.RegisterChannel(channel, false);
-
-            RemotingConfiguration.RegisterWellKnownClientType(
-                typeof(ServerRemoteObject ),
-                string.Format("tcp://{0}:{1}/Dirigent", ipaddr, port)
-            );
-
-            serverObject = ServerRemoteObject.Instance;
+            var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
+            var binding = new NetTcpBinding();
+            //binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
+            callback = new MasterServiceCallback();
+            client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
+            server = client.ChannelFactory.CreateChannel();
 
             try
             {
-                serverObject.AddClient(name);
+                server.AddClient(name);
             }
             catch
             {
@@ -84,14 +87,14 @@ namespace Dirigent.Net
 
         public void Disconnect()
         {
-            serverObject.RemoveClient( name );
+            server.RemoveClient( name );
         }
 
         public IEnumerable<Message> ReadMessages()
         {
             try
             {
-                return serverObject.ClientMessages(name);
+                return server.ClientMessages(name);
             }
             catch (KeyNotFoundException ex)
             {
@@ -102,7 +105,7 @@ namespace Dirigent.Net
         public void BroadcastMessage( Message msg )
         {
             msg.Sender = name;
-            serverObject.BroadcastMessage( msg );
+            server.BroadcastMessage( msg );
         }
 
         public bool IsConnected()
@@ -115,4 +118,7 @@ namespace Dirigent.Net
         {
         }
     }
+
+
+
 }

@@ -2,13 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
-    [Serializable]
+    [DataContract]
     public class AppIdTuple
     {
+        [DataMember]
         public string MachineId { get; private set; }
+
+        [DataMember]
         public string AppId { get; private set; }
 
         public AppIdTuple(string machineId, string appId)

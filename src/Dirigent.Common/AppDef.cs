@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
@@ -11,33 +12,55 @@ namespace Dirigent.Common
     /// <summary>
     /// Definition of an application in a launch plan
     /// </summary>
-    [Serializable]
+    [DataContract]
     public class AppDef : IEquatable<AppDef>
     {
         /// <summary>
         /// Unique application name; together with MachineId makes a unique name across all applications on all machines.
         /// </summary>
+        [DataMember]
         public AppIdTuple AppIdTuple;
 
+        [DataMember]
         public string ExeFullPath;
+
+        [DataMember]
         public string StartupDir;
+
+        [DataMember]
         public string CmdLineArgs;
+
+        [DataMember]
         public int StartupOrder;
+
+        [DataMember]
         public bool RestartOnCrash;
+
+        [DataMember]
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
+
+        //[DataMember]
         //public List<string> Watchers = new List<string>();
+
+        [DataMember]
         public double SeparationInterval; // seconds before next app can be started on the same computer
 
         /// <summary>
         /// AppIds of applications that need to be initialized before this app can be started 
         /// </summary>
+        [DataMember]
         public List<string> Dependencies;
 
+        [DataMember]
         public bool Enabled;
 
+        [DataMember]
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
 
+        [DataMember]
         public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
+
+        [DataMember]
         public string WindowPosXml;
 
 

@@ -7,10 +7,10 @@ using System.Net;
 namespace Dirigent.Common
 {
 
-    public class MachineState
-    {
-        public bool Running;
-        public MachineDef MachineDef;
-    }
+    //public class MachineState
+    //{
+    //    public bool Running;
+    //    public MachineDef MachineDef;
+    //}
 
 }

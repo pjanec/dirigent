@@ -2,14 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
-    [Serializable]
+    [DataContract]
     public class LaunchPlan : ILaunchPlan
     {
+        [DataMember]
         List<AppDef> appDefs;
+
+        [DataMember]
         string name;
+
+        [DataMember]
         bool running;
         
         public LaunchPlan( string name, List<AppDef> appDefs )

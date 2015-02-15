@@ -1,15 +1,20 @@
-﻿using System;
-using System.Collections;
+﻿// WCF implementation of the Dirigent Master service
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 
+using System.ServiceModel;
+using System.ServiceModel.Channels;
+using System.ServiceModel.Dispatcher;
+using System.ServiceModel.Description;
+
 using Dirigent.Common;
 
 namespace Dirigent.Net
 {
-
     class ClientInfo
     {
         public string Name;
@@ -17,21 +22,13 @@ namespace Dirigent.Net
         public long lastActivityTicks;
     }
 
-    /// <summary>
-    /// Server object that is remotely callable by clients (through Remoting).
-    /// Caches messages for each client separately until the client reads them.
-    /// Clients first register themselves by AddClient, then poll their messages via ClientMessages().
-    /// Both client or server can broadcast a message.
-    /// </summary>
-    public class ServerRemoteObject : System.MarshalByRefObject
+    [ServiceBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, InstanceContextMode=InstanceContextMode.Single)]
+    public class MasterService : IDirigentMasterContract
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static ServerRemoteObject instance;
-
         Dictionary<string, ClientInfo> clients = new Dictionary<string, ClientInfo>();
-
 
         // cached currennt plan repository
         // loaded from shared config file on server startup
@@ -46,35 +43,6 @@ namespace Dirigent.Net
         Timer disconTimer;
 
         double inactivityTimeout = 5.0;
-
-        public static ServerRemoteObject Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new ServerRemoteObject();
-                }
-                return instance;
-            }
-        }
-        
-        
-        private ServerRemoteObject()
-        {
-            disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
-        }
-
-        public void SetInactivityTimeOut( double timeoutSeconds )
-        {
-            this.inactivityTimeout = timeoutSeconds;
-        }
-
-
-        public override object InitializeLifetimeService()
-        {
-            return (null);
-        }
 
         /// <summary>
         /// Register a client.
@@ -109,6 +77,11 @@ namespace Dirigent.Net
             {
                 clients.Remove(name);
             }
+        }
+
+        public MasterService()
+        {
+            disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
         }
 
         /// <summary>
@@ -198,13 +171,13 @@ namespace Dirigent.Net
             return msgList;
         }
 
-        /// <summary>
-        /// Clears all client information.
-        /// </summary>
-        public void Reset()
-        {
-            clients.Clear();
-        }
+        ///// <summary>
+        ///// Clears all client information.
+        ///// </summary>
+        //public void Reset()
+        //{
+        //    clients.Clear();
+        //}
 
         private void DetectDisconnections( object state )
         {
@@ -236,7 +209,4 @@ namespace Dirigent.Net
         }
 
     }
-
-
-
- }
+}

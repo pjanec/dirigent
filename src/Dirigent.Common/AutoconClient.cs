@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Runtime.Remoting;
-using System.Runtime.Remoting.Channels;
-using System.Runtime.Remoting.Channels.Tcp;
 using System.Threading;
+
+using System.ServiceModel;
+using System.ServiceModel.Channels;
 
 namespace Dirigent.Net
 {
@@ -20,8 +20,10 @@ namespace Dirigent.Net
         string ipaddr;
         int port;
         bool connected;
-        ServerRemoteObject serverObject;
-        TcpChannel channel;
+
+        MasterServiceClient client;
+        MasterServiceCallback callback;
+        IDirigentMasterContract server;  // server proxy
 
         // protect access to serverObject which is created in separate thred
         private Object thisLock = new Object();
@@ -38,23 +40,11 @@ namespace Dirigent.Net
             this.port = port;
             this.connected = false;
 
-            channel = new TcpChannel();
-
-            //System.Collections.IDictionary properties = new System.Collections.Hashtable();
-            //properties["timeout"] = 500; // PJ: value not taken into account, connection timeout still aroun 1000msec
-
-            //TcpChannel channel = new TcpChannel(
-            //                        properties,
-            //                        null,
-            //                        new BinaryServerFormatterSinkProvider()
-            //                        );
-
-            ChannelServices.RegisterChannel(channel, false);
-
-            RemotingConfiguration.RegisterWellKnownClientType(
-                typeof(ServerRemoteObject),
-                string.Format("tcp://{0}:{1}/Dirigent", ipaddr, port)
-            );
+            var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
+            var binding = new NetTcpBinding();
+            binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
+            callback = new MasterServiceCallback();
+            client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
 
             terminate = false;
             connectionThread = new Thread(connectionThreadLoop);
@@ -68,15 +58,16 @@ namespace Dirigent.Net
             {
                 try 
                 {
-                    serverObject = ServerRemoteObject.Instance;
+                    server = client.ChannelFactory.CreateChannel();
 
-                    serverObject.AddClient(name);
+                    server.AddClient(name);
 
                     connected = true;
                 }
                 catch // in case of error just not set connected to true
                 {
                     connected = false;
+                    server = null;
                 }
             }                    
         }
@@ -89,14 +80,14 @@ namespace Dirigent.Net
                 {
                     lock (thisLock)
                     {
-                        if (serverObject != null)
+                        if (server != null)
                         {
-                            serverObject.RemoveClient(name);
+                            server.RemoveClient(name);
                         }
                     }
                 }
                 // release the server object
-                serverObject = null;
+                server = null;
             }
             catch
             {
@@ -113,7 +104,7 @@ namespace Dirigent.Net
             {
                 lock (thisLock)
                 {
-                    return serverObject.ClientMessages(name);
+                    return server.ClientMessages(name);
                 }
             }
             catch
@@ -133,7 +124,8 @@ namespace Dirigent.Net
             {
                 lock (thisLock)
                 {
-                    serverObject.BroadcastMessage(name, msg);
+                    msg.Sender = name;
+                    server.BroadcastMessage(msg);
                 }
             }
             catch

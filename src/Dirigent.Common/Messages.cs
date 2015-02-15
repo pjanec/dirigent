@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using System.Runtime.Serialization;
+
 using Dirigent.Common;
 
 namespace Dirigent.Net
@@ -10,17 +12,35 @@ namespace Dirigent.Net
     /// <summary>
     /// Base class for all messages.
     /// </summary>
-    [Serializable]
+    [DataContract]
+    [KnownType(typeof(RemoteOperationErrorMessage))]
+    [KnownType(typeof(AppsStateMessage))]
+    [KnownType(typeof(LaunchAppMessage))]
+    [KnownType(typeof(KillAppMessage))]
+    [KnownType(typeof(RestartAppMessage))]
+    [KnownType(typeof(SelectPlanMessage))]
+    [KnownType(typeof(StartPlanMessage))]
+    [KnownType(typeof(StopPlanMessage))]
+    [KnownType(typeof(KillPlanMessage))]
+    [KnownType(typeof(RestartPlanMessage))]
+    [KnownType(typeof(CurrentPlanMessage))]
+    [KnownType(typeof(PlanRepoMessage))]
     public class Message
     {
+        [DataMember]
         public string Sender { get; set; }
     }
 
-    [Serializable]
+    [DataContract]
     public class RemoteOperationErrorMessage : Message
     {
+        [DataMember]
         public string Requestor;
+        
+        [DataMember]
         public string Message; // Error description 
+        
+        [DataMember]
         public Dictionary<string, string> Attributes; // additional attribute pairs (name, value)
 
         public RemoteOperationErrorMessage(string requestor, string msg, Dictionary<string, string> attribs = null)
@@ -34,9 +54,10 @@ namespace Dirigent.Net
         }
     }
 
-    [Serializable]
+    [DataContract]
     public class AppsStateMessage : Message
     {
+        [DataMember]
         public Dictionary<AppIdTuple, AppState> appsState;
 
         public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
@@ -45,9 +66,10 @@ namespace Dirigent.Net
         }
     }
 
-    [Serializable]
+    [DataContract]
     public class LaunchAppMessage : Message
     {
+        [DataMember]
         public AppIdTuple appIdTuple;
 
         public LaunchAppMessage( AppIdTuple appIdTuple )
@@ -62,9 +84,10 @@ namespace Dirigent.Net
 
     }
 
-    [Serializable]
+    [DataContract]
     public class KillAppMessage : Message
     {
+        [DataMember]
         public AppIdTuple appIdTuple;
 
         public KillAppMessage( AppIdTuple appIdTuple )
@@ -79,9 +102,10 @@ namespace Dirigent.Net
 
     }
 
-    [Serializable]
+    [DataContract]
     public class RestartAppMessage : Message
     {
+        [DataMember]
         public AppIdTuple appIdTuple;
 
         public RestartAppMessage( AppIdTuple appIdTuple )
@@ -95,9 +119,10 @@ namespace Dirigent.Net
 
     }
 
-    [Serializable]
+    [DataContract]
     public class SelectPlanMessage : Message
     {
+        [DataMember]
         public ILaunchPlan plan;
 
         public SelectPlanMessage( ILaunchPlan plan )
@@ -112,25 +137,25 @@ namespace Dirigent.Net
 
     }
 
-    [Serializable]
+    [DataContract]
     public class StartPlanMessage : Message
     {
         public override string ToString() { return "StartPlan"; }
     }
 
-    [Serializable]
+     [DataContract]
     public class StopPlanMessage : Message
     {
         public override string ToString() { return "StopPlan"; }
     }
 
-    [Serializable]
+    [DataContract]
     public class KillPlanMessage : Message
     {
         public override string ToString() { return "KillPlan"; }
     }
 
-    [Serializable]
+    [DataContract]
     public class RestartPlanMessage : Message
     {
         public override string ToString() { return "RestartPlan"; }
@@ -139,9 +164,10 @@ namespace Dirigent.Net
     /// <summary>
     /// Master tells new client about the current launch plan
     /// </summary>
-    [Serializable]
+    [DataContract]
     public class CurrentPlanMessage : Message
     {
+        [DataMember]
         public ILaunchPlan plan;
 
         public CurrentPlanMessage(ILaunchPlan plan)
@@ -158,9 +184,10 @@ namespace Dirigent.Net
     /// <summary>
     /// Master tells new client about existing plans
     /// </summary>
-    [Serializable]
+    [DataContract]
     public class PlanRepoMessage : Message
     {
+        [DataMember]
         public IEnumerable<ILaunchPlan> repo;
 
         public PlanRepoMessage(IEnumerable<ILaunchPlan> repo)
