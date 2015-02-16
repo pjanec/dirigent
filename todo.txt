@@ -1,4 +1,8 @@
-﻿Multiple independent <WindowPos /> sections per single application to control multiple application windows.
+﻿Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
+
+Autorestart an app after crash.
+
+Multiple independent <WindowPos /> sections per single application to control multiple application windows.
 
 Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc.
 
@@ -22,7 +26,7 @@ Failure timeout for boot up detector.
 
 Prevent multiple instances of agent with the same name (machineId:port)
 
-CS-Script based script file procesing for agentcmd.
+Script based procesing for agentcmd.
 
 [REJECTED] Run server process om master machine automatically on agent start. Reset the server process if server already running.
 [DONE] Allow for non-windowed mode (console app for linux, windows service).

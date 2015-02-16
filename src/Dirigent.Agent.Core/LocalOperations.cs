@@ -276,6 +276,8 @@ namespace Dirigent.Agent.Core
             appState.StartFailed = false;
             appState.Killed = false;
             
+            la.watchers.Clear();
+
             la.launcher = launcherFactory.createLauncher( la.AppDef );
 
             try
@@ -300,6 +302,13 @@ namespace Dirigent.Agent.Core
                 {
                     var wpo = new WindowPositioner( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(la.AppDef.WindowPosXml) );
                     la.watchers.Add( wpo );
+                }
+
+                // instantiate autorestarter
+                if( la.AppDef.RestartOnCrash )
+                {
+                    var ar = new AutoRestarter( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, new XElement("Autorestart") );
+                    la.watchers.Add( ar );
                 }
 
             }

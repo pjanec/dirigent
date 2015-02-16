@@ -87,6 +87,7 @@
   <ItemGroup>
     <Compile Include="Agent.cs" />
     <Compile Include="AppWatcherFactory.cs" />
+    <Compile Include="AppWatchers\AutoRestarter.cs" />
     <Compile Include="AppWatchers\WindowPositioner.cs" />
     <Compile Include="IAppWatcher.cs" />
     <Compile Include="AppWatchers\ExitCodeInitDetector.cs" />
