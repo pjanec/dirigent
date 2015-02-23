@@ -135,7 +135,7 @@ namespace Dirigent.Agent.Gui
             }
             else
             {
-                toolStripStatusLabel1.Text = "Diconnected.";
+                toolStripStatusLabel1.Text = "Disconnected.";
             }
 
         }
