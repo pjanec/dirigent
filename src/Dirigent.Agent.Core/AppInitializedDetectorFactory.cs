@@ -46,6 +46,11 @@ namespace Dirigent.Agent.Core
 
         public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string definitionString)
         {
+            if( string.IsNullOrEmpty(definitionString) )
+            {
+                throw new UnknownAppInitDetectorType( appDef.AppIdTuple + " <Init condition not defined>" );
+            }
+            
             string name="";
             string args="";
             parseDefinitionString(definitionString, ref name, ref args);
