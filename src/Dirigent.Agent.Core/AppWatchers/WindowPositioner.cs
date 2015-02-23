@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Management;
 
 using X = Dirigent.Common.XmlConfigReaderUtils;
 
@@ -220,6 +221,19 @@ namespace Dirigent.Agent.Core
             public string Title;
         }
 
+        private List<int> GetChildProcesses(int pid)
+        {
+            List<int> childrenPID = new List<int>();
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * From Win32_Process Where ParentProcessID=" + pid);
+            ManagementObjectCollection moc = searcher.Get();
+            foreach (ManagementObject mo in moc)
+            {
+                childrenPID.Add( Convert.ToInt32(mo["ProcessID"]) );
+            }
+
+            return childrenPID;
+        }
+        
         List<WinInfo> GetProcessWindows( int processId )
         {
             var list = new List<WinInfo>();
@@ -259,6 +273,23 @@ namespace Dirigent.Agent.Core
 
         }
 
+        bool ApplyPosToListedWindows(List<WinInfo> windows)
+        {
+            bool found = false;
+            foreach( var w in windows )
+            {
+                // apply pos for matching titles
+                var m = titleRegExp.Match( w.Title );
+                if( m != null && m.Success )
+                {
+                    ApplyPos( w.Handle );
+                    found = true;
+                }
+            }
+            return found;
+        }
+        
+
         void IAppWatcher.Tick()
         {
             // if a window with given title exists, reposition it and stop operating
@@ -277,18 +308,22 @@ namespace Dirigent.Agent.Core
             }
 
             var list = GetProcessWindows( processId );
-            foreach( var w in list )
+            bool found = ApplyPosToListedWindows( list );
+
+            // look in child subprocess windows as well
+            var childProcessPids = GetChildProcesses( processId );
+            foreach( var childPid in childProcessPids )
             {
-                // apply pos for matching titles
-                var m = titleRegExp.Match( w.Title );
-                if( m != null && m.Success )
+                var list2 = GetProcessWindows( childPid );
+                found |= ApplyPosToListedWindows( list2 );
+            }
+
+            // at least one window has been found
+            if( found )
+            { 
+                if( !pos.Keep )
                 {
-                    ApplyPos( w.Handle );
-                    
-                    if( !pos.Keep )
-                    {
-                        shallBeRemoved = true; // positioner has fired, it is no longer needed
-                    }
+                    shallBeRemoved = true; // positioner has fired, it is no longer needed
                 }
             }
         }
