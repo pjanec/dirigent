@@ -1,6 +1,8 @@
-﻿Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
+﻿Show ??? as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This shoudl avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
 
-Autorestart an app after crash.
+Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
+
+[DONE] Autorestart an app after crash.
 
 Multiple independent <WindowPos /> sections per single application to control multiple application windows.
 
