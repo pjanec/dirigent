@@ -70,6 +70,7 @@ namespace Dirigent.Net
             var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
             var binding = new NetTcpBinding();
             //binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
+            binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel and there is an error
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
             server = client.ChannelFactory.CreateChannel();
@@ -80,6 +81,7 @@ namespace Dirigent.Net
             }
             catch
             {
+                CloseChannel();
                 throw new MasterConnectionTimeoutException(ipaddr, port);
             }
 
@@ -87,7 +89,17 @@ namespace Dirigent.Net
 
         public void Disconnect()
         {
-            server.RemoveClient( name );
+            if( server == null ) return; // was not connected
+
+            try
+            {
+                server.RemoveClient( name );
+            }
+            catch (CommunicationException)
+            {
+            }
+
+            CloseChannel();
         }
 
         public IEnumerable<Message> ReadMessages()
@@ -114,8 +126,39 @@ namespace Dirigent.Net
             return true;
         }
 
+        /// <summary>
+        /// close the WCF channel
+        /// </summary>
+        void CloseChannel()
+        {
+            if (server == null) return;
+
+            var channel = server as ICommunicationObject;
+            try
+            {
+                channel.Close();
+            }
+            catch (CommunicationException)
+            {
+                channel.Abort();
+            }
+            catch (TimeoutException)
+            {
+                channel.Abort();
+            }
+
+            server = null;
+        }
+        
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing) return;
+            CloseChannel();
+        }
+
         public void Dispose()
         {
+            Dispose(true);
         }
     }
 
