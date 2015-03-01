@@ -1,10 +1,5 @@
-﻿Show "??? (disconnected)" as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This should avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
-
-Show "??? (timed out)" as the status for a remote app if no new updates have come from the remote agent for a longer period of time (longer than normal update period).
-
+﻿
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
-
-[DONE] Autorestart an app after crash.
 
 Multiple independent <WindowPos /> sections per single application to control multiple application windows.
 
@@ -31,6 +26,12 @@ Failure timeout for boot up detector.
 Prevent multiple instances of agent with the same name (machineId:port)
 
 Script based procesing for agentcmd.
+
+[DONE] Show "??? (disconnected)" as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This should avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
+
+[DONE] Show "??? (no info for xx secs)" as the status for a remote app if no new updates have come from the remote agent for a longer period of time (longer than normal update period).
+
+[DONE] Autorestart an app after crash.
 
 [REJECTED] Run server process om master machine automatically on agent start. Reset the server process if server already running.
 [DONE] Allow for non-windowed mode (console app for linux, windows service).

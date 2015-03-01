@@ -30,7 +30,7 @@ namespace Dirigent.Agent.Gui
                         new object[]
                         {
                             a.AppIdTuple.ToString(),
-                            getAppStatusCode( ctrl.GetAppState(a.AppIdTuple), true )
+                            getAppStatusCode( a.AppIdTuple, ctrl.GetAppState(a.AppIdTuple), true )
                         }
                     );
                 }
@@ -96,7 +96,7 @@ namespace Dirigent.Agent.Gui
                         new object[]
                         {
                             id,
-                            getAppStatusCode( x.Value, planApps.Contains(x.Key) ),
+                            getAppStatusCode( x.Key, x.Value, planApps.Contains(x.Key) ),
                             ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.play), new Size(20,20)),
                             ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20)),
                             ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.refresh), new Size(20,20))
@@ -120,7 +120,7 @@ namespace Dirigent.Agent.Gui
             {
                 if( !toRemove.Contains(o.Value) )
                 {
-                    toUpdate[o.Value] = getAppStatusCode( ctrl.GetAppState(newApps[o.Key]), planApps.Contains(newApps[o.Key]) );
+                    toUpdate[o.Value] = getAppStatusCode( newApps[o.Key], ctrl.GetAppState(newApps[o.Key]), planApps.Contains(newApps[o.Key]) );
                 }
             }
 
@@ -158,6 +158,8 @@ namespace Dirigent.Agent.Gui
                 var appIdTuple = new AppIdTuple(focused.Cells[0].Value as string);
                 var st = ctrl.GetAppState(appIdTuple);
                 bool connected = callbacks.isConnectedDeleg();
+                bool isLocalApp = appIdTuple.MachineId == this.machineId;
+                bool isAccessible = isLocalApp || connected; // can we change its state?
 
                 if (e.Button == MouseButtons.Right)
                 {
@@ -167,17 +169,17 @@ namespace Dirigent.Agent.Gui
 
                     var launchItem = new System.Windows.Forms.ToolStripMenuItem("&Launch");
                     launchItem.Click += (s, a) => guardedOp(() => ctrl.LaunchApp(appIdTuple));
-                    launchItem.Enabled = !st.Running;
+                    launchItem.Enabled = isAccessible && !st.Running;
                     popup.Items.Add(launchItem);
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
                     killItem.Click += (s, a) => guardedOp( () => ctrl.KillApp(appIdTuple) );
-                    killItem.Enabled = st.Running;
+                    killItem.Enabled = isAccessible && st.Running;
                     popup.Items.Add(killItem);
 
                     var restartItem = new System.Windows.Forms.ToolStripMenuItem("&Restart");
                     restartItem.Click += (s, a) => guardedOp( () => ctrl.RestartApp(appIdTuple) );
-                    restartItem.Enabled = st.Running;
+                    restartItem.Enabled = isAccessible && st.Running;
                     popup.Items.Add(restartItem);
 
                     popup.Show(Cursor.Position);
@@ -187,9 +189,29 @@ namespace Dirigent.Agent.Gui
                 if (e.Button == MouseButtons.Left)
                 {
                     // icon clicks
-                    if( currentCol == 2 ) guardedOp(() => ctrl.LaunchApp(appIdTuple));
-                    if( currentCol == 3 ) guardedOp(() => ctrl.KillApp(appIdTuple));
-                    if( currentCol == 4 ) guardedOp(() => ctrl.RestartApp(appIdTuple));
+                    if( currentCol == 2 )
+                    {
+                        if( isAccessible && !st.Running )
+                        {
+                            guardedOp(() => ctrl.LaunchApp(appIdTuple));
+                        }
+                    }
+
+                    if( currentCol == 3 )
+                    {
+                        if( isAccessible && st.Running )
+                        {
+                            guardedOp(() => ctrl.KillApp(appIdTuple));
+                        }
+                    }
+
+                    if( currentCol == 4 )
+                    {
+                        if( isAccessible && st.Running )
+                        {
+                            guardedOp(() => ctrl.RestartApp(appIdTuple));
+                        }
+                    }
                 
                 }
             }
@@ -213,12 +235,21 @@ namespace Dirigent.Agent.Gui
             }
         }
 
-        string getAppStatusCode( AppState st, bool isPartOfPlan )
+        string getAppStatusCode( AppIdTuple appIdTuple, AppState st, bool isPartOfPlan )
         {
             string stCode = "Not running";
 
             var currPlan = ctrl.GetCurrentPlan();
             bool planRunning = (currPlan != null) && currPlan.Running && isPartOfPlan;
+            bool connected = callbacks.isConnectedDeleg();
+            var currTime = DateTime.UtcNow;
+            bool isRemoteApp = appIdTuple.MachineId != this.machineId;
+
+            if( isRemoteApp && !connected )
+            {
+                stCode = "??? (discon.)";
+                return stCode;
+            }
 
             if( planRunning && !st.PlanApplied )
             {
@@ -251,6 +282,12 @@ namespace Dirigent.Agent.Gui
             if (st.StartFailed)
             {
                 stCode = "Failed to start";
+            }
+
+            var statusInfoAge = currTime - st.LastChange;
+            if( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds(3) )
+            {
+                stCode += string.Format(" (no info for {0:0} sec)", statusInfoAge.TotalSeconds);
             }
 
             

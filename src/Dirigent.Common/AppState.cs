@@ -20,7 +20,7 @@ namespace Dirigent.Common
         bool initialized;
         int exitCode;
         bool planApplied;
-        DateTime lastChange = DateTime.Now;
+        DateTime lastChange = DateTime.UtcNow;
     
         /// <summary>
         /// process was launched successfully
@@ -107,7 +107,7 @@ namespace Dirigent.Common
 
         void changed()
         {
-            lastChange = DateTime.Now;
+            lastChange = DateTime.UtcNow;
         }
     }
 
