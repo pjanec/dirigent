@@ -60,9 +60,11 @@ namespace Dirigent.Common
         [DataMember]
         public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
 
+        /// <summary>
+        /// list of all <WindowPos /> XML sections as string (to be parsed later by specific app watcher code)
+        /// </summary>
         [DataMember]
-        public string WindowPosXml;
-
+        public List<string> WindowPosXml = new List<string>();
 
 
         public bool Equals(AppDef other)
@@ -89,7 +91,7 @@ namespace Dirigent.Common
                   )
                 ) &&
                 this.WindowStyle == other.WindowStyle &&
-                this.WindowPosXml == other.WindowPosXml &&
+                this.WindowPosXml.SequenceEqual( other.WindowPosXml ) &&
                 //this.Watchers.SequenceEqual(other.Watchers) &&
                 true
             )

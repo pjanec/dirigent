@@ -65,7 +65,7 @@ namespace Dirigent.Common
                 Dependecies = (string) e.Attribute("Dependencies"),
                 KillTree = (string)e.Attribute("KillTree"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
-                WindowPos = e.Element("WindowPos"),
+                WindowPos = e.Elements("WindowPos"),
             };
 
             // then overwrite templated values with current content
@@ -107,7 +107,10 @@ namespace Dirigent.Common
 
             if( x.WindowPos != null )
             {
-                a.WindowPosXml = x.WindowPos.ToString();
+                foreach( var elem in x.WindowPos )
+                {
+                    a.WindowPosXml.Add( elem.ToString() );
+                }
             }
 
             return a;

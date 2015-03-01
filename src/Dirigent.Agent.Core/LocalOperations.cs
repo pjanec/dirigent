@@ -297,10 +297,10 @@ namespace Dirigent.Agent.Core
                 var aid = appAppInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, la.AppDef.InitializedCondition);
                 la.watchers.Add( aid );
 
-                // instantiate window positioner
-                if( !string.IsNullOrEmpty( la.AppDef.WindowPosXml ) )
+                // instantiate window positioners
+                foreach( var xml in la.AppDef.WindowPosXml )
                 {
-                    var wpo = new WindowPositioner( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(la.AppDef.WindowPosXml) );
+                    var wpo = new WindowPositioner( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(xml) );
                     la.watchers.Add( wpo );
                 }
 
