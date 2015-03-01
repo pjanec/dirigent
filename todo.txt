@@ -1,4 +1,6 @@
-﻿Show ??? as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This shoudl avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
+﻿Show "??? (disconnected)" as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This should avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
+
+Show "??? (timed out)" as the status for a remote app if no new updates have come from the remote agent for a longer period of time (longer than normal update period).
 
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 
@@ -8,7 +10,7 @@ Multiple independent <WindowPos /> sections per single application to control mu
 
 Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc.
 
-Build installer
+Build installer [not needed]
 
 Application Multiselect & bulk operations in the Control GUI.
 

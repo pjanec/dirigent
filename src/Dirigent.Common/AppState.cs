@@ -102,6 +102,7 @@ namespace Dirigent.Common
         public DateTime LastChange
         {
             get { return lastChange; }
+            set { lastChange = value; }
         }
 
         void changed()
