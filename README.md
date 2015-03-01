@@ -129,6 +129,11 @@ For example using a command ling control app:
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
 
+Multiple commands can be executed at once if separated by a semicolon. For example	
+
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1; StartPlan
+
+	
 ### Available Actions
 The Dirigent can work either with whole launch plan or with an individual application that is part of the currently selected launch plan.
 
@@ -292,6 +297,8 @@ App sub-sections:
  
 	- `BringToFront` - 0/1 whether to put window to the foreground and activate it; usefel in combination with Keep="1" to keep the window visible and focused
 	
+	- `TopMost` - 0/1 whether to make the window 'Always on top'
+ 
 	- `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
 
 	If used in a template, the WindowPos definition is added to all application using this template.

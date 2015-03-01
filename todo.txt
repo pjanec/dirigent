@@ -1,8 +1,6 @@
 ﻿
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 
-Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc.
-
 Application Multiselect & bulk operations in the Control GUI.
 
 New option for the apps: `KillOnAdopt`. If an application is already running when starting a plan that contains an app with the same name, the running one is killed. This is usefull if the app has the same name but different attributes and we want it to be started with those attributes from the new plan. Or if the dirigent agent crashes and we want it to regain control after restarting.
@@ -13,15 +11,17 @@ Remote execution of ANY command on selected machine(s).
 
 Support for applications that are never started automatically, just manually (always excluded from plan).
 
-Support for disabling an application before starting a launch plan.
+Support for disabling an application before starting a launch plan. NOT MUCH USED
 
 Support for multiple retries when launching a problematically starting application.
 
-Failure timeout for boot up detector.
+Failure timeout for app bootup detector.
 
 Prevent multiple instances of agent with the same name (machineId:port)
 
-Script based procesing for agentcmd.
+[NOT IMPORTANT] Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc. NOT MUCH NEEDED
+
+[DONE] Script based procesing for agentcmd. REPLACED WITH MULTIPLE SEMICOLON SEPARATED COMMANDS
 
 [NOT IMPORTANT] Build installer 
 
