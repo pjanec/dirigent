@@ -71,7 +71,7 @@ For example the following plan opens a notepad app first on machine `m1` with fi
         		StartupDir = "c:\"
         		CmdLineArgs = "aaa.txt"
     	        >
-    		    <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+    		    <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" />
     	    </App>
     
         	<App
@@ -270,17 +270,33 @@ App sub-sections:
 
   - WindowPos
   
-		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" /> 
+		<WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
+
+	Finds a window belonging to the application by its title using regular expression search. Affects window settings (position, z-order etc.)
 	
-	- 'titleregexp' - regular expression to search in the window title
+	The window must belong to the started process or to its first-level child processes. This allows for launching a batch file and starting the target process from there.
 	
-	- 'rect' - desired screen coordinates [left,top,width,height] of the window relative to the given screen
+	There can be multiple WindowPos sections defined for one application.
+
+	Attributes:
 	
-	- 'screen' - screen number to place the window at; 0=main screen (default)
+	- `TitleRegExp` - regular expression to search in the window title. This is the only mandatory attribute, the rest of attributes are optional.
 	
-	- 'keep' - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates
+	- `Rect` - desired screen coordinates [left,top,width,height] of the window relative to the given screen. All zeros means 'not set' and behaves as if not specified at all. 
+	
+	- `Screen` - screen number to place the window at; 0=main screen (default)
+	
+	- `Keep` - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates. If not set, the first successful search for
  
-#### Templated launch plan definition
+	- `SendToBack` - 0/1 whether to put window below all other windows, i.e. to avoid popping up
+ 
+	- `BringToFront` - 0/1 whether to put window to the foreground and activate it; usefel in combination with Keep="1" to keep the window visible and focused
+	
+	- `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
+
+	If used in a template, the WindowPos definition is added to all application using this template.
+	
+ #### Templated launch plan definition
 
 Plan definition in an XML file uses a template sections allowing the inheritance of attributes.
 

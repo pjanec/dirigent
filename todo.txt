@@ -1,15 +1,11 @@
 ﻿
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 
-Multiple independent <WindowPos /> sections per single application to control multiple application windows.
-
 Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc.
-
-Build installer [not needed]
 
 Application Multiselect & bulk operations in the Control GUI.
 
-New option for the apps: `KillOnAdopt`. If an application is already running when starting a plan that contains an app with the same name, the running one is killed. This is usefull if the app has the same name but different attributes and we want it to be started with those attributes from the new plan.
+New option for the apps: `KillOnAdopt`. If an application is already running when starting a plan that contains an app with the same name, the running one is killed. This is usefull if the app has the same name but different attributes and we want it to be started with those attributes from the new plan. Or if the dirigent agent crashes and we want it to regain control after restarting.
 
 Remote monitoring of machines. Shutting them down, starting them up. Works only if the machines are listed in the shared config together with their MAC addresses.
 
@@ -26,6 +22,10 @@ Failure timeout for boot up detector.
 Prevent multiple instances of agent with the same name (machineId:port)
 
 Script based procesing for agentcmd.
+
+[NOT IMPORTANT] Build installer 
+
+[DONE] Multiple independent <WindowPos /> sections per single application to control multiple application windows.
 
 [DONE] Show "??? (disconnected)" as the status for a remote app if agent not connected to master. Also disallow Launch/Kill for remote apps in this case. This should avoid the error Machineid 'm2.a' is not the one of this computer. Happens when trying to kill a remote app in local disconnected mode.
 

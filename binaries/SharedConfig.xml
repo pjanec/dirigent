@@ -6,9 +6,15 @@
     		Template = "apps.notepad"
     		StartupDir = "c:\"
     		CmdLineArgs = "m1.a.txt"
+    		WindowStyle = "normal"
     	    >
-    		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
-    		<WindowPos titleregexp="^Notepad$" rect="10,50,300,200" screen="0" keep="0" />
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" BringToFront="1" keep="1"/-->
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" SendToBack="1"/-->
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" TopMost="1" /-->
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" WindowStyle="hidden" /-->
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200"/-->
+    		<!--WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" WindowStyle="maximized" BringToFront="1" /-->
+    		<!--WindowPos TitleRegExp="^Notepad$" Rect="10,50,300,200" Screen="0" Keep="0" /-->
     	</App>
 
     	<App

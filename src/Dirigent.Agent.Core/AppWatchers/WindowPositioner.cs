@@ -17,13 +17,26 @@ using X = Dirigent.Common.XmlConfigReaderUtils;
 namespace Dirigent.Agent.Core
 {
 
+    enum EWindowStyle
+    {
+        NotSet,
+        Normal,
+        Minimized,
+        Maximized,
+        Hidden
+    }
+    
     class WindowPos
     {
         public Rectangle Rect = Rectangle.Empty;
         public int Screen = 0; // 0=primary, 1=first screen, 2=seconds screen etc.
         public string TitleRegExp; // .net regexp for window name
-        public bool Keep; // keep the window in the position (if false, apply the position just once)
-        public bool Topmost; // set the window's on top flag
+        public bool Keep = false; // keep the window in the position (if false, apply the position just once)
+        public bool Topmost = false; // set the window's on top flag
+        public bool BringToFront = false; // bring the window to front and focusing it; usefull with keep=1 to keep window focused and visible
+        public bool SendToBack = false; // bring the window to back below all other windows
+        //public bool SetFocus = false; // focus the window
+        public EWindowStyle WindowStyle = EWindowStyle.NotSet;
     }
     
     /// <summary>
@@ -37,6 +50,7 @@ namespace Dirigent.Agent.Core
         WindowPos pos;
         int processId;
         Regex titleRegExp;
+
 
         #region WINAPI
 
@@ -113,6 +127,9 @@ namespace Dirigent.Agent.Core
         [DllImport("user32.dll", SetLastError=true)]
         static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
 
+        [DllImport("user32.dll")]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+
         static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
         static readonly IntPtr HWND_TOP = new IntPtr(0);
@@ -153,7 +170,71 @@ namespace Dirigent.Agent.Core
            ASYNCWINDOWPOS = 0x4000;
         }
 
+
+        //assorted constants needed
+        public static uint MF_BYPOSITION = 0x400;
+        public static uint MF_REMOVE = 0x1000;
+        public static int GWL_STYLE = -16;
+        public static int WS_CHILD = 0x40000000; //child window
+        public static int WS_BORDER = 0x00800000; //window with border
+        public static int WS_DLGFRAME = 0x00400000; //window with double border but no title
+        public static int WS_CAPTION = WS_BORDER | WS_DLGFRAME; //window with a title bar 
+        public static int WS_SYSMENU = 0x00080000; //window menu 
+
+        //Sets window attributes
+        [DllImport("USER32.DLL")]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        //Gets window attributes
+        [DllImport("USER32.DLL")]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        private const int SW_HIDE = 0; // Hides the window and activates another window.
+        private const int SW_SHOWNORMAL = 1; // Activates and displays a window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when displaying the window for the first time.
+        private const int SW_SHOWMINIMIZED = 2; // Activates the window and displays it as a minimized window.
+        private const int SW_SHOWMAXIMIZED = 3; // Activates the window and displays it as a maximized window.
+        private const int SW_SHOWNOACTIVATE = 4; // Displays a window in its most recent size and position. This value is similar to SW_SHOWNORMAL, except that the window is not activated.
+        private const int SW_RESTORE = 9; // Activates and displays the window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when restoring a minimized window.
+        private const int SW_MINIMIZE = 6; // Minimizes the specified window and activates the next top-level window in the Z order.
+        private const int SW_MAXIMIZE = 3; // Minimizes the specified window and activates the next top-level window in the Z order.
+        private const int SW_SHOW = 5; // Activates the window and displays it in its current size and position.
+        private const int SW_FORCEMINIMIZE = 11; // Minimizes a window, even if the thread that owns the window is not responding. This flag should only be used when minimizing windows from a different thread.
+        private const int SW_SHOWDEFAULT = 10; // Sets the show state based on the SW_ value specified in the STARTUPINFO structure passed to the CreateProcess function by the program that started the application.
+        private const int SW_SHOWMINNOACTIVE = 7; // Displays the window as a minimized window. This value is similar to SW_SHOWMINIMIZED, except the window is not activated.
+        private const int SW_SHOWNA = 8; // Displays the window in its current size and position. This value is similar to SW_SHOW, except that the window is not activated.
+
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+
+        private static WINDOWPLACEMENT GetPlacement(IntPtr hwnd)
+        {
+            WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
+            placement.length = Marshal.SizeOf(placement);
+            GetWindowPlacement(hwnd, ref placement);
+            return placement;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowPlacement(
+            IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+        [Serializable]
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public System.Drawing.Point ptMinPosition;
+            public System.Drawing.Point ptMaxPosition;
+            public System.Drawing.Rectangle rcNormalPosition;
+        }
+
         #endregion
+
 
         public WindowPositioner(AppDef appDef, AppState appState, int processId, XElement xml)
         {
@@ -163,8 +244,8 @@ namespace Dirigent.Agent.Core
 
             parseXml( xml );
 
-            if( pos.Rect == System.Drawing.Rectangle.Empty ) throw new InvalidAppConfig(appDef.AppIdTuple, "WindowPos: Invalid rectangle");
-            if( string.IsNullOrEmpty( pos.TitleRegExp ))  throw new InvalidAppConfig(appDef.AppIdTuple, "WindowPos: Invalid regexp");
+            //if( pos.Rect == System.Drawing.Rectangle.Empty ) throw new InvalidAppConfig(appDef.AppIdTuple, "WindowPos: Missing Rectangle attribute");
+            if( string.IsNullOrEmpty( pos.TitleRegExp ))  throw new InvalidAppConfig(appDef.AppIdTuple, "WindowPos: Missing TitleRegExp atribute");
 
             titleRegExp = new Regex( pos.TitleRegExp );
         }
@@ -176,7 +257,7 @@ namespace Dirigent.Agent.Core
             
             if( xml != null )
             {
-                var xrect = xml.Attribute("rect");
+                var xrect = X.Attribute( xml, "Rect", true );
                 if( xrect != null )
                 {
                     var myRegex = new Regex(@"\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*");
@@ -192,10 +273,25 @@ namespace Dirigent.Agent.Core
                     }
                 }
 
-                pos.Screen = X.getIntAttr(xml, "screen", 0);
-                pos.TitleRegExp = X.getStringAttr(xml, "titleregexp", null);
-                pos.Keep = X.getBoolAttr(xml, "keep", false);
-                pos.Topmost = X.getBoolAttr(xml, "topmost", false);
+                pos.Screen = X.getIntAttr(xml, "Screen", 0, ignoreCase:true);
+                pos.TitleRegExp = X.getStringAttr(xml, "TitleRegExp", null, ignoreCase:true);
+                pos.Keep = X.getBoolAttr(xml, "Keep", false, ignoreCase:true);
+                pos.Topmost = X.getBoolAttr(xml, "TopMost", false, ignoreCase:true);
+                pos.BringToFront = X.getBoolAttr(xml, "BringToFront", false, ignoreCase:true);
+                pos.SendToBack = X.getBoolAttr(xml, "SendToBack", false, ignoreCase:true);
+                //pos.SetFocus = X.getBoolAttr(xml, "SetFocus", false, ignoreCase:true);
+
+                string wsstr = X.getStringAttr(xml, "WindowStyle", null, ignoreCase:true);
+                if( wsstr != null )
+                {
+                    if (wsstr.ToLower() == "minimized") pos.WindowStyle = EWindowStyle.Minimized;
+                    else
+                    if (wsstr.ToLower() == "maximized") pos.WindowStyle = EWindowStyle.Maximized;
+                    else
+                    if (wsstr.ToLower() == "normal") pos.WindowStyle = EWindowStyle.Normal;
+                    else
+                    if (wsstr.ToLower() == "hidden") pos.WindowStyle = EWindowStyle.Hidden;
+                }
             }
         }
 
@@ -248,32 +344,101 @@ namespace Dirigent.Agent.Core
             return list;
         }
 
-        void ApplyPos( System.IntPtr handle )
+        void ApplyWindowSettings( System.IntPtr handle )
         {
-            Screen screen;
-            if( pos.Screen == 0 )
+            if( pos.Rect != Rectangle.Empty )
             {
-                screen = Screen.PrimaryScreen;
-            }
-            else
-            {
-                var allScreens = Screen.AllScreens;
-                if( pos.Screen > 0 && pos.Screen <= allScreens.Length )
+            
+                Screen screen;
+                if( pos.Screen == 0 )
                 {
-                    screen = allScreens[pos.Screen-1];
-                } 
+                    screen = Screen.PrimaryScreen;
+                }
+                else
+                {
+                    var allScreens = Screen.AllScreens;
+                    if( pos.Screen > 0 && pos.Screen <= allScreens.Length )
+                    {
+                        screen = allScreens[pos.Screen-1];
+                    } 
+                }
+
+                SetWindowPos(
+                    handle,
+                    HWND.Top, // ignored, see flags below
+                    pos.Rect.Left, pos.Rect.Top, pos.Rect.Width, pos.Rect.Height,
+                    SetWindowPosFlags.ShowWindow | SetWindowPosFlags.IgnoreZOrder
+                 );
             }
 
-            SetWindowPos(
-                handle,
-                HWND.Top,
-                pos.Rect.Left, pos.Rect.Top, pos.Rect.Width, pos.Rect.Height,
-                SetWindowPosFlags.ShowWindow
-             );
+            if( pos.SendToBack )
+            {
+                SetWindowPos(
+                    handle,
+                    HWND.Bottom,
+                    0, 0, 0, 0, 
+                    SetWindowPosFlags.IgnoreMove | SetWindowPosFlags.IgnoreResize
+                 );
+            }
 
+            // NOT SURE WHETHER THIS DOES ANYTHING USEFULL, seems to work fine without this flag
+            // maybe just with combination with keep=1
+            if( pos.BringToFront )
+            {
+                if( !pos.Topmost ) // just trying, not verified that it's really needed
+                {
+                    SetWindowPos(
+                        handle,
+                        HWND.NoTopMost,
+                        0, 0, 0, 0, 
+                        SetWindowPosFlags.IgnoreMove | SetWindowPosFlags.IgnoreResize
+                     );
+                }
+
+                SetForegroundWindow( handle );    
+            }
+
+            if( pos.Topmost )
+            {
+                SetWindowPos(
+                    handle,
+                    HWND.TopMost,
+                    0, 0, 0, 0,
+                    SetWindowPosFlags.IgnoreResize | SetWindowPosFlags.IgnoreMove
+                 );
+            }
+
+            if( pos.WindowStyle != EWindowStyle.NotSet )
+            {
+                if( pos.WindowStyle == EWindowStyle.Normal )
+                {
+                    //WINDOWPLACEMENT wp = GetPlacement( handle );
+                    //if( wp.showCmd == SW_HIDE )
+                    //{
+                    //    ShowWindow( handle, SW_SHOW );
+                    //    ShowWindow( handle, SW_RESTORE );
+                    //}
+                    ShowWindow( handle, SW_RESTORE );
+                }
+                else
+                if( pos.WindowStyle == EWindowStyle.Minimized )
+                {
+                    ShowWindow( handle, SW_MINIMIZE );
+                }
+                else
+                if( pos.WindowStyle == EWindowStyle.Maximized )
+                {
+                    ShowWindow( handle, SW_MAXIMIZE );
+                }
+                else
+                if( pos.WindowStyle == EWindowStyle.Hidden )
+                {
+                    ShowWindow( handle, SW_HIDE );
+                }
+            } 
         }
 
-        bool ApplyPosToListedWindows(List<WinInfo> windows)
+        bool ApplyWindowSettingsToListedWindows(List<WinInfo> windows)
         {
             bool found = false;
             foreach( var w in windows )
@@ -282,7 +447,7 @@ namespace Dirigent.Agent.Core
                 var m = titleRegExp.Match( w.Title );
                 if( m != null && m.Success )
                 {
-                    ApplyPos( w.Handle );
+                    ApplyWindowSettings( w.Handle );
                     found = true;
                 }
             }
@@ -308,14 +473,14 @@ namespace Dirigent.Agent.Core
             }
 
             var list = GetProcessWindows( processId );
-            bool found = ApplyPosToListedWindows( list );
+            bool found = ApplyWindowSettingsToListedWindows( list );
 
             // look in child subprocess windows as well
             var childProcessPids = GetChildProcesses( processId );
             foreach( var childPid in childProcessPids )
             {
                 var list2 = GetProcessWindows( childPid );
-                found |= ApplyPosToListedWindows( list2 );
+                found |= ApplyWindowSettingsToListedWindows( list2 );
             }
 
             // at least one window has been found
