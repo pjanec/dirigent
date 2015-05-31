@@ -17,6 +17,8 @@ namespace Dirigent.Agent.Core
     /// </summary>
     public class NetworkProxy : IDirigentControl
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         string machineId;
         IClient client;
         IDirigentControl localOps;
@@ -73,6 +75,11 @@ namespace Dirigent.Agent.Core
         void processIncomingMessage(Message msg)
         {
             Type t = msg.GetType();
+
+            if( t != typeof(AppsStateMessage)) // do not log frequent messages
+            {
+                log.DebugFormat("Incoming Message {0}", msg.ToString());
+            }
 
             if (t == typeof(AppsStateMessage))
             {
@@ -176,6 +183,8 @@ namespace Dirigent.Agent.Core
                 }
                 catch (Exception ex) // some local operation error as a result of remote request from another agent
                 {
+                    log.ErrorFormat("Exception: "+ex.ToString());
+
                     // send an error message to agents
                     // the requestor is supposed to present an error message to the user
                     client.BroadcastMessage(

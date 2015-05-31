@@ -10,6 +10,8 @@ namespace Dirigent.Agent.Gui
 {
     public class ConfigReaders
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         static public SharedConfig loadSharedConfig()
         {
             SharedXmlConfigReader cr = new SharedXmlConfigReader();
@@ -20,10 +22,14 @@ namespace Dirigent.Agent.Gui
             }
             catch (Exception ex)
             {
+                string errorMsg = string.Format("Failed to read configuration from file '{0}'.", cfgFileName);
+
+                log.Error(errorMsg);
+
                 ExceptionDialog.showException(
                     ex,
                     "Configuration Load Error",
-                    string.Format("Failed to read configuration from file '{0}'.", cfgFileName)
+                    errorMsg
                 );
             }
             return null;

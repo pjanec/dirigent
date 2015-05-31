@@ -22,9 +22,13 @@ namespace Dirigent.Agent.Core
     /// </summary>
     public class AutoRestarter : IAppWatcher
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         AppState appState;
         bool shallBeRemoved = false;
         DateTime waitingStartTime;
+        int processId;
+        AppDef appDef;
 
         enum eState 
         {
@@ -44,6 +48,9 @@ namespace Dirigent.Agent.Core
             parseXml( xml );
 
             state =  eState.WaitingForCrash;
+
+            this.processId = processId;
+            this.appDef = appDef;
         }
 
         void parseXml( XElement xml )
@@ -88,6 +95,9 @@ namespace Dirigent.Agent.Core
                     {
                         state = eState.WaitingBeforeRestart;
                         waitingStartTime = DateTime.Now;
+
+                        log.DebugFormat("AutoRestarter: Waiting before restart appid {0} pid {1}", appDef.AppIdTuple, processId );
+
                     }
                     break;
                 }
@@ -106,6 +116,8 @@ namespace Dirigent.Agent.Core
                         appState.StartFailed = false;
                         appState.Initialized = false;
                         appState.Killed = false;
+
+                        log.DebugFormat("AutoRestarter: Restart requested appid {0} pid {1}",  appDef.AppIdTuple, processId );
                     }
                     break;
                 }

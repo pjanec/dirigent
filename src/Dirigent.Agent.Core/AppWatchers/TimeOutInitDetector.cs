@@ -10,14 +10,21 @@ namespace Dirigent.Agent.Core
 {
     public class TimeOutInitDetector : IAppInitializedDetector
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         double TimeOut = 0.0;
         long InitialTicks;
         AppState appState;
+        int processId;
+        AppDef appDef;
         bool shallBeRemoved = false;
 
         public TimeOutInitDetector(AppDef appDef, AppState appState, int processId, string args)
         {
             this.appState = appState;
+            this.processId = processId;
+            this.appDef = appDef;
+
 
             try
             {
@@ -31,6 +38,7 @@ namespace Dirigent.Agent.Core
             appState.Initialized = false; // will be set to true as soon as the exit code condition is met
 
             InitialTicks = DateTime.UtcNow.Ticks;
+            log.DebugFormat("TimeOutInitDetector: Waiting {0} sec, appid {1}, pid {2}", TimeOut, appDef.AppIdTuple, processId );
         }
 
         bool IsInitialized()
@@ -39,6 +47,7 @@ namespace Dirigent.Agent.Core
             double delta = Math.Abs(ts.TotalSeconds);
             if( delta >= TimeOut )
             {
+                log.DebugFormat("TimeOutInitDetector: Timeout, reporting INITIALIZED appid {0} pid {1}", appDef.AppIdTuple, processId );
                 return true;
             }
             return false;

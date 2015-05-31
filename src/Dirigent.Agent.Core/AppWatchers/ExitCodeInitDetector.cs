@@ -11,6 +11,8 @@ namespace Dirigent.Agent.Core
 {
     public class ExitCodeInitDetector : IAppInitializedDetector
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         List<int> exitCodes = new List<int>(); // list of exit codes meaning that the app was succesfull
         AppState appState;
         bool shallBeRemoved = false;
@@ -81,9 +83,16 @@ namespace Dirigent.Agent.Core
         {
             if( appState.Started && !appState.Running && !appState.Killed )
             {
+                log.DebugFormat("ExitCodeInitDetector: App Exited" );
+
                 if( exitCodes.Contains( appState.ExitCode ) )
                 {
+                    log.DebugFormat("ExitCodeInitDetector: ExitCode {0} Found, reporting APP INITIALIZED", appState.ExitCode );
                     return true;
+                }
+                else
+                {
+                    log.DebugFormat("ExitCodeInitDetector: ExitCode {0} NOT Found", appState.ExitCode );
                 }
             }
             return false;

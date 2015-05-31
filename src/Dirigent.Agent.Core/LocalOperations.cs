@@ -14,6 +14,8 @@ namespace Dirigent.Agent.Core
     /// </summary>
     public class LocalOperations : IDirigentControl
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         string machineId;
 
         /// <summary>
@@ -270,6 +272,9 @@ namespace Dirigent.Agent.Core
             {
                 return;
             }
+
+            log.DebugFormat("Launching app {0}", la.AppDef.AppIdTuple);
+
             
             // launch the application
             appState.Started = false;
@@ -300,6 +305,7 @@ namespace Dirigent.Agent.Core
                 // instantiate window positioners
                 foreach( var xml in la.AppDef.WindowPosXml )
                 {
+                    log.DebugFormat("Adding WindowsPositioner, pid {0}", la.launcher.ProcessId );
                     var wpo = new WindowPositioner( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(xml) );
                     la.watchers.Add( wpo );
                 }
@@ -307,13 +313,16 @@ namespace Dirigent.Agent.Core
                 // instantiate autorestarter
                 if( la.AppDef.RestartOnCrash )
                 {
+                    log.DebugFormat("Adding AutoRestarter, pid {0}", la.launcher.ProcessId );
                     var ar = new AutoRestarter( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, new XElement("Autorestart") );
                     la.watchers.Add( ar );
                 }
 
             }
-            catch // app launching failed
+            catch( Exception ex ) // app launching failed
             {
+                log.ErrorFormat("Exception: App \"{0}\"start failure {1}", la.AppDef.AppIdTuple, ex);
+
                 appState.StartFailed = true;
                 throw;
             }
@@ -346,6 +355,8 @@ namespace Dirigent.Agent.Core
                     appState.Killed = true;
                 }
 
+                log.DebugFormat("Killing app {0}", la.AppDef.AppIdTuple);
+
                 la.launcher.Kill();
                 la.launcher = null;
 
@@ -360,6 +371,9 @@ namespace Dirigent.Agent.Core
         /// </summary>
         void processPlan( double currentTime )
         {
+            // too frequent message filling up the log - commented out
+            //log.Debug("processPlan");
+
             // if plan is stopped, don't start contained apps
             if( currentPlan==null || !currentPlan.Running )
                 return;
@@ -403,6 +417,8 @@ namespace Dirigent.Agent.Core
             
             foreach( var w in toRemove )
             {
+                log.DebugFormat("Removing watcher {0}, pid {1}", w.ToString(), la.launcher.ProcessId);
+
                 la.watchers.Remove(w);
             }
         }

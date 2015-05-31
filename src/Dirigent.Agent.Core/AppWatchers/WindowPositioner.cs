@@ -45,6 +45,8 @@ namespace Dirigent.Agent.Core
     /// </summary>
     public class WindowPositioner : IAppWatcher
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         AppState appState;
         bool shallBeRemoved = false;
         WindowPos pos;
@@ -348,6 +350,7 @@ namespace Dirigent.Agent.Core
         {
             if( pos.Rect != Rectangle.Empty )
             {
+                log.DebugFormat("WindowPositioner:  SetWindowPos {0}", pos.Rect.ToString() );
             
                 Screen screen;
                 if( pos.Screen == 0 )
@@ -373,6 +376,7 @@ namespace Dirigent.Agent.Core
 
             if( pos.SendToBack )
             {
+                log.DebugFormat("WindowPositioner:   SendToBack");
                 SetWindowPos(
                     handle,
                     HWND.Bottom,
@@ -387,6 +391,7 @@ namespace Dirigent.Agent.Core
             {
                 if( !pos.Topmost ) // just trying, not verified that it's really needed
                 {
+                    log.DebugFormat("WindowPositioner:   BringToFront");
                     SetWindowPos(
                         handle,
                         HWND.NoTopMost,
@@ -394,12 +399,17 @@ namespace Dirigent.Agent.Core
                         SetWindowPosFlags.IgnoreMove | SetWindowPosFlags.IgnoreResize
                      );
                 }
+                else
+                {
+                    log.DebugFormat("WindowPositioner:   BringToFront IGNORED (window is already TopMost)");
+                }
 
                 SetForegroundWindow( handle );    
             }
 
             if( pos.Topmost )
             {
+                log.DebugFormat("WindowPositioner:   TopMost");
                 SetWindowPos(
                     handle,
                     HWND.TopMost,
@@ -418,21 +428,25 @@ namespace Dirigent.Agent.Core
                     //    ShowWindow( handle, SW_SHOW );
                     //    ShowWindow( handle, SW_RESTORE );
                     //}
+                    log.DebugFormat("WindowPositioner:   Restore");
                     ShowWindow( handle, SW_RESTORE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Minimized )
                 {
+                    log.DebugFormat("WindowPositioner:   Minimize");
                     ShowWindow( handle, SW_MINIMIZE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Maximized )
                 {
+                    log.DebugFormat("WindowPositioner:   Maximize");
                     ShowWindow( handle, SW_MAXIMIZE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Hidden )
                 {
+                    log.DebugFormat("WindowPositioner:   Hide");
                     ShowWindow( handle, SW_HIDE );
                 }
             } 
@@ -447,6 +461,8 @@ namespace Dirigent.Agent.Core
                 var m = titleRegExp.Match( w.Title );
                 if( m != null && m.Success )
                 {
+                    log.DebugFormat("WindowPositioner: Applying settings to handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, processId );
+
                     ApplyWindowSettings( w.Handle );
                     found = true;
                 }
