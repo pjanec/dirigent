@@ -1,4 +1,7 @@
-﻿
+﻿Fix: Object reference not set exception sometimes when launching a process
+
+Fix: Application sometimes left open and forgotten by dirigent, still running and can not be killed by dirigent. Happens for example if the app is started via shell and the KILL command comes just when the shell is starting the app. The shell gets killed, the started app does not.
+
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 
 Application Multiselect & bulk operations in the Control GUI.
