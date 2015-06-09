@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,19 +16,28 @@ namespace Dirigent.Agent.Core
 
         Process proc;
         AppDef appDef;
+        string RelativePathsRoot = System.IO.Directory.GetCurrentDirectory();
 
         public Launcher( AppDef appDef )
         {
             this.appDef = appDef;
         }
 
+        string BuildAbsolutePath( string anyPath )
+        {
+            if( Path.IsPathRooted( anyPath ) )
+                return anyPath;
+
+            return Path.Combine( RelativePathsRoot, anyPath );
+        }
+
         public void Launch()
         {
             // start the process
             var psi = new ProcessStartInfo();
-            psi.FileName =  appDef.ExeFullPath;
+            psi.FileName =  BuildAbsolutePath( appDef.ExeFullPath );
             psi.Arguments = appDef.CmdLineArgs;
-            psi.WorkingDirectory = appDef.StartupDir;
+            psi.WorkingDirectory = BuildAbsolutePath( appDef.StartupDir );
             psi.WindowStyle = appDef.WindowStyle;
 
             try
