@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace Dirigent.Agent.Core
 
             var f = new AppInitializedDetectorFactory();
 
-            IAppInitializedDetector d = f.create( appDef, appState, 0, "timeout 0.1" );
+            IAppInitializedDetector d = f.create( appDef, appState, 0, XElement.Parse("<timeout> 0.1</timeout>") );
             
             Assert.AreEqual(typeof(TimeOutInitDetector), d.GetType(), "correct detector type created");
         }
@@ -40,7 +41,7 @@ namespace Dirigent.Agent.Core
 
             var f = new AppInitializedDetectorFactory();
 
-            var d = f.create( appDef, appState, 0, "unknown any-params" );
+            var d = f.create( appDef, appState, 0, XElement.Parse("<unknown>any-params</unknown>") );
         }
     }
 }

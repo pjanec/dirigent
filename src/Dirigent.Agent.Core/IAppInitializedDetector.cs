@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Dirigent.Common
 {
@@ -12,6 +13,6 @@ namespace Dirigent.Common
 
     public interface IAppInitializedDetectorFactory
     {
-        IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string parameters);
+        IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, XElement xml);
     }
 }

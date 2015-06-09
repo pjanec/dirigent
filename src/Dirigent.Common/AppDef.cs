@@ -66,6 +66,11 @@ namespace Dirigent.Common
         [DataMember]
         public List<string> WindowPosXml = new List<string>();
 
+        /// <summary>
+        /// the element within the InitDetectors section
+        /// </summary>
+        [DataMember]
+        public List<string> InitDetectors = new List<string>();
 
         public bool Equals(AppDef other)
         {
@@ -92,6 +97,7 @@ namespace Dirigent.Common
                 ) &&
                 this.WindowStyle == other.WindowStyle &&
                 this.WindowPosXml.SequenceEqual( other.WindowPosXml ) &&
+                this.InitDetectors.SequenceEqual( other.InitDetectors ) &&
                 //this.Watchers.SequenceEqual(other.Watchers) &&
                 true
             )

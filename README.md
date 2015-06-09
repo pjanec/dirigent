@@ -90,8 +90,11 @@ For example the following plan opens a notepad app first on machine `m1` with fi
         		CmdLineArgs = ""
         		StartupOrder = "0"
         		RestartOnCrash = "1"
-        		InitCondition = "timeout 2.0"
         		SeparationInterval = "0.5"
+    	    <InitDetectors>
+    	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
+    	      <TimeOut>5.0</TimeOut>
+    	    </InitDetectors>
         />
     
     </Shared>
@@ -249,9 +252,9 @@ Each app in the launch plan has the following attributes:
 
  - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
  
- - `ExeFullPath` - application binary file full path
+ - `ExeFullPath` - application binary file full path; can be relative to the dirigent's working directory.
 
- - `StartupDir` - startup directory
+ - `StartupDir` - startup directory; can be relative to the dirigent's working directory.
 
  - `CmdLineArgs` - command line arguments
 
@@ -261,7 +264,7 @@ Each app in the launch plan has the following attributes:
 
  - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
- - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*.
+ - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*. **DEPRECATED**, use the InitDetectors section instead.
 
  - `WindowStyle` - "normal" (default), "minimized", "maximized", "hidden"
 
@@ -302,6 +305,17 @@ App sub-sections:
 	- `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
 
 	If used in a template, the WindowPos definition is added to all application using this template.
+	
+ - InitDetectors
+  
+		<InitDetectors>
+		  <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
+		  <TimeOut>5.0</TimeOut>
+		</InitDetectors>
+		
+	Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*	
+	
+	If multiple detectors are defined, the first one whose condition is satified marks the app as initialized.
 	
  #### Templated launch plan definition
 
@@ -362,13 +376,13 @@ Some apps take a long time to boot up and initialize. Dirigent should not start 
 
 Dirigent supports multiple methods of detection whether an application is already up and running. The method together with its parameters can be specified for each application in the launch plan.
 
+If not boot up completion detectors are defined, the app is considered initialized from the time it has been started. 
+
 Following methods are available
 
- - `immediate` - An app is considered initialized immediately after the launching of an application. This is the default.
+ - `<timeout>seconds</timeout>` - After specified amount of seconds after launching the app
 
- - `timeout <seconds>` - After specified amount of seconds after launching the app
-
- - `exitcode <number>` - After the app have terminated and its exit code matches the number specified. This can be combined with an auto-restart option of the application, resulting in a repetitive launches until given exitcode is returned.
+ - `<exitcode> <number></exitcode>` - After the app have terminated and its exit code matches the number specified. This can be combined with an auto-restart option of the application, resulting in a repetitive launches until given exitcode is returned.
  
 #### Starting with local copy of Shared config
 Before the agent connects to master, it is using its local copy of SharedConfig. This is useful if agent needs to start applications event before the connection to master is established.

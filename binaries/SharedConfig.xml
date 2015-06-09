@@ -8,6 +8,10 @@
     		CmdLineArgs = "m1.a.txt"
     		WindowStyle = "normal"
     	    >
+    	    <InitDetectors>
+    	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
+    	      <TimeOut>5.0</TimeOut>
+    	    </InitDetectors>
     		<!--WindowPos TitleRegExp="\s-\sNotepad" BringToFront="1" keep="1"/-->
     		<!--WindowPos TitleRegExp="\s-\sNotepad" SendToBack="1"/-->
     		<!--WindowPos TitleRegExp="\s-\sNotepad" TopMost="1" /-->
@@ -69,7 +73,6 @@
     		CmdLineArgs = ""
     		StartupOrder = "0"
     		RestartOnCrash = "1"
-    		InitCondition = "timeout 2.0"
     		SeparationInterval = "0.5"
     		KillTree = "1"
     />

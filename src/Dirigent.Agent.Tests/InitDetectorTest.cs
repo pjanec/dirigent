@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Xml.Linq;
 
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace Dirigent.Agent.Tests
             AppState appState = new AppState();
 
             var initialTicks = DateTime.UtcNow.Ticks;
-            IAppInitializedDetector d = new TimeOutInitDetector(appDef, appState, 0, "0.1");
+            IAppInitializedDetector d = new TimeOutInitDetector(appDef, appState, 0, XElement.Parse("<timeout>0.1</timeout>"));
 
             Assert.AreEqual(false, d.IsInitialized, "not initialized immediately");
             Thread.Sleep(100);
@@ -39,7 +40,7 @@ namespace Dirigent.Agent.Tests
         {
             AppDef appDef = new AppDef();
             AppState appState = new AppState();
-            var d = new TimeOutInitDetector(appDef, appState, 0, "abcd-not-a-double");
+            var d = new TimeOutInitDetector(appDef, appState, 0, XElement.Parse("<timeout>abcd-not-a-double</timeout>"));
         }
     }
 }

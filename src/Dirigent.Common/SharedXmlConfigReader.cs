@@ -66,6 +66,7 @@ namespace Dirigent.Common
                 KillTree = (string)e.Attribute("KillTree"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
                 WindowPos = e.Elements("WindowPos"),
+                InitDetectors = e.Element("InitDetectors") != null ? e.Element("InitDetectors").Elements() : null,
             };
 
             // then overwrite templated values with current content
@@ -110,6 +111,14 @@ namespace Dirigent.Common
                 foreach( var elem in x.WindowPos )
                 {
                     a.WindowPosXml.Add( elem.ToString() );
+                }
+            }
+
+            if( x.InitDetectors != null )
+            {
+                foreach( var elem in x.InitDetectors )
+                {
+                    a.InitDetectors.Add( elem.ToString() );
                 }
             }
 

@@ -6,6 +6,7 @@ using Dirigent.Common;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace Dirigent.Agent.Core
 {
@@ -17,12 +18,14 @@ namespace Dirigent.Agent.Core
         AppState appState;
         bool shallBeRemoved = false;
 
-        public ExitCodeInitDetector(AppDef appDef, AppState appState, int processId, string args)
+        public ExitCodeInitDetector(AppDef appDef, AppState appState, int processId, XElement xml)
         {
             this.appState = appState;
 
             try
             {
+                string args = xml.Value;
+
                 // " -1, 1, 2,3, 6-8 "
                 foreach(var token in args.Split(','))
                 {
@@ -66,16 +69,16 @@ namespace Dirigent.Agent.Core
             {
                 if (ex is FormatException || ex is OverflowException)
                 {
-                    throw new InvalidAppInitDetectorArguments(Name, args);
+                    throw new InvalidAppInitDetectorArguments(Name, xml.ToString());
                 }
                 throw;
             }
         }
 
         static public string Name { get { return "exitcode"; } }
-        static public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string args)
+        static public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, XElement xml)
         {
-            return new ExitCodeInitDetector(appDef, appState, processId, args);
+            return new ExitCodeInitDetector(appDef, appState, processId, xml);
         }
 
 

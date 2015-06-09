@@ -299,8 +299,30 @@ namespace Dirigent.Agent.Core
                 //}
 
                 // instantiate init detector (also a watcher)
-                var aid = appAppInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, la.AppDef.InitializedCondition);
-                la.watchers.Add( aid );
+                {
+                    // compatibility with InitialCondition="timeout 2.0" ... convert to XML definition <timeout>2.0</timeout>
+                    {
+                        if( !string.IsNullOrEmpty( la.AppDef.InitializedCondition ) )
+                        {
+                            string name;
+                            string args;
+                            AppInitializedDetectorFactory.ParseDefinitionString( la.AppDef.InitializedCondition, out name, out args );
+                            string xmlString = string.Format("<{0}>{1}</{0}>", name, args);
+
+                            var aid = appAppInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(xmlString) );
+                            log.DebugFormat("Adding InitDetector {0}, pid {1}", aid.GetType().Name, la.launcher.ProcessId );
+                            la.watchers.Add( aid );
+                        }
+                    }
+
+                    foreach( var xml in la.AppDef.InitDetectors )
+                    {
+                        var aid = appAppInitializedDetectorFactory.create( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, XElement.Parse(xml));
+                    
+                        log.DebugFormat("Adding InitDetector {0}, pid {1}", aid.GetType().Name, la.launcher.ProcessId );
+                        la.watchers.Add( aid );
+                    }
+                }
 
                 // instantiate window positioners
                 foreach( var xml in la.AppDef.WindowPosXml )

@@ -4,9 +4,9 @@ Fix: Application sometimes left open and forgotten by dirigent, still running an
 
 Option to redirect standard and error output of a launched process.
 
-Add InitDetector that fires when a process-owned window appears with title matching given regexp.
+Add InitDetector that fires when a process-owned window appears with title matching given regexp. [DONE]
 
-Support for relative working directory specification for a process, taking dirigent's working directory as a basis.
+Support for relative working directory specification for a process, taking dirigent's working directory as a basis. [DONE]
 
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 

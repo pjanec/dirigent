@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Xml.Linq;
 
 using NUnit.Framework;
 
@@ -27,7 +28,7 @@ namespace Dirigent.Agent.Tests
 
             appState.Started = true;
             appState.Running = true;
-            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, "1");
+            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, XElement.Parse("<timeout>1</timeout>"));
 
             Assert.AreEqual(false, d.IsInitialized, "not initialized immediately");
             appState.Running = false;
@@ -45,7 +46,7 @@ namespace Dirigent.Agent.Tests
 
             appState.Started = true;
             appState.Running = true;
-            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, "1,4");
+            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, XElement.Parse("<timeout>1,4</timeout>"));
 
             Assert.AreEqual(false, d.IsInitialized, "not initialized immediately");
             appState.Running = false;
@@ -65,7 +66,7 @@ namespace Dirigent.Agent.Tests
 
             appState.Started = true;
             appState.Running = true;
-            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, "5-6");
+            IAppInitializedDetector d = new ExitCodeInitDetector(appDef, appState, 0, XElement.Parse("<timeout>5-6</timeout>"));
 
             Assert.AreEqual(false, d.IsInitialized, "not initialized immediately");
             appState.Running = false;
@@ -86,7 +87,7 @@ namespace Dirigent.Agent.Tests
         {
             AppDef appDef = new AppDef();
             AppState appState = new AppState();
-            var d = new ExitCodeInitDetector(appDef, appState, 0, "abcd-not-a-double");
+            var d = new ExitCodeInitDetector(appDef, appState, 0, XElement.Parse("<timeout>abcd-not-a-double</timeout>"));
         }
     }
 }

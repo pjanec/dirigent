@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using Dirigent.Common;
 using System.Globalization;
 using System.Diagnostics;
+
+using X = Dirigent.Common.XmlConfigReaderUtils;
 
 namespace Dirigent.Agent.Core
 {
@@ -19,20 +22,23 @@ namespace Dirigent.Agent.Core
         AppDef appDef;
         bool shallBeRemoved = false;
 
-        public TimeOutInitDetector(AppDef appDef, AppState appState, int processId, string args)
+        //<TimeOut>2.0</TimeOut>
+        public TimeOutInitDetector(AppDef appDef, AppState appState, int processId, XElement xml)
         {
             this.appState = appState;
             this.processId = processId;
             this.appDef = appDef;
 
-
+            
             try
             {
-                TimeOut = Double.Parse( args, CultureInfo.InvariantCulture );
+                var timeString = xml.Value;
+
+                TimeOut = Double.Parse( timeString, CultureInfo.InvariantCulture );
             }
             catch
             {
-                throw new InvalidAppInitDetectorArguments(Name, args);
+                throw new InvalidAppInitDetectorArguments(Name, xml.ToString());
             }
 
             appState.Initialized = false; // will be set to true as soon as the exit code condition is met
@@ -62,9 +68,9 @@ namespace Dirigent.Agent.Core
         }
 
         static public string Name { get { return "timeout"; } }
-        static public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, string args)
+        static public IAppInitializedDetector create(AppDef appDef, AppState appState, int processId, XElement xml)
         {
-            return new TimeOutInitDetector(appDef, appState, processId, args);
+            return new TimeOutInitDetector(appDef, appState, processId, xml );
         }
 
         void IAppWatcher.Tick()
