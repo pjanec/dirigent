@@ -34,6 +34,7 @@ namespace Dirigent.Net
 
             var uri = new Uri( string.Format("net.tcp://0.0.0.0:{0}", port) );
             var binding = new NetTcpBinding();
+            binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
             var service = new MasterService();
             var host = new ServiceHost( service, uri);
             var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");

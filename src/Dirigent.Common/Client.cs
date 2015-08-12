@@ -71,6 +71,7 @@ namespace Dirigent.Net
             var binding = new NetTcpBinding();
             //binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
             binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel and there is an error
+            binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
             server = client.ChannelFactory.CreateChannel();
