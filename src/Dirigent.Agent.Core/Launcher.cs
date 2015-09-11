@@ -37,7 +37,10 @@ namespace Dirigent.Agent.Core
             var psi = new ProcessStartInfo();
             psi.FileName =  BuildAbsolutePath( appDef.ExeFullPath );
             psi.Arguments = appDef.CmdLineArgs;
-            psi.WorkingDirectory = BuildAbsolutePath( appDef.StartupDir );
+            if (appDef.StartupDir != null)
+            {
+                psi.WorkingDirectory = BuildAbsolutePath(appDef.StartupDir);
+            }
             psi.WindowStyle = appDef.WindowStyle;
 
             try

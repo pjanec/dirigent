@@ -351,13 +351,9 @@ namespace Dirigent.Agent.Core
             if( pos.Rect != Rectangle.Empty )
             {
                 log.DebugFormat("WindowPositioner:  SetWindowPos {0}", pos.Rect.ToString() );
-            
-                Screen screen;
-                if( pos.Screen == 0 )
-                {
-                    screen = Screen.PrimaryScreen;
-                }
-                else
+
+                Screen screen = Screen.PrimaryScreen;
+                if( pos.Screen != 0 )
                 {
                     var allScreens = Screen.AllScreens;
                     if( pos.Screen > 0 && pos.Screen <= allScreens.Length )
@@ -369,7 +365,7 @@ namespace Dirigent.Agent.Core
                 SetWindowPos(
                     handle,
                     HWND.Top, // ignored, see flags below
-                    pos.Rect.Left, pos.Rect.Top, pos.Rect.Width, pos.Rect.Height,
+                    screen.WorkingArea.Left + pos.Rect.Left, screen.WorkingArea.Top + pos.Rect.Top, pos.Rect.Width, pos.Rect.Height,
                     SetWindowPosFlags.ShowWindow | SetWindowPosFlags.IgnoreZOrder
                  );
             }
