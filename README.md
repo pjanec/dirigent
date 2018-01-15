@@ -65,36 +65,40 @@ For example the following plan opens a notepad app first on machine `m1` with fi
     <?xml version="1.0" encoding="UTF-8"?>
     <Shared>
         <Plan Name="plan1">
-        	<App
-        	    AppIdTuple = "m1.a"
-        		Template = "apps.notepad"
-        		StartupDir = "c:\"
-        		CmdLineArgs = "aaa.txt"
-    	        >
-    		    <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" />
-    	    </App>
+            <App
+                AppIdTuple = "m1.a"
+                Template = "apps.notepad"
+                StartupDir = "c:\"
+                CmdLineArgs = "aaa.txt"
+                >
+                <Env>
+                  <Set Variable="TEMP" Value="C:\TEMP" />
+                  <Path Prepend="C:\MYPATH" /> 
+                </Env>
+                <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" />
+            </App>
     
-        	<App
-        	    AppIdTuple = "m2.b"
-        		Template = "apps.notepad"
-        		StartupDir = "c:\"
-        		CmdLineArgs = "bbb.txt"
-				Dependencies = "m1.a"
-        	/>
+            <App
+                AppIdTuple = "m2.b"
+                Template = "apps.notepad"
+                StartupDir = "c:\"
+                CmdLineArgs = "bbb.txt"
+                Dependencies = "m1.a"
+            />
         </Plan>
     
         <AppTemplate Name="apps.notepad"
-        		Template = ""
-        		ExeFullPath = "c:\windows\notepad.exe"
-        		StartupDir = "c:\"
-        		CmdLineArgs = ""
-        		StartupOrder = "0"
-        		RestartOnCrash = "1"
-        		SeparationInterval = "0.5"
-    	    <InitDetectors>
-    	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
-    	      <TimeOut>5.0</TimeOut>
-    	    </InitDetectors>
+                Template = ""
+                ExeFullPath = "c:\windows\notepad.exe"
+                StartupDir = "c:\"
+                CmdLineArgs = ""
+                StartupOrder = "0"
+                RestartOnCrash = "1"
+                SeparationInterval = "0.5"
+            <InitDetectors>
+              <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
+              <TimeOut>5.0</TimeOut>
+            </InitDetectors>
         />
     
     </Shared>
@@ -132,11 +136,11 @@ For example using a command ling control app:
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
 
-Multiple commands can be executed at once if separated by a semicolon. For example	
+Multiple commands can be executed at once if separated by a semicolon. For example  
 
     agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1; StartPlan
 
-	
+    
 ### Available Actions
 The Dirigent can work either with whole launch plan or with an individual application that is part of the currently selected launch plan.
 
@@ -276,48 +280,70 @@ Each app in the launch plan has the following attributes:
  
 App sub-sections:
 
-  - WindowPos
+  - `WindowPos`
   
-		<WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
+        <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
 
-	Finds a window belonging to the application by its title using regular expression search. Affects window settings (position, z-order etc.)
-	
-	The window must belong to the started process or to its first-level child processes. This allows for launching a batch file and starting the target process from there.
-	
-	There can be multiple WindowPos sections defined for one application.
+    Finds a window belonging to the application by its title using regular expression search. Affects window settings (position, z-order etc.)
+    
+    The window must belong to the started process or to its first-level child processes. This allows for launching a batch file and starting the target process from there.
+    
+    There can be multiple WindowPos sections defined for one application.
 
-	Attributes:
-	
-	- `TitleRegExp` - regular expression to search in the window title. This is the only mandatory attribute, the rest of attributes are optional.
-	
-	- `Rect` - desired screen coordinates [left,top,width,height] of the window relative to the given screen. All zeros means 'not set' and behaves as if not specified at all. 
-	
-	- `Screen` - screen number to place the window at; 0=main screen (default)
-	
-	- `Keep` - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates. If not set, the first successful search for
+    Attributes:
+    
+    - `TitleRegExp` - regular expression to search in the window title. This is the only mandatory attribute, the rest of attributes are optional.
+    
+    - `Rect` - desired screen coordinates [left,top,width,height] of the window relative to the given screen. All zeros means 'not set' and behaves as if not specified at all. 
+    
+    - `Screen` - screen number to place the window at; 0=main screen (default)
+    
+    - `Keep` - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates. If not set, the first successful search for
  
-	- `SendToBack` - 0/1 whether to put window below all other windows, i.e. to avoid popping up
+    - `SendToBack` - 0/1 whether to put window below all other windows, i.e. to avoid popping up
  
-	- `BringToFront` - 0/1 whether to put window to the foreground and activate it; usefel in combination with Keep="1" to keep the window visible and focused
-	
-	- `TopMost` - 0/1 whether to make the window 'Always on top'
+    - `BringToFront` - 0/1 whether to put window to the foreground and activate it; usefel in combination with Keep="1" to keep the window visible and focused
+    
+    - `TopMost` - 0/1 whether to make the window 'Always on top'
  
-	- `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
+    - `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
 
-	If used in a template, the WindowPos definition is added to all application using this template.
-	
- - InitDetectors
+    If used in a template, the WindowPos definition is added to all application using this template.
+    
+ - `InitDetectors`
   
-		<InitDetectors>
-		  <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
-		  <TimeOut>5.0</TimeOut>
-		</InitDetectors>
-		
-	Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*	
-	
-	If multiple detectors are defined, the first one whose condition is satified marks the app as initialized.
-	
- #### Templated launch plan definition
+        <InitDetectors>
+          <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
+          <TimeOut>5.0</TimeOut>
+        </InitDetectors>
+        
+    Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*  
+    
+    If multiple detectors are defined, the first one whose condition is satified marks the app as initialized.
+
+  - `Env`
+  
+        <Env>
+          <Set Variable="TMP" Value="C:\TEMP" />
+          <Set Variable="TEMP" Value="C:\TEMP" />
+          <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2"/> 
+        </Env>
+
+    Modifies the environment variables for the started process, taking the Diriget Agen't startup environment as a basis.
+    
+    Existing environment variables can be set to a new value. Non-existing will be created, existing will be overwritten.
+    
+    Specific support for PATH variable allows prepending or appending given string to PATH.
+    
+
+    Attributes:
+    
+    - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory.
+    
+    - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute Append is present, appends its value at the end of the PATH variable.
+    
+    
+#### Templated launch plan definition
 
 Plan definition in an XML file uses a template sections allowing the inheritance of attributes.
 
@@ -342,32 +368,32 @@ The following plan example specify two instances of a notepad editor, named `a` 
 The apps will be run on a computer where the agent is configured to  machineId `m1`.
 
         <Plan Name="plan1">
-        	<App
-        	    AppIdTuple = "m1.a"
-        		Template = "apps.notepad"
-        		StartupDir = "c:\"
-        		CmdLineArgs = "aaa.txt"
+            <App
+                AppIdTuple = "m1.a"
+                Template = "apps.notepad"
+                StartupDir = "c:\"
+                CmdLineArgs = "aaa.txt"
                 >
-    		    <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
-    	    </App>
+                <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+            </App>
          
-        	<App
-        	    AppIdTuple = "m1.b"
-        		Template = "apps.notepad"
-        		StartupDir = "c:\"
-        		CmdLineArgs = "bbb.txt"
-        	/>
+            <App
+                AppIdTuple = "m1.b"
+                Template = "apps.notepad"
+                StartupDir = "c:\"
+                CmdLineArgs = "bbb.txt"
+            />
         </Plan>
         
         <AppTemplate Name="apps.notepad"
-        		Template = ""
-        		ExeFullPath = "c:\windows\notepad.exe"
-        		StartupDir = "c:\"
-        		CmdLineArgs = ""
-        		StartupOrder = "0"
-        		RestartOnCrash = "1"
-        		InitCondition = "timeout 2.0"
-        		SeparationInterval = "0.5"
+                Template = ""
+                ExeFullPath = "c:\windows\notepad.exe"
+                StartupDir = "c:\"
+                CmdLineArgs = ""
+                StartupOrder = "0"
+                RestartOnCrash = "1"
+                InitCondition = "timeout 2.0"
+                SeparationInterval = "0.5"
         />
 
 #### Selecting a boot up completion detector

@@ -66,6 +66,7 @@ namespace Dirigent.Common
                 KillTree = (string)e.Attribute("KillTree"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
                 WindowPos = e.Elements("WindowPos"),
+                Env = e.Element("Env"),
                 InitDetectors = e.Element("InitDetectors") != null ? e.Element("InitDetectors").Elements() : null,
             };
 
@@ -111,6 +112,51 @@ namespace Dirigent.Common
                 foreach( var elem in x.WindowPos )
                 {
                     a.WindowPosXml.Add( elem.ToString() );
+                }
+            }
+
+            if( x.Env != null )
+            {
+                foreach( var elem in x.Env.Descendants())
+                {
+					if (elem.Name == "Set")
+					{
+						// add/overwite variable
+						var variable = (string) elem.Attribute("Variable");
+						var value = (string) elem.Attribute("Value");
+						a.EnvVarsToSet[variable] = value;
+					}
+				
+					if (elem.Name == "Path")
+					{
+						// extend
+						var toAppend = (string) elem.Attribute("Append");
+						if (!string.IsNullOrEmpty(toAppend))
+						{
+							if (String.IsNullOrEmpty(a.EnvVarPathToAppend))
+							{
+								a.EnvVarPathToAppend = toAppend;
+							}
+							else
+							{
+								a.EnvVarPathToAppend = a.EnvVarPathToAppend + ";" + toAppend;
+							}
+						}
+
+						var toPrepend = (string) elem.Attribute("Prepend");
+						if (!string.IsNullOrEmpty(toPrepend))
+						{
+							if (String.IsNullOrEmpty(a.EnvVarPathToPrepend))
+							{
+								a.EnvVarPathToPrepend = toPrepend;
+							}
+							else
+							{
+								a.EnvVarPathToPrepend = toPrepend + ";" + a.EnvVarPathToPrepend;
+							}
+						}
+					}
+				
                 }
             }
 

@@ -42,8 +42,30 @@ namespace Dirigent.Agent.Core
                 psi.WorkingDirectory = BuildAbsolutePath(appDef.StartupDir);
             }
             psi.WindowStyle = appDef.WindowStyle;
+			
+			psi.UseShellExecute = false; // allows us using environment variables
 
-            try
+			//
+			// modify the environment
+			//
+			foreach (var x in appDef.EnvVarsToSet)
+			{							
+				var name = x.Key;
+				var value = x.Value;
+				psi.EnvironmentVariables[name] = value;
+			}
+			if (!String.IsNullOrEmpty(appDef.EnvVarPathToAppend))
+			{
+				var name = "PATH";
+				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + appDef.EnvVarPathToAppend;
+			}
+			if (!String.IsNullOrEmpty(appDef.EnvVarPathToPrepend))
+			{
+				var name = "PATH";
+				psi.EnvironmentVariables[name] = appDef.EnvVarPathToPrepend + ";" + psi.EnvironmentVariables[name];
+			}
+
+			try
             {
                 log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", appDef.ExeFullPath, appDef.CmdLineArgs, appDef.StartupDir, appDef.WindowStyle );
                 proc = Process.Start(psi);

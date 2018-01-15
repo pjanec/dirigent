@@ -67,6 +67,24 @@ namespace Dirigent.Common
         public List<string> WindowPosXml = new List<string>();
 
         /// <summary>
+        /// list of environment vars to set (in addition to inherited system environemnt)
+        /// </summary>
+        [DataMember]
+        public Dictionary<string, string> EnvVarsToSet = new Dictionary<string, string>();
+
+        /// <summary>
+        /// what to prepend to the PATH variable
+        /// </summary>
+        [DataMember]
+        public String EnvVarPathToPrepend;
+
+        /// <summary>
+        /// what to append to the PATH variable
+        /// </summary>
+        [DataMember]
+        public String EnvVarPathToAppend;
+
+        /// <summary>
         /// the element within the InitDetectors section
         /// </summary>
         [DataMember]
@@ -97,6 +115,9 @@ namespace Dirigent.Common
                 ) &&
                 this.WindowStyle == other.WindowStyle &&
                 this.WindowPosXml.SequenceEqual( other.WindowPosXml ) &&
+				this.EnvVarsToSet.DictionaryEqual( other.EnvVarsToSet ) &&
+				this.EnvVarPathToPrepend == other.EnvVarPathToPrepend &&
+				this.EnvVarPathToAppend == other.EnvVarPathToAppend &&
                 this.InitDetectors.SequenceEqual( other.InitDetectors ) &&
                 //this.Watchers.SequenceEqual(other.Watchers) &&
                 true
@@ -139,5 +160,4 @@ namespace Dirigent.Common
             return !(person1.Equals(person2));
         }
     }
-
 }

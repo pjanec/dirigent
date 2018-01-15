@@ -32,8 +32,15 @@
     	    AppIdTuple = "m1.d"
     		Template = "apps.cmd"
     		StartupDir = "c:\"
-    		CmdLineArgs = "/c c:\ddd.bat"
-    	/>
+    		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
+    		>
+    		<Env>
+    		  <!-- Generic environment variable handling-->
+    		  <Set Variable="TMP" Value="X:\TEMP" />
+    		  <!-- specific support for Path variable modifications-->
+    		  <Path Prepend="C:\BIN" /> 
+    		</Env>
+    	</App>
 
     </Plan>
 
