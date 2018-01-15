@@ -256,9 +256,9 @@ Each app in the launch plan has the following attributes:
 
  - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
  
- - `ExeFullPath` - application binary file full path; can be relative to the dirigent's working directory.
+ - `ExeFullPath` - application binary file full path; can be relative to the dirigent's working directory. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
- - `StartupDir` - startup directory; can be relative to the dirigent's working directory.
+ - `StartupDir` - startup directory; can be relative to the dirigent's working directory. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
  - `CmdLineArgs` - command line arguments
 
@@ -338,9 +338,9 @@ App sub-sections:
 
     Attributes:
     
-    - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory.
+    - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
     
-    - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute Append is present, appends its value at the end of the PATH variable.
+    - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment.
     
     
 #### Templated launch plan definition

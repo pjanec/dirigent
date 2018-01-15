@@ -4,8 +4,8 @@
     	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
-    		ExeFullPath = "c:\windows\notepad.exe"
-    		StartupDir = "c:\"
+    		ExeFullPath = "%SystemRoot%\notepad.exe"
+    		StartupDir = "%USERPROFILE%\Documents"
     		CmdLineArgs = "aaa.txt"
     		InitCondition = "exitcode 0"
     	    >
@@ -37,8 +37,9 @@
     		<Env>
     		  <!-- Generic environment variable handling-->
     		  <Set Variable="TMP" Value="X:\TEMP" />
+    		  <Set Variable="EXPANSION_TEST" Value="xxx%USERNAME%xxx" />
     		  <!-- specific support for Path variable modifications-->
-    		  <Path Prepend="C:\BIN" /> 
+    		  <Path Prepend="C:\BIN;%ProgramFiles%\MyApp\Bin" /> 
     		</Env>
     	</App>
 

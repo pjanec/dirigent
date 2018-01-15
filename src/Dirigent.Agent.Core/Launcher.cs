@@ -35,11 +35,13 @@ namespace Dirigent.Agent.Core
         {
             // start the process
             var psi = new ProcessStartInfo();
-            psi.FileName =  BuildAbsolutePath( appDef.ExeFullPath );
+			var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+			psi.FileName =  BuildAbsolutePath( appPath );
             psi.Arguments = appDef.CmdLineArgs;
             if (appDef.StartupDir != null)
             {
-                psi.WorkingDirectory = BuildAbsolutePath(appDef.StartupDir);
+				var dir = System.Environment.ExpandEnvironmentVariables(appDef.StartupDir);
+                psi.WorkingDirectory = BuildAbsolutePath(dir);
             }
             psi.WindowStyle = appDef.WindowStyle;
 			
@@ -51,18 +53,20 @@ namespace Dirigent.Agent.Core
 			foreach (var x in appDef.EnvVarsToSet)
 			{							
 				var name = x.Key;
-				var value = x.Value;
+				var value = System.Environment.ExpandEnvironmentVariables(x.Value);
 				psi.EnvironmentVariables[name] = value;
 			}
 			if (!String.IsNullOrEmpty(appDef.EnvVarPathToAppend))
 			{
 				var name = "PATH";
-				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + appDef.EnvVarPathToAppend;
+				var postfix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToAppend);
+				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + postfix;
 			}
 			if (!String.IsNullOrEmpty(appDef.EnvVarPathToPrepend))
 			{
 				var name = "PATH";
-				psi.EnvironmentVariables[name] = appDef.EnvVarPathToPrepend + ";" + psi.EnvironmentVariables[name];
+				var prefix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToPrepend);
+				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
 			}
 
 			try
