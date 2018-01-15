@@ -69,9 +69,11 @@ namespace Dirigent.Net
         {
             var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
             var binding = new NetTcpBinding();
+			binding.Name = "MasterConnBinding";
             //binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
             binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel and there is an error
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
+			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
             server = client.ChannelFactory.CreateChannel();

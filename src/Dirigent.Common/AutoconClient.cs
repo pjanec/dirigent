@@ -46,10 +46,12 @@ namespace Dirigent.Net
 
             var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
             var binding = new NetTcpBinding();
+			binding.Name = "MasterConnBinding";
             binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
             //binding.ReceiveTimeout = new TimeSpan(0,0,0,10,0); //  interval of time that a connection can remain inactive, during which no application messages are received, before it is dropped.
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
             binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel
+			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
 
