@@ -64,25 +64,25 @@ namespace Dirigent.Agent.Gui
                     if( currentCol == 1 ) // start
                     {
                         guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.StartPlan());
+                        guardedOp(() => ctrl.StartPlan(plan));
                     }
                     else
                     if( currentCol == 2 ) // stop
                     {
                         guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.StopPlan());
+                        guardedOp(() => ctrl.StopPlan(plan));
                     }
                     else
                     if( currentCol == 3 ) // kill
                     {
                         guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.KillPlan());
+                        guardedOp(() => ctrl.KillPlan(plan));
                     }
                     else
                     if( currentCol == 4 ) // restart
                     {
                         guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.RestartPlan());
+                        guardedOp(() => ctrl.RestartPlan(plan));
                     }
                     
                 
@@ -110,7 +110,7 @@ namespace Dirigent.Agent.Gui
                     
                     // start the selected plan
                     guardedOp(() => ctrl.SelectPlan( plan ));
-                    guardedOp(() => ctrl.StartPlan());
+                    guardedOp(() => ctrl.StartPlan(plan));
                 }
             }
         }

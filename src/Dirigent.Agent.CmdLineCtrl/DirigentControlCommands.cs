@@ -38,7 +38,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.StartPlan();
+            ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
         }
     }
 
@@ -51,7 +51,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.StopPlan();
+            ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
         }
     }
 
@@ -64,7 +64,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.KillPlan();
+            ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
         }
     }
 
@@ -77,7 +77,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.RestartPlan();
+            ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
         }
     }
 
@@ -130,33 +130,22 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
         }
     }
 
-    public class SelectPlan : DirigentControlCommand
-    {
-        public SelectPlan(IDirigentControl ctrl)
-            : base(ctrl)
-        {
-        }
+    //public class SelectPlan : DirigentControlCommand
+    //{
+    //    public SelectPlan(IDirigentControl ctrl)
+    //        : base(ctrl)
+    //    {
+    //    }
 
-        public override void Execute(IList<string> args)
-        {
-            if (args.Count == 0) throw new MissingArgumentException("planName", "plan name expected.");
+    //    public override void Execute(IList<string> args)
+    //    {
+    //        if (args.Count == 0) throw new MissingArgumentException("planName", "plan name expected.");
 
-            var planName = args[0];
+    //        // find plan in the repository
+    //        ILaunchPlan plan = Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) ;
 
-            // find plan in the repository
-            ILaunchPlan plan;
-            try
-            {
-                IEnumerable<ILaunchPlan> planRepo = ctrl.GetPlanRepo();
-                plan = planRepo.First((i) => i.Name == planName);
-            }
-            catch
-            {
-                throw new UnknownPlanName(planName);
-            }
-
-            ctrl.SelectPlan(plan);
-        }
-    }
+    //        ctrl.SelectPlan(plan);
+    //    }
+    //}
 
 }

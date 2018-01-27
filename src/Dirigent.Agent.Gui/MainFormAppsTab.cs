@@ -239,7 +239,7 @@ namespace Dirigent.Agent.Gui
         {
             string stCode = "Not running";
 
-            var currPlan = ctrl.GetCurrentPlan();
+			var currPlan = ctrl.GetCurrentPlan();
             bool planRunning = (currPlan != null) && currPlan.Running && isPartOfPlan;
             bool connected = callbacks.isConnectedDeleg();
             var currTime = DateTime.UtcNow;

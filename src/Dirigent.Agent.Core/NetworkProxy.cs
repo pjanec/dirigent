@@ -46,16 +46,19 @@ namespace Dirigent.Agent.Core
             // get status of local apps and send to others
             Dictionary<AppIdTuple, AppState> localAppsState = new Dictionary<AppIdTuple, AppState>();
             
-            var plan = localOps.GetCurrentPlan();
-            if( plan == null ) return;
+			foreach (var plan in localOps.GetPlanRepo())
+			{
+				foreach (var pair in localOps.GetAllAppsState())
+				{
+					var appId = pair.Key;
+					var appState = pair.Value;
 
-            foreach( var appDef in plan.getAppDefs() )
-            {
-                if( appDef.AppIdTuple.MachineId == machineId )
-                {
-                    localAppsState[appDef.AppIdTuple] = localOps.GetAppState( appDef.AppIdTuple );
-                }
-            }
+					if (appId.MachineId == machineId)
+					{
+						localAppsState[appId] = appState;
+					}
+				}
+			}
 
             client.BroadcastMessage( new AppsStateMessage( localAppsState ) );
 
@@ -87,12 +90,12 @@ namespace Dirigent.Agent.Core
                 updateRemoteAppState(m.appsState);
             }
             else
-            if (t == typeof(SelectPlanMessage))
-            {
-                var m = msg as SelectPlanMessage;
-                localOps.SelectPlan(m.plan);
-            }
-            else
+            //if (t == typeof(SelectPlanMessage))
+            //{
+            //    var m = msg as SelectPlanMessage;
+            //    localOps.SelectPlan(m.plan);
+            //}
+            //else
             if (t == typeof(LaunchAppMessage))
             {
                 var m = msg as LaunchAppMessage;
@@ -123,40 +126,40 @@ namespace Dirigent.Agent.Core
             if (t == typeof(StartPlanMessage))
             {
                 var m = msg as StartPlanMessage;
-                localOps.StartPlan();
+                localOps.StartPlan(m.plan);
             }
             else
             if (t == typeof(StopPlanMessage))
             {
                 var m = msg as StopPlanMessage;
-                localOps.StopPlan();
+                localOps.StopPlan(m.plan);
             }
             else
             if (t == typeof(KillPlanMessage))
             {
                 var m = msg as KillPlanMessage;
-                localOps.KillPlan();
+                localOps.KillPlan(m.plan);
             }
             else
             if (t == typeof(RestartPlanMessage))
             {
                 var m = msg as RestartPlanMessage;
-                localOps.RestartPlan();
+                localOps.RestartPlan(m.plan);
             }
             else
-            if (t == typeof(CurrentPlanMessage))
-            {
-                var m = msg as CurrentPlanMessage;
+			if (t == typeof(CurrentPlanMessage))
+			{
+				var m = msg as CurrentPlanMessage;
 
-                // if master's plan is same as ours, do not do anything, othewise load master's plan
-                var localPlan = localOps.GetCurrentPlan();
-                if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)))
-                {
-                    localOps.SelectPlan(m.plan);
-                }
-            }
-            else
-            if (t == typeof(PlanRepoMessage))
+				// if master's plan is same as ours, do not do anything, othewise load master's plan
+				var localPlan = localOps.GetCurrentPlan();
+				if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)))
+				{
+					localOps.SelectPlan(m.plan);
+				}
+			}
+			else
+			if (t == typeof(PlanRepoMessage))
             {
                 var m = msg as PlanRepoMessage;
                 localOps.SetPlanRepo(m.repo);
@@ -225,17 +228,19 @@ namespace Dirigent.Agent.Core
             localOps.SetRemoteAppState(appIdTuple, state);
         }
 
-        public void SelectPlan(ILaunchPlan plan)
-        {
-            client.BroadcastMessage( new SelectPlanMessage( plan ) );
-        }
+		public void SelectPlan(ILaunchPlan plan)
+		{
+			//client.BroadcastMessage(new SelectPlanMessage(plan));
+			// select plan now works only locally
+			localOps.SelectPlan(plan);
+		}
 
-        public ILaunchPlan GetCurrentPlan()
-        {
-            return localOps.GetCurrentPlan();
-        }
+		public ILaunchPlan GetCurrentPlan()
+		{
+			return localOps.GetCurrentPlan();
+		}
 
-        public IEnumerable<ILaunchPlan> GetPlanRepo()
+		public IEnumerable<ILaunchPlan> GetPlanRepo()
         {
             return localOps.GetPlanRepo();
         }
@@ -246,24 +251,24 @@ namespace Dirigent.Agent.Core
         }
 
 
-        public void StartPlan()
+        public void StartPlan( ILaunchPlan plan )
         {
-            client.BroadcastMessage( new StartPlanMessage() );
+            client.BroadcastMessage( new StartPlanMessage(plan) );
         }
 
-        public void StopPlan()
+        public void StopPlan( ILaunchPlan plan )
         {
-            client.BroadcastMessage(new StopPlanMessage());
+            client.BroadcastMessage(new StopPlanMessage(plan));
         }
 
-        public void KillPlan()
+        public void KillPlan( ILaunchPlan plan )
         {
-            client.BroadcastMessage( new KillPlanMessage() );
+            client.BroadcastMessage( new KillPlanMessage(plan) );
         }
 
-        public void RestartPlan()
+        public void RestartPlan( ILaunchPlan plan )
         {
-            client.BroadcastMessage( new RestartPlanMessage() );
+            client.BroadcastMessage( new RestartPlanMessage(plan) );
         }
 
         public void LaunchApp(AppIdTuple appIdTuple)

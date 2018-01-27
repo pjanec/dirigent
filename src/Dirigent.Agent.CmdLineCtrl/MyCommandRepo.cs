@@ -27,7 +27,7 @@ namespace Dirigent.Agent.CmdLineCtrl
             Register(new Commands.LaunchApp(ctrl));
             Register(new Commands.KillApp(ctrl));
             Register(new Commands.RestartApp(ctrl));
-            Register(new Commands.SelectPlan(ctrl));
+            //Register(new Commands.SelectPlan(ctrl));
         }
 
     }

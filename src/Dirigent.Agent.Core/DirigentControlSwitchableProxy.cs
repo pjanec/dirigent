@@ -35,17 +35,17 @@ namespace Dirigent.Agent.Core
             impl.SetRemoteAppState(appIdTuple, state);
         }
 
-        public void SelectPlan(ILaunchPlan plan)
-        {
-            impl.SelectPlan(plan);
-        }
+		public void SelectPlan(ILaunchPlan plan)
+		{
+			impl.SelectPlan(plan);
+		}
 
-        public ILaunchPlan GetCurrentPlan()
-        {
-            return impl.GetCurrentPlan();
-        }
+		public ILaunchPlan GetCurrentPlan()
+		{
+			return impl.GetCurrentPlan();
+		}
 
-        public IEnumerable<ILaunchPlan> GetPlanRepo()
+		public IEnumerable<ILaunchPlan> GetPlanRepo()
         {
             return impl.GetPlanRepo();
         }
@@ -55,24 +55,24 @@ namespace Dirigent.Agent.Core
             impl.SetPlanRepo(planRepo);
         }
 
-        public void StartPlan()
+        public void StartPlan( ILaunchPlan plan )
         {
-            impl.StartPlan();
+            impl.StartPlan( plan );
         }
 
-        public void StopPlan()
+        public void StopPlan( ILaunchPlan plan )
         {
-            impl.StopPlan();
+            impl.StopPlan( plan );
         }
 
-        public void KillPlan()
+        public void KillPlan( ILaunchPlan plan )
         {
-            impl.KillPlan();
+            impl.KillPlan( plan );
         }
 
-        public void RestartPlan()
+        public void RestartPlan( ILaunchPlan plan )
         {
-            impl.RestartPlan();
+            impl.RestartPlan( plan );
         }
 
         public void LaunchApp(AppIdTuple appIdTuple)

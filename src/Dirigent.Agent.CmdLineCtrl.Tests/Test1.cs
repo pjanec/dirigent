@@ -35,25 +35,25 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
             cmdRepo.ParseAndExecute(new List<string>() { "Unknown!!!", "plan1" });
         }
 
-        [TestMethod]
-        public void testSelectPlan()
-        {
-            var ctrlMock = new Mock<IDirigentControl>();
-            var appIdTuple = new AppIdTuple("m1.a");
-            var appDef = new AppDef() { AppIdTuple = appIdTuple };
-            var plan = new LaunchPlan("plan1", new List<AppDef>() { appDef } );
-            var planRepo = new List<ILaunchPlan>() { plan };
-            ctrlMock.Setup(f => f.GetPlanRepo()).Returns(planRepo);
-            ctrlMock.Setup(f => f.SelectPlan(plan)).Verifiable();
+        //[TestMethod]
+        //public void testSelectPlan()
+        //{
+        //    var ctrlMock = new Mock<IDirigentControl>();
+        //    var appIdTuple = new AppIdTuple("m1.a");
+        //    var appDef = new AppDef() { AppIdTuple = appIdTuple };
+        //    var plan = new LaunchPlan("plan1", new List<AppDef>() { appDef } );
+        //    var planRepo = new List<ILaunchPlan>() { plan };
+        //    ctrlMock.Setup(f => f.GetPlanRepo()).Returns(planRepo);
+        //    ctrlMock.Setup(f => f.SelectPlan(plan)).Verifiable();
 
-            var cmdRepo = new CommandRepository();
-            cmdRepo.Register( new Commands.SelectPlan(ctrlMock.Object) );
-            cmdRepo.ParseAndExecute(new List<string>() { "SelectPlan", "plan1" });
+        //    var cmdRepo = new CommandRepository();
+        //    cmdRepo.Register( new Commands.SelectPlan(ctrlMock.Object) );
+        //    cmdRepo.ParseAndExecute(new List<string>() { "SelectPlan", "plan1" });
 
-            ctrlMock.Verify();
+        //    ctrlMock.Verify();
 
-            //Assert.AreEqual(");
-        }
+        //    //Assert.AreEqual(");
+        //}
 
         [TestMethod]
         public void testKillApp()
@@ -95,11 +95,12 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
             var plan = new LaunchPlan("plan1", new List<AppDef>() { appDef } );
             var planRepo = new List<ILaunchPlan>() { plan };
             ctrlMock.Setup(f => f.GetPlanRepo()).Returns(planRepo);
-            ctrlMock.Setup(f => f.SelectPlan(plan)).Verifiable();
+            //ctrlMock.Setup(f => f.SelectPlan(plan)).Verifiable();
 
             var cmdRepo = new CommandRepository();
-            cmdRepo.Register( new Commands.SelectPlan(ctrlMock.Object) );
-            cmdRepo.ParseAndExecute(new List<string>() { ";SelectPlan", "plan1;", "KillApp", "m1.a1;" });
+            //cmdRepo.Register( new Commands.SelectPlan(ctrlMock.Object) );
+            //cmdRepo.ParseAndExecute(new List<string>() { ";SelectPlan", "plan1;", "KillApp", "m1.a1;" });
+            cmdRepo.ParseAndExecute(new List<string>() { "KillApp", "m1.a1;" });
 
             ctrlMock.Verify();
 

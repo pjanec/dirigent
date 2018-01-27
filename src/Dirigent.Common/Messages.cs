@@ -18,7 +18,7 @@ namespace Dirigent.Net
     [KnownType(typeof(LaunchAppMessage))]
     [KnownType(typeof(KillAppMessage))]
     [KnownType(typeof(RestartAppMessage))]
-    [KnownType(typeof(SelectPlanMessage))]
+    //[KnownType(typeof(SelectPlanMessage))]
     [KnownType(typeof(StartPlanMessage))]
     [KnownType(typeof(StopPlanMessage))]
     [KnownType(typeof(KillPlanMessage))]
@@ -119,72 +119,104 @@ namespace Dirigent.Net
 
     }
 
-    [DataContract]
-    public class SelectPlanMessage : Message
-    {
-        [DataMember]
-        public ILaunchPlan plan;
+    //[DataContract]
+    //public class SelectPlanMessage : Message
+    //{
+    //    [DataMember]
+    //    public ILaunchPlan plan;
 
-        public SelectPlanMessage( ILaunchPlan plan )
-        {
-            this.plan = plan;
-        }
+    //    public SelectPlanMessage( ILaunchPlan plan )
+    //    {
+    //        this.plan = plan;
+    //    }
 
-        public override string ToString()
-        {
-            return string.Format("SelectPlan {0}", plan.Name);
-        }
+    //    public override string ToString()
+    //    {
+    //        return string.Format("SelectPlan {0}", plan.Name);
+    //    }
 
-    }
+    //}
 
     [DataContract]
     public class StartPlanMessage : Message
     {
-        public override string ToString() { return "StartPlan"; }
+        [DataMember]
+        public ILaunchPlan plan;
+
+        public StartPlanMessage( ILaunchPlan plan )
+        {
+            this.plan = plan;
+        }
+
+		public override string ToString() { return string.Format("StartPlan {0}", plan.Name); }
     }
 
      [DataContract]
     public class StopPlanMessage : Message
     {
-        public override string ToString() { return "StopPlan"; }
+        [DataMember]
+        public ILaunchPlan plan;
+
+        public StopPlanMessage( ILaunchPlan plan )
+        {
+            this.plan = plan;
+        }
+
+		public override string ToString() { return string.Format("StopPlan {0}", plan.Name); }
     }
 
     [DataContract]
     public class KillPlanMessage : Message
     {
-        public override string ToString() { return "KillPlan"; }
+        [DataMember]
+        public ILaunchPlan plan;
+
+        public KillPlanMessage( ILaunchPlan plan )
+        {
+            this.plan = plan;
+        }
+
+		public override string ToString() { return string.Format("KillPlan {0}", plan.Name); }
     }
 
     [DataContract]
     public class RestartPlanMessage : Message
     {
-        public override string ToString() { return "RestartPlan"; }
-    }
-
-    /// <summary>
-    /// Master tells new client about the current launch plan
-    /// </summary>
-    [DataContract]
-    public class CurrentPlanMessage : Message
-    {
         [DataMember]
         public ILaunchPlan plan;
 
-        public CurrentPlanMessage(ILaunchPlan plan)
+        public RestartPlanMessage( ILaunchPlan plan )
         {
             this.plan = plan;
         }
 
-        public override string ToString()
-        {
-            return string.Format("CurrentPlan {0}", plan.Name);
-        }
+		public override string ToString() { return string.Format("RestartPlan {0}", plan.Name); }
     }
 
-    /// <summary>
-    /// Master tells new client about existing plans
-    /// </summary>
-    [DataContract]
+	/// <summary>
+	/// Master tells new client about the current launch plan
+	/// </summary>
+	[DataContract]
+	public class CurrentPlanMessage : Message
+	{
+		[DataMember]
+		public ILaunchPlan plan;
+
+		public CurrentPlanMessage(ILaunchPlan plan)
+		{
+			this.plan = plan;
+		}
+
+		public override string ToString()
+		{
+			return string.Format("CurrentPlan {0}", plan.Name);
+		}
+	}
+
+	/// <summary>
+	/// Master tells new client about existing plans
+	/// </summary>
+	[DataContract]
     public class PlanRepoMessage : Message
     {
         [DataMember]

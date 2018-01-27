@@ -133,12 +133,11 @@ Select a launch plan to start, issue a Select Plan command followed by a Start P
 
 For example using a command ling control app:
 
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan plan1
 
 Multiple commands can be executed at once if separated by a semicolon. For example  
 
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 SelectPlan plan1; StartPlan
+    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 Start plan1; StartPlan plan2
 
     
 ### Available Actions
@@ -146,7 +145,7 @@ The Dirigent can work either with whole launch plan or with an individual applic
 
 #### Launch Plan Actions
 
- - **Select Plan.** The given plan becomes the current plan. New apps defined by this plan are added to the list of operated ones.
+ - **Select Plan.** The given plan becomes the current plan. New apps defined by this plan are added to the list of operated ones. This affects only the local agent where the command is issued.
 
  - **Start Plan.** Apps from the current plan start to be lauched according to the plan.
 
@@ -199,7 +198,7 @@ The following options changes the mode of operation:
 
  `--logFile xyz.log` ... what log file to use
 
- `--startupPlan <plan_name>` ... immediately loads and starts executing an initial plan before the connection to the master is estabilished
+ `--startupPlan <plan_name>` ... immediately loads an initial plan and makes it the current one (local agent) before the connection to the master is estabilished
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
  
@@ -212,7 +211,7 @@ The following options changes the mode of operation:
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
 
- `--startupPlan <plan_name>` ... what plan to be forced on agents when they connect to master
+ `--startupPlan <plan_name>` ... what plan to be forced (make selected) on agents when they connect to master
 
 
 ### Agent Console Command Line Utility
@@ -225,11 +224,10 @@ Zero exit code is returned on success, positive error code on failure.
 
 The commands just simply follow the available agent actions, please see chapter *Available Actions* for more details.
 
-    SelectPlan <planId>
-    StartPlan
-    StopPlan 
-    KillPlan
-    RestartPlan
+    StartPlan <planId>
+    StopPlan <planId>
+    KillPlan <planId>
+    RestartPlan <planId>
     
     LanuchApp <appId>
     KillApp <appId>
@@ -250,7 +248,7 @@ Shared configuration is stored in the `SharedConfig.xlm` file. The location of t
 
 #### Launch plan
 
-Launch plan comprises just a list of apps to be launched in given order. At most one plan at a time can be active.
+Launch plan comprises just a list of apps to be launched in given order. Multiple parallel plans can be active at a time.
 
 Each app in the launch plan has the following attributes:
 
@@ -335,7 +333,6 @@ App sub-sections:
     
     Specific support for PATH variable allows prepending or appending given string to PATH.
     
-
     Attributes:
     
     - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
@@ -437,12 +434,16 @@ Both agent and master support logging of errors, warnigns etc. into a log file t
 
 #### Multiple coexisting plans 
 
-Dirigent works with the union of all the applications found in the plans from the plan repository. Any of the plans can be selected and manipulated at any time. All application that are still running and coming from some previously started plan are adopted by the new plan if their name matches one of the new plan's apps. 
+Dirigent works with the union of all the applications found in the plans from the plan repository. Any of the plans can be selected and manipulated at any time.
+
+All application that are still running and coming from some previously started plan are adopted by the new plan if their name matches one of the new plan's apps. 
+
+Plans shall be designed and manipulated (started/killed etc.) in a non-conflicting way. Easiest way is to avoid using same application Id in multiple plans.  
 
 
 ### Execution of a launch plan
 
-The application from the new plan are initially assigned the state 'not launched'.
+The application from the plan are initially assigned the state 'not launched'.
 
 The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose depedencied have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on enything else. In the next wawe there are apps dependent on the apps from the previous wave.
 

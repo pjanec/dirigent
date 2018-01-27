@@ -101,7 +101,8 @@ namespace Dirigent.Agent.Tests
         public string getAppsWithMatchingState(LocalOperations lo, Predicate<AppState> predicate)
         {
             var appIds =
-                from a in lo.GetCurrentPlan().getAppDefs() 
+                from p in lo.GetPlanRepo()
+			    from a in p.getAppDefs() 
                 where predicate( lo.GetAppState(a.AppIdTuple) )
                 orderby a.AppIdTuple.ToString()
                 select a.AppIdTuple.ToString();
@@ -121,7 +122,7 @@ namespace Dirigent.Agent.Tests
             lo.SelectPlan( PlanRepo.plans["p1"] );
             
             // start the plan
-            lo.StartPlan();
+            lo.StartPlan(PlanRepo.plans["p1"]);
 
             var t = 0.0;
 
@@ -195,12 +196,12 @@ namespace Dirigent.Agent.Tests
             
             var plan =  PlanRepo.plans["p1"];
             lo.SelectPlan( plan );
-            lo.StartPlan();
+            lo.StartPlan( plan );
             for(int i=0; i < 10; i++ ) lo.tick(i); // give enought ticks to start all 
             Assert.AreEqual( "m1.a,m1.b,m1.c,m1.d", getAppsWithMatchingState(lo, st => st.Running ), "all aps running after Start()" );
 
             
-            lo.KillPlan();
+            lo.KillPlan(plan);
             lo.tick(20.0);
             Assert.AreEqual( "", getAppsWithMatchingState(lo, st => st.Running ), "no app running after Stop()" );
         }

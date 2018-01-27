@@ -31,14 +31,15 @@ namespace Dirigent.Common
         /// <returns></returns>
         void SetRemoteAppState( AppIdTuple appIdTuple, AppState state );
 
-        // chci nacist novy plan (a tim zabit aplikace z predchoziho)
+        // works for local ops only, not over the net - selects current plan for GUI
         void SelectPlan( ILaunchPlan plan );
 
-        /// <summary>
-        /// Returns the currently loaded launch plan (or null if none loaded yet)
-        /// </summary>
-        /// <returns></returns>
-        ILaunchPlan GetCurrentPlan();
+		/// <summary>
+		/// Returns the currently loaded launch plan (or null if none loaded yet)
+		/// Works in local scope only (always returns a locally selected plan)
+		/// </summary>
+		/// <returns></returns>
+		ILaunchPlan GetCurrentPlan();
 
         /// <summary>
         /// Returns the available launch plans.
@@ -53,19 +54,19 @@ namespace Dirigent.Common
         /// <param name="planRepo"></param>
         void SetPlanRepo( IEnumerable<ILaunchPlan> planRepo );
 
-        // chci spustit aplikace dle aktualniho planu
-        void StartPlan();
+        // launch the applications from the plan
+        void StartPlan(ILaunchPlan plan);
 
-        // stop starting next planned applications from selected plan
-        void StopPlan();
+        // stop launching next planned applications from the plan
+        void StopPlan(ILaunchPlan plan);
 
         // stop all apps from the plan
-        void KillPlan();
+        void KillPlan(ILaunchPlan plan);
 
-        // chci znovuspustit vse z aktualniho planu
-        void RestartPlan();
+        // kill everything from the plan and start againho planu
+        void RestartPlan(ILaunchPlan plan);
 
-        // chci spustit konkretni aplikaci z aktualniho planu
+        // run specific app
         void LaunchApp(AppIdTuple appIdTuple);
 
         // kill and then start given app (must be part of some plan)
@@ -73,19 +74,6 @@ namespace Dirigent.Common
 
         // kill specified app
         void KillApp(AppIdTuple appIdTuple);
-
-        //// chci operativne vytvorit svuj novy plan na zaklade existujiciho
-        //ILaunchPlan clonePlan( ILaunchPlan existingPlan );
-
-        ///// <summary>
-        ///// A configuration received from another agent. The reciving agent is supposed to update its own
-        ///// configuration information if it differs. The event is fired by the master machine where
-        ///// the configuration is considered most up-to-date.
-        ///// </summary>
-        ///// 
-        //public delegate void SharedConfigReceived(SharedConfig config);
-
-        //void setSharedConfigReceivedDelegate(SharedConfigReceived deleg);
 
 
     }

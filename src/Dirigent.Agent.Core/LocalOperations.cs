@@ -98,66 +98,67 @@ namespace Dirigent.Agent.Core
             appsState[appIdTuple] = appState;
         }
 
-        /// <summary>
-        /// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
-        /// </summary>
-        /// <param name="plan"></param>
-        public void  SelectPlan(ILaunchPlan plan)
-        {
-            //if (plan == null)
-            //{
-            //    throw new ArgumentNullException("plan");
-            //}
+		/// <summary>
+		/// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
+		/// </summary>
+		/// <param name="plan"></param>
+		public void SelectPlan(ILaunchPlan plan)
+		{
+			//if (plan == null)
+			//{
+			//    throw new ArgumentNullException("plan");
+			//}
 
-            // stop the current plan
-            StopPlan();
-            
-            // change the current plan to this one
-            currentPlan = plan;
-            
-            if (plan == null)
-            {
-                return;
-            }
+			// stop the current plan
+			// FIXME: shall we stop? Now we have many plans. No one can be stopped implicitely...
+			//StopPlan();
 
-            // add record for not yet existing apps
-            foreach (var a in plan.getAppDefs())
-            {
-                if (!appsState.ContainsKey(a.AppIdTuple))
-                {
-                    appsState[a.AppIdTuple] = new AppState()
-                    {
-                        Initialized = false,
-                        Running = false,
-                        Started = false
-                    };
-                }
+			// change the current plan to this one
+			currentPlan = plan;
 
-                if (a.AppIdTuple.MachineId == machineId)
-                {
-                    if (!localApps.ContainsKey(a.AppIdTuple))
-                    {
-                        localApps[a.AppIdTuple] = new LocalApp()
-                        {
-                            AppDef = a,
-                            launcher = null,
-                            watchers = new List<IAppWatcher>()
-                        };
-                    }
-                    else // app already exists, just update its appdef to be used on next launch
-                    {
-                        localApps[a.AppIdTuple].AppDef = a;
-                    }
-                }
-            }
-        }
+			if (plan == null)
+			{
+				return;
+			}
 
-        public ILaunchPlan  GetCurrentPlan()
-        {
- 	        return currentPlan;
-        }
+			// add record for not yet existing apps
+			foreach (var a in plan.getAppDefs())
+			{
+				if (!appsState.ContainsKey(a.AppIdTuple))
+				{
+					appsState[a.AppIdTuple] = new AppState()
+					{
+						Initialized = false,
+						Running = false,
+						Started = false
+					};
+				}
 
-        public IEnumerable<ILaunchPlan> GetPlanRepo()
+				if (a.AppIdTuple.MachineId == machineId)
+				{
+					if (!localApps.ContainsKey(a.AppIdTuple))
+					{
+						localApps[a.AppIdTuple] = new LocalApp()
+						{
+							AppDef = a,
+							launcher = null,
+							watchers = new List<IAppWatcher>()
+						};
+					}
+					else // app already exists, just update its appdef to be used on next launch
+					{
+						localApps[a.AppIdTuple].AppDef = a;
+					}
+				}
+			}
+		}
+
+		public ILaunchPlan GetCurrentPlan()
+		{
+			return currentPlan;
+		}
+
+		public IEnumerable<ILaunchPlan> GetPlanRepo()
         {
             return planRepo;
         }
@@ -177,7 +178,7 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Starts launching local apps according to current plan.
         /// </summary>
-        public void  StartPlan()
+        public void  StartPlan( ILaunchPlan currentPlan )
         {
             if (currentPlan == null)
                 return;
@@ -195,7 +196,7 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Stops executing a launch plan (stop starting next applications)
         /// </summary>
-        public void StopPlan()
+        public void StopPlan( ILaunchPlan currentPlan )
         {
             if (currentPlan == null)
                 return;
@@ -212,7 +213,7 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Kills all local apps from current plan.
         /// </summary>
-        public void  KillPlan()
+        public void  KillPlan( ILaunchPlan currentPlan )
         {
  	        if( currentPlan == null )
                 return;
@@ -247,10 +248,10 @@ namespace Dirigent.Agent.Core
             }
         }
 
-        public void  RestartPlan()
+        public void  RestartPlan( ILaunchPlan currentPlan )
         {
- 	        KillPlan();
-            StartPlan();
+ 	        KillPlan( currentPlan );
+            StartPlan( currentPlan );
         }
 
         /// <summary>

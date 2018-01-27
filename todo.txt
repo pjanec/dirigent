@@ -1,4 +1,16 @@
-﻿Fix: Object reference not set exception sometimes when launching a process
+﻿MultiPlan changes
+ - [DONE] Multiple plans can run simultanously (expected not to collide with each other). No longer the concept of a globally selected single plan. Selected plan concept now works only in a single GUI agent as its internal state, not globally across agents anymore.
+ - A plan has new operation state attributes
+   - OpMode - None/Kill/Start/Restart... what most recent operation was perfromaned with the plan
+   - OpStatus - None/OK/InProgress/Failed ... what is the 
+   
+ - IDirigentControl
+	- [DONE] SelectPlan works only in local agent's scope
+	- [DONE] GetCurentPlan works only in local agent's scope
+	- [DONE] each plan manipulation method takes ILaunchPlan as parameter
+ 
+
+Fix: Object reference not set exception sometimes when launching a process
 
 Fix: Application sometimes left open and forgotten by dirigent, still running and can not be killed by dirigent. Happens for example if the app is started via shell and the KILL command comes just when the shell is starting the app. The shell gets killed, the started app does not.
 

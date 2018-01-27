@@ -28,32 +28,32 @@ namespace Dirigent.Agent.Gui
         string clientId; // name of the network client; messages are marked with that
         
         
-        ILaunchPlan plan; // current plan
+        //ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
 
-        //void terminateFromConstructor()
-        //{
-        //    Load += (s, e) => Close();
-        //}
+		//void terminateFromConstructor()
+		//{
+		//    Load += (s, e) => Close();
+		//}
 
-        /// <summary>
-        /// Dirigent Agent GUI main form constructor
-        /// </summary>
-        /// <param name="ctrl">instance of object providing dirigent operations</param>
-        /// <param name="planRepo">planRepo to be used until a new one is received from the master; null if none</param>
-        /// <param name="machineId">machine id (part of application id in launch plans); informative only; used to be presented to the user</param>
-        /// <param name="clientId">name of network client used to mark the network messages; informative only; used to recognize incoming errors caused by request from this agent</param>
-        /// <param name="notifyIcon">instance of notify icon</param>
-        /// <param name="allowLocalIfDisconnected">if true, apps and plans can be operated locally even if not connected to master</param>
-        /// <param name="callbacks">bunch of callbacks</param>
-        public frmMain(
-            IDirigentControl ctrl,
-            IEnumerable<ILaunchPlan> planRepo,
-            string machineId,
-            string clientId,
-            NotifyIcon notifyIcon,
-            bool allowLocalIfDisconnected,
-            GuiAppCallbacks callbacks
+		/// <summary>
+		/// Dirigent Agent GUI main form constructor
+		/// </summary>
+		/// <param name="ctrl">instance of object providing dirigent operations</param>
+		/// <param name="planRepo">planRepo to be used until a new one is received from the master; null if none</param>
+		/// <param name="machineId">machine id (part of application id in launch plans); informative only; used to be presented to the user</param>
+		/// <param name="clientId">name of network client used to mark the network messages; informative only; used to recognize incoming errors caused by request from this agent</param>
+		/// <param name="notifyIcon">instance of notify icon</param>
+		/// <param name="allowLocalIfDisconnected">if true, apps and plans can be operated locally even if not connected to master</param>
+		/// <param name="callbacks">bunch of callbacks</param>
+		public frmMain(
+			IDirigentControl ctrl,
+			IEnumerable<ILaunchPlan> planRepo,
+			string machineId,
+			string clientId,
+			NotifyIcon notifyIcon,
+			bool allowLocalIfDisconnected,
+			GuiAppCallbacks callbacks
             )
         {
             this.ctrl = ctrl;
@@ -67,7 +67,7 @@ namespace Dirigent.Agent.Gui
 
             //setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
 
-            this.plan = null;
+            //this.plan = null;
             if (planRepo != null)
             {
                 this.planRepo = new List<ILaunchPlan>(planRepo);
@@ -82,7 +82,7 @@ namespace Dirigent.Agent.Gui
         {
             string planName = "<no plan>";
 
-            var currPlan = ctrl.GetCurrentPlan();
+			var currPlan = ctrl.GetCurrentPlan();
             if( currPlan != null )
             {
                 planName = currPlan.Name;

@@ -36,8 +36,8 @@ namespace Dirigent.Net
         // communicated via message so that clients do not need an extra public intefrace for reading this
         List<ILaunchPlan> PlanRepo;
 
-        // cached current plan;
-        // set via SelectPlanMessage
+        //// cached current plan;
+        //// set via SelectPlanMessage
         ILaunchPlan CurrentPlan;
 
         Timer disconTimer;
@@ -94,25 +94,25 @@ namespace Dirigent.Net
         {
             Type t = msg.GetType();
 
-            if (t == typeof(SelectPlanMessage))
-            {
-                var m = msg as SelectPlanMessage;
-                lock (clients)
-                {
-                    CurrentPlan = m.plan;
-                }
-            }
-            else
-            if (t == typeof(CurrentPlanMessage))
-            {
-                var m = msg as CurrentPlanMessage;
-                lock (clients)
-                {
-                    CurrentPlan = m.plan;
-                }
-            }
-            else
-            if (t == typeof(PlanRepoMessage))
+			//if (t == typeof(SelectPlanMessage))
+			//{
+			//    var m = msg as SelectPlanMessage;
+			//    lock (clients)
+			//    {
+			//        CurrentPlan = m.plan;
+			//    }
+			//}
+			//else
+			if (t == typeof(CurrentPlanMessage))
+			{
+				var m = msg as CurrentPlanMessage;
+				lock (clients)
+				{
+					CurrentPlan = m.plan;
+				}
+			}
+			else
+			if (t == typeof(PlanRepoMessage))
             {
                 var m = msg as PlanRepoMessage;
                 lock (clients)
