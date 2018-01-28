@@ -11,6 +11,8 @@ using CommandLine.Text;
 
 using Dirigent.Net;
 using Dirigent.Common;
+using Dirigent.Agent.Core;
+
 using log4net;
 using log4net.Appender;
 
@@ -50,7 +52,12 @@ namespace Dirigent.Master
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        class AppConfig
+		/// <summary>
+		/// Local agent used to gather apps and plan state and server TCP telnet requests
+		/// </summary>
+		static Dirigent.Agent.Core.Agent agent;
+			
+		class AppConfig
         {
             // start with default settings
             public string sharedCfgFileName = "SharedConfig.xml";
@@ -122,6 +129,16 @@ namespace Dirigent.Master
                 var s = new Server(ac.masterPort, planRepo, ac.startupPlanName);
                 // server works through its ServerRemoteObject
 
+                // start a local network-only agent
+				// use unique client id to avoid conflict with any other possible client
+                string machineId = Guid.NewGuid().ToString();
+                var dirigClient = new Dirigent.Net.Client(machineId, "127.0.0.1", ac.masterPort);
+                dirigClient.Connect(); // connect should succeed immediately (server runs locally)
+				agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false);
+
+				// TODO: start a telnet client server
+				// ...
+
             }
             catch (Exception ex)
             {
@@ -134,8 +151,13 @@ namespace Dirigent.Master
         {
             Initialize();
             Console.WriteLine("Press Ctr+C to stop the server.");
-            //Console.ReadLine();
-            Thread.Sleep(Timeout.Infinite);
+			
+			// run forever
+			while (true)
+			{
+				agent.tick();
+				Thread.Sleep(500);
+			}
         }
 
     }

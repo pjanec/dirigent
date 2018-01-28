@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2005
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Common", "Dirigent.Common\Dirigent.Common.csproj", "{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Common.Tests", "Dirigent.Common.Tests\Dirigent.Common.Tests.csproj", "{62AFA897-D2ED-4F2A-BB84-5D609D245D61}"
@@ -27,9 +29,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.CmdLineCtrl.Tests", "Dirigent.Agent.CmdLineCtrl.Tests\Dirigent.Agent.CmdLineCtrl.Tests.csproj", "{713E23BC-2BCF-4782-AFB7-B667E5B46D1B}"
 EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = Dirigent.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -161,5 +160,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F58C7E7-B144-47B9-9BD6-B3FA62B81B9C}
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = Dirigent.vsmdi
 	EndGlobalSection
 EndGlobal

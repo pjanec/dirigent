@@ -64,7 +64,10 @@ namespace Dirigent.Net
 
                     // inform new clients about current shared state
                     ci.MsgQueue.Add( new PlanRepoMessage(PlanRepo));
-                    ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlan));
+					if (CurrentPlan != null)
+					{
+						ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlan));
+					}
 
                 }
             }

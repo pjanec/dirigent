@@ -79,6 +79,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj">
+      <Project>{fab65232-663a-48d9-b0a0-8df9f82fb53d}</Project>
+      <Name>Dirigent.Agent.Core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj">
       <Project>{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}</Project>
       <Name>Dirigent.Common</Name>
