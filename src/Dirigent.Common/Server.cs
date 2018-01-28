@@ -28,7 +28,7 @@ namespace Dirigent.Net
         /// The clients remotely access the MasterService via the IDirigentMasterContract interface.
         /// </summary>
         /// <param name="port"></param>
-        public Server( int port, IEnumerable<ILaunchPlan> planRepo=null, string startupPlanName="" )
+        public Server( int port, IDirigentControl localAgent, IEnumerable<ILaunchPlan> planRepo=null, string startupPlanName="" )
         {
             this.port = port;
 
@@ -37,7 +37,7 @@ namespace Dirigent.Net
 			binding.Name = "MasterConnBinding";
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
 			binding.Security.Mode = SecurityMode.None;
-            var service = new MasterService();
+            var service = new MasterService(localAgent);
             var host = new ServiceHost( service, uri);
             var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");
             //endpoint.Behaviors.Add(new ClientTrackerEndpointBehavior());

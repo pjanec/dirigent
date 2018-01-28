@@ -126,15 +126,18 @@ namespace Dirigent.Master
 
                 IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;
                 
-                var s = new Server(ac.masterPort, planRepo, ac.startupPlanName);
-                // server works through its ServerRemoteObject
-
                 // start a local network-only agent
 				// use unique client id to avoid conflict with any other possible client
                 string machineId = Guid.NewGuid().ToString();
                 var dirigClient = new Dirigent.Net.Client(machineId, "127.0.0.1", ac.masterPort);
-                dirigClient.Connect(); // connect should succeed immediately (server runs locally)
 				agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false);
+
+                // start master server
+				var s = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);
+                // server works through its ServerRemoteObject
+
+
+                dirigClient.Connect(); // connect should succeed immediately (server runs locally)
 
 				// TODO: start a telnet client server
 				// ...

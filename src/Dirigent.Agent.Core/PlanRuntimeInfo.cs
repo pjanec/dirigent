@@ -15,7 +15,7 @@ namespace Dirigent.Agent.Core
     {
         //private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-		//public ILaunchPlan Plan; // current plan
+		public ILaunchPlan Plan; // current plan
 		public PlanState State;
 		//public bool Running { get; set;  }
 
@@ -24,8 +24,9 @@ namespace Dirigent.Agent.Core
         public LaunchSequencer launchSequencer; // non-null only when plan is running
 
 
-        public PlanRuntimeInfo()
+        public PlanRuntimeInfo(ILaunchPlan plan)
         {
+			this.Plan = plan;
 			launchSequencer = new LaunchSequencer();
 			State = new PlanState();
         }

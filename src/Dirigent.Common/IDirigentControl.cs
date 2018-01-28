@@ -37,6 +37,11 @@ namespace Dirigent.Common
         /// <returns></returns>
         void SetRemoteAppState( AppIdTuple appIdTuple, AppState state );
 
+        /// <summary>
+        /// Set the status of a plan (updated after connecting an agent to an already running master)
+        /// </summary>
+        void SetPlanState( string planName, PlanState state );
+
         // works for local ops only, not over the net - selects current plan for GUI
         void SelectPlan( ILaunchPlan plan );
 

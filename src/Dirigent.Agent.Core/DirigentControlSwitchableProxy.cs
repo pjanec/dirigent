@@ -60,6 +60,11 @@ namespace Dirigent.Agent.Core
 			return impl.GetPlanState(plan);
 		}
 
+		public void SetPlanState(string planName, PlanState state)
+		{
+			impl.SetPlanState(planName, state);
+		}
+
         public void StartPlan( ILaunchPlan plan )
         {
             impl.StartPlan( plan );

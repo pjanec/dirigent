@@ -64,6 +64,14 @@ namespace Dirigent.Agent.Core
 
         }
 
+        void updatePlansState( Dictionary<string, PlanState> plansState )
+        {
+            foreach( KeyValuePair<string, PlanState> kvp in plansState )
+            {
+                localOps.SetPlanState( kvp.Key, kvp.Value );
+            }            
+        }
+
         void updateRemoteAppState( Dictionary<AppIdTuple, AppState> remoteAppsState )
         {
             foreach( KeyValuePair<AppIdTuple, AppState> kvp in remoteAppsState )
@@ -88,6 +96,12 @@ namespace Dirigent.Agent.Core
             {
                 var m = msg as AppsStateMessage;
                 updateRemoteAppState(m.appsState);
+            }
+            else
+            if (t == typeof(PlansStateMessage))
+            {
+                var m = msg as PlansStateMessage;
+                updatePlansState(m.plansState);
             }
             else
             //if (t == typeof(SelectPlanMessage))
@@ -232,6 +246,12 @@ namespace Dirigent.Agent.Core
 		{
 			return localOps.GetPlanState(plan);
 		}
+
+		public void SetPlanState(string planName, PlanState state)
+		{
+			localOps.SetPlanState(planName, state);
+		}
+
 
 		public void SelectPlan(ILaunchPlan plan)
 		{

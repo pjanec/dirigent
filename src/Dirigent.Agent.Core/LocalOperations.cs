@@ -101,8 +101,21 @@ namespace Dirigent.Agent.Core
 		// always locally cached plan state
 		public PlanState GetPlanState(ILaunchPlan plan)
 		{
-			var rti = planRTInfo[plan.Name];
-			return rti.State;
+			if (planRTInfo.ContainsKey(plan.Name))
+			{
+				var rti = planRTInfo[plan.Name];
+				// we dynamiclaly recalculate plan status on every request
+				CalculatePlanStatus(rti);
+				return rti.State;
+			}
+			// for unknown plan	return default state
+			return new PlanState();
+		}
+
+		public void SetPlanState(string planName, PlanState state)
+		{
+			var rti = planRTInfo[planName];
+			rti.State = state;
 		}
 
 		/// <summary>
@@ -184,7 +197,7 @@ namespace Dirigent.Agent.Core
 			// populate planRTInfo accordingly
 			foreach (var p in planRepo)
 			{
-				planRTInfo[p.Name] = new PlanRuntimeInfo();
+				planRTInfo[p.Name] = new PlanRuntimeInfo(p);
 			}
         }
         
@@ -516,5 +529,19 @@ namespace Dirigent.Agent.Core
             // refresh again to set "WasLaunched" and "Running"
             refreshLocalAppState();
         }
+
+		// update status on the plan
+		private void CalculatePlanStatus(PlanRuntimeInfo rti)
+		{
+			// TODO
+			//  Success:
+			//		all apps launched & initialized
+			//		all non-volatile apps still running
+			// InProgress
+			//      not success and not failure
+			// Failure
+			//      some of non-volatile apps launched but not running anymore
+			//      some of non-volatile apps 
+		}
     }
 }

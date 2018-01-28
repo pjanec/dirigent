@@ -15,6 +15,7 @@ namespace Dirigent.Net
     [DataContract]
     [KnownType(typeof(RemoteOperationErrorMessage))]
     [KnownType(typeof(AppsStateMessage))]
+    [KnownType(typeof(PlansStateMessage))]
     [KnownType(typeof(LaunchAppMessage))]
     [KnownType(typeof(KillAppMessage))]
     [KnownType(typeof(RestartAppMessage))]
@@ -63,6 +64,18 @@ namespace Dirigent.Net
         public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
         {
             this.appsState = new Dictionary<AppIdTuple, AppState>(appsState);
+        }
+    }
+
+    [DataContract]
+    public class PlansStateMessage : Message
+    {
+        [DataMember]
+        public Dictionary<string, PlanState> plansState;
+
+        public PlansStateMessage( Dictionary<string, PlanState> plansState )
+        {
+            this.plansState = new Dictionary<string, PlanState>(plansState);
         }
     }
 

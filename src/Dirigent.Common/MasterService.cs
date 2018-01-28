@@ -44,6 +44,8 @@ namespace Dirigent.Net
 
         double inactivityTimeout = 5.0;
 
+		IDirigentControl localAgent;
+
         /// <summary>
         /// Register a client.
         /// </summary>
@@ -69,6 +71,16 @@ namespace Dirigent.Net
 						ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlan));
 					}
 
+					// send state of all plans as gathered by the local agent
+					{
+						var d = new Dictionary<string, PlanState>();
+						foreach (var p in PlanRepo)
+						{
+							d[p.Name] = localAgent.GetPlanState(p);// invoke callbeck to get current plan
+						}
+
+						ci.MsgQueue.Add(new PlansStateMessage(d));
+					}
                 }
             }
         }
@@ -82,9 +94,10 @@ namespace Dirigent.Net
             }
         }
 
-        public MasterService()
+		public MasterService(IDirigentControl localAgent)
         {
-            disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
+			this.localAgent = localAgent;
+			disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
         }
 
         /// <summary>
@@ -162,7 +175,10 @@ namespace Dirigent.Net
 
         public IEnumerable<Message> ClientMessages( string clientName ) 
         {
-            var ci = clients[clientName];
+			if (!clients.ContainsKey(clientName))
+				return new List<Message>();
+
+			var ci = clients[clientName];
             var msgList = new List<Message>( ci.MsgQueue );
             
             // messages saved, clear the list of waiting messages
