@@ -66,8 +66,8 @@ namespace Dirigent.Net
 
 				if (startupPlan != null)
 				{
-	                log.InfoFormat("Forcing plan '{0}'", startupPlan.Name);
-					service.BroadcastMessage("<master>", new CurrentPlanMessage(startupPlan));
+	                log.InfoFormat("Forcing plan '{0}'", startupPlanName);
+					service.BroadcastMessage("<master>", new CurrentPlanMessage(startupPlanName));
 				}
             }
         

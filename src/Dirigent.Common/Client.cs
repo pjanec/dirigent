@@ -111,7 +111,7 @@ namespace Dirigent.Net
             {
                 return server.ClientMessages(name);
             }
-            catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException)
             {
                 throw new UnknownClientName(name);
             }

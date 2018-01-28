@@ -119,10 +119,10 @@ namespace Dirigent.Agent.Tests
         {
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
-            lo.SelectPlan( PlanRepo.plans["p1"] );
+            lo.SelectPlan( "p1" );
             
             // start the plan
-            lo.StartPlan(PlanRepo.plans["p1"]);
+            lo.StartPlan("p1");
 
             var t = 0.0;
 
@@ -161,7 +161,7 @@ namespace Dirigent.Agent.Tests
         {
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
-            lo.SelectPlan( PlanRepo.plans["p1"] );
+            lo.SelectPlan( "p1" );
             
             AppState st;
             
@@ -194,14 +194,14 @@ namespace Dirigent.Agent.Tests
         {
             var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory );
             
-            var plan =  PlanRepo.plans["p1"];
-            lo.SelectPlan( plan );
-            lo.StartPlan( plan );
+            var planName =  "p1";
+            lo.SelectPlan( planName );
+            lo.StartPlan( planName );
             for(int i=0; i < 10; i++ ) lo.tick(i); // give enought ticks to start all 
             Assert.AreEqual( "m1.a,m1.b,m1.c,m1.d", getAppsWithMatchingState(lo, st => st.Running ), "all aps running after Start()" );
 
             
-            lo.KillPlan(plan);
+            lo.KillPlan(planName);
             lo.tick(20.0);
             Assert.AreEqual( "", getAppsWithMatchingState(lo, st => st.Running ), "no app running after Stop()" );
         }

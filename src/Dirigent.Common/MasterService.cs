@@ -38,7 +38,7 @@ namespace Dirigent.Net
 
         //// cached current plan;
         //// set via SelectPlanMessage
-        ILaunchPlan CurrentPlan;
+        string CurrentPlanName;
 
         Timer disconTimer;
 
@@ -66,9 +66,9 @@ namespace Dirigent.Net
 
                     // inform new clients about current shared state
                     ci.MsgQueue.Add( new PlanRepoMessage(PlanRepo));
-					if (CurrentPlan != null)
+					if (!string.IsNullOrEmpty(CurrentPlanName))
 					{
-						ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlan));
+						ci.MsgQueue.Add(new CurrentPlanMessage(CurrentPlanName));
 					}
 
 					// send state of all plans as gathered by the local agent
@@ -76,7 +76,7 @@ namespace Dirigent.Net
 						var d = new Dictionary<string, PlanState>();
 						foreach (var p in PlanRepo)
 						{
-							d[p.Name] = localAgent.GetPlanState(p);// invoke callbeck to get current plan
+							d[p.Name] = localAgent.GetPlanState(p.Name);// invoke callbeck to get current plan
 						}
 
 						ci.MsgQueue.Add(new PlansStateMessage(d));
@@ -124,7 +124,7 @@ namespace Dirigent.Net
 				var m = msg as CurrentPlanMessage;
 				lock (clients)
 				{
-					CurrentPlan = m.plan;
+					CurrentPlanName = m.planName;
 				}
 			}
 			else

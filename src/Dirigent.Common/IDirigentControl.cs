@@ -22,7 +22,7 @@ namespace Dirigent.Common
         /// Get the status of a plan
 		/// Taken from local storage; the plan state is synchronized through plan manip command (Start/Stop/Kill...)
         /// </summary>
-		PlanState GetPlanState(ILaunchPlan plan);
+		PlanState GetPlanState(string planName);
 
         /// <summary>
         /// Get the status of all applications (no matter whether locl or remote)
@@ -43,7 +43,7 @@ namespace Dirigent.Common
         void SetPlanState( string planName, PlanState state );
 
         // works for local ops only, not over the net - selects current plan for GUI
-        void SelectPlan( ILaunchPlan plan );
+        void SelectPlan( string planName );
 
 		/// <summary>
 		/// Returns the currently loaded launch plan (or null if none loaded yet)
@@ -66,16 +66,16 @@ namespace Dirigent.Common
         void SetPlanRepo( IEnumerable<ILaunchPlan> planRepo );
 
         // launch the applications from the plan
-        void StartPlan(ILaunchPlan plan);
+        void StartPlan(string planName);
 
         // stop launching next planned applications from the plan
-        void StopPlan(ILaunchPlan plan);
+        void StopPlan(string planName);
 
         // stop all apps from the plan
-        void KillPlan(ILaunchPlan plan);
+        void KillPlan(string planName);
 
         // kill everything from the plan and start againho planu
-        void RestartPlan(ILaunchPlan plan);
+        void RestartPlan(string planName);
 
         // run specific app
         void LaunchApp(AppIdTuple appIdTuple);

@@ -136,11 +136,11 @@ namespace Dirigent.Net
     //public class SelectPlanMessage : Message
     //{
     //    [DataMember]
-    //    public ILaunchPlan plan;
+    //    public string planName;
 
-    //    public SelectPlanMessage( ILaunchPlan plan )
+    //    public SelectPlanMessage( String planName )
     //    {
-    //        this.plan = plan;
+    //        this.plan = plan
     //    }
 
     //    public override string ToString()
@@ -154,56 +154,56 @@ namespace Dirigent.Net
     public class StartPlanMessage : Message
     {
         [DataMember]
-        public ILaunchPlan plan;
+        public String planName;
 
-        public StartPlanMessage( ILaunchPlan plan )
+        public StartPlanMessage( String planName )
         {
-            this.plan = plan;
+            this.planName = planName;
         }
 
-		public override string ToString() { return string.Format("StartPlan {0}", plan.Name); }
+		public override string ToString() { return string.Format("StartPlan {0}", planName); }
     }
 
      [DataContract]
     public class StopPlanMessage : Message
     {
         [DataMember]
-        public ILaunchPlan plan;
+        public string planName;
 
-        public StopPlanMessage( ILaunchPlan plan )
+        public StopPlanMessage( String planName )
         {
-            this.plan = plan;
+            this.planName = planName;
         }
 
-		public override string ToString() { return string.Format("StopPlan {0}", plan.Name); }
+		public override string ToString() { return string.Format("StopPlan {0}", planName); }
     }
 
     [DataContract]
     public class KillPlanMessage : Message
     {
         [DataMember]
-        public ILaunchPlan plan;
+        public string planName;
 
-        public KillPlanMessage( ILaunchPlan plan )
+        public KillPlanMessage( String planName )
         {
-            this.plan = plan;
+            this.planName = planName;
         }
 
-		public override string ToString() { return string.Format("KillPlan {0}", plan.Name); }
+		public override string ToString() { return string.Format("KillPlan {0}", planName); }
     }
 
     [DataContract]
     public class RestartPlanMessage : Message
     {
         [DataMember]
-        public ILaunchPlan plan;
+        public string planName;
 
-        public RestartPlanMessage( ILaunchPlan plan )
+        public RestartPlanMessage( String planName )
         {
-            this.plan = plan;
+            this.planName = planName;
         }
 
-		public override string ToString() { return string.Format("RestartPlan {0}", plan.Name); }
+		public override string ToString() { return string.Format("RestartPlan {0}", planName); }
     }
 
 	/// <summary>
@@ -213,16 +213,16 @@ namespace Dirigent.Net
 	public class CurrentPlanMessage : Message
 	{
 		[DataMember]
-		public ILaunchPlan plan;
+		public string planName;
 
-		public CurrentPlanMessage(ILaunchPlan plan)
+		public CurrentPlanMessage(String planName)
 		{
-			this.plan = plan;
+			this.planName = planName;
 		}
 
 		public override string ToString()
 		{
-			return string.Format("CurrentPlan {0}", plan.Name);
+			return string.Format("CurrentPlan {0}", planName);
 		}
 	}
 

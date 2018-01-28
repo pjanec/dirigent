@@ -43,11 +43,7 @@ namespace Dirigent.Agent.TrayApp
                 // start given plan if provided
                 if (planRepo != null)
                 {
-                    ILaunchPlan startupPlan = AppHelper.GetPlanByName(planRepo, ac.startupPlanName);
-                    if (startupPlan != null)
-                    {
-                        agent.LocalOps.SelectPlan(startupPlan);
-                    }
+                    agent.LocalOps.SelectPlan(ac.startupPlanName);
                 }
 
                 // tick forever

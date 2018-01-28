@@ -140,25 +140,25 @@ namespace Dirigent.Agent.Core
             if (t == typeof(StartPlanMessage))
             {
                 var m = msg as StartPlanMessage;
-                localOps.StartPlan(m.plan);
+                localOps.StartPlan(m.planName);
             }
             else
             if (t == typeof(StopPlanMessage))
             {
                 var m = msg as StopPlanMessage;
-                localOps.StopPlan(m.plan);
+                localOps.StopPlan(m.planName);
             }
             else
             if (t == typeof(KillPlanMessage))
             {
                 var m = msg as KillPlanMessage;
-                localOps.KillPlan(m.plan);
+                localOps.KillPlan(m.planName);
             }
             else
             if (t == typeof(RestartPlanMessage))
             {
                 var m = msg as RestartPlanMessage;
-                localOps.RestartPlan(m.plan);
+                localOps.RestartPlan(m.planName);
             }
             else
 			if (t == typeof(CurrentPlanMessage))
@@ -167,9 +167,9 @@ namespace Dirigent.Agent.Core
 
 				// if master's plan is same as ours, do not do anything, othewise load master's plan
 				var localPlan = localOps.GetCurrentPlan();
-				if (m.plan != null && (localPlan == null || !m.plan.Equals(localPlan)))
+				if( localPlan.Name != m.planName )
 				{
-					localOps.SelectPlan(m.plan);
+					localOps.SelectPlan(m.planName);
 				}
 			}
 			else
@@ -242,9 +242,9 @@ namespace Dirigent.Agent.Core
             localOps.SetRemoteAppState(appIdTuple, state);
         }
 
-		public PlanState GetPlanState(ILaunchPlan plan)
+		public PlanState GetPlanState(string planName)
 		{
-			return localOps.GetPlanState(plan);
+			return localOps.GetPlanState(planName);
 		}
 
 		public void SetPlanState(string planName, PlanState state)
@@ -253,11 +253,11 @@ namespace Dirigent.Agent.Core
 		}
 
 
-		public void SelectPlan(ILaunchPlan plan)
+		public void SelectPlan(string planName)
 		{
 			//client.BroadcastMessage(new SelectPlanMessage(plan));
 			// select plan now works only locally
-			localOps.SelectPlan(plan);
+			localOps.SelectPlan(planName);
 		}
 
 		public ILaunchPlan GetCurrentPlan()
@@ -276,24 +276,24 @@ namespace Dirigent.Agent.Core
         }
 
 
-        public void StartPlan( ILaunchPlan plan )
+        public void StartPlan( string planName )
         {
-            client.BroadcastMessage( new StartPlanMessage(plan) );
+            client.BroadcastMessage( new StartPlanMessage(planName) );
         }
 
-        public void StopPlan( ILaunchPlan plan )
+        public void StopPlan( string planName )
         {
-            client.BroadcastMessage(new StopPlanMessage(plan));
+            client.BroadcastMessage(new StopPlanMessage(planName));
         }
 
-        public void KillPlan( ILaunchPlan plan )
+        public void KillPlan( string planName )
         {
-            client.BroadcastMessage( new KillPlanMessage(plan) );
+            client.BroadcastMessage( new KillPlanMessage(planName) );
         }
 
-        public void RestartPlan( ILaunchPlan plan )
+        public void RestartPlan( string planName )
         {
-            client.BroadcastMessage( new RestartPlanMessage(plan) );
+            client.BroadcastMessage( new RestartPlanMessage(planName) );
         }
 
         public void LaunchApp(AppIdTuple appIdTuple)

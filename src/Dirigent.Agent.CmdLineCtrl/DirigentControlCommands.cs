@@ -38,7 +38,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
+            ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]).Name );
         }
     }
 
@@ -51,7 +51,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
+            ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]).Name );
         }
     }
 
@@ -64,7 +64,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
+            ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]).Name );
         }
     }
 
@@ -77,7 +77,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
 
         public override void Execute(IList<string> args)
         {
-            ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) );
+            ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]).Name );
         }
     }
 

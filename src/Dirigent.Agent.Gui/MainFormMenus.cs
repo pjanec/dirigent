@@ -31,22 +31,22 @@ namespace Dirigent.Agent.Gui
 
         private void startPlanMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp( ()=> ctrl.StartPlan(ctrl.GetCurrentPlan()) );
+            guardedOp( ()=> ctrl.StartPlan(ctrl.GetCurrentPlan().Name) );
         }
 
         private void stopPlanMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp(() => ctrl.StopPlan(ctrl.GetCurrentPlan()));
+            guardedOp(() => ctrl.StopPlan(ctrl.GetCurrentPlan().Name));
         }
 
         private void killPlanMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp(() => ctrl.KillPlan(ctrl.GetCurrentPlan()) );
+            guardedOp(() => ctrl.KillPlan(ctrl.GetCurrentPlan().Name) );
         }
 
         private void restartPlanMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp(() => ctrl.RestartPlan(ctrl.GetCurrentPlan()));
+            guardedOp(() => ctrl.RestartPlan(ctrl.GetCurrentPlan().Name));
         }
 
         private void selectPlanMenuItem_Click(object sender, EventArgs e)
@@ -65,8 +65,8 @@ namespace Dirigent.Agent.Gui
             // fill the Plan -> Load menu with items
             foreach (var plan in planRepo)
             {
-                var planCopy = plan; // independent variable to be remebered by the lambda below
-                EventHandler clickHandler = (sender, args) => guardedOp( ()=> { ctrl.SelectPlan(planCopy); } );
+                var planName = plan.Name; // independent variable to be remebered by the lambda below
+                EventHandler clickHandler = (sender, args) => guardedOp( ()=> { ctrl.SelectPlan(planName); } );
 
                 var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
                 selectPlanToolStripMenuItem.DropDownItems.Add(menuItem);

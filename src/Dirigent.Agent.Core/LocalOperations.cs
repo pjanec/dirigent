@@ -99,11 +99,11 @@ namespace Dirigent.Agent.Core
         }
 
 		// always locally cached plan state
-		public PlanState GetPlanState(ILaunchPlan plan)
+		public PlanState GetPlanState(string planName)
 		{
-			if (planRTInfo.ContainsKey(plan.Name))
+			if (planRTInfo.ContainsKey(planName))
 			{
-				var rti = planRTInfo[plan.Name];
+				var rti = planRTInfo[planName];
 				// we dynamiclaly recalculate plan status on every request
 				CalculatePlanStatus(rti);
 				return rti.State;
@@ -122,7 +122,7 @@ namespace Dirigent.Agent.Core
 		/// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
 		/// </summary>
 		/// <param name="plan"></param>
-		public void SelectPlan(ILaunchPlan plan)
+		public void SelectPlan(string planName)
 		{
 			//if (plan == null)
 			//{
@@ -134,12 +134,12 @@ namespace Dirigent.Agent.Core
 			//StopPlan();
 
 			// change the current plan to this one
-			currentPlan = plan;
 
-			if (plan == null)
-			{
-				return;
-			}
+            if (string.IsNullOrEmpty(planName))
+                return;
+
+			var plan = planRTInfo[planName].Plan;
+			currentPlan = plan;
 
 			// add record for not yet existing apps
 			foreach (var a in plan.getAppDefs())
@@ -204,12 +204,12 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Starts launching local apps according to current plan.
         /// </summary>
-        public void  StartPlan( ILaunchPlan plan )
+        public void  StartPlan( string planName )
         {
-            if (plan == null)
+            if (string.IsNullOrEmpty(planName))
                 return;
 
-			var rti = planRTInfo[plan.Name];
+			var rti = planRTInfo[planName];
 
 			if (!rti.State.Running)
             {
@@ -217,7 +217,7 @@ namespace Dirigent.Agent.Core
                 rti.State.Running = true;
 				//rti.planState.OpMode = PlanState.EOpMode.Started;
 
-                List<AppWave> waves = LaunchWavePlanner.build(plan.getAppDefs());
+                List<AppWave> waves = LaunchWavePlanner.build(rti.Plan.getAppDefs());
                 rti.launchDepChecker = new LaunchDepsChecker(machineId, appsState, waves);
             }                    
         }
@@ -225,17 +225,17 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Stops executing a launch plan (stop starting next applications)
         /// </summary>
-        public void StopPlan( ILaunchPlan plan )
+        public void StopPlan( string planName )
         {
-            if (plan == null)
+            if (string.IsNullOrEmpty(planName))
                 return;
 
-			var rti = planRTInfo[plan.Name];
+			var rti = planRTInfo[planName];
 
             rti.State.Running = false;
             rti.launchDepChecker = null;
 
-            foreach (var a in plan.getAppDefs())
+            foreach (var a in rti.Plan.getAppDefs())
             {
                 appsState[a.AppIdTuple].PlanApplied = false;
             }        
@@ -244,15 +244,15 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Kills all local apps from current plan.
         /// </summary>
-        public void  KillPlan( ILaunchPlan plan )
+        public void  KillPlan( string planName )
         {
- 	        if( plan == null )
+            if (string.IsNullOrEmpty(planName))
                 return;
             
-            var rti = planRTInfo[plan.Name];
+            var rti = planRTInfo[planName];
 
             // kill all local apps belonging to the current plan
-            foreach( var a in plan.getAppDefs() )
+            foreach( var a in rti.Plan.getAppDefs() )
             {
                 if( !localApps.ContainsKey( a.AppIdTuple ) )
                     continue;
@@ -278,10 +278,10 @@ namespace Dirigent.Agent.Core
             rti.launchDepChecker = null;
         }
 
-        public void  RestartPlan( ILaunchPlan currentPlan )
+        public void  RestartPlan( string planName )
         {
- 	        KillPlan( currentPlan );
-            StartPlan( currentPlan );
+			KillPlan( planName );
+            StartPlan( planName );
         }
 
         /// <summary>

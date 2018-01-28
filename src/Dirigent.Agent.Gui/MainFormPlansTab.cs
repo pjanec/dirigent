@@ -34,7 +34,7 @@ namespace Dirigent.Agent.Gui
                     }
                 );
 
-				var planState = ctrl.GetPlanState(plan);
+				var planState = ctrl.GetPlanState(plan.Name);
 
                 // mark currently running plan with different bacground color
                 DataGridViewRow row = gridPlans.Rows[rowIndex];
@@ -66,26 +66,26 @@ namespace Dirigent.Agent.Gui
                     // icon clicks
                     if( currentCol == 1 ) // start
                     {
-                        guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.StartPlan(plan));
+                        guardedOp(() => ctrl.SelectPlan( plan.Name ));
+                        guardedOp(() => ctrl.StartPlan(plan.Name));
                     }
                     else
                     if( currentCol == 2 ) // stop
                     {
-                        guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.StopPlan(plan));
+                        guardedOp(() => ctrl.SelectPlan( plan.Name ));
+                        guardedOp(() => ctrl.StopPlan(plan.Name));
                     }
                     else
                     if( currentCol == 3 ) // kill
                     {
-                        guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.KillPlan(plan));
+                        guardedOp(() => ctrl.SelectPlan( plan.Name ));
+                        guardedOp(() => ctrl.KillPlan(plan.Name));
                     }
                     else
                     if( currentCol == 4 ) // restart
                     {
-                        guardedOp(() => ctrl.SelectPlan( plan ));
-                        guardedOp(() => ctrl.RestartPlan(plan));
+                        guardedOp(() => ctrl.SelectPlan( plan.Name ));
+                        guardedOp(() => ctrl.RestartPlan(plan.Name));
                     }
                     
                 
@@ -108,12 +108,9 @@ namespace Dirigent.Agent.Gui
 
                 if (e.Button == MouseButtons.Left)
                 {
-                    // find the plan (by name)
-                    var plan = planRepo.FirstOrDefault( p => p.Name == planName );
-                    
                     // start the selected plan
-                    guardedOp(() => ctrl.SelectPlan( plan ));
-                    guardedOp(() => ctrl.StartPlan(plan));
+                    guardedOp(() => ctrl.SelectPlan( planName ));
+                    guardedOp(() => ctrl.StartPlan(planName));
                 }
             }
         }
