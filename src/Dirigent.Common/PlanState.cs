@@ -21,11 +21,16 @@ namespace Dirigent.Common
 			None,
 			InProgress,
 			Success,
-			Failure
+			Failure,
 		}
 
         [DataMember]
 		public EOpStatus OpStatus;
+
+
+        [DataMember]
+		public DateTime TimeStarted;
+
     }
 
 

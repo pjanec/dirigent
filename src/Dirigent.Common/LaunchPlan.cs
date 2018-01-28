@@ -14,15 +14,15 @@ namespace Dirigent.Common
 
         [DataMember]
         string name;
-
-        //[DataMember]
-        //bool running;
         
-        public LaunchPlan( string name, List<AppDef> appDefs )
+        [DataMember]
+        double startTimeout;
+        
+        public LaunchPlan( string name, List<AppDef> appDefs, double startTimeout=-1.0 )
         {
             this.name = name;
             this.appDefs = appDefs;
-            //this.running = false;
+            this.startTimeout = startTimeout;
         }
 
         public IEnumerable<AppDef> getAppDefs()
@@ -40,6 +40,11 @@ namespace Dirigent.Common
         //    get { return running; }
         //    set { running = value; }
         //}
+
+		public double StartTimeout
+		{
+			get { return startTimeout; }
+		}
 
         public bool Equals(ILaunchPlan other)
         {

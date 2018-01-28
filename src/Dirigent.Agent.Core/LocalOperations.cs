@@ -215,7 +215,7 @@ namespace Dirigent.Agent.Core
             {
                 // trigger the launch sequencer
                 rti.State.Running = true;
-				//rti.planState.OpMode = PlanState.EOpMode.Started;
+				rti.State.TimeStarted = DateTime.UtcNow;
 
                 List<AppWave> waves = LaunchWavePlanner.build(rti.Plan.getAppDefs());
                 rti.launchDepChecker = new LaunchDepsChecker(machineId, appsState, waves);
@@ -533,6 +533,12 @@ namespace Dirigent.Agent.Core
 		// update status on the plan
 		private void CalculatePlanStatus(PlanRuntimeInfo rti)
 		{
+			if (!rti.State.Running)
+			{
+				rti.State.OpStatus = PlanState.EOpStatus.None;
+				return;
+			}
+
 			// TODO
 			//  Success:
 			//		all apps launched & initialized
@@ -541,7 +547,61 @@ namespace Dirigent.Agent.Core
 			//      not success and not failure
 			// Failure
 			//      some of non-volatile apps launched but not running anymore
-			//      some of non-volatile apps 
+			//      some of non-volatile apps
+			bool allLaunched = true;
+			bool allNonVolatileRunning = true;
+			bool allAppsProcessed = true;
+			foreach (var appDef in rti.Plan.getAppDefs())
+			{
+				var apst = appsState[appDef.AppIdTuple];
+
+				if (!(apst.PlanApplied && apst.Started && apst.Initialized))
+				{
+					allLaunched = false;
+				}
+
+				if (! (apst.PlanApplied && (apst.Initialized || apst.StartFailed) ))
+				{
+					allAppsProcessed = false;
+				}
+
+
+				if (!appDef.Volatile)
+				{
+					if (!apst.Running)
+					{
+						allNonVolatileRunning = false;
+					}
+				}
+			}
+
+			var timeSincePlanStart = (DateTime.UtcNow - rti.State.TimeStarted).TotalSeconds;
+
+			PlanState.EOpStatus planStatus = PlanState.EOpStatus.None;
+			if (allLaunched && allNonVolatileRunning)
+			{
+				planStatus = PlanState.EOpStatus.Success;
+			}
+			else
+			if (rti.Plan.StartTimeout > 0 && timeSincePlanStart >= rti.Plan.StartTimeout)
+			{
+				// timeout
+				planStatus = PlanState.EOpStatus.Failure;
+			}
+			else
+			if( allAppsProcessed	)
+			{
+				// all apps have been processed but not all of them running
+				planStatus = PlanState.EOpStatus.Failure;
+			}
+			else
+			{
+				// still some app left that has not been processed by the plan
+				planStatus = PlanState.EOpStatus.InProgress;
+			}
+
+			rti.State.OpStatus = planStatus;
+
 		}
     }
 }

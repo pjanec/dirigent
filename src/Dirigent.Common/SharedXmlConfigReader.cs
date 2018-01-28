@@ -181,6 +181,7 @@ namespace Dirigent.Common
             foreach( var p in plans )
             {
                 var planName = (string) p.Attribute("Name");
+				var startTimeout = X.getDoubleAttr(p, "StartTimeout", -1, true);
 
                 var apps = from e in p.Descendants("App")
                             select readAppElement( e );
@@ -205,7 +206,8 @@ namespace Dirigent.Common
                 cfg.Plans.Add(
                     new LaunchPlan(
                         planName,
-                        new List<AppDef>( apps )
+                        new List<AppDef>( apps ),
+						startTimeout
                     )
                 );
             }

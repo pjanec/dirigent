@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Shared>
-    <Plan Name="plan1">
+    <Plan Name="plan1" StartTimeout="10">
     	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
     		ExeFullPath = "%SystemRoot%\notepad.exe"
     		StartupDir = "%USERPROFILE%\Documents"
     		CmdLineArgs = "aaa.txt"
-    		InitCondition = "exitcode 0"
+    		XXX_InitCondition = "exitcode 0"
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
     	</App>
@@ -33,6 +33,7 @@
     		Template = "apps.cmd"
     		StartupDir = "c:\"
     		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
+    		Volatile = "1"
     		>
     		<Env>
     		  <!-- Generic environment variable handling-->
