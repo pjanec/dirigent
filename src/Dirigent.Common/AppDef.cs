@@ -33,6 +33,13 @@ namespace Dirigent.Common
         [DataMember]
         public int StartupOrder;
 
+        /// <summary>
+        /// Is the application expected to terminate automatically
+		/// Such apps are not part of plan start success condition
+        /// </summary>
+        [DataMember]
+        public bool Volatile;
+
         [DataMember]
         public bool RestartOnCrash;
 

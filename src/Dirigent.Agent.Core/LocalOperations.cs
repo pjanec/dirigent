@@ -29,7 +29,13 @@ namespace Dirigent.Agent.Core
         Dictionary<AppIdTuple, LocalApp> localApps;
 
         /// <summary>
-        /// cached reference to the currently loaded plan
+        /// execution state of all plans
+        /// </summary>
+        Dictionary<string, PlanRuntimeInfo> planRTInfo = new Dictionary<string, PlanRuntimeInfo>();
+
+        /// <summary>
+        /// cached reference to the currently (from local UI) operated plan
+		/// makes sense just for local UI, nothing global
         /// </summary>
         ILaunchPlan currentPlan;
 
@@ -39,11 +45,7 @@ namespace Dirigent.Agent.Core
         List<ILaunchPlan> planRepo;
 
         ILauncherFactory launcherFactory;
-        LaunchDepsChecker launchDepChecker;
-        LaunchSequencer launchSequencer;
 
-
-        
         /// <summary>
         /// Whether we should launch apps during tick. False when plan is paused.
         /// </summary>
@@ -66,8 +68,6 @@ namespace Dirigent.Agent.Core
             currentPlan = null;
             planRepo = new List<ILaunchPlan>();
             this.machineId = machineId;
-
-            launchSequencer = new LaunchSequencer();
         }
 
         public AppState  GetAppState(AppIdTuple appIdTuple)
@@ -97,6 +97,13 @@ namespace Dirigent.Agent.Core
         {
             appsState[appIdTuple] = appState;
         }
+
+		// always locally cached plan state
+		public PlanState GetPlanState(ILaunchPlan plan)
+		{
+			var rti = planRTInfo[plan.Name];
+			return rti.State;
+		}
 
 		/// <summary>
 		/// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
@@ -173,38 +180,49 @@ namespace Dirigent.Agent.Core
             {
                 this.planRepo = new List<ILaunchPlan>(planRepo);
             }
+
+			// populate planRTInfo accordingly
+			foreach (var p in planRepo)
+			{
+				planRTInfo[p.Name] = new PlanRuntimeInfo();
+			}
         }
         
         /// <summary>
         /// Starts launching local apps according to current plan.
         /// </summary>
-        public void  StartPlan( ILaunchPlan currentPlan )
+        public void  StartPlan( ILaunchPlan plan )
         {
-            if (currentPlan == null)
+            if (plan == null)
                 return;
 
-            if (!currentPlan.Running)
+			var rti = planRTInfo[plan.Name];
+
+			if (!rti.State.Running)
             {
                 // trigger the launch sequencer
-                currentPlan.Running = true;
+                rti.State.Running = true;
+				//rti.planState.OpMode = PlanState.EOpMode.Started;
 
-                List<AppWave> waves = LaunchWavePlanner.build(currentPlan.getAppDefs());
-                launchDepChecker = new LaunchDepsChecker(machineId, appsState, waves);
+                List<AppWave> waves = LaunchWavePlanner.build(plan.getAppDefs());
+                rti.launchDepChecker = new LaunchDepsChecker(machineId, appsState, waves);
             }                    
         }
 
         /// <summary>
         /// Stops executing a launch plan (stop starting next applications)
         /// </summary>
-        public void StopPlan( ILaunchPlan currentPlan )
+        public void StopPlan( ILaunchPlan plan )
         {
-            if (currentPlan == null)
+            if (plan == null)
                 return;
 
-            currentPlan.Running = false;
-            launchDepChecker = null;
+			var rti = planRTInfo[plan.Name];
 
-            foreach (var a in currentPlan.getAppDefs())
+            rti.State.Running = false;
+            rti.launchDepChecker = null;
+
+            foreach (var a in plan.getAppDefs())
             {
                 appsState[a.AppIdTuple].PlanApplied = false;
             }        
@@ -213,14 +231,15 @@ namespace Dirigent.Agent.Core
         /// <summary>
         /// Kills all local apps from current plan.
         /// </summary>
-        public void  KillPlan( ILaunchPlan currentPlan )
+        public void  KillPlan( ILaunchPlan plan )
         {
- 	        if( currentPlan == null )
+ 	        if( plan == null )
                 return;
             
-            
+            var rti = planRTInfo[plan.Name];
+
             // kill all local apps belonging to the current plan
-            foreach( var a in currentPlan.getAppDefs() )
+            foreach( var a in plan.getAppDefs() )
             {
                 if( !localApps.ContainsKey( a.AppIdTuple ) )
                     continue;
@@ -242,10 +261,8 @@ namespace Dirigent.Agent.Core
             }
             
             // stop the launch sequencer
-            if (currentPlan != null)
-            {
-                currentPlan.Running = false;
-            }
+            rti.State.Running = false;
+            rti.launchDepChecker = null;
         }
 
         public void  RestartPlan( ILaunchPlan currentPlan )
@@ -392,31 +409,37 @@ namespace Dirigent.Agent.Core
         /// Checks dependency conditions and launches apps in wawes
         /// Launches max. one app at a time, next one earliest after the previous one's separation interval.
         /// </summary>
-        void processPlan( double currentTime )
+		// FIXME: presunout do PlanRuntimeInfo
+        void processPlan( double currentTime, ILaunchPlan plan )
         {
             // too frequent message filling up the log - commented out
             //log.Debug("processPlan");
 
-            // if plan is stopped, don't start contained apps
-            if( currentPlan==null || !currentPlan.Running )
+            if( plan==null )
                 return;
 
+			var rti = planRTInfo[plan.Name];
+
+            // if plan is stopped, don't start contained apps
+			if (!rti.State.Running)
+				return;
+
             // if no plan exists
-            if (launchDepChecker == null)
+            if (rti.launchDepChecker == null)
                 return;
 
             // feed the sequencer with apps whose dependencies and constraints have already been satisfied
-            if( launchSequencer.IsEmpty() )
+            if( rti.launchSequencer.IsEmpty() )
             {
-                launchSequencer.AddApps( 
-                    launchDepChecker.getAppsToLaunch()
+                rti.launchSequencer.AddApps( 
+                    rti.launchDepChecker.getAppsToLaunch()
                 );
             }
 
 
             // try to get an app to launch and launch it immediately
             
-            AppDef appToLaunch = launchSequencer.GetNext( currentTime );
+            AppDef appToLaunch = rti.launchSequencer.GetNext( currentTime );
             if( appToLaunch != null )
             {
                 // remember that the app was already processed by the launch plan and should not be touched again
@@ -483,9 +506,12 @@ namespace Dirigent.Agent.Core
         {
             // refresh to prepare fresh data for app startup condition checks
             refreshLocalAppState();
-            
-            // select and run an app from plan if all conditions are met
-            processPlan( currentTime );
+
+			// select and run an app from plan if all conditions are met
+			foreach (var p in planRepo)
+			{
+				processPlan(currentTime, p);
+			}
             
             // refresh again to set "WasLaunched" and "Running"
             refreshLocalAppState();

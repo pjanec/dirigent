@@ -59,6 +59,7 @@ namespace Dirigent.Common
                 StartupDir = (string) e.Attribute("StartupDir"),
                 CmdLineArgs = (string) e.Attribute("CmdLineArgs"),
                 StartupOrder = (string) e.Attribute("StartupOrder"),
+				Volatile = (string) e.Attribute("Volatile"),
                 RestartOnCrash = (string) e.Attribute("RestartOnCrash"),
                 InitCondition = (string) e.Attribute("InitCondition"),
                 SeparationInterval = (string) e.Attribute("SeparationInterval"),
@@ -76,6 +77,7 @@ namespace Dirigent.Common
             if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
             if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
             if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
+            if( x.Volatile != null ) a.Volatile = (int.Parse( x.Volatile ) != 0);
             if( x.RestartOnCrash != null ) a.RestartOnCrash = (int.Parse( x.RestartOnCrash ) != 0);
             if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
             if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse(x.SeparationInterval, CultureInfo.InvariantCulture );

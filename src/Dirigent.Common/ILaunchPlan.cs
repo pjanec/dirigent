@@ -5,6 +5,6 @@ namespace Dirigent.Common
     {
         System.Collections.Generic.IEnumerable<Dirigent.Common.AppDef> getAppDefs();
         string Name { get; }
-        bool Running { get; set;  }
+        //bool Running { get; set;  }
     }
 }

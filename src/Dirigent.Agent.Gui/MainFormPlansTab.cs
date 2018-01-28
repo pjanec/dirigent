@@ -34,9 +34,12 @@ namespace Dirigent.Agent.Gui
                     }
                 );
 
+				var planState = ctrl.GetPlanState(plan);
+
                 // mark currently running plan with different bacground color
                 DataGridViewRow row = gridPlans.Rows[rowIndex];
-                if( plan.Running )
+                
+				if( planState.Running )
                 {
                     row.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
                 }

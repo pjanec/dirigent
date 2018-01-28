@@ -240,7 +240,8 @@ namespace Dirigent.Agent.Gui
             string stCode = "Not running";
 
 			var currPlan = ctrl.GetCurrentPlan();
-            bool planRunning = (currPlan != null) && currPlan.Running && isPartOfPlan;
+			var planState = ctrl.GetPlanState(currPlan);
+            bool planRunning = (currPlan != null) && planState.Running && isPartOfPlan;
             bool connected = callbacks.isConnectedDeleg();
             var currTime = DateTime.UtcNow;
             bool isRemoteApp = appIdTuple.MachineId != this.machineId;

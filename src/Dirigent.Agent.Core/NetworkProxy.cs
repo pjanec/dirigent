@@ -228,6 +228,11 @@ namespace Dirigent.Agent.Core
             localOps.SetRemoteAppState(appIdTuple, state);
         }
 
+		public PlanState GetPlanState(ILaunchPlan plan)
+		{
+			return localOps.GetPlanState(plan);
+		}
+
 		public void SelectPlan(ILaunchPlan plan)
 		{
 			//client.BroadcastMessage(new SelectPlanMessage(plan));

@@ -19,6 +19,12 @@ namespace Dirigent.Common
         AppState GetAppState( AppIdTuple appIdTuple );
 
         /// <summary>
+        /// Get the status of a plan
+		/// Taken from local storage; the plan state is synchronized through plan manip command (Start/Stop/Kill...)
+        /// </summary>
+		PlanState GetPlanState(ILaunchPlan plan);
+
+        /// <summary>
         /// Get the status of all applications (no matter whether locl or remote)
         /// </summary>
         /// <returns></returns>

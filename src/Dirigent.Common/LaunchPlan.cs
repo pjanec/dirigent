@@ -15,14 +15,14 @@ namespace Dirigent.Common
         [DataMember]
         string name;
 
-        [DataMember]
-        bool running;
+        //[DataMember]
+        //bool running;
         
         public LaunchPlan( string name, List<AppDef> appDefs )
         {
             this.name = name;
             this.appDefs = appDefs;
-            this.running = false;
+            //this.running = false;
         }
 
         public IEnumerable<AppDef> getAppDefs()
@@ -35,11 +35,11 @@ namespace Dirigent.Common
             get { return name; }
         }
 
-        public bool Running
-        {
-            get { return running; }
-            set { running = value; }
-        }
+        //public bool Running
+        //{
+        //    get { return running; }
+        //    set { running = value; }
+        //}
 
         public bool Equals(ILaunchPlan other)
         {

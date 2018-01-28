@@ -55,6 +55,11 @@ namespace Dirigent.Agent.Core
             impl.SetPlanRepo(planRepo);
         }
 
+		public PlanState GetPlanState(ILaunchPlan plan)
+		{
+			return impl.GetPlanState(plan);
+		}
+
         public void StartPlan( ILaunchPlan plan )
         {
             impl.StartPlan( plan );
