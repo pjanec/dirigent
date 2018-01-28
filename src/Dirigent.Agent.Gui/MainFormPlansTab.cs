@@ -27,6 +27,7 @@ namespace Dirigent.Agent.Gui
                     new object[]
                     {
                         plan.Name,
+						"<status>",
                         ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.play), new Size(20,20)),
                         ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.stop), new Size(20,20)),
                         ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20)),
@@ -36,15 +37,30 @@ namespace Dirigent.Agent.Gui
 
 				var planState = ctrl.GetPlanState(plan.Name);
 
-                // mark currently running plan with different bacground color
-                DataGridViewRow row = gridPlans.Rows[rowIndex];
+    //            // mark currently running plan with different bacground color
+    //            DataGridViewRow row = gridPlans.Rows[rowIndex];
                 
-				if( planState.Running )
-                {
-                    row.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
-                }
+				//if( planState.Running )
+    //            {
+    //                row.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
+    //            }
             }
         }
+
+		void updatePlansStatus()
+		{
+			for(int i=0; i < gridPlans.RowCount; i++)
+			{
+				var r = gridPlans.Rows[i];
+				string planName = (string) r.Cells[0].Value;
+				var planState = ctrl.GetPlanState(planName);
+				r.Cells[1].Value = planState.OpStatus.ToString();
+
+				// mark currently running plans with different background color
+				var color = planState.Running ? Color.LightGoldenrodYellow : Color.White;
+                r.DefaultCellStyle.BackColor = color;
+			}
+		}
 
         private void gridPlans_MouseClick(object sender, MouseEventArgs e)
         {
@@ -64,25 +80,25 @@ namespace Dirigent.Agent.Gui
                     var plan = planRepo.FirstOrDefault( p => p.Name == planName );
                     
                     // icon clicks
-                    if( currentCol == 1 ) // start
+                    if( currentCol == 2 ) // start
                     {
                         guardedOp(() => ctrl.SelectPlan( plan.Name ));
                         guardedOp(() => ctrl.StartPlan(plan.Name));
                     }
                     else
-                    if( currentCol == 2 ) // stop
+                    if( currentCol == 3 ) // stop
                     {
                         guardedOp(() => ctrl.SelectPlan( plan.Name ));
                         guardedOp(() => ctrl.StopPlan(plan.Name));
                     }
                     else
-                    if( currentCol == 3 ) // kill
+                    if( currentCol == 4 ) // kill
                     {
                         guardedOp(() => ctrl.SelectPlan( plan.Name ));
                         guardedOp(() => ctrl.KillPlan(plan.Name));
                     }
                     else
-                    if( currentCol == 4 ) // restart
+                    if( currentCol == 5 ) // restart
                     {
                         guardedOp(() => ctrl.SelectPlan( plan.Name ));
                         guardedOp(() => ctrl.RestartPlan(plan.Name));

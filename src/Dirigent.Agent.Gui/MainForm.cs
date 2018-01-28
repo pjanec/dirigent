@@ -160,6 +160,8 @@ namespace Dirigent.Agent.Gui
                 planRepo = new List<ILaunchPlan>( newPlanRepo );
                 populatePlanLists();
             }
+			updatePlansStatus();
+
 
             setTitle();
         }
