@@ -6,24 +6,24 @@
 	- [DONE] each plan manipulation method takes ILaunchPlan as parameter
 
  - TimeOut for plan operations
-   - Starting: success when all apps have been launched and those that shall be running are still running
+   - [DONE] Starting: success when all apps have been launched and those that shall be running are still running
  
- - Plan control interface (Start/Kill/Restart) move to ILaunchPlan. Only plan enumaration remains in IDirigentControl
- - Plan status interface (GetPlanState returning both OpMode and OpStatus) move to ILaunchPlan.
- - Plan interpretter classes (LaunchDepsChecker, LaunchSequencer) are instantiated per plan, not as a single instance. Probably requiring local op storage for additional plan info separately from planRepo (i.e. not part of ILaunchPlan), something like planRuntimeInfo map indexed by plan name.
+ - [REJECTED] Plan control interface (Start/Kill/Restart) move to ILaunchPlan. Only plan enumaration remains in IDirigentControl
+ - [REJECTED] Plan status interface (GetPlanState returning both OpMode and OpStatus) move to ILaunchPlan.
+ - [DONE] Plan interpretter classes (LaunchDepsChecker, LaunchSequencer) are instantiated per plan, not as a single instance. Probably requiring local op storage for additional plan info separately from planRepo (i.e. not part of ILaunchPlan), something like planRuntimeInfo map indexed by plan name.
  - A plan has new operation state attributes
-   - OpMode - None/Kill/Start/Restart... what most recent operation was perfromaned with the plan
-   - OpStatus - None/OK/InProgress/Failed ... what is the
+   - [REJECTED] OpMode - None/Kill/Start/Restart... what most recent operation was perfromaned with the plan [UPDATE] Just whether the plan is running or not suffices. Kill is immediate, restart is a sequence of Kill and Start.
+   - [DONE] OpStatus - None/OK/InProgress/Failed ... what is the
    - These are shared info needed by all participants and shall be part of ILaunchPlan interface and communicated to all agents.
-   - Who owns the OpMode? Can be stored locally on each agent, synchronized just by a command message StartPlan, StopPlan, KillPlan, RestartPlan? For late connected agents we need a central MasterAgent as the command message is missed... 
-   - Who determines the status of a plan? Plan status should be derived from the status of its applications, locally on each agent, any time. No central storage required... 
-   Concept of Master Agent is required??
+   - [DONE] Who owns the OpMode? Can be stored locally on each agent [YES], synchronized just by a command message StartPlan, StopPlan, KillPlan, RestartPlan? For late connected agents we need a central MasterAgent as the command message is missed... [DONE]
+   - [DONE] Who determines the status of a plan? Plan status should be derived from the status of its applications, locally on each agent, any time. No central storage required... 
+   Concept of Master Agent is required?? [NO]
    - [NOT REQUIRED IN DECENTRALIZED DESIGN?] New structure PlanState containing the current state of a plan. New message PlansStateMessage containing dictionary of states of all plans (like AppsStateMessage). This is necessary only for client connected after the plan was already started. Who shall send this message? Selected agent, the one that has to run always - the MasterAgent.    
 
  - MasterAgent
    - An agent with IDirigentControl interface, running a message server service locally in a single application if configured so. May have local operations.
    - Master's network server should be converted into a library that is linked to Master as well as to MasterAgent.
-   - Has telnet-style interface for remote control.
+   - [DONE] Has telnet-style interface for remote control.
    - Owner of plan state? Better to do it in a centralized way...
  
 

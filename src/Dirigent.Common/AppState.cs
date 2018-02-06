@@ -21,6 +21,9 @@ namespace Dirigent.Common
         int exitCode;
         bool planApplied;
         DateTime lastChange = DateTime.UtcNow;
+		int cpu; // percentage of CPU usage
+		int gpu; // percentage of GPU usage
+		int memory; // MBytes of memory allocated
     
         /// <summary>
         /// process was launched successfully
@@ -103,6 +106,36 @@ namespace Dirigent.Common
         {
             get { return lastChange; }
             set { lastChange = value; }
+        }
+
+        /// <summary>
+        ///	percentage of CPU usage
+        /// </summary>
+        [DataMember]
+        public int CPU
+        {
+            get { return cpu; }
+            set { cpu = value; }
+        }
+
+        /// <summary>
+        ///	percentage of GPU usage
+        /// </summary>
+        [DataMember]
+        public int GPU
+        {
+            get { return gpu; }
+            set { gpu = value; }
+        }
+
+        /// <summary>
+        ///	MBytes of memory allocated
+        /// </summary>
+        [DataMember]
+        public int Memory
+        {
+            get { return memory; }
+            set { memory = value; }
         }
 
         void changed()

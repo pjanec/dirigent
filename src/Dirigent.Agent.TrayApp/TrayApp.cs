@@ -41,20 +41,20 @@ namespace Dirigent.Agent.TrayApp
             Application.SetCompatibleTextRenderingDefault(false);
 
             InitializeTrayIcon();
-            try
-            {
-                InitializeMainForm();
-                Application.Run( new MyApplicationContext() );
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex);
-                ExceptionDialog.showException(ex, "Dirigent Exception", "");
-            }
-            finally
-            {
-                DeinitializeMainForm();
-            }
+			try
+			{
+				InitializeMainForm();
+				Application.Run( new MyApplicationContext() );
+			}
+			catch( Exception ex )
+			{
+				log.Error( ex );
+				ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+			}
+			finally
+			{
+				DeinitializeMainForm();
+			}
         }
 
         void InitializeTrayIcon()

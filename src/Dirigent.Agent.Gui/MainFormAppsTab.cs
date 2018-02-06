@@ -239,9 +239,6 @@ namespace Dirigent.Agent.Gui
         {
             string stCode = "Not running";
 
-			var currPlan = ctrl.GetCurrentPlan();
-			var planState = ctrl.GetPlanState(currPlan.Name);
-            bool planRunning = (currPlan != null) && planState.Running && isPartOfPlan;
             bool connected = callbacks.isConnectedDeleg();
             var currTime = DateTime.UtcNow;
             bool isRemoteApp = appIdTuple.MachineId != this.machineId;
@@ -252,10 +249,16 @@ namespace Dirigent.Agent.Gui
                 return stCode;
             }
 
-            if( planRunning && !st.PlanApplied )
-            {
-                stCode = "Planned";
-            }
+			var currPlan = ctrl.GetCurrentPlan();
+			if( currPlan != null)
+			{
+				var planState = ctrl.GetPlanState( currPlan.Name );
+				bool planRunning = ( currPlan != null ) && planState.Running && isPartOfPlan;
+				if( planRunning && !st.PlanApplied )
+				{
+					stCode = "Planned";
+				}
+			}
 
             if (st.Started)
             {

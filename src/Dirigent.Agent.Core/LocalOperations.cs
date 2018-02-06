@@ -118,29 +118,9 @@ namespace Dirigent.Agent.Core
 			rti.State = state;
 		}
 
-		/// <summary>
-		/// Prepares for starting a new plan. Merges the appdefs from the plan with the current ones (add new, replace existing).
-		/// </summary>
-		/// <param name="plan"></param>
-		public void SelectPlan(string planName)
+		// Merges the appdefs from the plan with the current ones (add new, replace existing).
+		private void AdoptPlan( ILaunchPlan plan )
 		{
-			//if (plan == null)
-			//{
-			//    throw new ArgumentNullException("plan");
-			//}
-
-			// stop the current plan
-			// FIXME: shall we stop? Now we have many plans. No one can be stopped implicitely...
-			//StopPlan();
-
-			// change the current plan to this one
-
-            if (string.IsNullOrEmpty(planName))
-                return;
-
-			var plan = planRTInfo[planName].Plan;
-			currentPlan = plan;
-
 			// add record for not yet existing apps
 			foreach (var a in plan.getAppDefs())
 			{
@@ -173,6 +153,24 @@ namespace Dirigent.Agent.Core
 			}
 		}
 
+		/// <summary>
+		/// Prepares for starting a new plan. 
+		/// </summary>
+		/// <param name="plan"></param>
+		public void SelectPlan(string planName)
+		{
+			// change the current plan to this one
+
+            if (string.IsNullOrEmpty(planName))
+                return;
+
+			var plan = planRTInfo[planName].Plan;
+
+			AdoptPlan( plan );
+
+			currentPlan = plan;
+		}
+
 		public ILaunchPlan GetCurrentPlan()
 		{
 			return currentPlan;
@@ -198,6 +196,7 @@ namespace Dirigent.Agent.Core
 			foreach (var p in planRepo)
 			{
 				planRTInfo[p.Name] = new PlanRuntimeInfo(p);
+				AdoptPlan( p );
 			}
         }
         
@@ -210,6 +209,8 @@ namespace Dirigent.Agent.Core
                 return;
 
 			var rti = planRTInfo[planName];
+
+			AdoptPlan( rti.Plan );
 
 			if (!rti.State.Running)
             {
@@ -250,6 +251,8 @@ namespace Dirigent.Agent.Core
                 return;
             
             var rti = planRTInfo[planName];
+
+			AdoptPlan( rti.Plan );
 
             // kill all local apps belonging to the current plan
             foreach( var a in rti.Plan.getAppDefs() )

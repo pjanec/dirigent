@@ -167,9 +167,12 @@ namespace Dirigent.Agent.Core
 
 				// if master's plan is same as ours, do not do anything, othewise load master's plan
 				var localPlan = localOps.GetCurrentPlan();
-				if( localPlan.Name != m.planName )
+				if( localPlan != null )
 				{
-					localOps.SelectPlan(m.planName);
+					if( localPlan.Name != m.planName )
+					{
+						localOps.SelectPlan( m.planName );
+					}
 				}
 			}
 			else

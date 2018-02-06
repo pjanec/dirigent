@@ -70,7 +70,11 @@
     <Compile Include="AppState.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="AutoconClient.cs" />
+    <Compile Include="CLIServer.cs" />
+    <Compile Include="CommandRepository.cs" />
     <Compile Include="DictionaryUtils.cs" />
+    <Compile Include="DirigentControlCommands.cs" />
+    <Compile Include="ICommand.cs" />
     <Compile Include="MachineConfigHelper.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Exceptions.cs" />
@@ -84,10 +88,12 @@
     <Compile Include="MasterService.cs" />
     <Compile Include="MasterServiceContracts.cs" />
     <Compile Include="Messages.cs" />
+    <Compile Include="MyCommandRepo.cs" />
     <Compile Include="PlanState.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SharedXmlConfigReader.cs" />
+    <Compile Include="Tools.cs" />
     <Compile Include="XmlConfigReaderUtils.cs" />
   </ItemGroup>
   <ItemGroup>

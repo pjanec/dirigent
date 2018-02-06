@@ -11,5 +11,8 @@
     <Setting Name="StartupPlan" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="CLIPort" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">5050</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

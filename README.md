@@ -213,6 +213,96 @@ The following options changes the mode of operation:
 
  `--startupPlan <plan_name>` ... what plan to be forced (make selected) on agents when they connect to master
 
+ `--CLIPort 5050` ... what TPC port to run the Command Line Interface server on
+
+
+### Agent Command Line Interface over TCP line-based connection
+
+Master is running a TCP server providing for controlling agents' operations.
+
+TCP server allows multiple simultaneous clients. Server accepts single text line based requests from clients. Line separation character is `\n`. For each request the server sends back one or more status reply lines depending on the command type. Each request can be optionally marked with request id which is then used to mark appropriate response lines. Requests are buffered and processed sequentially, response may come later. Clients do not need to wait for a response before sending another request.
+
+##### Request line format:
+  `[optional-req-id] request command text till the end of line\n`
+  
+##### Response line format:
+  `[optional-req-id] response text till the end of line\n`
+
+##### Request commands
+  `StartPlan <planName>` .... starts given plan, i.e. start launching apps
+  `StopPlan <planName>` ..... stops starting next applications from the plan
+  `KillPlan <planName>` ..... kills given plans (kills all its apps)
+  `RestartPlan <planName>` .. stops all apps and starts the plan again
+   
+  `LaunchApp <appId>` ....... starts given app
+  `KillApp <appId>` ......... kills given app
+  `RestartApp <appId>` ...... restarts given app
+  
+  `GetPlanState <planName>`  returns the status of given plan
+  `GetAppState <planName>`   returns the status of given app
+  
+  `GetAllPlansState` ..... returns one line per plan; last line will be "END\n"
+  `GetAllAppsState` ...... returns one line per application; last line will be "END\n"
+
+
+##### Response text for GetPlanState
+  `PLAN:<planName>:None`
+  `PLAN:<planName>:InProgress`
+  `PLAN:<planName>:Failure`
+  `PLAN:<planName>:Success`
+   
+##### Response text for GetAppState
+  `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>`
+  
+###### Flags
+   Each letter represents one status flag. If letter is missing, flag is cleared.
+  `S` = started
+  `F` = start failed
+  `R` = running
+  `K` = killed
+  `I` = initialized
+  `P` = plan applied
+  
+###### ExitCode
+  Integer number	if exit code (valid only if aff has exited, i.e. Started but not Running)
+###### StatusAge
+  Number of seconds since last update of the app state
+###### CPU
+  Integer percentage of CPU usage
+###### GPU
+  Integer percentage of GPU usage
+###### MemoryMB
+  Integer number of MBytes used
+
+##### Response text for other commands
+  `ACK\n` ... command reception was acknowledged, command was issued
+  `ERROR: error text here\n`
+  `END\n` ..... ends the list in case the command is expected to produce multiple line response
+
+###### Using request id
+  Request:   `[001] StartPlan plan1`
+  Response:	 `[001] ACK`
+
+###### Leaving out the request id
+  Request:   `KillPlan plan2`
+  Response:	 `ACK`
+
+###### Wrong identifier
+  Request:   `KillPlan invalidPlan1`
+  Response:	 `ERROR: Plan 'invalidPlan1' does not exist`
+
+###### Starting an application
+  Request:   `[002] StartApp m1.a`
+  Response:	 `[002] ACK`
+
+###### Getting plan status
+  Request:   `[003] GetPlanStatus plan1`
+  Response:	 `[003] PLAN:plan1:InProgress`
+
+###### Getting app status
+  Request:   `GetAppStatus m1.a1`
+  Response:	 `APP:m1.a:SIP:255:10:34:0:7623`
+
 
 ### Agent Console Command Line Utility
 
@@ -228,11 +318,13 @@ The commands just simply follow the available agent actions, please see chapter 
     StopPlan <planId>
     KillPlan <planId>
     RestartPlan <planId>
-    
-    LanuchApp <appId>
+
+    LaunchApp <appId>
     KillApp <appId>
     RestartApp <appId>
-    
+
+Multiple commands on a single line can be separated by semicolon
+	`agentcmd.exe LaunchApp m1.a;StartPlan plan1`
 
  
 ## Configuration

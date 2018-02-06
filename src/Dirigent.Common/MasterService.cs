@@ -150,7 +150,10 @@ namespace Dirigent.Net
                 return;
             }
 
-            log.Debug(string.Format("Broadcasting message: {0}", msg.ToString()));
+			if( msg.GetType() != typeof( AppsStateMessage ) )
+			{
+				log.Debug( string.Format( "Broadcasting message: {0}", msg.ToString() ) );
+			}
 
             // put to message queue for each client, including the sender (agents rely on that!)
             lock( clients )

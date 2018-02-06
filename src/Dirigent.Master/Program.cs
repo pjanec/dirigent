@@ -35,6 +35,9 @@ namespace Dirigent.Master
         [Option("startupPlan", Required = false, DefaultValue = "", HelpText = "Plan to be started on startup.")]
         public string StartupPlan { get; set; }
 
+        [Option("CLIPort", Required = false, DefaultValue = 0, HelpText = "Master's Command Line Interface TCP port.")]
+        public int CLIPort { get; set; }
+
 
         [ParserState]
         public IParserState LastParserState { get; set; }
@@ -56,6 +59,8 @@ namespace Dirigent.Master
 		/// Local agent used to gather apps and plan state and server TCP telnet requests
 		/// </summary>
 		static Dirigent.Agent.Core.Agent agent;
+
+		static CLIServer cliServer;
 			
 		class AppConfig
         {
@@ -66,6 +71,7 @@ namespace Dirigent.Master
             public string logFileName = "";
             public string startupPlanName = "";
             public SharedConfig scfg = null;
+            public int CLIPort = 5033;
         }
 
         static AppConfig getAppConfig()
@@ -76,6 +82,7 @@ namespace Dirigent.Master
             if (Properties.Settings.Default.MasterPort != 0) ac.masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.SharedConfigFile != "") ac.sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
             if (Properties.Settings.Default.StartupPlan != "") ac.startupPlanName = Properties.Settings.Default.StartupPlan;
+            if (Properties.Settings.Default.CLIPort != 0) ac.CLIPort = Properties.Settings.Default.CLIPort;
 
             // overwrite with command line options
             var options = new Options();
@@ -85,6 +92,7 @@ namespace Dirigent.Master
                 if (options.SharedConfigFile != "") ac.sharedCfgFileName = options.SharedConfigFile;
                 if (options.LogFile != "") ac.logFileName = options.LogFile;
                 if (options.StartupPlan != "") ac.startupPlanName = options.StartupPlan;
+                if (options.CLIPort != 0) ac.CLIPort = options.CLIPort;
             }
 
             if (ac.logFileName != "")
@@ -139,8 +147,10 @@ namespace Dirigent.Master
 
                 dirigClient.Connect(); // connect should succeed immediately (server runs locally)
 
-				// TODO: start a telnet client server
-				// ...
+				// start a telnet client server
+                log.InfoFormat("Command Line Interface running on port {0}", ac.CLIPort);
+				cliServer = new CLIServer( "0.0.0.0", ac.CLIPort, agent.Control );
+				cliServer.Start();
 
             }
             catch (Exception ex)
@@ -159,6 +169,7 @@ namespace Dirigent.Master
 			while (true)
 			{
 				agent.tick();
+				cliServer.Tick();
 				Thread.Sleep(500);
 			}
         }

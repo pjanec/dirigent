@@ -29,23 +29,52 @@ namespace Dirigent.Agent.Gui
                 MessageBoxIcon.Information);
         }
 
-        private void startPlanMenuItem_Click(object sender, EventArgs e)
+		private void ShowNoPlanSelectedError()
+		{
+            MessageBox.Show(
+                "No plan selected. Select a plan first.",
+                "Dirigent",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+		}
+
+		private void startPlanMenuItem_Click(object sender, EventArgs e)
         {
-            guardedOp( ()=> ctrl.StartPlan(ctrl.GetCurrentPlan().Name) );
+			if( ctrl.GetCurrentPlan() == null )
+			{
+				ShowNoPlanSelectedError();	
+				return;
+			}
+			guardedOp( ()=> ctrl.StartPlan(ctrl.GetCurrentPlan().Name) );
         }
 
         private void stopPlanMenuItem_Click(object sender, EventArgs e)
         {
+			if( ctrl.GetCurrentPlan() == null )
+			{
+				ShowNoPlanSelectedError();	
+				return;
+			}
             guardedOp(() => ctrl.StopPlan(ctrl.GetCurrentPlan().Name));
         }
 
         private void killPlanMenuItem_Click(object sender, EventArgs e)
         {
+			if( ctrl.GetCurrentPlan() == null )
+			{
+				ShowNoPlanSelectedError();	
+				return;
+			}
             guardedOp(() => ctrl.KillPlan(ctrl.GetCurrentPlan().Name) );
         }
 
         private void restartPlanMenuItem_Click(object sender, EventArgs e)
         {
+			if( ctrl.GetCurrentPlan() == null )
+			{
+				ShowNoPlanSelectedError();	
+				return;
+			}
             guardedOp(() => ctrl.RestartPlan(ctrl.GetCurrentPlan().Name));
         }
 
