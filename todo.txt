@@ -1,4 +1,7 @@
-﻿MultiPlan changes
+﻿Fix: Dirigent master crashes on starting a process whose directory is invalid, after showing proper error message on the node that issued the command.
+ 
+
+MultiPlan changes
  - Multiple plans can run simultanously (expected not to collide with each other). No longer the concept of a globally selected single plan. Selected plan concept now works only in a single GUI agent as its internal state, not globally across agents anymore.
  - IDirigentControl
 	- [DONE] SelectPlan works only in local agent's scope
@@ -26,6 +29,23 @@
    - [DONE] Has telnet-style interface for remote control.
    - Owner of plan state? Better to do it in a centralized way...
  
+
+Computer name as agent's machineId  automatically? If machineId from config/cmdline is empty, use computer name
+ 
+Dirigent config defined "macro variables" that can be used within dirigent config in similar way as environment variables. Config-variables will be resolved first and can be overriden by envvars.
+  - whole-config scope
+        <Shared>
+            <Set Variable="xyz">
+  - launch plan scope
+        <Shared>
+            <Plan Name="plan1">
+                <Set Variable="xyz">
+    
+  - application definition local (%APPNAME%)
+
+Define config variables on agent's command line
+
+One agent to run/keep alive master process automatically (command line option --IsMaster)
 
 Fix: Object reference not set exception sometimes when launching a process
 

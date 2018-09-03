@@ -160,18 +160,34 @@ namespace Dirigent.Master
             }
         }
 
+        static void Run()
+        {
+            // run forever
+            while (true)
+            {
+	            agent.tick();
+	            cliServer.Tick();
+	            Thread.Sleep(500);
+            }
+        }
+
         static void Main(string[] args)
         {
             Initialize();
             Console.WriteLine("Press Ctr+C to stop the server.");
 			
-			// run forever
-			while (true)
-			{
-				agent.tick();
-				cliServer.Tick();
-				Thread.Sleep(500);
-			}
+			while(true)
+            {
+                try
+                {
+                    Run();
+                }
+                catch (RemoteOperationErrorException ex) // an error from another agent received
+                {
+                    log.Info("RemoteOp error: "+Tools.JustFirstLine(ex.ToString()));
+                }
+            }
+
         }
 
     }

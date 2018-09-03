@@ -6,7 +6,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Common
 {
-	class Tools
+	public class Tools
 	{
 		public static ILaunchPlan FindPlanByName(IEnumerable<ILaunchPlan> planRepo, string planName)
 		{
