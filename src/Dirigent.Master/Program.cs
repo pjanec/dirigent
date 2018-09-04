@@ -124,11 +124,16 @@ namespace Dirigent.Master
             }
         }
 
-        static void Initialize()
+        static bool Initialize()
         {
             try
             {
                 var ac = getAppConfig();
+
+                if (AppInstanceAlreadyRunning(ac.masterPort))
+                {
+                    throw new Exception("Another instance of Dirigent Master is already running!");
+                }
 
                 log.InfoFormat("Master running on port {0}", ac.masterPort);
 
@@ -152,16 +157,20 @@ namespace Dirigent.Master
 				cliServer = new CLIServer( "0.0.0.0", ac.CLIPort, agent.Control );
 				cliServer.Start();
 
+                return true;
+
             }
             catch (Exception ex)
             {
                 log.Error(ex);
                 //ExceptionDialog.showException(ex, "Dirigent Exception", "");
+                return false;
             }
         }
 
         static void Run()
         {
+            Console.WriteLine("Press Ctr+C to stop the server.");
             // run forever
             while (true)
             {
@@ -171,11 +180,28 @@ namespace Dirigent.Master
             }
         }
 
+        static Mutex singleInstanceMutex;
+
+        static bool AppInstanceAlreadyRunning(int port)
+        {
+            bool createdNew;
+
+            singleInstanceMutex = new Mutex(true, String.Format("DirigentMaster_{0}", port), out createdNew);
+
+            if (!createdNew)
+            {
+                // myApp is already running...
+                return true;
+            }
+            return false;
+        }
+
+
         static void Main(string[] args)
         {
-            Initialize();
-            Console.WriteLine("Press Ctr+C to stop the server.");
-			
+            if( !Initialize() )
+                return;
+
 			while(true)
             {
                 try

@@ -75,7 +75,7 @@ Support for multiple retries when launching a problematically starting applicati
 
 Failure timeout for app bootup detector.
 
-Prevent multiple instances of agent with the same name (machineId:port)
+[DONE] Prevent multiple instances of agent with the same name (machineId:port)
 
 [NOT IMPORTANT] Send launch plan over the network as XML string and parse it on each endpoint - no need to have comparable AppDefs etc. NOT MUCH NEEDED
 

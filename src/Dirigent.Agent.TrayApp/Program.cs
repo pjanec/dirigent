@@ -4,6 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Windows.Forms;
 using System.Configuration;
+using System.Threading;
 
 using Dirigent.Common;
 using Dirigent.Agent.Core;
@@ -44,6 +45,7 @@ namespace Dirigent.Agent.TrayApp
                 App app;
                 if (ac.mode.ToLower() == "daemon")
                 {
+                    if( AppInstanceAlreadyRunning(ac.masterIP, ac.masterPort, ac.machineId, true)) return;
                     app = new DaemonApp(ac);
                     if( ac.HadErrors )
                     {
@@ -68,6 +70,8 @@ namespace Dirigent.Agent.TrayApp
                         MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsinbg command line arguments" );
                     }
 
+                    if( AppInstanceAlreadyRunning(ac.masterIP, ac.masterPort, ac.machineId, false)) return;
+
                     app = new TrayApp(ac);
                 }
                 app.run();
@@ -77,5 +81,27 @@ namespace Dirigent.Agent.TrayApp
                 log.Error(ex);
             }
         }
+
+        static Mutex singleInstanceMutex;
+
+        static bool AppInstanceAlreadyRunning(string masterIp, int masterPort, string machineId, bool quiet)
+        {
+            bool createdNew;
+
+            singleInstanceMutex = new Mutex(true, String.Format("DirigentAgent_{0}_{1}_{2}", masterIp, masterPort, machineId), out createdNew);
+
+            if (!createdNew)
+            {
+                // myApp is already running...
+                log.Error("Another instance of Dirigent Agent is already running!");
+                if(!quiet)
+                {
+                    MessageBox.Show( "Another instance of Dirigent Agent is already running!", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Exclamation );
+                }
+                return true;
+            }
+            return false;
+        }
+
     }
 }
