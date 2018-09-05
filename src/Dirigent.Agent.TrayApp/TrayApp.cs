@@ -24,7 +24,7 @@ namespace Dirigent.Agent.TrayApp
         frmMain mainForm;
         Dirigent.Net.IClient client;
         NotifyIcon notifyIcon;
-
+        MasterRunner masterRunner;
 
         class MyApplicationContext : ApplicationContext
         {
@@ -35,8 +35,40 @@ namespace Dirigent.Agent.TrayApp
             this.ac = ac;
         }
 
+        private void InitializeMaster()
+        {
+            if( AppConfig.BoolFromString(ac.isMaster) )
+            {
+                masterRunner = new MasterRunner();
+                masterRunner.Port = ac.masterPort;
+                masterRunner.SharedConfigFile = ac.sharedCfgFileName;
+                try
+                {
+                    masterRunner.Launch();
+                    masterRunner.StartKeepAlive();
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex);
+                    ExceptionDialog.showException( ex, "Dirigent Exception", "" );    
+                    masterRunner = null;
+                }
+            }
+        }
+
+        private void DeinitializeMaster()
+        {
+            if( masterRunner != null )
+            {
+                masterRunner.Dispose();
+                masterRunner = null;
+            }
+        }
+
         public void run()
         {
+            InitializeMaster();
+        
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -54,6 +86,7 @@ namespace Dirigent.Agent.TrayApp
 			finally
 			{
 				DeinitializeMainForm();
+                DeinitializeMaster();
 			}
         }
 
@@ -64,12 +97,25 @@ namespace Dirigent.Agent.TrayApp
             notifyIcon = new NotifyIcon(components);
             notifyIcon.Text = "Dirigent";
             notifyIcon.Icon = Dirigent.Agent.TrayApp.Properties.Resources.AppIcon;
-            notifyIcon.ContextMenu = new ContextMenu(
-                                        new MenuItem[] 
-                                        {
-                                            new MenuItem("Show", new EventHandler( (s,e) => Show() )),
-                                            new MenuItem("Exit", new EventHandler( (s,e) => Exit() ))
-                                        });
+            
+            var menuItems = new List<MenuItem>();
+            menuItems.Add( new MenuItem("Show", new EventHandler( (s,e) => Show() )) );
+            if( masterRunner != null )
+            {
+                menuItems.Add( new MenuItem("Master's Console", new EventHandler( (s,e) =>
+                {
+                    MenuItem mi = s as MenuItem;
+                    if( masterRunner != null )
+                    {
+                        masterRunner.IsConsoleShown = !mi.Checked;
+                        mi.Checked = masterRunner.IsConsoleShown;
+                    }
+                }
+                )) );
+            }
+            menuItems.Add( new MenuItem("Exit", new EventHandler( (s,e) => Exit() )) );
+
+            notifyIcon.ContextMenu = new ContextMenu( menuItems.ToArray() );
             notifyIcon.Visible = true;
             notifyIcon.DoubleClick += new EventHandler((s, e) => Show());
         }

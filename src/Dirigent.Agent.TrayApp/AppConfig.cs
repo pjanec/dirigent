@@ -37,6 +37,9 @@ namespace Dirigent.Agent.TrayApp
         [Option("startHidden", Required = false, DefaultValue = "", HelpText = "Start with Dirigent GUI hidden in tray [0|1].")]
         public string StartHidden { get; set; }
 
+        [Option("isMaster", Required = false, DefaultValue = "", HelpText = "Start Master process automatically [0|1].")]
+        public string IsMaster { get; set; }
+
         [Option("mode", Required = false, DefaultValue = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui].")]
         public string Mode { get; set; }
 
@@ -64,6 +67,7 @@ namespace Dirigent.Agent.TrayApp
         public string startHidden = "0"; // "0" or "1"
         public string mode = "trayGui"; // "trayGui", "remoteControlGui", "daemon"
         public SharedConfig scfg = null;
+        public string isMaster = "0"; // "1"=run the master process automatically
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -87,6 +91,8 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.StartupPlan != "") startupPlanName = Properties.Settings.Default.StartupPlan;
             if (Properties.Settings.Default.StartHidden != "") startHidden = Properties.Settings.Default.StartHidden;
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
+            if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
+            if (Properties.Settings.Default.IsMaster != "") isMaster = Properties.Settings.Default.IsMaster;
 
             // overwrite with command line options
             var args = System.Environment.GetCommandLineArgs();
@@ -101,6 +107,7 @@ namespace Dirigent.Agent.TrayApp
                 if (options.StartupPlan != "") startupPlanName = options.StartupPlan;
                 if (options.StartHidden != "") startHidden = options.StartHidden;
                 if (options.Mode != "") mode = options.Mode;
+                if (options.IsMaster != "") isMaster = options.IsMaster;
             }
             else
             {

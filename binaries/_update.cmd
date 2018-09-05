@@ -11,10 +11,10 @@ copy ..\src\Dirigent.Agent.Gui\bin\%CFG%\Dirigent.Agent.Gui.dll .\
 
 copy ..\src\Dirigent.Common\bin\%CFG%\Dirigent.Common.dll  .\
 
-copy ..\src\Dirigent.Master\bin\%CFG%\Master.exe.*  .\
+copy ..\src\Dirigent.Master\bin\%CFG%\Dirigent.Master.exe.*  .\
 
-copy ..\src\Dirigent.Agent.TrayApp\bin\%CFG%\agent.exe.* .\
+copy ..\src\Dirigent.Agent.TrayApp\bin\%CFG%\Dirigent.Agent.exe.* .\
 
-copy ..\src\Dirigent.Agent.CmdLineCtrl\bin\%CFG%\agentcmd.exe.* .\
+copy ..\src\Dirigent.Agent.CmdLineCtrl\bin\%CFG%\Dirigent.AgentCmd.exe.* .\
 
 

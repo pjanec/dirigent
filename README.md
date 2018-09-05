@@ -58,7 +58,7 @@ The shared configuration file can be present either just on master or an identic
 ### Basic steps
 
 #### Configure launch plans
-Define launch plans, i.e. what apps to start on what computer in what order. Store it into a `SharedConfig.xml` config file next to `master.exe`.
+Define launch plans, i.e. what apps to start on what computer in what order. Store it into a `SharedConfig.xml` config file next to `Dirigent.Master.exe`.
 
 For example the following plan opens a notepad app first on machine `m1` with file `c:\aaa.txt`. Then, in 2 seconds from launching the notepad on machine m1, it opens another notepad on machine `m2` with file `c:\bbb.txt`. Because of the dependency between those apps, the second notepad won't be launched if the first notepad doesn't start (from any reason).
 
@@ -111,7 +111,7 @@ Start a master process on one of the machines. Master is not necessary in single
 
 On master machine:
 
-    master.exe --masterPort 5045 --startupPlan plan1
+    Dirigent.Master.exe --masterPort 5045 --startupPlan plan1
 
 #### Deploy agents
 On each machine install an agent application.
@@ -122,22 +122,22 @@ You can specify the IP address and port of the master and machineId of in the lo
 
 On first machine:
 
-    agent.exe --machineId m1 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
+    Dirigent.Agent.exe --machineId m1 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
 On second machine:
 
-    agent.exe --machineId m2 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
+    Dirigent.Agent.exe --machineId m2 --mode trayGui --startHidden 1 --masterIp 10.1.1.2 --masterPort 5045
 
 #### Load and start a launch plan
 Select a launch plan to start, issue a Select Plan command followed by a Start Plan command.
 
 For example using a command ling control app:
 
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan plan1
+    Dirigent.AgentCmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan plan1
 
 Multiple commands can be executed at once if separated by a semicolon. For example  
 
-    agentcmd.exe --masterIp 10.1.1.2 --masterPort 5045 Start plan1; StartPlan plan2
+    Dirigent.AgentCmd.exe --masterIp 10.1.1.2 --masterPort 5045 Start plan1; StartPlan plan2
 
     
 ### Available Actions
@@ -202,6 +202,8 @@ The following options changes the mode of operation:
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
  
+ `--isMaster 0|1` .... start master process automatically (no need to run it separately then)
+
 ### Master configuration options
 `master.exe` is a console application designed to run in background on one of the computers.
 

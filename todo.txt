@@ -43,9 +43,9 @@ Dirigent config defined "macro variables" that can be used within dirigent confi
     
   - application definition local (%APPNAME%)
 
+Autoupdate feature: on network message locate new binaries (in some subdir), run an updater process with instructions how to update and how to restart after that. Updater process copies binaries from the subdir and re-launches the agent, now running from new updated binaries.
+  
 Define config variables on agent's command line
-
-One agent to run/keep alive master process automatically (command line option --IsMaster)
 
 Fix: Object reference not set exception sometimes when launching a process
 
@@ -74,6 +74,8 @@ Support for disabling an application before starting a launch plan. NOT MUCH USE
 Support for multiple retries when launching a problematically starting application.
 
 Failure timeout for app bootup detector.
+
+[DONE] One agent to run/keep alive master process automatically (command line option --IsMaster 1)
 
 [DONE] Prevent multiple instances of agent with the same name (machineId:port)
 

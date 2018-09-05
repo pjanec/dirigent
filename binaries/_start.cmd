@@ -1,9 +1,9 @@
-agentcmd.exe StopPlan
+Dirigent.AgentCmd.exe StopPlan
 
-taskkill /im master.exe
-taskkill /im agent.exe
+taskkill /im Dirigent.Master.exe
+taskkill /im Dirigent.Agent.exe
 
 timeout /t 5
 
-start master
-start agent
+start Dirigent.Master
+start Dirigent.Agent
