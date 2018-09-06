@@ -40,6 +40,9 @@ namespace Dirigent.Agent.TrayApp
         [Option("isMaster", Required = false, DefaultValue = "", HelpText = "Start Master process automatically [0|1].")]
         public string IsMaster { get; set; }
 
+        [Option("CLIPort", Required = false, DefaultValue = 0, HelpText = "Master's Command Line Interface TCP port (passed to Master process).")]
+        public int CLIPort { get; set; }
+
         [Option("mode", Required = false, DefaultValue = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui].")]
         public string Mode { get; set; }
 
@@ -61,6 +64,7 @@ namespace Dirigent.Agent.TrayApp
         //public string localCfgFileName = Path.Combine(Application.StartupPath, "LocalConfig.xml");
         public string machineId = System.Environment.MachineName;
         public int masterPort = 5032;
+        public int cliPort = 5050;
         public string masterIP = "127.0.0.1";
         public string logFileName = "";
         public string startupPlanName = "";
@@ -93,6 +97,7 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
             if (Properties.Settings.Default.IsMaster != "") isMaster = Properties.Settings.Default.IsMaster;
+            if (Properties.Settings.Default.CLIPort != 0) cliPort = Properties.Settings.Default.CLIPort;
 
             // overwrite with command line options
             var args = System.Environment.GetCommandLineArgs();
@@ -108,6 +113,7 @@ namespace Dirigent.Agent.TrayApp
                 if (options.StartHidden != "") startHidden = options.StartHidden;
                 if (options.Mode != "") mode = options.Mode;
                 if (options.IsMaster != "") isMaster = options.IsMaster;
+                if (options.CLIPort != 0) cliPort = options.CLIPort;
             }
             else
             {

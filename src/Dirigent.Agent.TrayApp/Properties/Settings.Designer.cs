@@ -106,5 +106,14 @@ namespace Dirigent.Agent.TrayApp.Properties {
                 return ((string)(this["IsMaster"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5050")]
+        public int CLIPort {
+            get {
+                return ((int)(this["CLIPort"]));
+            }
+        }
     }
 }

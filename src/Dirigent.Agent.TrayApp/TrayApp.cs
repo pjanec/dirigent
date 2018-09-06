@@ -40,7 +40,9 @@ namespace Dirigent.Agent.TrayApp
             if( AppConfig.BoolFromString(ac.isMaster) )
             {
                 masterRunner = new MasterRunner();
-                masterRunner.Port = ac.masterPort;
+                masterRunner.MasterPort = ac.masterPort;
+                masterRunner.CLIPort = ac.cliPort;
+                masterRunner.StartupPlan = ac.startupPlanName;
                 masterRunner.SharedConfigFile = ac.sharedCfgFileName;
                 try
                 {

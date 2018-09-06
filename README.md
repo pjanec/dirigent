@@ -112,6 +112,9 @@ Start a master process on one of the machines. Master is not necessary in single
 On master machine:
 
     Dirigent.Master.exe --masterPort 5045 --startupPlan plan1
+	
+	
+Alternatively, you can configure one of the dirigent agents to run the master process automatically. See the --IsMaster command line argument of Diregent.Agent process.
 
 #### Deploy agents
 On each machine install an agent application.
@@ -164,7 +167,7 @@ The Dirigent can work either with whole launch plan or with an individual applic
  - **Restart App.** The app is first killed and then launched again.
 
 ### Agent configuration options
-`agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
+`Diregent.Agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
 
 The options can be specified either on the command line (prefixed with double dash `--`, for example `--optionName`) or in the `agent.config` file located next to the agent executable.
 
@@ -204,8 +207,10 @@ The following options changes the mode of operation:
  
  `--isMaster 0|1` .... start master process automatically (no need to run it separately then)
 
+ `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
+
 ### Master configuration options
-`master.exe` is a console application designed to run in background on one of the computers.
+`Dirigent.Master.exe` is a console application designed to run in background on one of the computers.
 
  `--masterPort 5042` ... what TPC port to run on
 
@@ -310,7 +315,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
  
- `agentcmd.exe <command> <arg1> <arg2> ...`
+ `Dirigent.AgentCmd.exe <command> <arg1> <arg2> ...`
  
 Zero exit code is returned on success, positive error code on failure.
 
@@ -326,7 +331,7 @@ The commands just simply follow the available agent actions, please see chapter 
     RestartApp <appId>
 
 Multiple commands on a single line can be separated by semicolon
-	`agentcmd.exe LaunchApp m1.a;StartPlan plan1`
+	`Diregent.AgentCmd.exe LaunchApp m1.a;StartPlan plan1`
 
  
 ## Configuration
