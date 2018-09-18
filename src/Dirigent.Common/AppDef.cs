@@ -58,8 +58,11 @@ namespace Dirigent.Common
         [DataMember]
         public List<string> Dependencies;
 
+        /// <summary>
+        /// Shall it be processed as part of plan?
+        /// </summary>
         [DataMember]
-        public bool Enabled;
+        public bool Disabled;
 
         [DataMember]
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also

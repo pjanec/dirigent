@@ -86,6 +86,9 @@ namespace Dirigent.Common
         // kill specified app
         void KillApp(AppIdTuple appIdTuple);
 
+        // disable (do not run as part of plan)
+        void SetAppEnabled(string planName, AppIdTuple appIdTuple, bool enabled);
+
 
     }
 

@@ -137,6 +137,12 @@ namespace Dirigent.Agent.Core
                 }
             }
             else
+            if (t == typeof(SetAppEnabledMessage))
+            {
+                var m = msg as SetAppEnabledMessage;
+                localOps.SetAppEnabled(m.planName, m.appIdTuple, m.enabled);
+            }
+            else
             if (t == typeof(StartPlanMessage))
             {
                 var m = msg as StartPlanMessage;
@@ -312,6 +318,11 @@ namespace Dirigent.Agent.Core
         public void KillApp(AppIdTuple appIdTuple)
         {
             client.BroadcastMessage( new KillAppMessage( appIdTuple ) );
+        }
+
+        public void SetAppEnabled(string planName, AppIdTuple appIdTuple, bool enabled)
+        {
+            client.BroadcastMessage( new SetAppEnabledMessage( planName, appIdTuple, enabled ) );
         }
     }
 }

@@ -16,6 +16,15 @@ namespace Dirigent.Agent.Gui
 {
     public partial class frmMain : Form
     {
+        const int appTabColName = 0;
+        const int appTabColStatus = 1;
+        const int appTabColIconStart = 2;
+        const int appTabColIconKill = 3;
+        const int appTabColIconRestart = 4;
+        const int appTabColEnabled = 5;
+        const int appTabNumCols = appTabColEnabled+1;
+
+
         void refreshAppList()
         {
             var plan = ctrl.GetCurrentPlan();
@@ -46,7 +55,9 @@ namespace Dirigent.Agent.Gui
             DataGridViewRow selected = null;
             
             var plan = ctrl.GetCurrentPlan();
-            var planApps = (plan != null) ? (from ad in plan.getAppDefs() select ad.AppIdTuple).ToList() : new List<AppIdTuple>();
+            
+            var planAppDefsDict = (plan != null) ? (from ad in plan.getAppDefs() select ad).ToDictionary( ad => ad.AppIdTuple, ad => ad) : new Dictionary<AppIdTuple, AppDef>();
+            var planAppIdTuples = (plan != null) ? (from ad in plan.getAppDefs() select ad.AppIdTuple).ToList() : new List<AppIdTuple>();
             var appStates = ctrl.GetAllAppsState();
             
             // remember apps from plan
@@ -62,7 +73,7 @@ namespace Dirigent.Agent.Gui
 
             foreach (DataGridViewRow item in gridApps.Rows)
             {
-                string id = item.Cells[0].Value as string;
+                string id = item.Cells[appTabColName].Value as string;
                 oldApps[id] = item;
 
                 if( item.Selected )
@@ -92,16 +103,16 @@ namespace Dirigent.Agent.Gui
                 var id = x.Key.ToString();
                 if (!oldApps.ContainsKey(id))
                 {
-                    toAdd.Add(
-                        new object[]
-                        {
-                            id,
-                            getAppStatusCode( x.Key, x.Value, planApps.Contains(x.Key) ),
-                            ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.play), new Size(20,20)),
-                            ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20)),
-                            ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.refresh), new Size(20,20))
-                        }
-                    );
+                    var appIdTuple = x.Key;
+                    var appState = x.Value;
+                    var item = new object[appTabNumCols];
+                    item[appTabColName]= id;
+                    item[appTabColStatus]= getAppStatusCode( appIdTuple, appState, planAppIdTuples.Contains(appIdTuple) );
+                    item[appTabColIconStart]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.play), new Size(20,20));
+                    item[appTabColIconKill]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20));
+                    item[appTabColIconRestart]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.refresh), new Size(20,20));
+                    item[appTabColEnabled]= false;
+                    toAdd.Add( item );
                 }
             }
             
@@ -120,21 +131,24 @@ namespace Dirigent.Agent.Gui
             {
                 if( !toRemove.Contains(o.Value) )
                 {
-                    toUpdate[o.Value] = getAppStatusCode( newApps[o.Key], ctrl.GetAppState(newApps[o.Key]), planApps.Contains(newApps[o.Key]) );
+                    toUpdate[o.Value] = getAppStatusCode( newApps[o.Key], ctrl.GetAppState(newApps[o.Key]), planAppIdTuples.Contains(newApps[o.Key]) );
                 }
             }
 
             foreach (var tu in toUpdate)
             {
                 var row = tu.Key;
-                row.Cells[1].Value = tu.Value;
+                row.Cells[appTabColStatus].Value = tu.Value;
             }
 
             // colorize the background of items from current plan
-            List<string> planAppIds = (from ad in planApps select ad.ToString()).ToList();
+            List<string> planAppIds = (from ad in planAppIdTuples select ad.ToString()).ToList();
+
             foreach (DataGridViewRow item in gridApps.Rows)
             {
                 string id = item.Cells[0].Value as string;
+                var appIdTuple = AppIdTuple.fromString(id, "");
+
                 if (planAppIds.Contains(id))
                 {
                     item.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
@@ -143,6 +157,15 @@ namespace Dirigent.Agent.Gui
                 {
                     item.DefaultCellStyle.BackColor = SystemColors.Control;
                 }
+
+                // set checkbox based on Enabled attribute od the appDef from current plan
+                var appDef = planAppDefsDict.ContainsKey(appIdTuple) ? planAppDefsDict[appIdTuple] : null;
+                var chkCell = item.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
+                chkCell.Value = appDef != null ? !appDef.Disabled : false;
+                // emulate "Disabled" grayed appearance
+                chkCell.FlatStyle = appDef != null ? FlatStyle.Standard: FlatStyle.Flat;
+                chkCell.Style.ForeColor = appDef != null ? Color.Black : Color.DarkGray;
+                chkCell.ReadOnly = appDef == null;
             }
         }
 
@@ -151,6 +174,8 @@ namespace Dirigent.Agent.Gui
             var hti = gridApps.HitTest(e.X,e.Y);
             int currentRow = hti.RowIndex;
             int currentCol = hti.ColumnIndex;
+            var plan = ctrl.GetCurrentPlan();
+            var planAppDefsDict = (plan != null) ? (from ad in plan.getAppDefs() select ad).ToDictionary( ad => ad.AppIdTuple, ad => ad) : new Dictionary<AppIdTuple, AppDef>();
 
             if (currentRow >= 0) // ignore header clicks
             {
@@ -160,6 +185,7 @@ namespace Dirigent.Agent.Gui
                 bool connected = callbacks.isConnectedDeleg();
                 bool isLocalApp = appIdTuple.MachineId == this.machineId;
                 bool isAccessible = isLocalApp || connected; // can we change its state?
+                var appDef = planAppDefsDict.ContainsKey(appIdTuple) ? planAppDefsDict[appIdTuple] : null;
 
                 if (e.Button == MouseButtons.Right)
                 {
@@ -182,6 +208,21 @@ namespace Dirigent.Agent.Gui
                     restartItem.Enabled = isAccessible && st.Running;
                     popup.Items.Add(restartItem);
 
+                    if( appDef != null && appDef.Disabled )
+                    {
+                        var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem("&Enable");
+                        setEnabledItem.Click += (s, a) => guardedOp( () => ctrl.SetAppEnabled(plan.Name, appIdTuple, true) );
+                        popup.Items.Add(setEnabledItem);
+                    }
+
+                    if( appDef != null && !appDef.Disabled )
+                    {
+                        var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem("&Disable");
+                        setEnabledItem.Click += (s, a) => guardedOp( () => ctrl.SetAppEnabled(plan.Name, appIdTuple, false) );
+                        popup.Items.Add(setEnabledItem);
+                    }
+
+
                     popup.Show(Cursor.Position);
 
                 }
@@ -189,7 +230,7 @@ namespace Dirigent.Agent.Gui
                 if (e.Button == MouseButtons.Left)
                 {
                     // icon clicks
-                    if( currentCol == 2 )
+                    if( currentCol == appTabColIconStart )
                     {
                         if( isAccessible && !st.Running )
                         {
@@ -197,7 +238,7 @@ namespace Dirigent.Agent.Gui
                         }
                     }
 
-                    if( currentCol == 3 )
+                    if( currentCol == appTabColIconKill )
                     {
                         if( isAccessible && st.Running )
                         {
@@ -205,7 +246,7 @@ namespace Dirigent.Agent.Gui
                         }
                     }
 
-                    if( currentCol == 4 )
+                    if( currentCol == appTabColIconRestart )
                     {
                         if( isAccessible && st.Running )
                         {
@@ -213,6 +254,18 @@ namespace Dirigent.Agent.Gui
                         }
                     }
                 
+                    if( currentCol == appTabColEnabled )
+                    {
+                        var wasEnabled = (bool) focused.Cells[currentCol].Value;
+                        if( plan != null )
+                        {
+                            guardedOp(() => ctrl.SetAppEnabled(plan.Name, appIdTuple, !wasEnabled));
+                        }
+                        else
+                        {
+                            //MessageBox.Show("Application is not part of selected plan. Select a different plan!", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }
                 }
             }
         }
@@ -222,15 +275,19 @@ namespace Dirigent.Agent.Gui
             // launch the app
             if (e.Button == MouseButtons.Left)
             {
-                int currentMouseOverRow = gridApps.HitTest(e.X,e.Y).RowIndex;
+                int row = gridApps.HitTest(e.X,e.Y).RowIndex;
+                int col = gridApps.HitTest(e.X,e.Y).ColumnIndex;
 
-                if (currentMouseOverRow >= 0)
+                if (row >= 0 )
                 {
-                    DataGridViewRow focused = gridApps.Rows[currentMouseOverRow];
-                    var appIdTuple = new AppIdTuple(focused.Cells[0].Value as string);
-                    var st = ctrl.GetAppState(appIdTuple);
+                    if(col == appTabColName && col == appTabColStatus )   // just Name and Status columns
+                    {
+                        DataGridViewRow focused = gridApps.Rows[row];
+                        var appIdTuple = new AppIdTuple(focused.Cells[0].Value as string);
+                        var st = ctrl.GetAppState(appIdTuple);
                     
-                    guardedOp(() => ctrl.LaunchApp(appIdTuple));
+                        guardedOp(() => ctrl.LaunchApp(appIdTuple));
+                    }
                 }
             }
         }
@@ -254,7 +311,7 @@ namespace Dirigent.Agent.Gui
 			{
 				var planState = ctrl.GetPlanState( currPlan.Name );
 				bool planRunning = ( currPlan != null ) && planState.Running && isPartOfPlan;
-				if( planRunning && !st.PlanApplied )
+				if( planRunning && !st.PlanApplied && !st.Disabled)
 				{
 					stCode = "Planned";
 				}

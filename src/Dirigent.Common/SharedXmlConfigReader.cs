@@ -59,6 +59,7 @@ namespace Dirigent.Common
                 StartupDir = (string) e.Attribute("StartupDir"),
                 CmdLineArgs = (string) e.Attribute("CmdLineArgs"),
                 StartupOrder = (string) e.Attribute("StartupOrder"),
+                Disabled = (string)e.Attribute("Disabled"),
 				Volatile = (string) e.Attribute("Volatile"),
                 RestartOnCrash = (string) e.Attribute("RestartOnCrash"),
                 InitCondition = (string) e.Attribute("InitCondition"),
@@ -77,6 +78,7 @@ namespace Dirigent.Common
             if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
             if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
             if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
+            if( x.Disabled != null ) a.Disabled = (int.Parse( x.Disabled ) != 0);
             if( x.Volatile != null ) a.Volatile = (int.Parse( x.Volatile ) != 0);
             if( x.RestartOnCrash != null ) a.RestartOnCrash = (int.Parse( x.RestartOnCrash ) != 0);
             if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;

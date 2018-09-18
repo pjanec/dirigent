@@ -19,6 +19,7 @@ namespace Dirigent.Net
     [KnownType(typeof(LaunchAppMessage))]
     [KnownType(typeof(KillAppMessage))]
     [KnownType(typeof(RestartAppMessage))]
+    [KnownType(typeof(SetAppEnabledMessage))]
     //[KnownType(typeof(SelectPlanMessage))]
     [KnownType(typeof(StartPlanMessage))]
     [KnownType(typeof(StopPlanMessage))]
@@ -128,6 +129,32 @@ namespace Dirigent.Net
         public override string ToString()
         {
             return string.Format("RestartApp {0}", appIdTuple.ToString());
+        }
+
+    }
+
+    [DataContract]
+    public class SetAppEnabledMessage : Message
+    {
+        [DataMember]
+        public string planName;
+
+        [DataMember]
+        public AppIdTuple appIdTuple;
+
+        [DataMember]
+        public bool enabled;
+
+        public SetAppEnabledMessage( string planName, AppIdTuple appIdTuple, bool enabled )
+        {
+            this.planName = planName;    
+            this.appIdTuple = appIdTuple;
+            this.enabled = enabled;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("SetAppEnabled [{0}] {1} {2}", planName, appIdTuple.ToString(), enabled);
         }
 
     }

@@ -54,7 +54,7 @@ namespace Dirigent.Agent.Core
             // v seznamu pouzitych aplikaci. Pokud ano, zkopiruju aplikaci do aktualni vlny. Pro projiti
             // vsech aplikaci pak vezmu aplikace z aktulne vytvorene vlny, smazu je ze zbyvajicich a vlozim do pouzitych.
             
-            List<AppDef> remaining = new List<AppDef>( launchPlan ); // those not yet moved to any of the waves
+            List<AppDef> remaining = (from t in launchPlan where !t.Disabled select t).ToList(); // those not yet moved to any of the waves
             List<AppDef> used = new List<AppDef>(); // those already moved to some of waves
             
             // allow fast lookup of appdef by its name

@@ -20,6 +20,7 @@ namespace Dirigent.Common
         bool initialized;
         int exitCode;
         bool planApplied;
+        bool disabled;
         DateTime lastChange = DateTime.UtcNow;
 		int cpu; // percentage of CPU usage
 		int gpu; // percentage of GPU usage
@@ -86,6 +87,17 @@ namespace Dirigent.Common
         {
             get { return planApplied; }
             set { planApplied = value; changed(); }
+        }
+
+        /// <summary>
+        /// Whether the app has been disabled from execution as part of the plan;
+        /// This is set by the owner 
+        /// </summary>
+        [DataMember]
+        public bool Disabled
+        {
+            get { return disabled; }
+            set { disabled = value; changed(); }
         }
 
         /// <summary>

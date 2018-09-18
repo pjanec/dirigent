@@ -1,7 +1,5 @@
 ﻿Fix: Dirigent master crashes on starting a process whose directory is invalid, after showing proper error message on the node that issued the command.
 
-Checkbox to include/exclude app to/from a plan.
- 
 
 MultiPlan changes
  - Multiple plans can run simultanously (expected not to collide with each other). No longer the concept of a globally selected single plan. Selected plan concept now works only in a single GUI agent as its internal state, not globally across agents anymore.
@@ -134,3 +132,5 @@ Failure timeout for app bootup detector.
 
 [DONE] Fix: Dirigent crashes when startupPlan name does not exist in the list of plans
 
+[DONE] Checkbox to exclude app from a plan.
+ 

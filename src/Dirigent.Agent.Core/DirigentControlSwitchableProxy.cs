@@ -99,5 +99,10 @@ namespace Dirigent.Agent.Core
         {
             impl.KillApp(appIdTuple);
         }
+
+        public void SetAppEnabled(string planName, AppIdTuple appIdTuple, bool enabled)
+        {
+            impl.SetAppEnabled(planName, appIdTuple, enabled);
+        }
     }
 }

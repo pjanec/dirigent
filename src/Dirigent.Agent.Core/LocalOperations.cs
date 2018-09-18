@@ -130,7 +130,8 @@ namespace Dirigent.Agent.Core
 					{
 						Initialized = false,
 						Running = false,
-						Started = false
+						Started = false,
+                        Disabled = a.Disabled
 					};
 				}
 
@@ -612,5 +613,27 @@ namespace Dirigent.Agent.Core
 			rti.State.OpStatus = planStatus;
 
 		}
+
+        public void SetAppEnabled(string planName, AppIdTuple appIdTuple, bool enabled)
+        {
+            // find the plan
+            var plan = planRepo.Find( t => t.Name.Equals(planName, StringComparison.OrdinalIgnoreCase) );
+            if( plan == null ) return;
+
+            // find the appdef within the plan
+            var appDef = plan.getAppDefs().ToList().Find( t => t.AppIdTuple == appIdTuple );
+            if( appDef == null ) return;
+
+            // change the enabled flag
+            appDef.Disabled = !enabled;
+
+            // sync to appstate as well
+            if( appsState.ContainsKey(appIdTuple) )
+            {
+                appsState[appIdTuple].Disabled = !enabled;
+            }
+
+        }
+
     }
 }

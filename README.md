@@ -363,6 +363,8 @@ Each app in the launch plan has the following attributes:
 
  - `Volatile 0|1` - whether the application is expected to terminate automatically and not stay forever until killed; Such apps are not part of plan start success condition.
 
+ - `Disabled 0|1` - whether the application is initially excluded from plan operation.
+
  - `RestartOnCrash 0|1` - whether to automatically restart the app after crash
 
  - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
