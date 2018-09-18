@@ -1,4 +1,6 @@
 ﻿Fix: Dirigent master crashes on starting a process whose directory is invalid, after showing proper error message on the node that issued the command.
+
+Checkbox to include/exclude app to/from a plan.
  
 
 MultiPlan changes
@@ -129,3 +131,6 @@ Failure timeout for app bootup detector.
 [DONE] Generic AppWatchers. Watch the app and do something. COnfigured from XML node which is parsed by AppWatcher, not by a global parser.
 
 [DONE] Support for applying application window position and size shortly after the window with given title appears. Through section <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" /> 
+
+[DONE] Fix: Dirigent crashes when startupPlan name does not exist in the list of plans
+

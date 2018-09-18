@@ -164,7 +164,13 @@ namespace Dirigent.Agent.Core
             if (string.IsNullOrEmpty(planName))
                 return;
 
-			var plan = planRTInfo[planName].Plan;
+			if( !planRTInfo.ContainsKey(planName) )
+            {
+                log.ErrorFormat("Plan {0} not found.", planName);
+                return;
+            }
+
+            var plan = planRTInfo[planName].Plan;
 
 			AdoptPlan( plan );
 
