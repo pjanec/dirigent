@@ -280,7 +280,7 @@ namespace Dirigent.Agent.Gui
 
                 if (row >= 0 )
                 {
-                    if(col == appTabColName && col == appTabColStatus )   // just Name and Status columns
+                    if(col == appTabColName || col == appTabColStatus )   // just Name and Status columns
                     {
                         DataGridViewRow focused = gridApps.Rows[row];
                         var appIdTuple = new AppIdTuple(focused.Cells[0].Value as string);
