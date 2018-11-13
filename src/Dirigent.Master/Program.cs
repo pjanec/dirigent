@@ -143,7 +143,8 @@ namespace Dirigent.Master
 				// use unique client id to avoid conflict with any other possible client
                 string machineId = Guid.NewGuid().ToString();
                 var dirigClient = new Dirigent.Net.Client(machineId, "127.0.0.1", ac.masterPort);
-				agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false);
+                string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
+				agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths);
 
                 // start master server
 				var s = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);

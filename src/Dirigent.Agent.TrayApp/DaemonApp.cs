@@ -29,7 +29,8 @@ namespace Dirigent.Agent.TrayApp
             using (var client = new Dirigent.Net.AutoconClient(ac.machineId, ac.masterIP, ac.masterPort))
             {
 
-                var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true);
+                string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
+                var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths);
 
 
                 IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;

@@ -353,9 +353,9 @@ Each app in the launch plan has the following attributes:
 
  - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
  
- - `ExeFullPath` - application binary file full path; can be relative to the dirigent's working directory. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+ - `ExeFullPath` - application binary file full path; can be relative to the dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
- - `StartupDir` - startup directory; can be relative to the dirigent's working directory. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+ - `StartupDir` - startup directory; can be relative to the dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
  - `CmdLineArgs` - command line arguments
 

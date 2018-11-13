@@ -130,6 +130,8 @@ namespace Dirigent.Agent.TrayApp
 
             bool runningAsRemoteControlGui = (ac.machineId == "none");
 
+            string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
+
             if (runningAsRemoteControlGui) // running just as observation GUI?
             {
                 // we act like agent with no apps assigned
@@ -138,7 +140,7 @@ namespace Dirigent.Agent.TrayApp
 
                 client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort);
 
-                agent = new Dirigent.Agent.Core.Agent(machineId, client, false); // don't go local if not connected
+                agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths); // don't go local if not connected
             }
             else // running as local app launcher
             {
@@ -146,7 +148,7 @@ namespace Dirigent.Agent.TrayApp
                 
                 client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort);
 
-                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true);
+                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths);
             }
 
 

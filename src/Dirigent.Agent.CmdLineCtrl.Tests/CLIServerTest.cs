@@ -44,7 +44,7 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
 		{
 			LauncherFactory launcherFactory = new LauncherFactory();
 			AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-			var localOps = new LocalOperations( "m1", launcherFactory, appInitializedDetectorFactory );
+			var localOps = new LocalOperations( "m1", launcherFactory, appInitializedDetectorFactory, null );
 			localOps.SetPlanRepo( TestPlanRepo.plans.Values );
 
 			var server = new CLIServer( "127.0.0.1", 6001, localOps );

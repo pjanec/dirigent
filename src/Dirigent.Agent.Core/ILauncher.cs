@@ -19,6 +19,6 @@ namespace Dirigent.Agent.Core
 
     public interface ILauncherFactory
     {
-        ILauncher createLauncher( AppDef appDef );
+        ILauncher createLauncher( AppDef appDef, string rootForRelativePaths );
     }
 }

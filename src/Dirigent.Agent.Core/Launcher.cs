@@ -16,11 +16,20 @@ namespace Dirigent.Agent.Core
 
         Process proc;
         AppDef appDef;
-        string RelativePathsRoot = System.IO.Directory.GetCurrentDirectory();
+        string RelativePathsRoot;
 
-        public Launcher( AppDef appDef )
+        public Launcher( AppDef appDef, String rootForRelativePaths )
         {
             this.appDef = appDef;
+
+            if (String.IsNullOrEmpty(rootForRelativePaths))
+            {
+                RelativePathsRoot = System.IO.Directory.GetCurrentDirectory();
+            }
+            else
+            {
+                RelativePathsRoot = rootForRelativePaths;
+            }
         }
 
         string BuildAbsolutePath( string anyPath )
@@ -71,7 +80,7 @@ namespace Dirigent.Agent.Core
 
 			try
             {
-                log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", appDef.ExeFullPath, appDef.CmdLineArgs, appDef.StartupDir, appDef.WindowStyle );
+                log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
                 proc = Process.Start(psi);
                 if( proc != null )
                 {
@@ -241,9 +250,9 @@ namespace Dirigent.Agent.Core
 
     public class LauncherFactory : ILauncherFactory
     {
-        public ILauncher createLauncher( AppDef appDef )
+        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths )
         {
-            return new Launcher( appDef );
+            return new Launcher( appDef, rootForRelativePaths );
         }
     }
 }

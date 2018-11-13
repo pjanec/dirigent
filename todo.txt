@@ -1,4 +1,10 @@
-﻿Fix: Dirigent master crashes on starting a process whose directory is invalid, after showing proper error message on the node that issued the command.
+﻿Warn if more agents with same MachineId connects to same master. Send warning message with IP addresses of all the agents with same MachineId.
+See https://stackoverflow.com/questions/527676/identifying-the-client-during-a-net-remoting-invocation/527756 for how to get client IP address :-(
+
+Warn if agents with different build id connects to same master. Send warning message with IP addresses of all the agents with same MachineId.
+
+
+[DONE] Fix: Dirigent master crashes on starting a process whose directory is invalid, after showing proper error message on the node that issued the command.
 
 
 MultiPlan changes

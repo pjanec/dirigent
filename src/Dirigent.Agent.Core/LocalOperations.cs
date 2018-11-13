@@ -54,14 +54,18 @@ namespace Dirigent.Agent.Core
 
         IAppInitializedDetectorFactory appAppInitializedDetectorFactory;
 
+        string rootForRelativePaths;
+
         
         public LocalOperations(
             string machineId,
             ILauncherFactory launcherFactory,
-            IAppInitializedDetectorFactory appAppInitializedDetectorFactory )
+            IAppInitializedDetectorFactory appAppInitializedDetectorFactory,
+            string rootForRelativePaths )
         {
             this.launcherFactory = launcherFactory;
             this.appAppInitializedDetectorFactory = appAppInitializedDetectorFactory;
+            this.rootForRelativePaths = rootForRelativePaths;
 
             appsState = new Dictionary<AppIdTuple,AppState>();
             localApps = new Dictionary<AppIdTuple,LocalApp>();
@@ -324,7 +328,7 @@ namespace Dirigent.Agent.Core
             
             la.watchers.Clear();
 
-            la.launcher = launcherFactory.createLauncher( la.AppDef );
+            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths );
 
             try
             {

@@ -25,12 +25,13 @@ namespace Dirigent.Agent.Core
         public Agent(
             string machineId,
             IClient client,
-            bool fallbackToLocalOnDisconnection
+            bool fallbackToLocalOnDisconnection,
+            string rootForRelativePaths
         )
         {
             LauncherFactory launcherFactory = new LauncherFactory();
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-            this.localOps = new LocalOperations(machineId, launcherFactory, appInitializedDetectorFactory);
+            this.localOps = new LocalOperations(machineId, launcherFactory, appInitializedDetectorFactory, rootForRelativePaths);
             this.netOps = new NetworkProxy( machineId, client, localOps );
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;
