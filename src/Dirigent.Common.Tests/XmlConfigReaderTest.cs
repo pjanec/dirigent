@@ -37,6 +37,7 @@ namespace DirigentCommons.Test
 			        CmdLineArgs = """"
 			        StartupOrder = ""0""
 			        RestartOnCrash = ""1""
+			        AdoptIfAlreadyRunning = ""1""
 			        InitCondition = ""timeout 2.0""
 			        SeparationInterval = ""0.5""
 	        />

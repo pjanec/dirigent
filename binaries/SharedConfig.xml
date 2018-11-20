@@ -2,11 +2,21 @@
 <Shared>
     <Plan Name="plan1">
     	<App
+    	    AppIdTuple = "m1.ps1"
+    		Template = "powershell"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "-f kuk!"
+    	    >
+    	</App>
+
+    	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
+    		Disabled = "1"
     		StartupDir = "c:\"
     		CmdLineArgs = "m1.a.txt"
     		WindowStyle = "normal"
+    		AdoptIfAlreadyRunning = "1"
     	    >
     	    <InitDetectors>
     	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
@@ -65,6 +75,17 @@
     		CmdLineArgs = "ddd.txt"
     	/>
     </Plan>
+
+    <AppTemplate Name="powershell"
+    		Template = ""
+    		ExeFullPath = "%windir%\system32\WindowsPowerShell\v1.0\powershell.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = ""
+    		StartupOrder = "0"
+    		RestartOnCrash = "1"
+    		SeparationInterval = "0.5"
+    		KillTree = "1"
+    />
 
     <AppTemplate Name="apps.notepad"
     		Template = ""

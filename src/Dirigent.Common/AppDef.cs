@@ -44,6 +44,9 @@ namespace Dirigent.Common
         public bool RestartOnCrash;
 
         [DataMember]
+        public bool AdoptIfAlreadyRunning;
+
+        [DataMember]
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
         //[DataMember]
@@ -111,7 +114,9 @@ namespace Dirigent.Common
                 this.StartupDir == other.StartupDir &&
                 this.CmdLineArgs == other.CmdLineArgs &&
                 this.StartupOrder == other.StartupOrder &&
+                this.Volatile == other.Volatile &&
                 this.RestartOnCrash == other.RestartOnCrash &&
+                this.AdoptIfAlreadyRunning == other.AdoptIfAlreadyRunning &&
                 this.InitializedCondition == other.InitializedCondition &&
                 this.SeparationInterval == other.SeparationInterval &&
                 ( // either both dependecies are null or they are the same list

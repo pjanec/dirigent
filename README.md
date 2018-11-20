@@ -367,6 +367,8 @@ Each app in the launch plan has the following attributes:
 
  - `RestartOnCrash 0|1` - whether to automatically restart the app after crash
 
+ - `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running
+
  - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
  - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*. **DEPRECATED**, use the InitDetectors section instead.

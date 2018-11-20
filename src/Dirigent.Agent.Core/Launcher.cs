@@ -42,9 +42,22 @@ namespace Dirigent.Agent.Core
 
         public void Launch()
         {
+			var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+
+            // try to adopt an already running process (matching by process image file name, regardless of path)
+            if( appDef.AdoptIfAlreadyRunning )
+            {
+                ProcInfo found = FindProcessByExeName( appPath );
+                if( found != null )
+                {
+                    log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
+                    proc = found.Process;
+                    return;
+                }
+            }
+        
             // start the process
             var psi = new ProcessStartInfo();
-			var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
 			psi.FileName =  BuildAbsolutePath( appPath );
             psi.Arguments = appDef.CmdLineArgs;
             if (appDef.StartupDir != null)
@@ -218,11 +231,18 @@ namespace Dirigent.Agent.Core
         {
             get
             {
-                if (proc != null && !proc.HasExited)
+                try
                 {
-                    return true;
+                    if (proc != null && !proc.HasExited)
+                    {
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
+                catch // if we adopted a foreign process or otherwise we can't get the exit code
+                {
+                    return false;
+                }
             }
         }
 
@@ -230,11 +250,18 @@ namespace Dirigent.Agent.Core
         {
             get
             {
-                if (proc != null && proc.HasExited)
+                try
                 {
-                    return proc.ExitCode;
+                    if (proc != null && proc.HasExited)
+                    {
+                        return proc.ExitCode;
+                    }
+                    return 0; // default
                 }
-                return 0; // default
+                catch // if we adopted a foreign process or otherwise we can't get the exit code
+                {
+                    return -1;
+                }
             }
         }
 
@@ -246,6 +273,51 @@ namespace Dirigent.Agent.Core
                 return -1;
             }
         }
+
+        public class ProcInfo
+        {
+            public Process Process;
+            public String Path;
+            public String CmdLine;
+        }
+
+        public static ProcInfo FindProcessByExeName( string exePath )
+        {
+            string searchedExeName = Path.GetFileName(exePath);
+    
+            // find all processes
+            var wmiQueryString = "SELECT ProcessId, ExecutablePath, CommandLine FROM Win32_Process";
+            using (var searcher = new ManagementObjectSearcher(wmiQueryString))
+            using (var results = searcher.Get())
+            {
+                var query = from p in Process.GetProcesses()
+                            join mo in results.Cast<ManagementObject>()
+                            on p.Id equals (int)(uint)mo["ProcessId"]
+                            select new
+                            {
+                                Process = p,
+                                Path = (string)mo["ExecutablePath"],
+                                CommandLine = (string)mo["CommandLine"],
+                            };
+                foreach (var i in query)
+                {
+                    if( i.Path != null )
+                    {
+                        string exeName = Path.GetFileName(i.Path);
+                        if( String.Compare(exeName, searchedExeName, true ) == 0 ) // exe name matches?
+                        {
+                            return new ProcInfo {
+                                Process = i.Process,
+                                Path = i.Path,
+                                CmdLine = i.CommandLine
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
     }
 
     public class LauncherFactory : ILauncherFactory
@@ -255,4 +327,5 @@ namespace Dirigent.Agent.Core
             return new Launcher( appDef, rootForRelativePaths );
         }
     }
+
 }
