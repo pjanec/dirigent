@@ -155,12 +155,28 @@ namespace Dirigent.Net
 				log.Debug( string.Format( "Broadcasting message: {0}", msg.ToString() ) );
 			}
 
+			// check for timed-out clients that still communicate
+            bool senderUnknown;
+			lock( clients )
+			{
+				senderUnknown =
+					msg.Sender!=Server.MasterSenderName // ignore messages from master
+					&& !clients.ContainsKey(msg.Sender);
+			}
+			if( senderUnknown )
+			{
+				log.Debug(string.Format( "Client {0} not known (timed out?) but communicates - will be re-added.", msg.Sender));
+				AddClient( msg.Sender );
+			}
+
             // put to message queue for each client, including the sender (agents rely on that!)
             lock( clients )
             {
-                foreach( var ci in clients.Values )
+			
+				foreach( var ci in clients.Values )
                 {
-                    ci.MsgQueue.Add( msg );
+                    //Console.WriteLine("...Adding msg to queue of client: {0}", ci.Name);
+					ci.MsgQueue.Add( msg );
                 }
             }
         }

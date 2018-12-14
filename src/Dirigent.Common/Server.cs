@@ -22,7 +22,8 @@ namespace Dirigent.Net
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        /// <summary>
+        public static string MasterSenderName = "<master>";
+			/// <summary>
         /// The "message broker" for forwarding messages to clients.
         /// Just instantiate the class to make the server working.
         /// The clients remotely access the MasterService via the IDirigentMasterContract interface.
@@ -48,7 +49,7 @@ namespace Dirigent.Net
             if (planRepo != null)
             {
                 log.InfoFormat("Forcing plan repository ({0} items)", planRepo.Count() );
-                service.BroadcastMessage("<master>", new PlanRepoMessage(planRepo));
+                service.BroadcastMessage(MasterSenderName, new PlanRepoMessage(planRepo));
             }
 
             // start the initial launch plan if specified
@@ -67,7 +68,7 @@ namespace Dirigent.Net
 				if (startupPlan != null)
 				{
 	                log.InfoFormat("Forcing plan '{0}'", startupPlanName);
-					service.BroadcastMessage("<master>", new CurrentPlanMessage(startupPlanName));
+					service.BroadcastMessage(MasterSenderName, new CurrentPlanMessage(startupPlanName));
 				}
             }
         
