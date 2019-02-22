@@ -82,12 +82,16 @@ namespace Dirigent.Agent.Core
 			{
 				var name = "PATH";
 				var postfix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToAppend);
+				// if relative path is specified, consider it relative to SharedConfig and make it absolute (per each ';' separated segment)
+				postfix = string.Join(";", postfix.Split(';').Select(p => BuildAbsolutePath(p)));
 				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + postfix;
 			}
 			if (!String.IsNullOrEmpty(appDef.EnvVarPathToPrepend))
 			{
 				var name = "PATH";
 				var prefix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToPrepend);
+				// if relative path is specified, consider it relative to SharedConfig and make it absolute (per each ';' separated segment)
+				prefix = string.Join(";", prefix.Split(';').Select(p => BuildAbsolutePath(p)));
 				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
 			}
 

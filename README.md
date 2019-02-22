@@ -73,7 +73,7 @@ For example the following plan opens a notepad app first on machine `m1` with fi
                 >
                 <Env>
                   <Set Variable="TEMP" Value="C:\TEMP" />
-                  <Path Prepend="C:\MYPATH" /> 
+                  <Path Prepend="C:\MYPATH;../sub1" /> 
                 </Env>
                 <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" />
             </App>
@@ -429,7 +429,7 @@ App sub-sections:
         <Env>
           <Set Variable="TMP" Value="C:\TEMP" />
           <Set Variable="TEMP" Value="C:\TEMP" />
-          <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2"/> 
+          <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
         </Env>
 
     Modifies the environment variables for the started process, taking the Diriget Agen't startup environment as a basis.
@@ -442,7 +442,7 @@ App sub-sections:
     
     - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
     
-    - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment.
+    - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
     
     
 #### Templated launch plan definition

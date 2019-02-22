@@ -40,7 +40,7 @@
     		  <Set Variable="TMP" Value="X:\TEMP" />
     		  <Set Variable="EXPANSION_TEST" Value="xxx%USERNAME%xxx" />
     		  <!-- specific support for Path variable modifications-->
-    		  <Path Prepend="C:\BIN;%ProgramFiles%\MyApp\Bin" /> 
+    		  <Path Prepend="C:\BIN;%ProgramFiles%\MyApp\Bin;RelPath1\sub1;..\RelPath2\sub1" /> 
     		</Env>
     	</App>
 
