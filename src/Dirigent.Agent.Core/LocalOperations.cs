@@ -209,12 +209,29 @@ namespace Dirigent.Agent.Core
 				planRTInfo[p.Name] = new PlanRuntimeInfo(p);
 				AdoptPlan( p );
 			}
-        }
-        
-        /// <summary>
-        /// Starts launching local apps according to current plan.
-        /// </summary>
-        public void  StartPlan( string planName )
+
+			// update current plan
+			// replace also current plan instances so we are using the new one
+			// (possible the one created by remoting from a network message),
+			// instead of the default one created from local application config
+			if (this.currentPlan != null)
+			{
+				string currentPlanName = currentPlan.Name;
+				this.currentPlan = null;
+				foreach (var p in planRepo)
+				{
+					if (p.Name == currentPlanName) // is one of the new plans matching our current plan?
+					{
+						currentPlan = p;
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Starts launching local apps according to current plan.
+		/// </summary>
+		public void  StartPlan( string planName )
         {
             if (string.IsNullOrEmpty(planName))
                 return;
