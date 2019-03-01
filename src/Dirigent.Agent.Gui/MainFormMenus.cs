@@ -22,8 +22,10 @@ namespace Dirigent.Agent.Gui
 
         private void aboutMenuItem_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(
-                "Dirigent app launcher\nby pjanec\nMIT license",
+			var version = Assembly.GetExecutingAssembly().GetName().Version;
+
+			MessageBox.Show(
+                "Dirigent app launcher\nby pjanec\nMIT license\n\nver."+ version,
                 "About Dirigent",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);

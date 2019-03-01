@@ -342,6 +342,7 @@ Shared configuration is shared among all agents. It specifies the launch plans b
 
 Local configuration defines the network settings and operation mode details of a single agent or master application.
 
+
 ### Shared config
 Shared configuration is stored in the `SharedConfig.xlm` file. The location of the file can be set through application option `sharedConfigFile`.
 
@@ -559,3 +560,11 @@ If some application fails to start, dirigent can be configured to retry the laun
 If all attempts fail, the plaunch plan is stopped and an error is returned.
 
 
+### Shortcuts
+If a Dirigent's tray GUI is running on a machine, currently selected plan can be started/killed/restarted via a shortcut. Shortcut can be redefined in the Dirigent.Agent.exe.config. By default
+
+	Start current plan ..... Control + Shift + Alt + S
+	Kill current plan ...... Control + Shift + Alt + K
+	Restart current plan ... Control + Shift + Alt + R
+
+	

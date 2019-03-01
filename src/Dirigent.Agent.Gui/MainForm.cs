@@ -7,19 +7,28 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Reflection;
-
+using System.Runtime.InteropServices;
 using System.IO;
-
+using System.Configuration;
 using Dirigent.Common;
+using System.Xml;
+using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace Dirigent.Agent.Gui
 {
-    public partial class frmMain : Form
+	public partial class frmMain : Form
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        NotifyIcon notifyIcon;
+		// DLL libraries used to manage hotkeys
+		[DllImport("user32.dll")]
+		public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
+		[DllImport("user32.dll")]
+		public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+		NotifyIcon notifyIcon;
         bool allowLocalIfDisconnected = false;
         GuiAppCallbacks callbacks;
 
@@ -65,6 +74,8 @@ namespace Dirigent.Agent.Gui
 
             InitializeComponent();
 
+			registerHotKeys();
+
             //setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
 
             //this.plan = null;
@@ -78,7 +89,67 @@ namespace Dirigent.Agent.Gui
             tmrTick.Enabled = true;
         }
 
-        void setTitle()
+
+		const int HOTKEY_ID_START_CURRENT_PLAN = 1;
+		const int HOTKEY_ID_KILL_CURRENT_PLAN = 2;
+		const int HOTKEY_ID_RESTART_CURRENT_PLAN = 3;
+
+		void registerHotKeys()
+		{
+			var exeConfigFileName = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile;
+			XDocument document = XDocument.Load(exeConfigFileName);
+			var templ = "/configuration/userSettings/Dirigent.Agent.TrayApp.Properties.Settings/setting[@name='{0}']/value";
+			{
+				var x = document.XPathSelectElement(String.Format(templ, "StartPlanHotKey"));
+				string hotKeyStr = ( x!=null) ? x.Value : "Control + Shift + Alt + S";
+				if (!String.IsNullOrEmpty(hotKeyStr))
+				{
+					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
+					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
+					RegisterHotKey(this.Handle, HOTKEY_ID_START_CURRENT_PLAN, (int)modifier, (int)key);
+				}
+			}
+			{
+				var x = document.XPathSelectElement(String.Format(templ, "KillPlanPlanHotKey"));
+				string hotKeyStr = (x != null) ? x.Value : "Control + Shift + Alt + K";
+				if (!String.IsNullOrEmpty(hotKeyStr))
+				{
+					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
+					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
+					RegisterHotKey(this.Handle, HOTKEY_ID_KILL_CURRENT_PLAN, (int)modifier, (int)key);
+				}
+			}
+
+			{
+				var x = document.XPathSelectElement(String.Format(templ, "RestartPlanPlanHotKey"));
+				string hotKeyStr = (x != null) ? x.Value : "Control + Shift + Alt + R";
+				if (!String.IsNullOrEmpty(hotKeyStr))
+				{
+					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
+					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
+					RegisterHotKey(this.Handle, HOTKEY_ID_RESTART_CURRENT_PLAN, (int)modifier, (int)key);
+				}
+			}
+
+			//var hk = HotKeys.HotKeyShared.CombineShortcut(HotKeys.Modifiers.Control | HotKeys.Modifiers.Alt | HotKeys.Modifiers.Shift, HotKeys.Keys.B);
+
+			//string shortcut = "Shift + Alt + H";
+			//Keys Key = (Keys)HotKeys.HotKeyShared.ParseShortcut(shortcut).GetValue(1);
+			//HotKeys.Modifiers Modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(shortcut).GetValue(0);
+
+
+			//if (hotKeysEnabled)
+			//{
+
+			//	// Modifier keys codes: Alt = 1, Ctrl = 2, Shift = 4, Win = 8
+			//	// Compute the addition of each combination of the keys you want to be pressed
+			//	// ALT+CTRL = 1 + 2 = 3 , CTRL+SHIFT = 2 + 4 = 6...
+			//	RegisterHotKey(this.Handle, HOTKEY_ID_START_CURRENT_PLAN, 1+2+4, (int)Keys.R); // CTRL+SHIFT+ALT+R
+			//	RegisterHotKey(this.Handle, HOTKEY_ID_KILL_CURRENT_PLAN, 1 + 2 + 4, (int)Keys.K); // CTRL+SHIFT+ALT+K
+			//}
+		}
+
+		void setTitle()
         {
             string planName = "<no plan>";
 
@@ -198,5 +269,46 @@ namespace Dirigent.Agent.Gui
             populatePlanGrid();
         }
 
-    }
+		protected override void WndProc(ref Message m)
+		{
+			if (m.Msg == 0x0312 )
+			{
+				var keyId = m.WParam.ToInt32();
+				switch (keyId)
+				{
+					case HOTKEY_ID_START_CURRENT_PLAN:
+						{
+							var currPlan = this.ctrl.GetCurrentPlan();
+							if (currPlan != null)
+							{
+								this.ctrl.StartPlan(currPlan.Name);
+							}
+							break;
+						}
+
+					case HOTKEY_ID_KILL_CURRENT_PLAN:
+						{
+							var currPlan = this.ctrl.GetCurrentPlan();
+							if (currPlan != null)
+							{
+								this.ctrl.KillPlan(currPlan.Name);
+							}
+							break;
+						}
+
+					case HOTKEY_ID_RESTART_CURRENT_PLAN:
+						{
+							var currPlan = this.ctrl.GetCurrentPlan();
+							if (currPlan != null)
+							{
+								this.ctrl.RestartPlan(currPlan.Name);
+							}
+							break;
+						}
+				}
+			}
+			base.WndProc(ref m);
+		}
+
+	}
 }

@@ -12,7 +12,7 @@ namespace Dirigent.Agent.TrayApp.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.8.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.9.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -113,6 +113,42 @@ namespace Dirigent.Agent.TrayApp.Properties {
         public int CLIPort {
             get {
                 return ((int)(this["CLIPort"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + S")]
+        public string StartPlanHotKey {
+            get {
+                return ((string)(this["StartPlanHotKey"]));
+            }
+            set {
+                this["StartPlanHotKey"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + K")]
+        public string KillPlanPlanHotKey {
+            get {
+                return ((string)(this["KillPlanPlanHotKey"]));
+            }
+            set {
+                this["KillPlanPlanHotKey"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + R")]
+        public string RestartPlanPlanHotKey {
+            get {
+                return ((string)(this["RestartPlanPlanHotKey"]));
+            }
+            set {
+                this["RestartPlanPlanHotKey"] = value;
             }
         }
     }
