@@ -310,5 +310,9 @@ namespace Dirigent.Agent.Gui
 			base.WndProc(ref m);
 		}
 
+		private void onlineDocumentationToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			System.Diagnostics.Process.Start("https://github.com/pjanec/dirigent");
+		}
 	}
 }
