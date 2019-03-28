@@ -136,9 +136,32 @@ namespace Dirigent.Net
                     PlanRepo = new List<ILaunchPlan>(m.repo);
                 }
             }
+			else
+			if (t == typeof(SetAppEnabledMessage))
+			{
+				// Keep our local copy of the plan repo (the app Enabled checkbox flag) up-to-date with the clients
+				// This is useful as when we are adding a new client, we are sending him our local copy of the plan repo 
+				// This way the new client gen updated version having correct "enabled" checkboxes
+				var m = msg as SetAppEnabledMessage;
+				lock (clients)
+				{
+					// find the plan
+					var plan = PlanRepo.Find(x => x.Name.Equals(m.planName, StringComparison.OrdinalIgnoreCase));
+					if (plan != null)
+					{
+						// find the appdef within the plan
+						var appDef = plan.getAppDefs().ToList().Find(x => x.AppIdTuple == m.appIdTuple);
+						if (appDef != null)
+						{
+							// change the enabled flag
+							appDef.Disabled = !m.enabled;
+						}
+					}
+				}
+			}
 
 
-            return false;
+			return false;
         }
 
         public void BroadcastMessage( Message msg )
