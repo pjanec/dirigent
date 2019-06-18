@@ -17,4 +17,5 @@ copy ..\src\Dirigent.Agent.TrayApp\bin\%CFG%\Dirigent.agent.* .\
 
 copy ..\src\Dirigent.Agent.CmdLineCtrl\bin\%CFG%\Dirigent.agentcmd.* .\
 
+copy ..\README.md .\
 
