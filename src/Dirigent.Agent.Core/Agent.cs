@@ -36,9 +36,6 @@ namespace Dirigent.Agent.Core
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;
             this.fallbackToLocalOnDisconnection = fallbackToLocalOnDisconnection;
-			
-			// defines env var for machine id so that processes started from dirigent know where they are running
-			Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", machineId, EnvironmentVariableTarget.Process);
         }
 
         public void tick()

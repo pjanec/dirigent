@@ -566,23 +566,13 @@ Before the agent connects to master, it is using its local copy of SharedConfig.
 
 As soon as an agent connects to master, it receives and adopts the master's copy of the shared config. The local copy should be of course identical to the master's copy. If it is not, the currently running agent's plan is stopped, i.e. the all the apps launched by the agent so far are killed nad the new master's plan takes place.
 
-### Local config
+### Autodetection of the machine id
 
-Local configuration is put together from multiple sources. The are listed in the descending order of priority:
-
-- Command line arguments
-- App.config file
-- Shared config file (can be used for network setting like master IP and port)
-- Built-in defaults
-- Local configuration file
-
-#### Autodetection of the machine id
-
-Computer's NetBIOS name is used as a default machineId if not specified otherwise.
+Computer's NetBIOS name is used as a default machineId if the machine id is not specified on the command line.
 
 ### Logging
 
-Both agent and master support logging of errors, warnigns etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of local configuration. 
+Both agent and master support logging of errors, warnigns etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of app.config file. 
 
 
 ### Folder Watching
@@ -603,6 +593,9 @@ Example of setting in agent's local config file:
 		  <Action Type="LaunchApp" AppIdTuple="PC1.WarningApp"/>
 	  </FolderWatcher>
 
+
+The Path, if relative, is resolved relative to the location of the SharedConfig.xml file. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+	  
 Conditions supported:
  * `NewFile` ... file gets created
 
@@ -611,19 +604,23 @@ Action types supported
  * `LauchApp` .... starts predefined application (does nothing if already running)
 
 
-### Machine Id  as an Environment Variable
+### Environment Variable for processes started by Dirigent Agent
 
-Dirigent Agent defines DIRIGENT_MACHINEID environment variable holding the machine id the agent was configured to.
+Dirigent agent defines the following special variables for an app started from the launch plan:
+
+ * `DIRIGENT_MACHINEID` = the machine id the agent was configured to (the first part of the AppIdTuple).
+ * `DIRIGENT_APPID` = the application id (the second part of the AppIdTuple).
+
 
 This provides a way to tell the processes started by the dirigent agent what station/machine (in terms of the dirigent machine naming) they are running at. This might come in handy if same process is started on many machines, it needs to know where it was started but you can not rely on the computer name.
 
-Being an environment variable, the DIRIGENT_MACHINEID can be used in command line parameters for the started process in the plan config file.
+Being environment variables, they can be used in command line parameters for the started process in the plan config file.
 
         <Plan Name="plan1">
             <App
                 AppIdTuple = "m1.a"
                 Template = "apps.notepad"
-                StartupDir = "c:\"
+                StartupDir = "c:\%DIRIGENT_APPID%"
                 CmdLineArgs = "%DIRIGENT_MACHINEID%.txt"
                 >
             </App>
