@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Configuration;
@@ -25,6 +26,7 @@ namespace Dirigent.Agent.TrayApp
         Dirigent.Net.IClient client;
         NotifyIcon notifyIcon;
         MasterRunner masterRunner;
+		List<FolderWatcher> folderWatchers = new List<FolderWatcher>();
 
         class MyApplicationContext : ApplicationContext
         {
@@ -149,6 +151,8 @@ namespace Dirigent.Agent.TrayApp
                 client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort);
 
                 agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths);
+
+				InitializeFolderWatchers(agent, rootForRelativePaths);
             }
 
 
@@ -223,7 +227,22 @@ namespace Dirigent.Agent.TrayApp
                 client.Dispose();
                 client = null;
             }
-        }
+        } 
+
+		void InitializeFolderWatchers( Dirigent.Agent.Core.Agent agent, string rootForRelativePaths )
+		{
+		// no local config file loaded	
+			if(ac.lcfg==null) return;
+
+			foreach( var xmlCfg in ac.lcfg.folderWatcherXmls )
+			{
+				var fw = new FolderWatcher( xmlCfg, agent.Control, rootForRelativePaths );
+				if( fw.Initialized )
+				{
+					folderWatchers.Add( fw );
+				}
+			}
+		}
 
         void Show()
         {

@@ -49,5 +49,14 @@ namespace Dirigent.Agent.CmdLineCtrl.Properties {
                 return ((string)(this["SharedConfigFile"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LocalConfigFile {
+            get {
+                return ((string)(this["LocalConfigFile"]));
+            }
+        }
     }
 }

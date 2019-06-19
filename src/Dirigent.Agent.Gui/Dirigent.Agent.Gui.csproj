@@ -67,7 +67,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConfigReaders.cs" />
     <Compile Include="ExceptionDialog.cs" />
     <Compile Include="GuiAppCallbacks.cs" />
     <Compile Include="HotKeyUtils.cs" />

@@ -31,6 +31,9 @@ namespace Dirigent.Agent.CmdLineCtrl
         [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "Shared config file name.")]
         public string SharedConfigFile { get; set; }
 
+        [Option("localConfigFile", Required = false, DefaultValue = "", HelpText = "Local config file name.")]
+        public string LocalConfigFile { get; set; }
+
         [Option("logFile", Required = false, DefaultValue = "", HelpText = "Log file name.")]
         public string LogFile { get; set; }
 
@@ -74,11 +77,13 @@ namespace Dirigent.Agent.CmdLineCtrl
         class AppConfig
         {
             public string sharedCfgFileName = "SharedConfig.xml";
+            public string localCfgFileName = ""; // empty by default - we won't try to load it
             public int masterPort = 5032;
             public string masterIP = "127.0.0.1";
             public string logFileName = "";
             public IList<string> nonOptionArgs = null;
             public SharedConfig scfg = null;
+            public LocalConfig lcfg = null;
         }
 
         static AppConfig getAppConfig()
@@ -89,6 +94,7 @@ namespace Dirigent.Agent.CmdLineCtrl
             if (Properties.Settings.Default.MasterIP != "") ac.masterIP = Properties.Settings.Default.MasterIP;
             if (Properties.Settings.Default.MasterPort != 0) ac.masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.SharedConfigFile != "") ac.sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
+            if (Properties.Settings.Default.LocalConfigFile != "") ac.localCfgFileName = Properties.Settings.Default.LocalConfigFile;
 
             // overwrite with command line options
             var options = new Options();
@@ -97,6 +103,7 @@ namespace Dirigent.Agent.CmdLineCtrl
                 if (options.MasterIP != "") ac.masterIP = options.MasterIP;
                 if (options.MasterPort != 0) ac.masterPort = options.MasterPort;
                 if (options.SharedConfigFile != "") ac.sharedCfgFileName = options.SharedConfigFile;
+                if (options.LocalConfigFile != "") ac.localCfgFileName = options.LocalConfigFile;
                 if (options.LogFile != "") ac.logFileName = options.LogFile;
                 ac.nonOptionArgs = options.Items.ToList().GetRange(1, options.Items.Count-1); // strip the executable name
             }
@@ -106,6 +113,13 @@ namespace Dirigent.Agent.CmdLineCtrl
                 ac.sharedCfgFileName = Path.GetFullPath(ac.sharedCfgFileName);
                 log.DebugFormat("Loading shared config file '{0}'", ac.sharedCfgFileName);
                 ac.scfg = new SharedXmlConfigReader().Load(File.OpenText(ac.sharedCfgFileName));
+            }
+
+            if (ac.localCfgFileName != "")
+            {
+                ac.localCfgFileName = Path.GetFullPath(ac.localCfgFileName);
+                log.DebugFormat("Loading local config file '{0}'", ac.localCfgFileName);
+                ac.lcfg = new LocalXmlConfigReader().Load(File.OpenText(ac.localCfgFileName));
             }
 
             return ac;

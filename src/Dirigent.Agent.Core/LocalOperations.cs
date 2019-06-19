@@ -468,7 +468,55 @@ namespace Dirigent.Agent.Core
 			if (!rti.State.Running)
 				return;
 
+
+
+			// SPECIAL CASE for plans with all-volatile apps - kill the plan as soon as all apps terminated so it can be started again
+			// if all apps are volatile (i.e. they might terminate on their own and we don't care) all all has been launched,
+			// make the plan as "not running"
+			{
+				bool allLaunched = true;
+				bool allNonVolatileRunning = true;
+				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
+				bool allAppsProcessed = true;
+				bool anyStillRunning = false;
+				foreach (var appDef in rti.Plan.getAppDefs())
+				{
+					var apst = appsState[appDef.AppIdTuple];
+
+					if (!(apst.PlanApplied && apst.Started && apst.Initialized))
+					{
+						allLaunched = false;
+					}
+
+					if (! (apst.PlanApplied && (apst.Initialized || apst.StartFailed) ))
+					{
+						allAppsProcessed = false;
+					}
+
+					if (apst.Running)
+						anyStillRunning = true;
+
+					if (!appDef.Volatile)
+					{
+						anyNonVolatileApp = true;
+
+						if (!apst.Running)
+						{
+							allNonVolatileRunning = false;
+						}
+					}
+				}
+
+				if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning)	// all apps volatile, all launched and none is running  any longer
+				{
+					KillPlan(plan.Name);
+				}
+
+			}
+
+
             // if no plan exists
+			// or client re-connected and re-set the plan repo (then we loose the previous RTI)
             if (rti.launchDepChecker == null)
                 return;
 
@@ -494,6 +542,7 @@ namespace Dirigent.Agent.Core
                 
                 LaunchApp(appToLaunch.AppIdTuple);
             }
+
         }
 
         void tickWachers( LocalApp la )
@@ -581,6 +630,7 @@ namespace Dirigent.Agent.Core
 			//      some of non-volatile apps
 			bool allLaunched = true;
 			bool allNonVolatileRunning = true;
+			bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 			bool allAppsProcessed = true;
 			foreach (var appDef in rti.Plan.getAppDefs())
 			{
@@ -599,6 +649,8 @@ namespace Dirigent.Agent.Core
 
 				if (!appDef.Volatile)
 				{
+					anyNonVolatileApp = true;
+
 					if (!apst.Running)
 					{
 						allNonVolatileRunning = false;
@@ -609,7 +661,12 @@ namespace Dirigent.Agent.Core
 			var timeSincePlanStart = (DateTime.UtcNow - rti.State.TimeStarted).TotalSeconds;
 
 			PlanState.EOpStatus planStatus = PlanState.EOpStatus.None;
-			if (allLaunched && allNonVolatileRunning)
+			if (allLaunched && allNonVolatileRunning && anyNonVolatileApp)
+			{
+				planStatus = PlanState.EOpStatus.Success;
+			}
+			else
+			if (allLaunched && allNonVolatileRunning && !anyNonVolatileApp) // all apps volatile
 			{
 				planStatus = PlanState.EOpStatus.Success;
 			}

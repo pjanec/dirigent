@@ -1,36 +1,53 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Globalization;
-//using System.Xml.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Globalization;
+using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
-//using Dirigent.Common;
+using Dirigent.Common;
 
-//using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.Common.XmlConfigReaderUtils;
+using System.Diagnostics;
 
-//namespace Dirigent.Common
-//{
-//    public class LocalXmlConfigReader
-//    {
+namespace Dirigent.Common
+{
+    
+    public class LocalXmlConfigReader
+    {
 
-//        LocalConfig cfg;
-//        XDocument doc;
+        LocalConfig cfg;
+        public XDocument doc;
 
-//        public LocalConfig Load( System.IO.TextReader textReader )
-//        {
-//            cfg = new LocalConfig();
-//            doc = XDocument.Load(textReader);
+        public LocalConfig Load( System.IO.TextReader textReader )
+        {
+            cfg = new LocalConfig();
+            doc = XDocument.Load(textReader);
+
             
-//            loadLocalMachineId();
+            cfg.xmlDoc = doc;
 
-//            return cfg;
-//        }
-//        void loadLocalMachineId()
-//        {
-//            var master = doc.Element("Local").Element("MachineId");
-//            cfg.LocalMachineId = X.getStringAttr( master, "Id" );
-//        }
+            LoadFolderWatchers();
 
-//    }
-//}
+			//loadPlans();
+            //loadMachines();
+            //loadMaster();
+
+			
+			return cfg;
+        }
+
+		void LoadFolderWatchers()
+		{
+            var fwNodes = from e in doc.Element("Local").Descendants("FolderWatcher")
+                         select e;
+
+            foreach( var fwNode in fwNodes )
+            {
+				cfg.folderWatcherXmls.Add( fwNode );
+			}
+		}
+
+	}
+}

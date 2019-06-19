@@ -28,6 +28,9 @@ namespace Dirigent.Agent.TrayApp
         [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "shared config file name.")]
         public string SharedConfigFile { get; set; }
 
+        [Option("localConfigFile", Required = false, DefaultValue = "", HelpText = "local config file name.")]
+        public string LocalConfigFile { get; set; }
+
         [Option("logFile", Required = false, DefaultValue = "", HelpText = "log file name.")]
         public string LogFile { get; set; }
 
@@ -61,7 +64,7 @@ namespace Dirigent.Agent.TrayApp
     {
         // start with default settings
         public string sharedCfgFileName = ""; // Path.Combine(Application.StartupPath, "SharedConfig.xml");
-        //public string localCfgFileName = Path.Combine(Application.StartupPath, "LocalConfig.xml");
+        public string localCfgFileName = ""; // empty by default - we won't try to load it
         public string machineId = System.Environment.MachineName;
         public int masterPort = 5032;
         public int cliPort = 5050;
@@ -71,6 +74,7 @@ namespace Dirigent.Agent.TrayApp
         public string startHidden = "0"; // "0" or "1"
         public string mode = "trayGui"; // "trayGui", "remoteControlGui", "daemon"
         public SharedConfig scfg = null;
+        public LocalConfig lcfg = null;
         public string isMaster = "0"; // "1"=run the master process automatically
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
@@ -92,6 +96,7 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.MasterIP != "") masterIP = Properties.Settings.Default.MasterIP;
             if (Properties.Settings.Default.MasterPort != 0) masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.SharedConfigFile != "") sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
+            if (Properties.Settings.Default.LocalConfigFile != "") localCfgFileName = Properties.Settings.Default.LocalConfigFile;
             if (Properties.Settings.Default.StartupPlan != "") startupPlanName = Properties.Settings.Default.StartupPlan;
             if (Properties.Settings.Default.StartHidden != "") startHidden = Properties.Settings.Default.StartHidden;
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
@@ -108,6 +113,7 @@ namespace Dirigent.Agent.TrayApp
                 if (options.MasterIP != "") masterIP = options.MasterIP;
                 if (options.MasterPort != 0) masterPort = options.MasterPort;
                 if (options.SharedConfigFile != "") sharedCfgFileName = options.SharedConfigFile;
+                if (options.LocalConfigFile != "") localCfgFileName = options.LocalConfigFile;
                 if (options.LogFile != "") logFileName = options.LogFile;
                 if (options.StartupPlan != "") startupPlanName = options.StartupPlan;
                 if (options.StartHidden != "") startHidden = options.StartHidden;
@@ -131,6 +137,13 @@ namespace Dirigent.Agent.TrayApp
                 sharedCfgFileName = Path.GetFullPath(sharedCfgFileName);
                 log.DebugFormat("Loading shared config file '{0}'", sharedCfgFileName);
                 scfg = new SharedXmlConfigReader().Load(File.OpenText(sharedCfgFileName));
+            }
+
+            if (localCfgFileName != "")
+            {
+                localCfgFileName = Path.GetFullPath(localCfgFileName);
+                log.DebugFormat("Loading local config file '{0}'", localCfgFileName);
+                lcfg = new LocalXmlConfigReader().Load(File.OpenText(localCfgFileName));
             }
         }
 

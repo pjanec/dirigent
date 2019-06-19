@@ -211,6 +211,8 @@ The following options changes the mode of operation:
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
 
+ `--localConfigFile myLocalConfig.xml` ... what local configuration file to use
+
  `--isMaster 0|1` .... start master process automatically (no need to run it separately then)
 
  `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
@@ -365,11 +367,30 @@ Dirigent configuration comprises of two parts - a shared configuration  and a lo
 
 Shared configuration is shared among all agents. It specifies the launch plans but can be used also for another information like the names of all the machines involved etc.
 
-Local configuration defines the network settings and operation mode details of a single agent or master application.
+Local configuration defines the network settings, operation mode details of a single agent or master application.
 
-### Shared config
+Local configuration is assembled from different pieces
+ - the command line arguments
+ - application executable config file
+ - local configuration file
+
+
+### Shared config file
+
+Shared configuration contains the settings that needs to be same for all agents, for example the start plan definitions.
 
 Shared configuration is stored in the `SharedConfig.xlm` file. The location of the file can be set through application option `sharedConfigFile`.
+
+Shared config file is mandatory. Dirigent won't start without it.
+
+### Agent's local config file
+
+Agent's local config file contains configuration that is specific for an agent (for example folder watching settings). Each agent can use its own local configuration.
+
+Local configuration is stored in the `LocalConfig.xlm` file. The location of the file can be set through application option `localConfigFile`.
+
+Local configuration file is optional.
+
 
 #### Launch plan
 
@@ -553,14 +574,42 @@ Local configuration is put together from multiple sources. The are listed in the
 - App.config file
 - Shared config file (can be used for network setting like master IP and port)
 - Built-in defaults
+- Local configuration file
 
 #### Autodetection of the machine id
 
 Computer's NetBIOS name is used as a default machineId if not specified otherwise.
 
-#### Logging
+### Logging
 
 Both agent and master support logging of errors, warnigns etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of local configuration. 
+
+
+### Folder Watching
+Dirigent agent can be configured to watch a folder for file changes and trigger actions upon such a change.
+
+The configuration is stored in agent's local configuration file (see --localConfigFile command line option).
+
+Example of setting in agent's local config file:
+
+	  <FolderWatcher
+		  Path = "..\..\Tests"
+		  IncludeSubdirs="false"
+		  Conditions="NewFile"
+		  Filter = "*.txt"
+		  >
+		  <!-- what to do if change detected -->
+		  <Action Type="StartPlan" PlanName="CollectLogs">      
+		  <Action Type="LaunchApp" AppIdTuple="PC1.WarningApp"/>
+	  </FolderWatcher>
+
+Conditions supported:
+ * `NewFile` ... file gets created
+
+Action types supported
+ * `StartPlan` ... starts predefined plan (does nothing if already running and not finished yet)
+ * `LauchApp` .... starts predefined application (does nothing if already running)
+
 
 ### Machine Id  as an Environment Variable
 

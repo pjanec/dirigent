@@ -57,7 +57,7 @@ namespace Dirigent.Agent.TrayApp
                 {
                     if( ac.HadErrors )
                     {
-                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsinbg command line arguments" );
+                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsing command line arguments" );
                     }
 
                     ac.machineId = "none";
@@ -67,7 +67,7 @@ namespace Dirigent.Agent.TrayApp
                 {
                     if( ac.HadErrors )
                     {
-                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsinbg command line arguments" );
+                        MessageBox.Show( ac.GetUsageHelpText(), "Dirigent - Error parsing command line arguments" );
                     }
 
                     if( AppInstanceAlreadyRunning(ac.masterIP, ac.masterPort, ac.machineId, false)) return;

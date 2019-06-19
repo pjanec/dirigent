@@ -29,6 +29,9 @@ namespace Dirigent.Master
         [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "Shared config file name.")]
         public string SharedConfigFile { get; set; }
 
+        [Option("localConfigFile", Required = false, DefaultValue = "", HelpText = "Local config file name.")]
+        public string LocalConfigFile { get; set; }
+
         [Option("logFile", Required = false, DefaultValue = "", HelpText = "Log file name.")]
         public string LogFile { get; set; }
 
@@ -66,11 +69,12 @@ namespace Dirigent.Master
         {
             // start with default settings
             public string sharedCfgFileName = "SharedConfig.xml";
-            //public string localCfgFileName = Path.Combine(Application.StartupPath, "LocalConfig.xml");
+            public string localCfgFileName = ""; // empty by default - we won't try to load it
             public int masterPort = 5032;
             public string logFileName = "";
             public string startupPlanName = "";
             public SharedConfig scfg = null;
+            public LocalConfig lcfg = null;
             public int CLIPort = 5033;
         }
 
@@ -81,6 +85,7 @@ namespace Dirigent.Master
             // overwrite with application config
             if (Properties.Settings.Default.MasterPort != 0) ac.masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.SharedConfigFile != "") ac.sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
+            if (Properties.Settings.Default.LocalConfigFile != "") ac.localCfgFileName = Properties.Settings.Default.LocalConfigFile;
             if (Properties.Settings.Default.StartupPlan != "") ac.startupPlanName = Properties.Settings.Default.StartupPlan;
             if (Properties.Settings.Default.CLIPort != 0) ac.CLIPort = Properties.Settings.Default.CLIPort;
 
@@ -90,6 +95,7 @@ namespace Dirigent.Master
             {
                 if (options.MasterPort != 0) ac.masterPort = options.MasterPort;
                 if (options.SharedConfigFile != "") ac.sharedCfgFileName = options.SharedConfigFile;
+                if (options.LocalConfigFile != "") ac.localCfgFileName = options.LocalConfigFile;
                 if (options.LogFile != "") ac.logFileName = options.LogFile;
                 if (options.StartupPlan != "") ac.startupPlanName = options.StartupPlan;
                 if (options.CLIPort != 0) ac.CLIPort = options.CLIPort;
@@ -105,6 +111,13 @@ namespace Dirigent.Master
                 ac.sharedCfgFileName = Path.GetFullPath(ac.sharedCfgFileName);
                 log.DebugFormat("Loading shared config file '{0}'", ac.sharedCfgFileName);
                 ac.scfg = new SharedXmlConfigReader().Load(File.OpenText(ac.sharedCfgFileName));
+            }
+
+            if( ac.localCfgFileName != "" )
+            {
+                ac.localCfgFileName = Path.GetFullPath(ac.localCfgFileName);
+                log.DebugFormat("Loading local config file '{0}'", ac.localCfgFileName);
+                ac.lcfg = new LocalXmlConfigReader().Load(File.OpenText(ac.localCfgFileName));
             }
             return ac;
         }

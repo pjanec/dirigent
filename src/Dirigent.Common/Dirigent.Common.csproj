@@ -75,6 +75,7 @@
     <Compile Include="DictionaryUtils.cs" />
     <Compile Include="DirigentControlCommands.cs" />
     <Compile Include="ICommand.cs" />
+    <Compile Include="LocalXmlConfigReader.cs" />
     <Compile Include="MachineConfigHelper.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Exceptions.cs" />

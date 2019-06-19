@@ -62,6 +62,15 @@ namespace Dirigent.Agent.TrayApp.Properties {
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LocalConfigFile {
+            get {
+                return ((string)(this["LocalConfigFile"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string StartupPlan {
             get {
                 return ((string)(this["StartupPlan"]));

@@ -12,8 +12,12 @@ namespace Dirigent.Common
         public List<ILaunchPlan> Plans = new List<ILaunchPlan>();
     }
 
-    //public class LocalConfig
-    //{
-    //    public string LocalMachineId = ""; // machine id of the computer where the agent is going to run
-    //}
+    public class LocalConfig
+    {
+		/// <summary>
+		/// The XML document with local configuration
+		/// </summary>
+		public System.Xml.Linq.XDocument xmlDoc;
+		public List<System.Xml.Linq.XElement> folderWatcherXmls = new List<System.Xml.Linq.XElement>();
+    }
 }

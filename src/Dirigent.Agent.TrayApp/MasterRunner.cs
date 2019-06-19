@@ -30,6 +30,7 @@ namespace Dirigent.Agent.TrayApp
 
         public int MasterPort = -1; // master's TCP port; empty=default
         public string SharedConfigFile = ""; // empty = default
+        public string LocalConfigFile = ""; // empty = default
         public string StartupPlan = "";
         public int CLIPort = -1;
         

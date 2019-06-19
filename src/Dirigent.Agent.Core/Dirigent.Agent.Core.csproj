@@ -91,6 +91,7 @@
     <Compile Include="AppWatchers\AutoRestarter.cs" />
     <Compile Include="AppWatchers\WindowPoppedUpInitDetector.cs" />
     <Compile Include="AppWatchers\WindowPositioner.cs" />
+    <Compile Include="FolderWatcher.cs" />
     <Compile Include="IAppWatcher.cs" />
     <Compile Include="AppWatchers\ExitCodeInitDetector.cs" />
     <Compile Include="DirigentControlSwitchableProxy.cs" />

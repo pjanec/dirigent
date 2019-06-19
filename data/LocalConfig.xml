@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- this a local dirigent agen't config file -->
+<Local>
+  <!-- watching for new crash dump !-->
+  <FolderWatcher
+      Path = "..\..\Bin\All\CrashDumps"
+      IncludeSubdirs="false"
+      Conditions="NewFile"
+      Filter = "*.dmp"
+      >
+      <!-- what to do if change detected -->
+      <Action Type="StartPlan" PlanName="CollectLogs"/>
+      <!--Action Type="LaunchApp" AppIdTuple="DevelStation.LogCollector"/-->
+  </FolderWatcher>
+</Local>
