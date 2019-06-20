@@ -64,7 +64,10 @@ namespace Dirigent.Agent.Core
             // start the process
             var psi = new ProcessStartInfo();
 			psi.FileName =  BuildAbsolutePath( appPath );
-            psi.Arguments = System.Environment.ExpandEnvironmentVariables(appDef.CmdLineArgs);
+			if( appDef.CmdLineArgs != null )
+			{
+				psi.Arguments = System.Environment.ExpandEnvironmentVariables(appDef.CmdLineArgs);
+			}
             if (appDef.StartupDir != null)
             {
 				var dir = System.Environment.ExpandEnvironmentVariables(appDef.StartupDir);
