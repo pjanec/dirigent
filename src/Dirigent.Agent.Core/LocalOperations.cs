@@ -470,12 +470,18 @@ namespace Dirigent.Agent.Core
 
 
 
-			// SPECIAL CASE for plans with all-volatile apps - kill the plan as soon as all apps terminated so it can be started again
-			// if all apps are volatile (i.e. they might terminate on their own and we don't care) all all has been launched,
-			// make the plan as "not running"
+			// SPECIAL CASE for plans with all-volatile apps
+			// Kill the plan as soon as all apps have terminated.
+			// So the plan can be started again without being manually Killed first.
+			// This is used for utility-plans launching some tools on the stations,
+			// where the tools terminate automatically after they are done with their job.
+			// Note: this won't kill any app as the Kill is initiated when no app is running any more.
+			// (Usual non-volatile plans would not allow next start before prior KillPlan)
 			{
-				bool allLaunched = true;
-				bool allNonVolatileRunning = true;
+			    var currTime = DateTime.UtcNow;
+
+				//bool allLaunched = true;
+				//bool allNonVolatileRunning = true;
 				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 				bool allAppsProcessed = true;
 				bool anyStillRunning = false;
@@ -483,32 +489,41 @@ namespace Dirigent.Agent.Core
 				{
 					var apst = appsState[appDef.AppIdTuple];
 
-					if (!(apst.PlanApplied && apst.Started && apst.Initialized))
+		            bool isRemoteApp = appDef.AppIdTuple.MachineId != this.machineId;
+
+					var statusInfoAge = currTime - apst.LastChange;
+					bool offline = ( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds(3) );
 					{
-						allLaunched = false;
 					}
 
-					if (! (apst.PlanApplied && (apst.Initialized || apst.StartFailed) ))
+					//if ( !offline & !(apst.PlanApplied && apst.Started && apst.Initialized))
+					//{
+					//	allLaunched = false;
+					//}
+
+					if (!offline && ! (apst.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
 					{
 						allAppsProcessed = false;
 					}
 
-					if (apst.Running)
+					if ( !offline && apst.Running)
 						anyStillRunning = true;
 
 					if (!appDef.Volatile)
 					{
 						anyNonVolatileApp = true;
 
-						if (!apst.Running)
-						{
-							allNonVolatileRunning = false;
-						}
+						//if (!apst.Running || offline)
+						//{
+						//	allNonVolatileRunning = false;
+						//}
 					}
 				}
 
 				if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning)	// all apps volatile, all launched and none is running  any longer
 				{
+					// Note: this won't kill any app as no apps are running any more.
+					//       It just make the plan startable again.
 					KillPlan(plan.Name);
 				}
 

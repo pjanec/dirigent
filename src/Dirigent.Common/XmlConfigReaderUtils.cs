@@ -29,7 +29,7 @@ namespace Dirigent.Common
         public static bool getBoolAttr( XElement e, string attrName, bool def=false, bool ignoreCase=false )
         {
             var s = (string) Attribute( e, attrName, ignoreCase );
-            return ( s == null )? def : (s == "1");
+            return ( s == null )? def : (s == "1") || (s.ToLower() == "true") || (s.ToLower() == "yes");
         }
 
         // ignore case if set

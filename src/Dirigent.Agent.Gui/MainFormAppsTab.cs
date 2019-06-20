@@ -348,7 +348,7 @@ namespace Dirigent.Agent.Gui
             var statusInfoAge = currTime - st.LastChange;
             if( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds(3) )
             {
-                stCode += string.Format(" (no info for {0:0} sec)", statusInfoAge.TotalSeconds);
+                stCode += string.Format(" (Offline for {0:0} sec)", statusInfoAge.TotalSeconds);
             }
 
             

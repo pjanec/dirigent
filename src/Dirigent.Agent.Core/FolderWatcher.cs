@@ -54,7 +54,16 @@ namespace Dirigent.Agent.Core
 				log.Error("Path not defined or empty!");
 				return;
 			}
-			watcher.Path = BuildAbsolutePath( path );
+
+			var absPath = BuildAbsolutePath( path );
+
+            if( !System.IO.Directory.Exists(absPath) )
+			{
+				log.Error("Path does not exist!");
+				return;
+			}
+
+			watcher.Path = absPath;
 			watcher.IncludeSubdirectories = inclSubdirs;
 
             if( !String.IsNullOrEmpty(filter) )

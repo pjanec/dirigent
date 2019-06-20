@@ -558,13 +558,25 @@ Following methods are available
 
 - `<exitcode> <number></exitcode>` - After the app have terminated and its exit code matches the number specified. This can be combined with an auto-restart option of the application, resulting in a repetitive launches until given exitcode is returned.
 
-#### Starting with local copy of Shared config
+### Starting with local copy of Shared config
 
 Before the agent connects to master, it is using its local copy of SharedConfig. This is useful if agent needs to start applications event before the connection to master is established.
 
-#### Adopting master's plan upon connection
+### Adopting master's plan upon connection
 
 As soon as an agent connects to master, it receives and adopts the master's copy of the shared config. The local copy should be of course identical to the master's copy. If it is not, the currently running agent's plan is stopped, i.e. the all the apps launched by the agent so far are killed nad the new master's plan takes place.
+
+
+### Utility Plans vs. standard plans
+
+Usual plan "wants" to start all apps and watches if they are started. Such plan never ends automatically on its own even if all apps crash. If an app is set to be restarted automatically, the plan will do so until the plan gets stopped or killed.
+
+Such the plan also can not be started again before it is manually stopped or killed.
+
+An utility-plan it the one containing just volatile apps (having Volatile="1") is handled in a special way. Is is stopped automatically as soon as all the apps have been processed (an attempt to start them was performed) and all started apps have terminated (none left running).
+
+Such volatile-only plan allows for being started again without prior stop or kill command.
+
 
 ### Autodetection of the machine id
 
@@ -584,7 +596,7 @@ Example of setting in agent's local config file:
 
 	  <FolderWatcher
 		  Path = "..\..\Tests"
-		  IncludeSubdirs="false"
+		  IncludeSubdirs="0"
 		  Conditions="NewFile"
 		  Filter = "*.txt"
 		  >
@@ -603,6 +615,7 @@ Action types supported
  * `StartPlan` ... starts predefined plan (does nothing if already running and not finished yet)
  * `LauchApp` .... starts predefined application (does nothing if already running)
 
+Errors related to FolderWatcher (path not valid etc.) are logged only info agent's log file. Error results in FolderWather not being installed.
 
 ### Environment Variable for processes started by Dirigent Agent
 
