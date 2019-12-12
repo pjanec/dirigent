@@ -96,6 +96,7 @@
     		RestartOnCrash = "1"
     		SeparationInterval = "0.5"
     		KillTree = "1"
+			KillSoftly = "1"
     />
 
     <Machine Name="m1" IpAddress = "127.0.0.1" />

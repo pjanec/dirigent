@@ -67,6 +67,7 @@ namespace Dirigent.Common
                 SeparationInterval = (string) e.Attribute("SeparationInterval"),
                 Dependecies = (string) e.Attribute("Dependencies"),
                 KillTree = (string)e.Attribute("KillTree"),
+                KillSoftly = (string)e.Attribute("KillSoftly"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
                 WindowPos = e.Elements("WindowPos"),
                 Env = e.Element("Env"),
@@ -101,7 +102,12 @@ namespace Dirigent.Common
             }
 
             if (x.KillTree != null) a.KillTree = (int.Parse(x.KillTree) != 0);
-            
+
+            if (!String.IsNullOrEmpty(x.KillSoftly))
+            {
+                a.KillSoftly = (int.Parse(x.KillSoftly) == 1);
+            }
+
             if (x.WindowStyle != null)
             {
                 if (x.WindowStyle.ToLower() == "minimized") a.WindowStyle = ProcessWindowStyle.Minimized;

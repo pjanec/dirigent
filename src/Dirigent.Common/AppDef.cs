@@ -70,6 +70,12 @@ namespace Dirigent.Common
         [DataMember]
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
 
+        /// <summary>
+        /// Specifies whether the process should be 'killed' through the CloseMainWindow() method (giving it a chance to handle the termination gracefully) instead of the Kill() method call.
+        /// </summary>
+        [DataMember]
+        public bool KillSoftly;
+
         [DataMember]
         public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
 

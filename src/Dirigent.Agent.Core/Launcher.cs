@@ -127,7 +127,7 @@ namespace Dirigent.Agent.Core
         /// Kill a process, and all of its children.
         /// </summary>
         /// <param name="pid">Process ID.</param>
-        private static void KillProcessAndChildren(int pid, int indent)
+        private static void KillProcessAndChildren(int pid, int indent, bool killSoftly)
         {
             Process proc;
             try
@@ -164,7 +164,7 @@ namespace Dirigent.Agent.Core
                     // see also http://blogs.msdn.com/b/oldnewthing/archive/2015/04/03/10605029.aspx
                     if( childProc.StartTime >= proc.StartTime )
                     {
-                        KillProcessAndChildren( childPid, indent+2 );
+                        KillProcessAndChildren( childPid, indent+2, killSoftly );
                     }
                     else
                     {
@@ -180,7 +180,14 @@ namespace Dirigent.Agent.Core
             {
                 try
                 {
-                    proc.Kill();
+                    if (killSoftly)
+                    {
+                        proc.CloseMainWindow();
+                    }
+                    else
+                    {
+                        proc.Kill();
+                    }
                     log.DebugFormat(new String(' ', indent)+"Kill pid {0} DONE", proc.Id );
                 }
                 catch(Exception ex )
@@ -216,14 +223,21 @@ namespace Dirigent.Agent.Core
             // kill the process and wait until it dies
             if (appDef.KillTree)
             {
-                KillProcessAndChildren(proc.Id, 0);
+                KillProcessAndChildren(proc.Id, 0, appDef.KillSoftly);
             }
             else
             {
                 log.DebugFormat("Kill pid {0}, name \"{1}\"", proc.Id, proc.ProcessName );
                 try
                 {
-                    proc.Kill();
+                    if (appDef.KillSoftly)
+                    {
+                        proc.CloseMainWindow();   
+                    }
+                    else
+                    {
+                        proc.Kill();
+                    }
                     log.DebugFormat("Kill pid {0} DONE", proc.Id );
                 }
                 catch(Exception ex )
