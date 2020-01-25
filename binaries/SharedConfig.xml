@@ -1,11 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Shared>
+    <!--Plan Name="many" >
+    	<App AppIdTuple = "m1.x01" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x02" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x03" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x04" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x05" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x06" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x07" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x08" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x09" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x10" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x11" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x12" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x13" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x14" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x15" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x16" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x17" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x18" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x19" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x20" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x21" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x22" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x23" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x24" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x25" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x26" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x27" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x28" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x29" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x30" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x31" Template = "apps.notepad"></App>
+    	<App AppIdTuple = "m1.x32" Template = "apps.notepad"></App>
+    </Plan-->
+
     <Plan Name="plan1">
     	<App
     	    AppIdTuple = "m1.ps1"
     		Template = "powershell"
     		StartupDir = "c:\"
     		CmdLineArgs = "-f kuk!"
+    		Volatile = "1"
     	    >
     	</App>
 
@@ -16,7 +52,7 @@
     		StartupDir = "c:\"
     		CmdLineArgs = "m1.a.txt"
     		WindowStyle = "normal"
-    		AdoptIfAlreadyRunning = "1"
+    		AdoptIfAlreadyRunning = "0"
     	    >
     	    <InitDetectors>
     	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
@@ -82,7 +118,7 @@
     		StartupDir = "c:\"
     		CmdLineArgs = ""
     		StartupOrder = "0"
-    		RestartOnCrash = "1"
+    		RestartOnCrash = "0"
     		SeparationInterval = "0.5"
     		KillTree = "1"
     />
@@ -95,8 +131,8 @@
     		StartupOrder = "0"
     		RestartOnCrash = "1"
     		SeparationInterval = "0.5"
-    		KillTree = "1"
-			KillSoftly = "1"
+    		KillTree = "0"
+			KillSoftly = "0"
     />
 
     <Machine Name="m1" IpAddress = "127.0.0.1" />

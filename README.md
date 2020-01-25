@@ -1,6 +1,6 @@
 ## Dirigent Overview
 
-Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. It runs on Windows platform with .net 3.5.
+Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. It runs on Windows platform with .net 4.
 
 ![dirigent-agent](dirigent-agent.png)
 
@@ -9,6 +9,18 @@ Dirigent is an application life cycle management and diagnostic tool. It allows 
 The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
 
 The dependencies are checked among both local and remote applications. 
+
+The plan status indicates whether everything went successfully or if there was a failure.
+
+| Status      | meaning                                                      |
+| ----------- | ------------------------------------------------------------ |
+| None        | Plan not running, i.e. not taking care about contained applications. |
+| In Progress | Plan is running in launch mode. Applications get started sequentially in the order as defined by their interdependencies. Apps are optionally kept alive (restarted) if they terminate unexpectedly. Dirigent tries to guess whether apps have already finished their initialization |
+| Success     | All apps have been started and initialized and all are running. |
+| Failure     | Some apps have failed to start or initialize in given time limit. |
+| Killing     | Plan is in killing mode where all apps are being closed. As soon as the apps terminate the plan state goes back to None. |
+
+
 
 #### Individual applications control
 
@@ -19,6 +31,21 @@ An application that is supposed to run continuously can be automatically restart
 #### Application status sharing
 
 The applications are continuously monitored whether they are already initialized and still running. Their status is distributed to all agents on all machines.
+
+Status is encoded in several flags
+
+| Status Flag  | Meaning                                                      |
+| ------------ | ------------------------------------------------------------ |
+| Started      | The process launch attempt has been made.                    |
+| Start Failed | The process launch has failed.                               |
+| Running      | The process is currently running.<br />Warning: Process might be already dying! |
+| Dying        | The process termination attempt has been made, but the process has not exited yet. |
+| Killed       | The process termination attempt has been made via a direct KillApp request (i.e. not as a consequence of a KillPlan request) |
+| Initialized  | Dirigent has guessed the app has initialized already. The guessing is based on the configured initialization detector mechanism. |
+| Plan Applied | The application has already been processed as part of StartPlan operation. The plan will not attempt to launch the application again. This happens for example if the application was killed by a direct KillApp request. |
+|              |                                                              |
+
+
 
 #### Launching apps at startup
 
@@ -268,6 +295,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   `PLAN:<planName>:InProgress`
   `PLAN:<planName>:Failure`
   `PLAN:<planName>:Success`
+  `PLAN:<planName>:Killing`
 
 ##### Response text for GetAppState
 
@@ -280,6 +308,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   `F` = start failed
   `R` = running
   `K` = killed
+  `D` = dying
   `I` = initialized
   `P` = plan applied
 
@@ -414,7 +443,7 @@ Each app in the launch plan has the following attributes:
 
 - `RestartOnCrash 0|1` - whether to automatically restart the app after crash
 
-- `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running
+- `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption occurs when the app is about to be started or killed (i.e. not when the plan is not running). *WARNING: Should not be used with for apps that may run in multiple instances on the same computer!* 
 
 - `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
@@ -425,6 +454,8 @@ Each app in the launch plan has the following attributes:
 - `Template` - where to load default settings from; the name of a AppTemplate section in the same XML file
 
 - `KillTree 0|1` - whether to kill not just the single process but also all its child processes
+
+- `KillSoftly 0|1` - whether to send the close command (as if user pressed the close button) instead of a forceful kill
 
 - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
 

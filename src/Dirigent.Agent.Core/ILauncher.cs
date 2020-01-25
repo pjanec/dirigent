@@ -13,6 +13,7 @@ namespace Dirigent.Agent.Core
         void Launch();
         void Kill();
         bool Running { get; }
+		bool Dying { get; }
         int ExitCode { get; }
         int ProcessId { get; }
     }

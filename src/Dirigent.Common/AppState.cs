@@ -17,6 +17,7 @@ namespace Dirigent.Common
         bool startFailed;
         bool running;
         bool killed;
+		bool dying;
         bool initialized;
         int exitCode;
         bool planApplied;
@@ -57,13 +58,23 @@ namespace Dirigent.Common
         }
 
         /// <summary>
-        /// forced to terminate
+        /// forced to terminate	by KillApp request (not by a KillPlan)
         /// </summary>
         [DataMember]
         public bool Killed
         {
             get { return killed; }
             set { killed = value; changed(); }
+        }
+
+        /// <summary>
+        /// Still dying (after termination request)
+        /// </summary>
+        [DataMember]
+        public bool Dying
+        {
+            get { return dying; }
+            set { dying = value; changed(); }
         }
 
         /// <summary>

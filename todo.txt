@@ -62,9 +62,9 @@ Fix: Application sometimes left open and forgotten by dirigent, still running an
 
 Option to redirect standard and error output of a launched process.
 
-Add InitDetector that fires when a process-owned window appears with title matching given regexp. [DONE]
+[DONE] Add InitDetector that fires when a process-owned window appears with title matching given regexp. [DONE]
 
-Support for relative working directory specification for a process, taking dirigent's working directory as a basis. [DONE]
+[DONE] Support for relative working directory specification for a process, taking dirigent's working directory as a basis. [DONE]
 
 Review the AppState flags, make it less confusing. Use one application state enum + just a few additional flags..
 
@@ -78,7 +78,7 @@ Remote execution of ANY command on selected machine(s).
 
 Support for applications that are never started automatically, just manually (always excluded from plan).
 
-Support for disabling an application before starting a launch plan. NOT MUCH USED
+[DONE] Support for disabling an application before starting a launch plan. NOT MUCH USED
 
 Support for multiple retries when launching a problematically starting application.
 
@@ -142,4 +142,27 @@ Failure timeout for app bootup detector.
 [DONE] Fix: Dirigent crashes when startupPlan name does not exist in the list of plans
 
 [DONE] Checkbox to exclude app from a plan.
+ 
+ 
+Support for user-selectable variable pack to be defined for a plan. User picks the pack from a list box before starting a plan. The variables could be used as command line arguments for processes within the plan. Some variables might be set to "user editable"; those could be edited by the user. The pack name is shown in the agent's toolbar where it could be quickly changed to another pack or opened for variable editing.
+
+Handle Dirigent.Master's exception when computer is waking up from hibernation. Terminate the app and let the Dirigent.Agent to restart it.
+
+[DONE] KillPlan takes many seconds when there are many (for example 30) apps in a plan.
+ - Tested with 30 instances notepad.exe using KillSoftly=0 & TreeKill=0; all killed in no time.
+ - Heavier apps are killed sequentially in a blocking way ... make non-blocking!
+
+[DONE] StartPlan containing 30 apps takes long time to run all of them even if SeparationInterval=0
+ - processPlan() launches max. one app at a time
+ - If SeparationInterval=0, it should start apps at once with no time separation 
+ 
+[DONE] PlanState is reported as "None" immediately after KillPlan although the apps might still be dying slowly.
+ - Add new plan state Killing which is set after KillPlan until all apps actually die (disappear from the system).
+ - Killing an app should be implemented in a non-blocking manner, no longer blocking further processing of dirigent.Agent before the app terminates.
+ - Add new app state Dying which is set while killing an app until the app disappears from the system, then it is cleared.
+ - An app is not considered "runnable" until it dies. LaunchApp will do nothing for an app in Dying state.
+    - App's launcher instance is not disposed until the app's process disappears from the system. Every tick it checkes if the app 
+
+	
+RestartApp needs to be implemented in a non-blocking manner. I.e. first it kills the app (in non-blocking manner), wait for the app to die, then launch it again. The dirigent needs to remember that the application is being restarted - this may need another AppState flag "Restarting".
  

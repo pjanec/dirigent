@@ -56,6 +56,8 @@ namespace Dirigent.Agent.Core
 
         string rootForRelativePaths;
 
+		double currentTime; // time as set from tick()
+
         
         public LocalOperations(
             string machineId,
@@ -135,6 +137,7 @@ namespace Dirigent.Agent.Core
 						Initialized = false,
 						Running = false,
 						Started = false,
+						Dying = false,
                         Disabled = a.Disabled
 					};
 				}
@@ -240,10 +243,12 @@ namespace Dirigent.Agent.Core
 
 			AdoptPlan( rti.Plan );
 
-			if (!rti.State.Running)
+			// in the plan is idle
+			if ( !rti.State.Running && !rti.State.Killing )
             {
                 // trigger the launch sequencer
                 rti.State.Running = true;
+				rti.State.Killing = false;
 				rti.State.TimeStarted = DateTime.UtcNow;
 
                 List<AppWave> waves = LaunchWavePlanner.build(rti.Plan.getAppDefs());
@@ -262,9 +267,11 @@ namespace Dirigent.Agent.Core
 			var rti = planRTInfo[planName];
 
             rti.State.Running = false;
+			rti.State.Killing = false;
             rti.launchDepChecker = null;
 
-            foreach (var a in rti.Plan.getAppDefs())
+            // if we start the plan again, re-apply the plan to all the apps again...
+			foreach (var a in rti.Plan.getAppDefs())
             {
                 appsState[a.AppIdTuple].PlanApplied = false;
             }        
@@ -282,30 +289,30 @@ namespace Dirigent.Agent.Core
 
 			AdoptPlan( rti.Plan );
 
-            // kill all local apps belonging to the current plan
+            rti.State.Running = false;
+			rti.State.Killing = true;
+
+            // attempt to kill all local apps belonging to the current plan
             foreach( var a in rti.Plan.getAppDefs() )
             {
                 if( !localApps.ContainsKey( a.AppIdTuple ) )
                     continue;
 
+				// ignore disabled apps
+				var appState = appsState[a.AppIdTuple];
+				if( appState.Disabled )
+					continue;
 
+				// attempt to kill
+				// this is non-blocking! does not wait for app to die!
                 KillApp( a.AppIdTuple );
                 
-                // enable to be plan-started again
-                var la = localApps[a.AppIdTuple];
-                var appState = appsState[la.AppDef.AppIdTuple];
-                appState.PlanApplied = false;
-                
-                appState.Started = false;
-                appState.StartFailed = false;
-                appState.Killed = false;
-                appState.Initialized = false;
-                appState.Running = false;
-
+                // Note:
+				// the app status will get reset by processPlan()
+				// as soon as the app dies
             }
             
             // stop the launch sequencer
-            rti.State.Running = false;
             rti.launchDepChecker = null;
         }
 
@@ -441,34 +448,81 @@ namespace Dirigent.Agent.Core
 
                 log.DebugFormat("Killing app {0}", la.AppDef.AppIdTuple);
 
-                la.launcher.Kill();
-                la.launcher = null;
-
+                // this just initiates the dying
+				la.launcher.Kill();
                 
+				// we maintain the launcher instance until the app actually dies
             }
         }
 
 
         /// <summary>
-        /// Checks dependency conditions and launches apps in wawes
-        /// Launches max. one app at a time, next one earliest after the previous one's separation interval.
+        /// Watch if the apps belonging to the plan have already died.
+        /// As soon as all apps have died, leave the killing mode and resets local app state
+		/// to make them ready for a next plan start.
         /// </summary>
-		// FIXME: presunout do PlanRuntimeInfo
-        void processPlan( double currentTime, ILaunchPlan plan )
-        {
-            // too frequent message filling up the log - commented out
-            //log.Debug("processPlan");
+		void processPlanKilling( PlanRuntimeInfo rti )
+		{
+			if( !rti.State.Killing ) return;
 
-            if( plan==null )
-                return;
+			bool someStillRunning = false;
 
-			var rti = planRTInfo[plan.Name];
+			// check if some (local or remote) app is still running
+			foreach( var a in rti.Plan.getAppDefs() )
+			{
+				var appState = appsState[a.AppIdTuple];
 
+				if( appState.Running )
+				{
+					if( !appState.Disabled ) // ignore disabled apps
+					{
+						someStillRunning = true;
+					}
+				}
+
+			}
+
+			// if no app left running, 
+			if( !someStillRunning )
+			{
+				// leave the killing mode
+				rti.State.Killing = false;
+
+				// reset local app state to
+				// enable them to be plan-started again
+				foreach( var a in rti.Plan.getAppDefs() )
+				{
+					if( !localApps.ContainsKey( a.AppIdTuple ) )
+						continue;
+
+					var appState = appsState[a.AppIdTuple];
+
+					if( appState.Disabled )	// ignore disabled apps
+						continue;
+
+					appState.PlanApplied = false;
+					appState.Started = false;
+					appState.StartFailed = false;
+					appState.Killed = false;
+					appState.Initialized = false;
+					appState.Running = false;
+					appState.Dying = false;
+				}
+
+
+			}
+
+		}
+
+        /// <summary>
+        /// Checks dependency conditions and launches apps in wawes
+        /// Launches app in sequence, next one earliest after the previous one's separation interval.
+        /// </summary>
+		void processPlanRunning( PlanRuntimeInfo rti )
+		{
             // if plan is stopped, don't start contained apps
 			if (!rti.State.Running)
 				return;
-
-
 
 			// SPECIAL CASE for plans with all-volatile apps
 			// Kill the plan as soon as all apps have terminated.
@@ -524,7 +578,7 @@ namespace Dirigent.Agent.Core
 				{
 					// Note: this won't kill any app as no apps are running any more.
 					//       It just make the plan startable again.
-					KillPlan(plan.Name);
+					KillPlan(rti.Plan.Name);
 				}
 
 			}
@@ -544,20 +598,37 @@ namespace Dirigent.Agent.Core
             }
 
 
-            // try to get an app to launch and launch it immediately
-            
-            AppDef appToLaunch = rti.launchSequencer.GetNext( currentTime );
-            if( appToLaunch != null )
-            {
-                // remember that the app was already processed by the launch plan and should not be touched again
-                // note: must be called before StartApp otherwise it would be enlessly re-tried by the launch plan if it throws exception during StartUp
-                var la = localApps[appToLaunch.AppIdTuple];
-                var appState = appsState[la.AppDef.AppIdTuple];
-                appState.PlanApplied = true;
-                
-                LaunchApp(appToLaunch.AppIdTuple);
-            }
+            // launch all apps planned for current time
+            while(true)
+			{
+	            // try to get an app to launch and launch it immediately
+				AppDef appToLaunch = rti.launchSequencer.GetNext( currentTime );
+				if( appToLaunch == null ) break;
 
+				// remember that the app was already processed by the launch plan and should not be touched again
+				// note: must be called before StartApp otherwise it would be enlessly re-tried by the launch plan if it throws exception during StartUp
+				var la = localApps[appToLaunch.AppIdTuple];
+				var appState = appsState[la.AppDef.AppIdTuple];
+				appState.PlanApplied = true;
+                
+				LaunchApp(appToLaunch.AppIdTuple);
+			}
+		}
+
+		// FIXME: presunout do PlanRuntimeInfo
+        void processPlan( ILaunchPlan plan )
+        {
+            // too frequent message filling up the log - commented out
+            //log.Debug("processPlan");
+
+            if( plan==null )
+                return;
+
+			var rti = planRTInfo[plan.Name];
+
+			processPlanKilling( rti );
+
+			processPlanRunning( rti );
         }
 
         void tickWachers( LocalApp la )
@@ -591,14 +662,22 @@ namespace Dirigent.Agent.Core
                 if( la.launcher != null ) // already launched
                 {
                     appState.Running = la.launcher.Running;
+					appState.Dying = la.launcher.Dying;	// if dying=true, then running=true
                     appState.ExitCode = la.launcher.ExitCode;
+
+					// forget about the running process if just exited
+					if(	!appState.Running )
+					{
+						la.launcher = null;
+					}
 
                     tickWachers( la );
                 }
-                else // not yet launched or killed
+                else // not running
                 {
                     appState.Running = false;
-                    appState.Initialized = false;
+					appState.Dying = false;
+                    //appState.Initialized = false;
                 }
             }
          }
@@ -612,13 +691,15 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void tick( double currentTime )
         {
+			this.currentTime = currentTime;
+
             // refresh to prepare fresh data for app startup condition checks
             refreshLocalAppState();
 
 			// select and run an app from plan if all conditions are met
 			foreach (var p in planRepo)
 			{
-				processPlan(currentTime, p);
+				processPlan(p);
 			}
             
             // refresh again to set "WasLaunched" and "Running"
@@ -628,21 +709,37 @@ namespace Dirigent.Agent.Core
 		// update status on the plan
 		private void CalculatePlanStatus(PlanRuntimeInfo rti)
 		{
-			if (!rti.State.Running)
+			//  Success:
+			//      plan running
+			//		all apps launched & initialized
+			//		all non-volatile apps still running
+			// InProgress
+			//      plan running
+			//      not success and not failure
+			// Failure
+			//      plan running
+			//      some of non-volatile apps launched but not running anymore
+			//      some of non-volatile apps failed to run/initialize in given time limit
+			// Killing
+			//      plan was is in Killing mode and some apps still haven't disappeared
+			// None
+			//      plan not running (before starting and after killing) 
+
+			if (!rti.State.Running && !rti.State.Killing)
 			{
 				rti.State.OpStatus = PlanState.EOpStatus.None;
 				return;
 			}
 
-			// TODO
-			//  Success:
-			//		all apps launched & initialized
-			//		all non-volatile apps still running
-			// InProgress
-			//      not success and not failure
-			// Failure
-			//      some of non-volatile apps launched but not running anymore
-			//      some of non-volatile apps
+			if ( rti.State.Killing )
+			{
+				rti.State.OpStatus = PlanState.EOpStatus.Killing;
+				return;
+			}
+
+			// here the plan must be Running...
+
+
 			bool allLaunched = true;
 			bool allNonVolatileRunning = true;
 			bool anyNonVolatileApp = false;	// is there at least one non-volatile?
@@ -650,6 +747,9 @@ namespace Dirigent.Agent.Core
 			foreach (var appDef in rti.Plan.getAppDefs())
 			{
 				var apst = appsState[appDef.AppIdTuple];
+
+				if( apst.Disabled )	// ignore disabled apps (as if they are not part of the plan)
+					continue;
 
 				if (!(apst.PlanApplied && apst.Started && apst.Initialized))
 				{

@@ -46,6 +46,7 @@ namespace Dirigent.Common
 	///   PLAN:planName:InProgress
 	///   PLAN:planName:Failure
 	///   PLAN:planName:Success
+	///   PLAN:planName:Killing
 	///    
 	/// Response text for GetAppState
 	///   APP:AppName:Flags:ExitCode:StatusAge:CPU:GPU:Memory

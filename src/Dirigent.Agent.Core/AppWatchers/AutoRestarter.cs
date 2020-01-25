@@ -113,6 +113,7 @@ namespace Dirigent.Agent.Core
                         appState.Started = false;
                         appState.PlanApplied = false;
                         appState.Running = false;
+						appState.Dying = false;
                         appState.StartFailed = false;
                         appState.Initialized = false;
                         appState.Killed = false;

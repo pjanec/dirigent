@@ -12,6 +12,8 @@ namespace Dirigent.Agent.Tests
     class FakeLauncher : ILauncher
     {
         bool running = false;
+		bool dying = false;
+
         AppDef appDef;
         FakeLaunchFactory flf;
 
@@ -32,13 +34,28 @@ namespace Dirigent.Agent.Tests
         public void  Kill()
         {
  	        running = false;
+			dying = true;
         }
 
         public bool  Running
         {
             get
             {
+				if (dying )
+				{
+					running = false;
+					dying = false;
+				}
+
                 return running;
+            }
+        }
+
+        public bool  Dying
+        {
+            get
+            {
+                return dying;
             }
         }
 

@@ -319,15 +319,24 @@ namespace Dirigent.Agent.Gui
 
             if (st.Started)
             {
-                if (st.Running && !st.Initialized)
+                if (st.Running)
                 {
-                    stCode = "Initializing";
-                }
-                if (st.Running && st.Initialized)
-                {
-                    stCode = "Running";
-                }
-                if (!st.Running)
+					if( st.Dying )
+					{
+	                    stCode = "Dying";
+					}
+					else
+					if( !st.Initialized)
+					{
+						stCode = "Initializing";
+					}
+					else
+					{
+						stCode = "Running";
+					}
+				}
+				else
+				// !st.Running
                 {
                     if (st.Killed)
                     {

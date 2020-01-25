@@ -18,6 +18,9 @@ namespace Dirigent.Agent.Core
         AppDef appDef;
         string RelativePathsRoot;
 
+		bool dying = false;	// already killed but still in the system
+		int exitCode = 0; // cached exit code from last run
+
         public Launcher( AppDef appDef, String rootForRelativePaths )
         {
             this.appDef = appDef;
@@ -42,6 +45,13 @@ namespace Dirigent.Agent.Core
 
         public void Launch()
         {
+			// don't run again if not yet killed
+			if( dying ) return;
+			
+			// not exited yet
+			exitCode = 0;
+
+
 			var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
 
             // try to adopt an already running process (matching by process image file name, regardless of path)
@@ -246,24 +256,53 @@ namespace Dirigent.Agent.Core
                 }
             }
 
-            log.DebugFormat("WaitForExit pid {0}", proc.Id );
-            proc.WaitForExit();
-            log.DebugFormat("WaitForExit pid {0} DONE", proc.Id );
-            
-            proc = null;
+            // We no longer block until the app dies
+			//
+			//log.DebugFormat("WaitForExit pid {0}", proc.Id );
+            //proc.WaitForExit();
+            //log.DebugFormat("WaitForExit pid {0} DONE", proc.Id );
+            //
+            //proc = null;
+
+			// instead we start monitoring it until it vanishes
+			dying = true;
         }
 
-        public bool Running
+		// If the process has exited, grabs the exit code and forgets about the process.
+		// Returns true if the process is existing (not exited yet)
+		private bool checkExited()
+		{
+			// have we already forgotten the process?
+			if( proc == null ) return true;
+
+			if( !proc.HasExited )
+			{
+				// still running
+				return false;
+			}
+
+			// already exited - remember exit code and forget about the process
+			dying = false;
+
+			exitCode = proc.ExitCode;
+
+			proc = null;
+
+			return true;
+		}
+
+
+        /// <summary>
+		/// Returns true if the process is in the system, no matter if running corectly or
+		/// whether it is still terminating. I.e. Running==true && Dying==true is a valid state.
+		/// </summary>
+		public bool Running
         {
             get
             {
                 try
                 {
-                    if (proc != null && !proc.HasExited)
-                    {
-                        return true;
-                    }
-                    return false;
+					return !checkExited();
                 }
                 catch // if we adopted a foreign process or otherwise we can't get the exit code
                 {
@@ -272,17 +311,26 @@ namespace Dirigent.Agent.Core
             }
         }
 
+		/// <summary>
+		/// If true, the process termination attempt has been made (and the process is hopefully
+		/// terminating) but it is still present in the system.
+		/// </summary>
+		public bool Dying
+		{
+			get { return dying; }
+		}
+
+
         public int ExitCode
         {
             get
             {
                 try
                 {
-                    if (proc != null && proc.HasExited)
-                    {
-                        return proc.ExitCode;
-                    }
-                    return 0; // default
+					// make sure we remember the exit code when the process exits
+					checkExited();
+
+					return exitCode;
                 }
                 catch // if we adopted a foreign process or otherwise we can't get the exit code
                 {
