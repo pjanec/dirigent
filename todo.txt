@@ -164,5 +164,5 @@ Handle Dirigent.Master's exception when computer is waking up from hibernation. 
     - App's launcher instance is not disposed until the app's process disappears from the system. Every tick it checkes if the app 
 
 	
-RestartApp needs to be implemented in a non-blocking manner. I.e. first it kills the app (in non-blocking manner), wait for the app to die, then launch it again. The dirigent needs to remember that the application is being restarted - this may need another AppState flag "Restarting".
+[DONE] RestartApp needs to be implemented in a non-blocking manner. I.e. first it kills the app (in non-blocking manner), wait for the app to die, then launch it again.
  

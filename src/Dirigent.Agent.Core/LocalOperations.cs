@@ -58,6 +58,18 @@ namespace Dirigent.Agent.Core
 
 		double currentTime; // time as set from tick()
 
+		/// <summary>
+		/// Helpers for implementing a pending RestartApp operation. They get instantiated upon RestartApp
+		/// request and removed when the restart has finished. At most one per AppIdTuple.
+		/// </summary>
+		Dictionary<AppIdTuple, AppRestarter> appRestarters = new Dictionary<AppIdTuple, AppRestarter>();
+
+		/// <summary>
+		/// Helpers for implementing a pending RestartPlan operation. They get instantiated upon RestartPlan
+		/// request and removed when the restart has finished. At most one per plan.
+		/// </summary>
+		Dictionary<string, PlanRestarter> planRestarters = new Dictionary<string, PlanRestarter>();
+
         
         public LocalOperations(
             string machineId,
@@ -236,10 +248,9 @@ namespace Dirigent.Agent.Core
 		/// </summary>
 		public void  StartPlan( string planName )
         {
-            if (string.IsNullOrEmpty(planName))
-                return;
-
-			var rti = planRTInfo[planName];
+			PlanRuntimeInfo rti;
+			if( !planRTInfo.TryGetValue( planName, out rti ) )
+				return;
 
 			AdoptPlan( rti.Plan );
 
@@ -261,10 +272,9 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void StopPlan( string planName )
         {
-            if (string.IsNullOrEmpty(planName))
-                return;
-
-			var rti = planRTInfo[planName];
+			PlanRuntimeInfo rti;
+			if( !planRTInfo.TryGetValue( planName, out rti ) )
+				return;
 
             rti.State.Running = false;
 			rti.State.Killing = false;
@@ -282,10 +292,9 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void  KillPlan( string planName )
         {
-            if (string.IsNullOrEmpty(planName))
-                return;
-            
-            var rti = planRTInfo[planName];
+			PlanRuntimeInfo rti;
+			if( !planRTInfo.TryGetValue( planName, out rti ) )
+				return;
 
 			AdoptPlan( rti.Plan );
 
@@ -316,10 +325,24 @@ namespace Dirigent.Agent.Core
             rti.launchDepChecker = null;
         }
 
-        public void  RestartPlan( string planName )
+        public void RestartPlan( string planName )
         {
-			KillPlan( planName );
-            StartPlan( planName );
+			PlanRuntimeInfo rti;
+			if( !planRTInfo.TryGetValue( planName, out rti ) )
+				return;
+
+			// add planRestarter if not exist yet
+			PlanRestarter r;
+			if( !planRestarters.TryGetValue( planName, out r ) )
+			{
+				r = new PlanRestarter( planName, this, null );
+				planRestarters[planName] = r;
+			}
+			else
+			{
+				// make it restart the app again
+				r.Reset();
+			}
         }
 
         /// <summary>
@@ -421,8 +444,27 @@ namespace Dirigent.Agent.Core
 
         public void  RestartApp(AppIdTuple appIdTuple)
         {
- 	        KillApp( appIdTuple );
-            LaunchApp( appIdTuple );
+			// ignore non-local apps
+            if( !(localApps.ContainsKey(appIdTuple) ))
+            {
+                throw new NotALocalApp(appIdTuple, machineId);
+            }
+
+
+			// add appRestarter if not exist yet
+			AppRestarter r;
+			if( !appRestarters.TryGetValue( appIdTuple, out r ) )
+			{
+	            var la = localApps[appIdTuple];
+				
+				r = new AppRestarter( la.AppDef, this, null );
+				appRestarters[appIdTuple] = r;
+			}
+			else
+			{
+				// make it restart the app again
+				r.Reset();
+			}
         }
 
         /// <summary>
@@ -631,6 +673,50 @@ namespace Dirigent.Agent.Core
 			processPlanRunning( rti );
         }
 
+		/// <summary>
+		/// Ticks app restarters and remove those that are finished
+		/// </summary>
+		void processAppRestarters()
+		{
+			List<KeyValuePair<AppIdTuple, AppRestarter>> toRemove = new List<KeyValuePair<AppIdTuple, AppRestarter>>();
+			foreach( var kv in appRestarters )
+			{
+				var r = kv.Value;
+				r.Tick();
+				if( r.ShallBeRemoved )
+				{
+					toRemove.Add( kv );
+				}
+			}
+
+			foreach( var kv in toRemove )
+			{
+				appRestarters.Remove( kv.Key );
+			}
+		}
+
+		/// <summary>
+		/// Ticks plan restarters and remove those that are finished
+		/// </summary>
+		void processPlanRestarters()
+		{
+			List<KeyValuePair<string, PlanRestarter>> toRemove = new List<KeyValuePair<string, PlanRestarter>>();
+			foreach( var kv in planRestarters )
+			{
+				var r = kv.Value;
+				r.Tick();
+				if( r.ShallBeRemoved )
+				{
+					toRemove.Add( kv );
+				}
+			}
+
+			foreach( var kv in toRemove )
+			{
+				planRestarters.Remove( kv.Key );
+			}
+		}
+
         void tickWachers( LocalApp la )
         {
             var toRemove = new List<IAppWatcher>();
@@ -701,6 +787,12 @@ namespace Dirigent.Agent.Core
 			{
 				processPlan(p);
 			}
+
+			// handle pending RestartApp requests
+			processAppRestarters();
+            
+			// handle pending RestartPlan requests
+			processPlanRestarters();
             
             // refresh again to set "WasLaunched" and "Running"
             refreshLocalAppState();
