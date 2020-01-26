@@ -135,8 +135,4 @@
 			KillSoftly = "0"
     />
 
-    <Machine Name="m1" IpAddress = "127.0.0.1" />
-
-    <Master	Name = "m1" Port = "12345" />
-
 </Shared>
