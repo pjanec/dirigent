@@ -34,6 +34,7 @@ namespace Dirigent.Common
 			if (appState.Initialized) sbFlags.Append("I");
 			if (appState.PlanApplied) sbFlags.Append("P");
 			if (appState.Dying) sbFlags.Append("D");
+			if (appState.Restarting) sbFlags.Append("X");
 
 			var now = DateTime.UtcNow;
 

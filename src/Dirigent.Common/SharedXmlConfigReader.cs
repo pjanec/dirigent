@@ -70,6 +70,7 @@ namespace Dirigent.Common
                 KillSoftly = (string)e.Attribute("KillSoftly"),
                 WindowStyle = (string)e.Attribute("WindowStyle"),
                 WindowPos = e.Elements("WindowPos"),
+                Restarter = e.Element("Restarter"),
                 Env = e.Element("Env"),
                 InitDetectors = e.Element("InitDetectors") != null ? e.Element("InitDetectors").Elements() : null,
             };
@@ -103,10 +104,7 @@ namespace Dirigent.Common
 
             if (x.KillTree != null) a.KillTree = (int.Parse(x.KillTree) != 0);
 
-            if (!String.IsNullOrEmpty(x.KillSoftly))
-            {
-                a.KillSoftly = (int.Parse(x.KillSoftly) == 1);
-            }
+            if (!String.IsNullOrEmpty(x.KillSoftly)) a.KillSoftly = (int.Parse(x.KillSoftly) != 0);
 
             if (x.WindowStyle != null)
             {
@@ -125,6 +123,11 @@ namespace Dirigent.Common
                 {
                     a.WindowPosXml.Add( elem.ToString() );
                 }
+            }
+
+            if( x.Restarter != null )
+            {
+                a.RestarterXml = x.Restarter.ToString();
             }
 
             if( x.Env != null )

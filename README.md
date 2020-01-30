@@ -43,7 +43,7 @@ Status is encoded in several flags
 | Killed       | The process termination attempt has been made via a direct KillApp request (i.e. not as a consequence of a KillPlan request) |
 | Initialized  | Dirigent has guessed the app has initialized already. The guessing is based on the configured initialization detector mechanism. |
 | Plan Applied | The application has already been processed as part of StartPlan operation. The plan will not attempt to launch the application again. This happens for example if the application was killed by a direct KillApp request. |
-|              |                                                              |
+| Restarting   | Dirigent is going to restart the app. This happens after crash (if the app is configured to be automatically restarted) or after manual RestartApp request. |
 
 
 
@@ -65,7 +65,7 @@ All operations can be controlled
 
 #### Local and networked mode
 
-Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUIless background process (daemon), or as a command line control application.
+Dirigent can be configured to to run either in single-machine or networked mode, with embedded control GUI or as GUI-less background process (daemon), or as a command line control application.
 
 #### Architecture
 
@@ -311,6 +311,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   `D` = dying
   `I` = initialized
   `P` = plan applied
+  `X` = restarting
 
 ###### ExitCode
 
@@ -441,7 +442,7 @@ Each app in the launch plan has the following attributes:
 
 - `Disabled 0|1` - whether the application is initially excluded from plan operation.
 
-- `RestartOnCrash 0|1` - whether to automatically restart the app after crash
+- `RestartOnCrash 0|1` - whether to automatically restart the app after crash. See the *Restarter* subsection for more details
 
 - `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption occurs when the app is about to be started or killed (i.e. not when the plan is not running). *WARNING: Should not be used with for apps that may run in multiple instances on the same computer!* 
 
@@ -521,6 +522,23 @@ App sub-sections:
   - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
   
   - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
+
+- `Restarter`
+  
+      <Restarter maxTries="2" delay="5"/>
+  
+  This settings specifies the parameters of the restart service which is activated upon application crash (when the app terminates without being killed via Dirigent). Such service is enabled only if  `RestartOnCrash='1'`.
+  
+  Dirigent will try to restart a crashed app for given number of times before it gives up. Upon crash, Dirigent waits for specified time before a restart attempt is made.
+  
+  Attributes:
+
+  - `maxTries` - how many restart attempts are made before the Dirigent gives up restarting. -1 means 'try forever'. Default is -1.
+  - `delay` - how long time in seconds to wait before the Dirigent attempts to restart a crashed app. Default is 1 sec.
+
+  Upon an StartPlan or LaunchApp request the number of remaining restart attempts is reset to the `maxTries` value.
+  
+  KillApp or KillPlan requests deactivate any pending restart operation.
 
 #### Templated launch plan definition
 

@@ -12,7 +12,11 @@ namespace Dirigent.Common
     public interface IDirigentControl
     {
         /// <summary>
-        /// Get the status of an application (no matter whether locl or remote)
+        /// Get the status of an application (no matter whether local or remote)
+		/// If used on a LocalOperation instance, returns reference to a live writable 
+		/// state - you can modify the app state.
+		/// If used on non-owning instance, you should not modify the state (it
+		/// is likely to be overwritten soon anyway).
         /// </summary>
         /// <param name="appIdTuple"></param>
         /// <returns></returns>

@@ -22,6 +22,10 @@ namespace Dirigent.Agent.Tests
             this.appDef = appDef;
             this.flf = flf;
         }
+
+		public void Dispose()
+		{
+		}
         
         public void  Launch()
         {

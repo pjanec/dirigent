@@ -18,6 +18,7 @@ namespace Dirigent.Common
         bool running;
         bool killed;
 		bool dying;
+		bool restarting;
         bool initialized;
         int exitCode;
         bool planApplied;
@@ -26,11 +27,15 @@ namespace Dirigent.Common
 		int cpu; // percentage of CPU usage
 		int gpu; // percentage of GPU usage
 		int memory; // MBytes of memory allocated
-    
-        /// <summary>
-        /// process was launched successfully
-        /// </summary>
-        [DataMember]
+
+		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
+		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration
+		int restartsRemaining = RESTARTS_UNITIALIZED;
+
+		/// <summary>
+		/// process was launched successfully
+		/// </summary>
+		[DataMember]
         public bool Started
         {
             get { return started; }
@@ -75,6 +80,16 @@ namespace Dirigent.Common
         {
             get { return dying; }
             set { dying = value; changed(); }
+        }
+
+        /// <summary>
+        /// Just being restarted (waiting until dies in order to be lanuched again)
+        /// </summary>
+        [DataMember]
+        public bool Restarting
+        {
+            get { return restarting; }
+            set { restarting = value; changed(); }
         }
 
         /// <summary>
@@ -161,7 +176,17 @@ namespace Dirigent.Common
             set { memory = value; }
         }
 
-        void changed()
+		/// <summary>
+		///	How many restart tries to make before giving up
+		/// </summary>
+		[DataMember]
+		public int RestartsRemaining
+		{
+			get { return restartsRemaining; }
+			set { restartsRemaining = value; }
+		}
+
+		void changed()
         {
             lastChange = DateTime.UtcNow;
         }

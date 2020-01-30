@@ -8,7 +8,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
-    public interface ILauncher
+    public interface ILauncher : IDisposable
     {
         void Launch();
         void Kill();

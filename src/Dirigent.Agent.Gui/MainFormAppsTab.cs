@@ -200,12 +200,12 @@ namespace Dirigent.Agent.Gui
 
                     var killItem = new System.Windows.Forms.ToolStripMenuItem("&Kill");
                     killItem.Click += (s, a) => guardedOp( () => ctrl.KillApp(appIdTuple) );
-                    killItem.Enabled = isAccessible && st.Running;
+                    killItem.Enabled = isAccessible && (st.Running || st.Restarting);
                     popup.Items.Add(killItem);
 
                     var restartItem = new System.Windows.Forms.ToolStripMenuItem("&Restart");
                     restartItem.Click += (s, a) => guardedOp( () => ctrl.RestartApp(appIdTuple) );
-                    restartItem.Enabled = isAccessible && st.Running;
+                    restartItem.Enabled = isAccessible; // && st.Running;
                     popup.Items.Add(restartItem);
 
                     if( appDef != null && appDef.Disabled )
@@ -232,7 +232,7 @@ namespace Dirigent.Agent.Gui
                     // icon clicks
                     if( currentCol == appTabColIconStart )
                     {
-                        if( isAccessible && !st.Running )
+                        if( isAccessible ) // && !st.Running )
                         {
                             guardedOp(() => ctrl.LaunchApp(appIdTuple));
                         }
@@ -240,7 +240,7 @@ namespace Dirigent.Agent.Gui
 
                     if( currentCol == appTabColIconKill )
                     {
-                        if( isAccessible && st.Running )
+                        if( isAccessible ) // && st.Running )
                         {
                             guardedOp(() => ctrl.KillApp(appIdTuple));
                         }
@@ -248,7 +248,7 @@ namespace Dirigent.Agent.Gui
 
                     if( currentCol == appTabColIconRestart )
                     {
-                        if( isAccessible && st.Running )
+                        if( isAccessible ) // && st.Running )
                         {
                             guardedOp(() => ctrl.RestartApp(appIdTuple));
                         }
@@ -338,6 +338,12 @@ namespace Dirigent.Agent.Gui
 				else
 				// !st.Running
                 {
+                    if (st.Restarting)
+                    {
+                        stCode = "Restarting";
+						if( st.RestartsRemaining >= 0) stCode += String.Format(" ({0} remaining)", st.RestartsRemaining);
+                    }
+                    else
                     if (st.Killed)
                     {
                         stCode = "Killed";

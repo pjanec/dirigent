@@ -35,6 +35,10 @@ namespace Dirigent.Agent.Core
             }
         }
 
+		public void Dispose()
+		{
+		}
+
         string BuildAbsolutePath( string anyPath )
         {
             if( Path.IsPathRooted( anyPath ) )

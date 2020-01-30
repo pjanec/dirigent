@@ -87,10 +87,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Agent.cs" />
+    <Compile Include="AppRestarterManager.cs" />
+    <Compile Include="AppWatchers\CrashWatcher.cs" />
     <Compile Include="PlanRestarter.cs" />
     <Compile Include="AppRestarter.cs" />
     <Compile Include="AppWatcherFactory.cs" />
-    <Compile Include="AppWatchers\AutoRestarter.cs" />
     <Compile Include="AppWatchers\WindowPoppedUpInitDetector.cs" />
     <Compile Include="AppWatchers\WindowPositioner.cs" />
     <Compile Include="FolderWatcher.cs" />

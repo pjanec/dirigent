@@ -62,7 +62,7 @@ namespace Dirigent.Agent.Core
 		/// Helpers for implementing a pending RestartApp operation. They get instantiated upon RestartApp
 		/// request and removed when the restart has finished. At most one per AppIdTuple.
 		/// </summary>
-		Dictionary<AppIdTuple, AppRestarter> appRestarters = new Dictionary<AppIdTuple, AppRestarter>();
+		AppRestarterManager appRestarterManager;
 
 		/// <summary>
 		/// Helpers for implementing a pending RestartPlan operation. They get instantiated upon RestartPlan
@@ -86,6 +86,8 @@ namespace Dirigent.Agent.Core
             currentPlan = null;
             planRepo = new List<ILaunchPlan>();
             this.machineId = machineId;
+
+			this.appRestarterManager = new AppRestarterManager(this);
         }
 
         public AppState  GetAppState(AppIdTuple appIdTuple)
@@ -254,9 +256,12 @@ namespace Dirigent.Agent.Core
 
 			AdoptPlan( rti.Plan );
 
-			// in the plan is idle
+			// if the plan is idle
 			if ( !rti.State.Running && !rti.State.Killing )
             {
+				// reset all apps to MAX restart tries
+				SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
+
                 // trigger the launch sequencer
                 rti.State.Running = true;
 				rti.State.Killing = false;
@@ -345,11 +350,19 @@ namespace Dirigent.Agent.Core
 			}
         }
 
+
         /// <summary>
         /// Launches a local app if not already running.
+		/// This is what's called if the user presses the Start button
         /// </summary>
         /// <param name="appIdTuple"></param>
         public void  LaunchApp(AppIdTuple appIdTuple)
+		{
+			LaunchAppInternal(appIdTuple, true);
+		}
+
+
+        public void LaunchAppInternal(AppIdTuple appIdTuple, bool resetRestartsToMax)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -364,6 +377,11 @@ namespace Dirigent.Agent.Core
             {
                 return;
             }
+
+			if( resetRestartsToMax )
+			{
+				appState.RestartsRemaining = AppState.RESTARTS_UNITIALIZED;
+			}
 
             log.DebugFormat("Launching app {0}", la.AppDef.AppIdTuple);
 
@@ -424,11 +442,17 @@ namespace Dirigent.Agent.Core
                     la.watchers.Add( wpo );
                 }
 
-                // instantiate autorestarter
+                // instantiate crash watcher
                 if( la.AppDef.RestartOnCrash )
                 {
-                    log.DebugFormat("Adding AutoRestarter, pid {0}", la.launcher.ProcessId );
-                    var ar = new AutoRestarter( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, new XElement("Autorestart") );
+                    log.DebugFormat("Adding CrashWatcher, pid {0}", la.launcher.ProcessId );
+                    var ar = new CrashWatcher( la.AppDef, appsState[appIdTuple], la.launcher.ProcessId, null );
+					ar.OnCrash += () =>
+					{
+						// Activate restarter, continue counting down the number of remaining restarts
+						// as set in appState.RestartsRemaining.
+						appRestarterManager.AddOrReset( la.AppDef, appsState[appIdTuple], true );
+					};
                     la.watchers.Add( ar );
                 }
 
@@ -450,21 +474,14 @@ namespace Dirigent.Agent.Core
                 throw new NotALocalApp(appIdTuple, machineId);
             }
 
+			// kill (will do nothing if not running)
+			KillApp( appIdTuple );
 
-			// add appRestarter if not exist yet
-			AppRestarter r;
-			if( !appRestarters.TryGetValue( appIdTuple, out r ) )
-			{
-	            var la = localApps[appIdTuple];
-				
-				r = new AppRestarter( la.AppDef, this, null );
-				appRestarters[appIdTuple] = r;
-			}
-			else
-			{
-				// make it restart the app again
-				r.Reset();
-			}
+	        // setup restarter (reset to MAX tries)
+			var la = localApps[appIdTuple];
+			var aps = appsState[appIdTuple];
+			aps.RestartsRemaining = AppState.RESTARTS_UNITIALIZED; // will reset to max tries
+			appRestarterManager.AddOrReset( la.AppDef, aps, false ); // restart immediately (no waiting)
         }
 
         /// <summary>
@@ -495,6 +512,11 @@ namespace Dirigent.Agent.Core
                 
 				// we maintain the launcher instance until the app actually dies
             }
+
+			// Remove potential pending AppRestarter
+			// to avoid the app being restarted automatically
+			// after this explicit Kill (the user wants the app to stop until said otherwie)
+			appRestarterManager.Remove( la.AppDef );
         }
 
 
@@ -549,6 +571,7 @@ namespace Dirigent.Agent.Core
 					appState.Initialized = false;
 					appState.Running = false;
 					appState.Dying = false;
+					appState.Restarting = false;
 				}
 
 
@@ -653,7 +676,7 @@ namespace Dirigent.Agent.Core
 				var appState = appsState[la.AppDef.AppIdTuple];
 				appState.PlanApplied = true;
                 
-				LaunchApp(appToLaunch.AppIdTuple);
+				LaunchAppInternal(appToLaunch.AppIdTuple, true);
 			}
 		}
 
@@ -672,28 +695,6 @@ namespace Dirigent.Agent.Core
 
 			processPlanRunning( rti );
         }
-
-		/// <summary>
-		/// Ticks app restarters and remove those that are finished
-		/// </summary>
-		void processAppRestarters()
-		{
-			List<KeyValuePair<AppIdTuple, AppRestarter>> toRemove = new List<KeyValuePair<AppIdTuple, AppRestarter>>();
-			foreach( var kv in appRestarters )
-			{
-				var r = kv.Value;
-				r.Tick();
-				if( r.ShallBeRemoved )
-				{
-					toRemove.Add( kv );
-				}
-			}
-
-			foreach( var kv in toRemove )
-			{
-				appRestarters.Remove( kv.Key );
-			}
-		}
 
 		/// <summary>
 		/// Ticks plan restarters and remove those that are finished
@@ -719,6 +720,10 @@ namespace Dirigent.Agent.Core
 
         void tickWachers( LocalApp la )
         {
+			if( la.launcher == null )
+			{
+			}
+
             var toRemove = new List<IAppWatcher>();
             foreach( var w in la.watchers )
             {
@@ -751,13 +756,14 @@ namespace Dirigent.Agent.Core
 					appState.Dying = la.launcher.Dying;	// if dying=true, then running=true
                     appState.ExitCode = la.launcher.ExitCode;
 
+	                tickWachers( la );
+
 					// forget about the running process if just exited
 					if(	!appState.Running )
 					{
+						la.launcher.Dispose();
 						la.launcher = null;
 					}
-
-                    tickWachers( la );
                 }
                 else // not running
                 {
@@ -789,7 +795,7 @@ namespace Dirigent.Agent.Core
 			}
 
 			// handle pending RestartApp requests
-			processAppRestarters();
+			appRestarterManager.Tick();
             
 			// handle pending RestartPlan requests
 			processPlanRestarters();
@@ -920,5 +926,20 @@ namespace Dirigent.Agent.Core
 
         }
 
+		// do it just for all LOCAL apps
+		private void SetLocalAppsToMaxRestartTries( IEnumerable<AppDef> appDefs )
+		{
+			foreach( var appDef in appDefs )
+			{
+				LocalApp la;
+				if( !localApps.TryGetValue( appDef.AppIdTuple, out la ) ) continue;
+				
+				var aps = appsState[appDef.AppIdTuple];
+				aps.RestartsRemaining = AppState.RESTARTS_UNITIALIZED; // will be set to MAX on first restart opportunity
+			}
+		}
+
+
     }
+
 }

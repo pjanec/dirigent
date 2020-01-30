@@ -170,7 +170,7 @@ namespace Dirigent.Agent.Gui
         private void handleOperationError(Exception ex)
         {
             this.notifyIcon.ShowBalloonTip(5000, "Dirigent Operation Error", ex.Message, ToolTipIcon.Error);
-            log.Error(ex.Message);
+            log.ErrorFormat("Exception: {0}\n{1}", ex.Message, ex.StackTrace);
         }
 
         private void tmrTick_Tick(object sender, EventArgs e)
