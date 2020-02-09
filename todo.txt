@@ -1,6 +1,6 @@
-﻿BUG: WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking.
+﻿[FIXED] WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking. [UODATE] we use timeout 10msec
 
-BUG: WindowPoppedUp init detector does not enumerate IgManager's console window...
+[FIXED] WindowPoppedUp init detector does not enumerate IgManager's console window... [UPDATE] now adding the main window explicitly, not just the windows enumerated using the thread-based search.
 
 Scan processes to adopt at regular intervals (not just on Launch request) to indicate that Dirigent konws about them; show status "Running (adopted)".
 

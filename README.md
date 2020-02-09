@@ -17,7 +17,7 @@ The plan status indicates whether everything went successfully or if there was a
 | None        | Plan not running, i.e. not taking care about contained applications. |
 | In Progress | Plan is running in launch mode. Applications get started sequentially in the order as defined by their interdependencies. Apps are optionally kept alive (restarted) if they terminate unexpectedly. Dirigent tries to guess whether apps have already finished their initialization |
 | Success     | All apps have been started and initialized and all are running. |
-| Failure     | Some apps have failed to start or initialize in given time limit. |
+| Failure     | Some apps have failed to start or to initialize within given time limit. |
 | Killing     | Plan is in killing mode where all apps are being closed. As soon as the apps terminate the plan state goes back to None. |
 
 
@@ -97,7 +97,7 @@ For example the following plan opens a notepad app first on machine `m1` with fi
 
     <?xml version="1.0" encoding="UTF-8"?>
     <Shared>
-        <Plan Name="plan1">
+        <Plan Name="plan1" StartTimeout="10">
             <App
                 AppIdTuple = "m1.a"
                 Template = "apps.notepad"
@@ -436,6 +436,14 @@ Local configuration file is optional.
 #### Launch plan
 
 Launch plan comprises just a list of apps to be launched in given order. Multiple parallel plans can be active at a time.
+
+##### `<plan/>` element
+
+* `StartTimeout` - time in seconds before an unsuccessfully running plan is reported as *Failed*. Unsuccessful means that
+  * Non-volatile apps (that should be running all the time) is not running or has not initialized yet.
+  * Volatile apps have not yet been started, initialized or finished.
+
+##### `<app/>` element
 
 Each app in the launch plan has the following attributes:
 
