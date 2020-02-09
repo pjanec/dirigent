@@ -1,4 +1,6 @@
-﻿[FIXED] WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking. [UODATE] we use timeout 10msec
+﻿[NOTABUG] Before starting the last app from the plan (a volatile app) the plan reports Failure for a short time until that volatile app gets started.[Update] It's actually not a bug. In this case the timeout happened, moving the plan state to Failure, but then the app started and plan status went Success again.
+
+[FIXED] WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking. [UODATE] we use timeout 10msec
 
 [FIXED] WindowPoppedUp init detector does not enumerate IgManager's console window... [UPDATE] now adding the main window explicitly, not just the windows enumerated using the thread-based search.
 

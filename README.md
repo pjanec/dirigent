@@ -16,9 +16,9 @@ The plan status indicates whether everything went successfully or if there was a
 | ----------- | ------------------------------------------------------------ |
 | None        | Plan not running, i.e. not taking care about contained applications. |
 | In Progress | Plan is running in launch mode. Applications get started sequentially in the order as defined by their interdependencies. Apps are optionally kept alive (restarted) if they terminate unexpectedly. Dirigent tries to guess whether apps have already finished their initialization |
-| Success     | All apps have been started and initialized and all are running. |
-| Failure     | Some apps have failed to start or to initialize within given time limit. |
-| Killing     | Plan is in killing mode where all apps are being closed. As soon as the apps terminate the plan state goes back to None. |
+| Success     | All apps have been started and initialized and all are running. The status may change to Failure when some non-volatile app stops running! |
+| Failure     | Some apps have failed to start or to initialize within given time limit. The status will switch from Failure to Success as soon as the app causing the failure finally starts and initializes. |
+| Killing     | Plan is in killing mode where all apps are being closed. As soon as the apps terminate the status goes back to None. |
 
 
 

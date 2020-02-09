@@ -267,6 +267,7 @@ namespace Dirigent.Common.Commands
 		{
             if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
             ctrl.SetVars( args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 
