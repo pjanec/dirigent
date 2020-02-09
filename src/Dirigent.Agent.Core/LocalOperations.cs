@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 using Dirigent.Common;
@@ -938,6 +939,40 @@ namespace Dirigent.Agent.Core
 				aps.RestartsRemaining = AppState.RESTARTS_UNITIALIZED; // will be set to MAX on first restart opportunity
 			}
 		}
+
+		// format of string: VAR1=VALUE1::VAR2=VALUE2
+		public void SetVars( string vars )
+		{
+			// split & parse
+			var varList = new List<Tuple<string, string>>();
+			foreach( var kv in vars.Split(new string[] { "::" }, StringSplitOptions.None))
+			{
+				var m = Regex.Match(kv, @"\s*(\w+)\s*=\s*(\w*)\s*");
+				if( m != null )
+				{
+					varList.Add( new Tuple<string, string>(m.Groups[1].Value, m.Groups[2].Value) );
+				}
+			}
+
+			// apply
+			foreach( var kv in varList )
+			{
+				var name = kv.Item1;
+				var value = kv.Item2;
+                log.Debug(string.Format("Setting env var: {0}={1}", name, value));
+
+				try{
+					System.Environment.SetEnvironmentVariable( name, value );
+				}
+				catch( Exception ex )
+				{
+	                log.ErrorFormat("Exception: SetVars {0}={1} failure: {2}", name, value, ex);
+					throw new Exception(String.Format("SetVars {0}={1} failure: {2}", name, value, ex));
+				}
+			}
+
+		}
+
 
 
     }

@@ -184,11 +184,11 @@ The Dirigent can work either with whole launch plan or with an individual applic
 
 - **Select Plan.** The given plan becomes the current plan. New apps defined by this plan are added to the list of operated ones. This affects only the local agent where the command is issued.
 
-- **Start Plan.** Apps from the current plan start to be lauched according to the plan.
+- **Start Plan.** Apps from the current plan start to be launched according to the plan.
 
 - **Stop Plan.** Stop launching of apps from the current plan. No apps are killed.
 
-- **Kill Plan.** All apps that are part of the current lauch plan are killed.
+- **Kill Plan.** All apps that are part of the current launch plan are killed.
 
 - **Restart Plan.** All apps from the current plan are first killed and then the plan starts.
 
@@ -218,9 +218,9 @@ The following options changes the mode of operation:
 
  `--mode deamon|trayGui|remoteControlGui` .... select mode of operation
 
-- `deamon` ... no user inteface at all, just a log file
+- `deamon` ... no user interface at all, just a log file
 
-- `trayGui` ... an icon in tray with gui control app accessible from the context menu; the default
+- `trayGui` ... an icon in tray with GUI control app accessible from the context menu; the default
 
 - `remoteControlGui` ... not agent as such (not directly managing any local apps), just a remote control GUI that monitors the apps and remotely send commands to the agents
 
@@ -288,6 +288,10 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
   `GetAllPlansState` ..... returns one line per plan; last line will be "END\n"
   `GetAllAppsState` ...... returns one line per application; last line will be "END\n"
+
+  `SetVars VAR=VALUE::VAR=VALUE` ...... sets environment variable(s) to be inherited by the processes launched afterwards (note that you can set multiple variables at once, separated by '::')
+
+##### 
 
 ##### Response text for GetPlanState
 
@@ -369,6 +373,11 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   Request:   `GetAppStatus m1.a1`
   Response:     `APP:m1.a:SIP:255:10:34:0:7623`
 
+###### Setting environment variable
+
+  Request:   `[002] SetVars VAR1=VALUE1::VAR2=VALUE2`
+  Response:     `[002] ACK`
+
 ### Agent Console Command Line Utility
 
 There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
@@ -387,6 +396,8 @@ The commands just simply follow the available agent actions, please see chapter 
     LaunchApp <appId>
     KillApp <appId>
     RestartApp <appId>
+    
+    SetVars VAR1=VALUE1::VAR2=VALUE2::VAR3=VALUE3
 
 Multiple commands on a single line can be separated by semicolon
     `Diregent.AgentCmd.exe LaunchApp m1.a;StartPlan plan1`
@@ -430,9 +441,9 @@ Each app in the launch plan has the following attributes:
 
 - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
 
-- `ExeFullPath` - application binary file full path; can be relative to the dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+- `ExeFullPath` - application binary file full path; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
-- `StartupDir` - startup directory; can be relative to the dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+- `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
 - `CmdLineArgs` - command line arguments
 
@@ -446,7 +457,7 @@ Each app in the launch plan has the following attributes:
 
 - `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption occurs when the app is about to be started or killed (i.e. not when the plan is not running). *WARNING: Should not be used with for apps that may run in multiple instances on the same computer!* 
 
-- `Dependencies` - what apps is this one dependent on, ie. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
+- `Dependencies` - what apps is this one dependent on, i.e. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 
 - `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*. **DEPRECATED**, use the InitDetectors section instead.
 
@@ -511,7 +522,7 @@ App sub-sections:
         <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
       </Env>
   
-  Modifies the environment variables for the started process, taking the Diriget Agen't startup environment as a basis.
+  Modifies the environment variables for the started process, taking the Dirigent Agen't startup environment as a basis.
   
   Existing environment variables can be set to a new value. Non-existing will be created, existing will be overwritten.
   
@@ -536,9 +547,9 @@ App sub-sections:
   - `maxTries` - how many restart attempts are made before the Dirigent gives up restarting. -1 means 'try forever'. Default is -1.
   - `delay` - how long time in seconds to wait before the Dirigent attempts to restart a crashed app. Default is 1 sec.
 
-  Upon an StartPlan or LaunchApp request the number of remaining restart attempts is reset to the `maxTries` value.
+  Upon an `StartPlan` or `LaunchApp` request the number of remaining restart attempts is reset to the `maxTries` value.
   
-  KillApp or KillPlan requests deactivate any pending restart operation.
+  `KillApp` or `KillPlan` requests deactivate any pending restart operation.
 
 #### Templated launch plan definition
 
@@ -564,38 +575,40 @@ The following plan example specify two instances of a notepad editor, named `a` 
 
 The apps will be run on a computer where the agent is configured to  machineId `m1`.
 
-        <Plan Name="plan1">
-            <App
-                AppIdTuple = "m1.a"
-                Template = "apps.notepad"
-                StartupDir = "c:\"
-                CmdLineArgs = "aaa.txt"
-                >
-                <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
-            </App>
-    
-            <App
-                AppIdTuple = "m1.b"
-                Template = "apps.notepad"
-                StartupDir = "c:\"
-                CmdLineArgs = "bbb.txt"
-            />
-        </Plan>
-    
-        <AppTemplate Name="apps.notepad"
-                Template = ""
-                ExeFullPath = "c:\windows\notepad.exe"
-                StartupDir = "c:\"
-                CmdLineArgs = ""
-                StartupOrder = "0"
-                RestartOnCrash = "1"
-                InitCondition = "timeout 2.0"
-                SeparationInterval = "0.5"
+```n
+    <Plan Name="plan1">
+        <App
+            AppIdTuple = "m1.a"
+            Template = "apps.notepad"
+            StartupDir = "c:\"
+            CmdLineArgs = "aaa.txt"
+            >
+            <WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+        </App>
+
+        <App
+            AppIdTuple = "m1.b"
+            Template = "apps.notepad"
+            StartupDir = "c:\"
+            CmdLineArgs = "bbb.txt"
         />
+    </Plan>
+
+    <AppTemplate Name="apps.notepad"
+            Template = ""
+            ExeFullPath = "c:\windows\notepad.exe"
+            StartupDir = "c:\"
+            CmdLineArgs = ""
+            StartupOrder = "0"
+            RestartOnCrash = "1"
+            InitCondition = "timeout 2.0"
+            SeparationInterval = "0.5"
+    />
+```
 
 #### Selecting a boot up completion detector
 
-Some apps take a long time to boot up and initialize. Dirigent should not start a dependent app until its dependecies are satisfied. By 'satisfied' it is meant that the all the dependencies are already running and that they have completed their initialization phase.
+Some apps take a long time to boot up and initialize. Dirigent should not start a dependent app until its dependencies are satisfied. By 'satisfied' it is meant that the all the dependencies are already running and that they have completed their initialization phase.
 
 Dirigent supports multiple methods of detection whether an application is already up and running. The method together with its parameters can be specified for each application in the launch plan.
 
@@ -633,7 +646,7 @@ Computer's NetBIOS name is used as a default machineId if the machine id is not 
 
 ### Logging
 
-Both agent and master support logging of errors, warnigns etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of app.config file. 
+Both agent and master support logging of errors, warnings etc. into a log file through a Log4net library. The log file name as well as other options for logging (verbosity etc.) can be specified as a part of app.config file. 
 
 
 ### Folder Watching
@@ -667,6 +680,10 @@ Action types supported
 Errors related to FolderWatcher (path not valid etc.) are logged only info agent's log file. Error results in FolderWather not being installed.
 
 ### Environment Variable for processes started by Dirigent Agent
+
+As any other process in Windows OS, the processes started by Dirigent inherit the environment variables of their parent process, i.e. the Dirigent agent itself.
+
+The variables in the Dirigent agent's environment can be manipulated at runtime via the `SetVars` command.
 
 Dirigent agent defines the following special variables for an app started from the launch plan:
 
@@ -702,13 +719,13 @@ Plans shall be designed and manipulated (started/killed etc.) in a non-conflicti
 
 The application from the plan are initially assigned the state 'not launched'.
 
-The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose depedencied have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on enything else. In the next wawe there are apps dependent on the apps from the previous wave.
+The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose dependencied have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on anything else. In the next wave there are apps dependent on the apps from the previous wave.
 
 The waves are launched sequentially one after another until all apps from all waves have been launched. 
 
 If some application fails to start, dirigent can be configured to retry the launch attempt multiple times.
 
-If all attempts fail, the plaunch plan is stopped and an error is returned.
+If all attempts fail, the launch plan is stopped and an error is returned.
 
 ### Shortcuts
 

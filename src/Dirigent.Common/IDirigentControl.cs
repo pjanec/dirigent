@@ -93,6 +93,9 @@ namespace Dirigent.Common
         // disable (do not run as part of plan)
         void SetAppEnabled(string planName, AppIdTuple appIdTuple, bool enabled);
 
+		// set the value of environment variables to be inherited by processes started from Dirigent
+		// format of string: VAR1=VALUE1::VAR2=VALUE2
+		void SetVars( string vars );
 
     }
 

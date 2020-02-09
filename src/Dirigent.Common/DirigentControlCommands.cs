@@ -255,4 +255,19 @@ namespace Dirigent.Common.Commands
 			WriteResponse( "END" );
 		}
 	}
+
+	public class SetVars : DirigentControlCommand
+	{
+		public SetVars( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+		public override void Execute()
+		{
+            if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
+            ctrl.SetVars( args[0] );
+		}
+	}
+
 }

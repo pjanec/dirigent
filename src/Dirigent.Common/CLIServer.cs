@@ -95,6 +95,10 @@ namespace Dirigent.Common
 	///   Request:   "GetAppStatus m1.a1"
 	///	  Response:	 "APP:m1.a1:SIP:255:2018-06-27_13-02-20.345"
 	///	                  
+	///   Setting variable or variables
+	///   Request:   "[002] SetVars VAR1=VALUE1::VAR2=VALUE2"
+	///	  Response:	 "[002] ACK"
+	///
 	/// </example>
 	public class CLIServer
 	{

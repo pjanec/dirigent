@@ -54,6 +54,10 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
 
 			var client = new TcpClient( "localhost", 6001 );
 
+			SendReq( client, "000", "SetVars FERDA=BUH::JANA=COOL" );
+			server.Tick();
+			var resp000 = ReadResp( client, 1000 );
+
 			SendReq( client, "001", "StartPlan p1" );
 			server.Tick();
 			var resp001 = ReadResp( client, 1000 );

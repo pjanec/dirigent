@@ -324,5 +324,10 @@ namespace Dirigent.Agent.Core
         {
             client.BroadcastMessage( new SetAppEnabledMessage( planName, appIdTuple, enabled ) );
         }
+
+		public void SetVars( string vars )
+        {
+            client.BroadcastMessage( new SetVarsMessage( vars ) );
+        }
     }
 }

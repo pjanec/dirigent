@@ -27,6 +27,7 @@ namespace Dirigent.Net
     [KnownType(typeof(RestartPlanMessage))]
     [KnownType(typeof(CurrentPlanMessage))]
     [KnownType(typeof(PlanRepoMessage))]
+    [KnownType(typeof(SetVarsMessage))]
     public class Message
     {
         [DataMember]
@@ -273,4 +274,21 @@ namespace Dirigent.Net
         }
     }
 
+    [DataContract]
+    public class SetVarsMessage : Message
+    {
+        [DataMember]
+        public string vars;
+
+        public SetVarsMessage( string vars )
+        {
+            this.vars = vars;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("SetVars {0}", vars);
+        }
+
+    }
 }

@@ -32,6 +32,7 @@ namespace Dirigent.Common
             Register(new Commands.GetAppState(ctrl));
             Register(new Commands.GetAllPlansState(ctrl));
             Register(new Commands.GetAllAppsState(ctrl));
+            Register(new Commands.SetVars(ctrl));
         }
 
     }

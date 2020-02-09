@@ -1,4 +1,8 @@
-﻿Scan processes to adopt at regular intervals (not just on Launch request) to indicate that Dirigent konws about them; show status "Running (adopted)".
+﻿BUG: WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking.
+
+BUG: WindowPoppedUp init detector does not enumerate IgManager's console window...
+
+Scan processes to adopt at regular intervals (not just on Launch request) to indicate that Dirigent konws about them; show status "Running (adopted)".
 
 Warn if more agents with same MachineId connects to same master. Send warning message with IP addresses of all the agents with same MachineId.
 See https://stackoverflow.com/questions/527676/identifying-the-client-during-a-net-remoting-invocation/527756 for how to get client IP address :-(
@@ -144,7 +148,14 @@ Failure timeout for app bootup detector.
 [DONE] Checkbox to exclude app from a plan.
  
  
-Support for user-selectable variable pack to be defined for a plan. User picks the pack from a list box before starting a plan. The variables could be used as command line arguments for processes within the plan. Some variables might be set to "user editable"; those could be edited by the user. The pack name is shown in the agent's toolbar where it could be quickly changed to another pack or opened for variable editing.
+[DONE] Support for setting the environemt variables before a launch operation or remote command for a plan or individual app.
+The variables are set in Dirigent's environment and are inherited by all the apps launched afterwards by the Dirigent. The variables can be used also on the apps' command line (this is an already existing feature).
+
+
+PLugins for Dirigent. The plugins are separate assemblies in Dirigent's plugin folder . Dirigent agent scans then upon startup and extracts the plugin API from them. Plugins for: init detector, UI startable tools having access to dirigent's API etc.
+
+A plugin tool startable from dirigent's UI, providing support for UI-selectable&editable variable pack to be defined for a plan. User picks the pack from a list box before starting a plan. The variables could be used as command line arguments for processes within the plan. Some variables might be set to "user editable"; those could be edited by the user. The pack name is shown in the agent's toolbar where it could be quickly changed to another pack or opened for variable editing. The variables are set via Dirigent's SetVars API before issuing a StartPlan. Proposed usage: running svn client with arguments on all controlled computers. Several SVN operations might be predefined and easily pickable.
+
 
 Handle Dirigent.Master's exception when computer is waking up from hibernation. Terminate the app and let the Dirigent.Agent to restart it.
 

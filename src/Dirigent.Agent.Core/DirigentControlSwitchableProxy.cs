@@ -104,5 +104,10 @@ namespace Dirigent.Agent.Core
         {
             impl.SetAppEnabled(planName, appIdTuple, enabled);
         }
+
+		public void SetVars( string vars )
+		{
+            impl.SetVars( vars );
+		}
     }
 }
