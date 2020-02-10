@@ -65,6 +65,25 @@ namespace Dirigent.Agent.Core
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam, StringBuilder lParam);
 
+        [Flags]
+        public enum SendMessageTimeoutFlags : uint
+        {
+            SMTO_NORMAL = 0x0,
+            SMTO_BLOCK = 0x1,
+            SMTO_ABORTIFHUNG = 0x2,
+            SMTO_NOTIMEOUTIFNOTHUNG = 0x8
+        }
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessageTimeout(
+            IntPtr hWnd,
+            uint Msg,
+            int wParam,
+            StringBuilder lParam,
+            SendMessageTimeoutFlags fuFlags,
+            uint uTimeout,
+            out UIntPtr lpdwResult);
+
         [Flags()]
         private enum SetWindowPosFlags : uint
         {
@@ -306,10 +325,34 @@ namespace Dirigent.Agent.Core
         {
             var handles = new List<IntPtr>();
 
-            foreach (ProcessThread thread in Process.GetProcessById(processId).Threads)
-                EnumThreadWindows(thread.Id, 
-                    (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
+            Process pr = null;
+            try
+            {
+                pr = Process.GetProcessById(processId);
+            }
+            catch( ArgumentException )
+            {
+            }
 
+            if( pr != null )
+            {
+				//var str = pr.MainWindowTitle;
+				var mainWndH = pr.MainWindowHandle;
+				if( mainWndH != IntPtr.Zero ) handles.Add( mainWndH );
+
+                foreach (ProcessThread thread in Process.GetProcessById(processId).Threads)
+                    EnumThreadWindows(
+						thread.Id, 
+                        (hWnd, lParam) =>
+						{
+							if( handles.IndexOf(hWnd) < 0 )	// add just unique handles
+							{
+								handles.Add(hWnd);
+							}
+							return true;
+						},
+						IntPtr.Zero);
+            }
             return handles;
         }
 
@@ -331,16 +374,28 @@ namespace Dirigent.Agent.Core
 
             return childrenPID;
         }
-        
-        List<WinInfo> GetProcessWindows( int processId )
+
+        List<WinInfo> GetProcessWindows(int processId)
         {
             var list = new List<WinInfo>();
 
-            foreach (var handle in EnumerateProcessWindowHandles( processId ) )
+            foreach (var handle in EnumerateProcessWindowHandles(processId))
             {
                 StringBuilder message = new StringBuilder(1000);
-                SendMessage(handle, WM_GETTEXT, message.Capacity, message);
-                list.Add( new WinInfo() { Handle = handle, Title = message.ToString() } );
+
+                UIntPtr result;
+                if (SendMessageTimeout(
+                        handle,
+                        WM_GETTEXT,
+                        message.Capacity,
+                        message,
+                        SendMessageTimeoutFlags.SMTO_ABORTIFHUNG,
+                        10, // timeout
+                        out result
+                    ).ToInt32() > 0)
+                {
+                    list.Add(new WinInfo() { Handle = handle, Title = message.ToString() });
+                }
             }
 
             return list;
