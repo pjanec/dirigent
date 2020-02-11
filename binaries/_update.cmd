@@ -18,5 +18,9 @@ copy ..\src\Dirigent.Agent.TrayApp\bin\%ARC%%CFG%\Dirigent.Agent.* .\
 
 copy ..\src\Dirigent.Agent.CmdLineCtrl\bin\%ARC%%CFG%\Dirigent.AgentCmd.* .\
 
+copy ..\src\Dirigent.CLI\bin\%ARC%%CFG%\Dirigent.CLI.* .\
+
+copy ..\src\Dirigent.CLI.Telnet\bin\%ARC%%CFG%\Dirigent.CLI.Telnet.* .\
+
 copy ..\README.md .\
 
