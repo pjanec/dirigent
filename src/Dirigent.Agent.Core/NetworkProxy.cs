@@ -187,6 +187,12 @@ namespace Dirigent.Agent.Core
                 var m = msg as PlanRepoMessage;
                 localOps.SetPlanRepo(m.repo);
             }
+			else
+			if (t == typeof(SetVarsMessage))
+            {
+                var m = msg as SetVarsMessage;
+                localOps.SetVars(m.vars);
+            }
             else
             if (t == typeof(RemoteOperationErrorMessage))
             {
