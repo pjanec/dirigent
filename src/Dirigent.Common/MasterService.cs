@@ -42,7 +42,7 @@ namespace Dirigent.Net
 
         Timer disconTimer;
 
-        double inactivityTimeout = 5.0;
+        double inactivityTimeout = 60.0;
 
 		IDirigentControl localAgent;
 
@@ -262,7 +262,7 @@ namespace Dirigent.Net
 
                 foreach( var name in toRemove )
                 {
-                    log.Info(string.Format("Timing out client '{0}'", name));
+                    log.Info(string.Format("Timing out client '{0}' after {1} seconds of inactivity.", name, inactivityTimeout));
                     clients.Remove(name);
                 }
             }

@@ -24,6 +24,7 @@ namespace Dirigent.Net
         string ipaddr;
         int port;
         bool connected;
+		int timeoutMs;
 
         MasterServiceClient client;
         MasterServiceCallback callback;
@@ -37,20 +38,21 @@ namespace Dirigent.Net
 
         public string Name { get { return name;} }
 
-        public AutoconClient(string name, string ipaddr, int port)
+        public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
         {
             this.name = name;
             this.ipaddr = ipaddr;
             this.port = port;
             this.connected = false;
+			this.timeoutMs = timeoutMs;
 
             var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
             var binding = new NetTcpBinding();
 			binding.Name = "MasterConnBinding";
-            binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
+            binding.SendTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when accessing the service
             //binding.ReceiveTimeout = new TimeSpan(0,0,0,10,0); //  interval of time that a connection can remain inactive, during which no application messages are received, before it is dropped.
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
-            binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel
+            binding.CloseTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when closing the channel
 			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
@@ -73,7 +75,7 @@ namespace Dirigent.Net
                     
                     // reduce write timeout
                     IClientChannel channel = server as IClientChannel;
-                    channel.OperationTimeout = TimeSpan.FromSeconds(1);
+                    channel.OperationTimeout = TimeSpan.FromSeconds((double)timeoutMs/1000);
 
                     server.AddClient(name);
 

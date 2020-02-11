@@ -51,6 +51,7 @@ namespace Dirigent.Net
         string name;
         string ipaddr;
         int port;
+		int timeoutMs;
 
         MasterServiceClient client;
         MasterServiceCallback callback;
@@ -58,11 +59,12 @@ namespace Dirigent.Net
         
         public string Name { get { return name;} }
 
-        public Client( string name, string ipaddr, int port )
+        public Client( string name, string ipaddr, int port, int timeoutMs=5000 )
         {
             this.name = name;
             this.ipaddr = ipaddr;
             this.port = port;
+			this.timeoutMs = timeoutMs;
         }
         
         public void Connect()
@@ -70,8 +72,8 @@ namespace Dirigent.Net
             var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
             var binding = new NetTcpBinding();
 			binding.Name = "MasterConnBinding";
-            //binding.SendTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when accessing the service
-            binding.CloseTimeout = new TimeSpan(0,0,0,0,500); // shorten the timeout when closing the channel and there is an error
+            //binding.SendTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when accessing the service
+            binding.CloseTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when closing the channel and there is an error
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
 			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
