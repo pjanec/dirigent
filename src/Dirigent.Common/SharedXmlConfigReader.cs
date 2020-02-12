@@ -108,13 +108,13 @@ namespace Dirigent.Common
 
             if (x.WindowStyle != null)
             {
-                if (x.WindowStyle.ToLower() == "minimized") a.WindowStyle = ProcessWindowStyle.Minimized;
+                if (x.WindowStyle.ToLower() == "minimized") a.WindowStyle = EWindowStyle.Minimized;
                 else
-                if (x.WindowStyle.ToLower() == "maximized") a.WindowStyle = ProcessWindowStyle.Maximized;
+                if (x.WindowStyle.ToLower() == "maximized") a.WindowStyle = EWindowStyle.Maximized;
                 else
-                if (x.WindowStyle.ToLower() == "normal") a.WindowStyle = ProcessWindowStyle.Normal;
+                if (x.WindowStyle.ToLower() == "normal") a.WindowStyle = EWindowStyle.Normal;
                 else
-                if (x.WindowStyle.ToLower() == "hidden") a.WindowStyle = ProcessWindowStyle.Hidden;
+                if (x.WindowStyle.ToLower() == "hidden") a.WindowStyle = EWindowStyle.Hidden;
             }
 
             if( x.WindowPos != null )

@@ -9,6 +9,15 @@ using System.Runtime.Serialization;
 namespace Dirigent.Common
 {
 
+    public enum EWindowStyle
+    {
+        NotSet,
+        Normal,
+        Minimized,
+        Maximized,
+        Hidden
+    }
+
     /// <summary>
     /// Definition of an application in a launch plan
     /// </summary>
@@ -77,7 +86,7 @@ namespace Dirigent.Common
         public bool KillSoftly;
 
         [DataMember]
-        public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
+        public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
         /// <summary>
         /// list of all <WindowPos /> XML sections as string (to be parsed later by specific app watcher code)

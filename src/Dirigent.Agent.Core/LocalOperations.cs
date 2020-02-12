@@ -409,6 +409,14 @@ namespace Dirigent.Agent.Core
                 //    la.watchers.Add( w );
                 //}
 
+                // install main window styler if we specified the style explicitly
+                if( la.AppDef.WindowStyle != EWindowStyle.NotSet )
+                {
+                    log.DebugFormat("Adding MainWindowStyler, pid {0}, style {1}", la.launcher.ProcessId, la.AppDef.WindowStyle );
+                    var w = new MainWindowStyler( la.AppDef, la.launcher.ProcessId );
+                    la.watchers.Add( w );
+				}
+
                 // instantiate init detector (also a watcher)
                 {
                     // compatibility with InitialCondition="timeout 2.0" ... convert to XML definition <timeout>2.0</timeout>

@@ -87,7 +87,15 @@ namespace Dirigent.Agent.Core
 				var dir = System.Environment.ExpandEnvironmentVariables(appDef.StartupDir);
                 psi.WorkingDirectory = BuildAbsolutePath(dir);
             }
-            psi.WindowStyle = appDef.WindowStyle;
+
+			switch( appDef.WindowStyle )
+			{
+				case EWindowStyle.Normal: psi.WindowStyle = ProcessWindowStyle.Normal; break;
+				case EWindowStyle.Minimized: psi.WindowStyle = ProcessWindowStyle.Minimized; break;
+				case EWindowStyle.Maximized: psi.WindowStyle = ProcessWindowStyle.Maximized; break;
+				case EWindowStyle.Hidden: psi.WindowStyle = ProcessWindowStyle.Hidden; break;
+				default: psi.WindowStyle = ProcessWindowStyle.Normal; break;
+			}
 			
 			psi.UseShellExecute = false; // allows us using environment variables
 
@@ -124,6 +132,10 @@ namespace Dirigent.Agent.Core
                 if( proc != null )
                 {
                     log.DebugFormat("StartProc SUCCESS pid {0}", proc.Id );
+
+					// Note: WindowStyle in CreateProcess somehow does not work on console windows,
+					// probably when the window creation happens later in the process life
+					// Please use MainWindowStyles app watcher to set the style for such cases..
                 }
                 else
                 {
@@ -176,15 +188,27 @@ namespace Dirigent.Agent.Core
                     // already recycled and assigned to a process we are killing; then a completely unrelated children
                     // would be find using false parent's pid...
                     // see also http://blogs.msdn.com/b/oldnewthing/archive/2015/04/03/10605029.aspx
-                    if( childProc.StartTime >= proc.StartTime )
-                    {
-                        KillProcessAndChildren( childPid, indent+2, killSoftly );
-                    }
-                    else
-                    {
-                        // child older than its parent? then it is NOT the parent's child!
-                        log.DebugFormat(new String(' ', indent)+"Ignoring pid {0}, name \"{1}\" - NOT a real child of {2}, created before its parent!", childPid, proc.ProcessName, pid );
-                    }
+
+					try
+					{
+						// this might fail!
+						bool isOurChild = childProc.StartTime >= proc.StartTime;
+
+						if( isOurChild )
+						{
+							KillProcessAndChildren( childPid, indent+2, killSoftly );
+						}
+						else
+						{
+							// child older than its parent? then it is NOT the parent's child!
+							log.DebugFormat(new String(' ', indent)+"Ignoring pid {0}, name \"{1}\" - NOT a real child of {2}, created before its parent!", childPid, proc.ProcessName, pid );
+						}
+					}
+					catch( Exception ex )
+					{
+						log.DebugFormat(new String(' ', indent)+"Failure killing child pid {0}: {1}", childPid, ex.Message );
+					}
+
                 }
             }
                 
