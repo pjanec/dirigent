@@ -24,8 +24,21 @@ namespace Dirigent.Agent.Gui
         {
 			var version = Assembly.GetExecutingAssembly().GetName().Version;
 
+			// read the content of versionstamp file next to dirigent binaries
+			var verStampPath = System.IO.Path.Combine( Tools.AssemblyDirectory, "VersionStamp.txt");
+			string verStampText;
+			try
+			{
+
+				verStampText = File.ReadAllText( verStampPath );
+			}
+			catch( Exception)
+			{
+				verStampText="Version info file not found:\n"+verStampPath;
+			}
+
 			MessageBox.Show(
-                "Dirigent app launcher\nby pjanec\nMIT license\n\nver."+ version,
+                "Dirigent app launcher\nby pjanec\nMIT license\n\nver."+ version+"\n\n"+verStampText,
                 "About Dirigent",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);

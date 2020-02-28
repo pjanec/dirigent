@@ -24,3 +24,4 @@ copy ..\src\Dirigent.CLI.Telnet\bin\%ARC%%CFG%\Dirigent.CLI.Telnet.* .\
 
 copy ..\README.md .\
 
+..\src\GenVerStamp.bat %~dp0VersionStamp.txt

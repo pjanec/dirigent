@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Dirigent.Common;
+using System.IO;
+using System.Reflection;
 
 namespace Dirigent.Common
 {
@@ -69,6 +71,16 @@ namespace Dirigent.Common
 			return multiLineString; // no other line found
 		}
 
-	}
+		public static string AssemblyDirectory
+		{
+			get
+			{
+				string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+				UriBuilder uri = new UriBuilder(codeBase);
+				string path = Uri.UnescapeDataString(uri.Path);
+				return Path.GetDirectoryName(path);
+			}
+		}
+}
 
 }
