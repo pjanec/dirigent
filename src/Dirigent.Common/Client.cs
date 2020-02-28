@@ -48,6 +48,8 @@ namespace Dirigent.Net
 
     public class Client : IClient
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         string name;
         string ipaddr;
         int port;
@@ -107,8 +109,11 @@ namespace Dirigent.Net
             CloseChannel();
         }
 
-        public IEnumerable<Message> ReadMessages()
+		static List<Message> _emptyMsgList = new List<Message>();
+		
+		public IEnumerable<Message> ReadMessages()
         {
+			
             try
             {
                 return server.ClientMessages(name);
@@ -117,6 +122,12 @@ namespace Dirigent.Net
             {
                 throw new UnknownClientName(name);
             }
+			catch( System.ServiceModel.CommunicationException ex)
+			{
+				// this happens if computer awakes from hibernation
+				log.Error(String.Format("Error reading client '{0}' messages from master.", name), ex);
+				return _emptyMsgList;
+			}
         }
 
         public void BroadcastMessage( Message msg )
