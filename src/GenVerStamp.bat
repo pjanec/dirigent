@@ -1,5 +1,3 @@
-
-
 @echo off
 IF [%1]==[] echo Missing output file full path as parameter&&exit 2
  
@@ -8,10 +6,16 @@ SET OUT="%1"
 :: use additional parameters as version identification
 SET VER_STR=%2
 
+type NUL > %OUT%
 
+echo Dirigent Version Stamp >> %OUT%
 
-echo Source Code: > %OUT%
-IF "%VER_STR%" NEQ "" echo %VER_STR% >> %OUT%
+IF "%VER_STR%" EQU "" goto NO_VER
+echo %VER_STR% >> %OUT%
+echo. >> %OUT%
+:NO_VER
+
+echo Source Code: >> %OUT%
 
 
 git config --get remote.origin.url >> %OUT%
