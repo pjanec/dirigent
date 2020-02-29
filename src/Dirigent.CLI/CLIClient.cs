@@ -78,7 +78,7 @@ namespace Dirigent.CLI
 					stream = client.GetStream();
 					stream.ReadTimeout = timeOutMs;
 				}
-				catch( System.InvalidOperationException ex )
+				catch( System.InvalidOperationException )
 				{
 					return null; // socket not connected?
 				}

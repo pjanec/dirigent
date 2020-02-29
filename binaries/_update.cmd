@@ -24,9 +24,4 @@ copy ..\src\Dirigent.CLI.Telnet\bin\%ARC%%CFG%\Dirigent.CLI.Telnet.* .\
 
 copy ..\README.md .\
 
-@REM determine dirigent's binaries version number and put it to the version stamp file
-@SET PSCMD=powershell -ExecutionPolicy Bypass -NoLogo $ver=[System.Reflection.Assembly]::LoadFrom('Dirigent.Common.dll').GetName().Version; Write-Host $ver
-@SET BIN_VER=
-@for /F %%i in ('"%PSCMD%"') do @SET BIN_VER=%%i
-
-..\src\GenVerStamp.bat %~dp0VersionStamp.txt %BIN_VER%
+..\src\GenVerStamp.bat %~dp0VersionStamp.txt

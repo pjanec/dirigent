@@ -8,15 +8,16 @@ SET VER_STR=%2
 
 type NUL > %OUT%
 
-echo Dirigent Version Stamp >> %OUT%
-
 IF "%VER_STR%" EQU "" goto NO_VER
 echo %VER_STR% >> %OUT%
 echo. >> %OUT%
 :NO_VER
 
-echo Source Code: >> %OUT%
+:: list versions of all binaries
+powershell -ExecutionPolicy Bypass -NoLogo -Command ls *.exe,*.dll -r ^| Sort name ^| %% ^{ $_.Name + ' - ' + $_.VersionInfo.FileVersion ^} >> %OUT%
+echo. >> %OUT%
 
+echo Source Code: >> %OUT%
 
 git config --get remote.origin.url >> %OUT%
 git rev-parse HEAD >> %OUT%
