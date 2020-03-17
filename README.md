@@ -303,7 +303,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 ##### Response text for GetAppState
 
-  `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>`
+  `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>:<PlanName>`
 
 ###### Flags
 
@@ -336,6 +336,10 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 ###### MemoryMB
 
   Integer number of MBytes used
+
+###### PlanName
+
+  The name of plan in whose context the app was most recently launched.
 
 ##### Response text for other commands
 
@@ -697,6 +701,7 @@ Dirigent agent defines the following special variables for an app started from t
 
  * `DIRIGENT_MACHINEID` = the machine id the agent was configured to (the first part of the AppIdTuple).
  * `DIRIGENT_APPID` = the application id (the second part of the AppIdTuple).
+ * `DIRIGENT_PLAN` = the plan in whose context the app was started. Current plan name for apps lauched without a plan via `LauchApp` command. Empty if no current plan.
 
 
 This provides a way to tell the processes started by the dirigent agent what station/machine (in terms of the dirigent machine naming) they are running at. This might come in handy if same process is started on many machines, it needs to know where it was started but you can not rely on the computer name.

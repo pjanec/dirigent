@@ -17,7 +17,7 @@ namespace Dirigent.Agent.Tests
         AppDef appDef;
         FakeLaunchFactory flf;
 
-        public FakeLauncher( AppDef appDef, FakeLaunchFactory flf )
+        public FakeLauncher( AppDef appDef, FakeLaunchFactory flf, string planName )
         {
             this.appDef = appDef;
             this.flf = flf;
@@ -87,9 +87,9 @@ namespace Dirigent.Agent.Tests
     {
         public List<AppDef> appsLaunched = new List<AppDef>();
         
-        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths)
+        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths, string planName)
         {
- 	        return new FakeLauncher( appDef, this );
+ 	        return new FakeLauncher( appDef, this, planName );
         }
 
         public void addLaunchedApp( AppDef appDef )

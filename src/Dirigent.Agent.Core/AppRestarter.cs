@@ -155,7 +155,7 @@ namespace Dirigent.Agent.Core
 					if( launch )
 					{
 						// start the app again (and leave the number of restarts as is)
-						localOps.LaunchAppInternal( appDef.AppIdTuple, false );
+						localOps.LaunchAppInternal( appDef.AppIdTuple, false, appState.PlanName );
 					}
 					
 					// deactivate itself

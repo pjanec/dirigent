@@ -27,6 +27,7 @@ namespace Dirigent.Common
 		int cpu; // percentage of CPU usage
 		int gpu; // percentage of GPU usage
 		int memory; // MBytes of memory allocated
+        string planName; // in what plan's context the app was started
 
 		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
 		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration
@@ -186,7 +187,17 @@ namespace Dirigent.Common
 			set { restartsRemaining = value; }
 		}
 
-		void changed()
+        /// <summary>
+        /// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
+        /// </summary>
+        [DataMember]
+        public string PlanName
+        {
+            get { return planName; }
+            set { planName = value; changed(); }
+        }
+
+        void changed()
         {
             lastChange = DateTime.UtcNow;
         }

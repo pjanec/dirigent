@@ -359,11 +359,15 @@ namespace Dirigent.Agent.Core
         /// <param name="appIdTuple"></param>
         public void  LaunchApp(AppIdTuple appIdTuple)
 		{
-			LaunchAppInternal(appIdTuple, true);
+			// use current plan name (although this might not be relevant as the app is started outside of any plan's context)
+			var plan = GetCurrentPlan();
+			var planName = plan==null ? "" : plan.Name;
+			
+			LaunchAppInternal(appIdTuple, true, planName);
 		}
 
 
-        public void LaunchAppInternal(AppIdTuple appIdTuple, bool resetRestartsToMax)
+        public void LaunchAppInternal(AppIdTuple appIdTuple, bool resetRestartsToMax, string planName)
         {
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
@@ -391,10 +395,11 @@ namespace Dirigent.Agent.Core
             appState.Started = false;
             appState.StartFailed = false;
             appState.Killed = false;
+			appState.PlanName = planName;
             
             la.watchers.Clear();
 
-            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths );
+            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName );
 
             try
             {
@@ -685,7 +690,7 @@ namespace Dirigent.Agent.Core
 				var appState = appsState[la.AppDef.AppIdTuple];
 				appState.PlanApplied = true;
                 
-				LaunchAppInternal(appToLaunch.AppIdTuple, true);
+				LaunchAppInternal(appToLaunch.AppIdTuple, true, rti.Plan.Name);
 			}
 		}
 

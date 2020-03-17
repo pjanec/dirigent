@@ -17,11 +17,12 @@ namespace Dirigent.Agent.Core
         Process proc;
         AppDef appDef;
         string RelativePathsRoot;
+        string planName; // in what plan's context the app is going to be started (just informative)
 
 		bool dying = false;	// already killed but still in the system
 		int exitCode = 0; // cached exit code from last run
 
-        public Launcher( AppDef appDef, String rootForRelativePaths )
+        public Launcher( AppDef appDef, String rootForRelativePaths, string planName )
         {
             this.appDef = appDef;
 
@@ -33,6 +34,8 @@ namespace Dirigent.Agent.Core
             {
                 RelativePathsRoot = rootForRelativePaths;
             }
+
+            this.planName = planName;
         }
 
 		public void Dispose()
@@ -69,10 +72,11 @@ namespace Dirigent.Agent.Core
                     return;
                 }
             }
-        
 
-			// set environment variables here so we can use them when expanding process path/args/cwd
-			Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
+
+            // set environment variables here so we can use them when expanding process path/args/cwd
+            Environment.SetEnvironmentVariable("DIRIGENT_PLAN", planName);
+            Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
 			Environment.SetEnvironmentVariable("DIRIGENT_APPID", appDef.AppIdTuple.AppId);
 
             // start the process
@@ -424,9 +428,9 @@ namespace Dirigent.Agent.Core
 
     public class LauncherFactory : ILauncherFactory
     {
-        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths )
+        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths, string planName )
         {
-            return new Launcher( appDef, rootForRelativePaths );
+            return new Launcher( appDef, rootForRelativePaths, planName );
         }
     }
 

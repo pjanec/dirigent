@@ -40,14 +40,15 @@ namespace Dirigent.Common
 
 			var now = DateTime.UtcNow;
 
-			var stateStr = String.Format("APP:{0}:{1}:{2}:{3}:{4}:{5}:{6}",
+			var stateStr = String.Format("APP:{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}",
 				t.ToString(),
 				sbFlags.ToString(),
 				appState.ExitCode,
 				(now - appState.LastChange).TotalSeconds,
 				appState.CPU,
 				appState.GPU,
-				appState.Memory
+				appState.Memory,
+				appState.PlanName
 			);
 
 			return stateStr;
