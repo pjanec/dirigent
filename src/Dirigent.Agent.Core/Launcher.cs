@@ -75,6 +75,7 @@ namespace Dirigent.Agent.Core
 
 
             // set environment variables here so we can use them when expanding process path/args/cwd
+            Environment.SetEnvironmentVariable("DIRIGENT_SHAREDCONFGDIR", RelativePathsRoot);
             Environment.SetEnvironmentVariable("DIRIGENT_PLAN", planName);
             Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
 			Environment.SetEnvironmentVariable("DIRIGENT_APPID", appDef.AppIdTuple.AppId);
