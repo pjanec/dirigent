@@ -742,8 +742,17 @@ If all attempts fail, the launch plan is stopped and an error is returned.
 
 ### Shortcuts
 
-If a Dirigent's tray GUI is running on a machine, currently selected plan can be started/killed/restarted via a shortcut. Shortcut can be redefined in the Dirigent.Agent.exe.config. By default
+If a Dirigent's tray GUI is running on a machine, currently selected plan can be started/killed/restarted via a shortcut.
+
+Also the current plan can be selected based on its order in the SharedConfig.xml.
+
+Shortcut can be redefined in the Dirigent.Agent.exe.config. By default
 
     Start current plan ..... Control + Shift + Alt + S
     Kill current plan ...... Control + Shift + Alt + K
     Restart current plan ... Control + Shift + Alt + R
+    Select 1st plan ........ Control + Shift + Alt + 1
+    Select 2nd plan ........ Control + Shift + Alt + 2
+    Select 3rd plan ........ Control + Shift + Alt + 3
+    ...
+    Select 9th plan ........ Control + Shift + Alt + 9

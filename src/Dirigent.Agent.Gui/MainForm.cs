@@ -93,6 +93,16 @@ namespace Dirigent.Agent.Gui
 		const int HOTKEY_ID_START_CURRENT_PLAN = 1;
 		const int HOTKEY_ID_KILL_CURRENT_PLAN = 2;
 		const int HOTKEY_ID_RESTART_CURRENT_PLAN = 3;
+		const int HOTKEY_ID_SELECT_PLAN_0 = 4; // not used as hot key, just base value for 1..9
+		const int HOTKEY_ID_SELECT_PLAN_1 = HOTKEY_ID_SELECT_PLAN_0 + 1;
+		const int HOTKEY_ID_SELECT_PLAN_2 = HOTKEY_ID_SELECT_PLAN_0 + 2;
+		const int HOTKEY_ID_SELECT_PLAN_3 = HOTKEY_ID_SELECT_PLAN_0 + 3;
+		const int HOTKEY_ID_SELECT_PLAN_4 = HOTKEY_ID_SELECT_PLAN_0 + 4;
+		const int HOTKEY_ID_SELECT_PLAN_5 = HOTKEY_ID_SELECT_PLAN_0 + 5;
+		const int HOTKEY_ID_SELECT_PLAN_6 = HOTKEY_ID_SELECT_PLAN_0 + 6;
+		const int HOTKEY_ID_SELECT_PLAN_7 = HOTKEY_ID_SELECT_PLAN_0 + 7;
+		const int HOTKEY_ID_SELECT_PLAN_8 = HOTKEY_ID_SELECT_PLAN_0 + 8;
+		const int HOTKEY_ID_SELECT_PLAN_9 = HOTKEY_ID_SELECT_PLAN_0 + 9;
 
 		void registerHotKeys()
 		{
@@ -128,6 +138,18 @@ namespace Dirigent.Agent.Gui
 					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
 					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
 					RegisterHotKey(this.Handle, HOTKEY_ID_RESTART_CURRENT_PLAN, (int)modifier, (int)key);
+				}
+			}
+
+			for(int i=1; i <= 9; i++)
+			{
+				var x = document.XPathSelectElement(String.Format(templ, String.Format("SelectPlan{0}HotKey", i)));
+				string hotKeyStr = (x != null) ? x.Value : String.Format("Control + Shift + Alt + {0}", i);
+				if (!String.IsNullOrEmpty(hotKeyStr))
+				{
+					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
+					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
+					RegisterHotKey(this.Handle, HOTKEY_ID_SELECT_PLAN_0+i, (int)modifier, (int)key);
 				}
 			}
 
@@ -302,6 +324,26 @@ namespace Dirigent.Agent.Gui
 							if (currPlan != null)
 							{
 								this.ctrl.RestartPlan(currPlan.Name);
+							}
+							break;
+						}
+
+
+					case HOTKEY_ID_SELECT_PLAN_1:
+					case HOTKEY_ID_SELECT_PLAN_2:
+					case HOTKEY_ID_SELECT_PLAN_3:
+					case HOTKEY_ID_SELECT_PLAN_4:
+					case HOTKEY_ID_SELECT_PLAN_5:
+					case HOTKEY_ID_SELECT_PLAN_6:
+					case HOTKEY_ID_SELECT_PLAN_7:
+					case HOTKEY_ID_SELECT_PLAN_8:
+					case HOTKEY_ID_SELECT_PLAN_9:
+						{
+							int i = keyId - HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
+							List<ILaunchPlan> plans = new List<ILaunchPlan>(ctrl.GetPlanRepo());
+							if( i < plans.Count )
+							{
+								this.ctrl.SelectPlan( plans[i].Name );
 							}
 							break;
 						}
