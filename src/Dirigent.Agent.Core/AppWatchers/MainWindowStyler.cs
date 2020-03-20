@@ -69,7 +69,7 @@ namespace Dirigent.Agent.Core
 						case EWindowStyle.Maximized: showCmd=WinApi.SW_MAXIMIZE; break;
 						case EWindowStyle.Normal: showCmd=WinApi.SW_SHOWNORMAL; break;
 					}
-					WinApi.ShowWindow( mainHwnd, showCmd );
+					WinApi.ShowWindowAsync( mainHwnd, showCmd );
 					log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", appDef.WindowStyle, mainHwnd.ToInt64(), proc.Id );
 					shallBeRemoved = true;
 				}

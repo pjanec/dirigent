@@ -185,25 +185,25 @@ namespace Dirigent.Agent.Core
                     //    ShowWindow( handle, SW_RESTORE );
                     //}
                     log.DebugFormat("WindowPositioner:   Restore");
-                    WinApi.ShowWindow( handle, WinApi.SW_RESTORE );
+                    WinApi.ShowWindowAsync( handle, WinApi.SW_RESTORE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Minimized )
                 {
                     log.DebugFormat("WindowPositioner:   Minimize");
-                    WinApi.ShowWindow( handle, WinApi.SW_MINIMIZE );
+                    WinApi.ShowWindowAsync( handle, WinApi.SW_MINIMIZE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Maximized )
                 {
                     log.DebugFormat("WindowPositioner:   Maximize");
-                    WinApi.ShowWindow( handle, WinApi.SW_MAXIMIZE );
+                    WinApi.ShowWindowAsync( handle, WinApi.SW_MAXIMIZE );
                 }
                 else
                 if( pos.WindowStyle == EWindowStyle.Hidden )
                 {
                     log.DebugFormat("WindowPositioner:   Hide");
-                    WinApi.ShowWindow( handle, WinApi.SW_HIDE );
+                    WinApi.ShowWindowAsync( handle, WinApi.SW_HIDE );
                 }
             } 
         }
