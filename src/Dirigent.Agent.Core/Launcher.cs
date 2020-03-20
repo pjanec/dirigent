@@ -59,7 +59,14 @@ namespace Dirigent.Agent.Core
 			exitCode = 0;
 
 
-			var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+            // set environment variables here so we can use them when expanding process path/args/cwd
+            Environment.SetEnvironmentVariable("DIRIGENT_SHAREDCONFGDIR", RelativePathsRoot);
+            Environment.SetEnvironmentVariable("DIRIGENT_PLAN", planName);
+            Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
+            Environment.SetEnvironmentVariable("DIRIGENT_APPID", appDef.AppIdTuple.AppId);
+
+
+            var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
 
             // try to adopt an already running process (matching by process image file name, regardless of path)
             if( appDef.AdoptIfAlreadyRunning )
@@ -73,12 +80,6 @@ namespace Dirigent.Agent.Core
                 }
             }
 
-
-            // set environment variables here so we can use them when expanding process path/args/cwd
-            Environment.SetEnvironmentVariable("DIRIGENT_SHAREDCONFGDIR", RelativePathsRoot);
-            Environment.SetEnvironmentVariable("DIRIGENT_PLAN", planName);
-            Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
-			Environment.SetEnvironmentVariable("DIRIGENT_APPID", appDef.AppIdTuple.AppId);
 
             // start the process
             var psi = new ProcessStartInfo();
