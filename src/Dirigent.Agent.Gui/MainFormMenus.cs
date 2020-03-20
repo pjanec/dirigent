@@ -99,7 +99,6 @@ namespace Dirigent.Agent.Gui
             mnuPlanList.Show(this, this.PointToClient(Cursor.Position) );
         }
 
-
         void populatePlanSelectionMenu()
         {
             mnuPlanList = new ContextMenu();

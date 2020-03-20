@@ -40,6 +40,18 @@ namespace Dirigent.Agent.Gui
         //ILaunchPlan plan; // current plan
         List<ILaunchPlan> planRepo; // current plan repo
 
+		public bool ShowJustAppFromCurrentPlan
+		{
+			get
+			{
+				return btnShowJustAppsFromCurrentPlan.Checked;
+			}
+			set
+			{
+				btnShowJustAppsFromCurrentPlan.Checked = value;
+			}
+		}
+
 		//void terminateFromConstructor()
 		//{
 		//    Load += (s, e) => Close();

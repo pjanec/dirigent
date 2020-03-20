@@ -139,4 +139,13 @@
   <data name="killall" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\killall.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="itemlist" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\itemlist.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="items_few" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\items_few.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="items_many" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\items_many.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

@@ -18,6 +18,11 @@ namespace Dirigent.Agent.Gui
 
         static private bool down = false;
 
+        public MyToolStrip()
+        {
+            Renderer = new MyRenderer();
+        }
+        
         protected override void WndProc(ref Message m)
         {
             if (m.Msg==WM_LBUTTONUP && !down) {
@@ -30,5 +35,21 @@ namespace Dirigent.Agent.Gui
 
             base.WndProc(ref m);
         }
+
+        // show checked buttons with gray background to make it more visible
+        private class MyRenderer : ToolStripProfessionalRenderer
+        {
+            protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+            {
+                var btn = e.Item as ToolStripButton;
+                if (btn != null && btn.CheckOnClick && btn.Checked)
+                {
+                    Rectangle bounds = new Rectangle(Point.Empty, e.Item.Size);
+                    e.Graphics.FillRectangle(Brushes.LightGray, bounds);
+                }
+                else base.OnRenderButtonBackground(e);
+            }
+        }
+
     }
 }

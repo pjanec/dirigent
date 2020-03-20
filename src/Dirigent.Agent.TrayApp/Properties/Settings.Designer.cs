@@ -106,7 +106,22 @@ namespace Dirigent.Agent.TrayApp.Properties {
                 this["MainFormLocation"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public string ShowJustAppsFromCurrentPlan
+        {
+            get
+            {
+                return ((string)(this["ShowJustAppsFromCurrentPlan"]));
+            }
+            set
+            {
+                this["ShowJustAppsFromCurrentPlan"] = value;
+            }
+        }
+
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
@@ -158,6 +173,141 @@ namespace Dirigent.Agent.TrayApp.Properties {
             }
             set {
                 this["RestartPlanPlanHotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 1")]
+        public string SelectPlan1HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan1HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan1HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 2")]
+        public string SelectPlan2HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan2HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan2HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 3")]
+        public string SelectPlan3HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan3HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan3HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 4")]
+        public string SelectPlan4HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan4HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan4HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 5")]
+        public string SelectPlan5HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan5HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan5HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 6")]
+        public string SelectPlan6HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan6HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan6HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 7")]
+        public string SelectPlan7HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan7HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan7HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 8")]
+        public string SelectPlan8HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan8HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan8HotKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control + Shift + Alt + 9")]
+        public string SelectPlan9HotKey
+        {
+            get
+            {
+                return ((string)(this["SelectPlan9HotKey"]));
+            }
+            set
+            {
+                this["SelectPlan9HotKey"] = value;
             }
         }
     }

@@ -65,8 +65,17 @@ namespace Dirigent.Agent.Gui
             
             var planAppDefsDict = (plan != null) ? (from ad in plan.getAppDefs() select ad).ToDictionary( ad => ad.AppIdTuple, ad => ad) : new Dictionary<AppIdTuple, AppDef>();
             var planAppIdTuples = (plan != null) ? (from ad in plan.getAppDefs() select ad.AppIdTuple).ToList() : new List<AppIdTuple>();
-            var appStates = ctrl.GetAllAppsState();
             
+            Dictionary<AppIdTuple, AppState> appStates;
+            if(ShowJustAppFromCurrentPlan) 
+            {
+                appStates = (from i in ctrl.GetAllAppsState() where planAppIdTuples.Contains(i.Key) select i).ToDictionary(mc => mc.Key, mc => mc.Value);
+            }
+            else // show from all plans
+            {
+                appStates = ctrl.GetAllAppsState();
+            }
+
             // remember apps from plan
             Dictionary<string, AppIdTuple> newApps = new Dictionary<string, AppIdTuple>();
 

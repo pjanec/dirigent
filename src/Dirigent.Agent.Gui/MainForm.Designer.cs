@@ -69,6 +69,7 @@
 			this.btnKillPlan = new System.Windows.Forms.ToolStripButton();
 			this.btnRestartPlan = new System.Windows.Forms.ToolStripButton();
 			this.bntKillAll2 = new System.Windows.Forms.ToolStripButton();
+			this.btnShowJustAppsFromCurrentPlan = new System.Windows.Forms.ToolStripButton();
 			this.tabPagePlans = new System.Windows.Forms.TabPage();
 			this.gridPlans = new System.Windows.Forms.DataGridView();
 			this.hdrPlanName = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -390,7 +391,8 @@
             this.btnStopPlan,
             this.btnKillPlan,
             this.btnRestartPlan,
-            this.bntKillAll2});
+            this.bntKillAll2,
+			this.btnShowJustAppsFromCurrentPlan});
 			this.toolStripApps.Location = new System.Drawing.Point(4, 4);
 			this.toolStripApps.Name = "toolStripApps";
 			this.toolStripApps.Padding = new System.Windows.Forms.Padding(0, 0, 3, 0);
@@ -457,6 +459,16 @@
 			this.bntKillAll2.Size = new System.Drawing.Size(40, 32);
 			this.bntKillAll2.Text = "Kill All";
 			this.bntKillAll2.Click += new System.EventHandler(this.bntKillAll2_Click);
+			// 
+			// btnShowJustAppsFromCurrentPlan
+			// 
+			this.btnShowJustAppsFromCurrentPlan.CheckOnClick = true;
+			this.btnShowJustAppsFromCurrentPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnShowJustAppsFromCurrentPlan.Image = global::Dirigent.Agent.Gui.Resource1.items_few;
+			this.btnShowJustAppsFromCurrentPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
+			this.btnShowJustAppsFromCurrentPlan.Name = "btnShowJustAppsFromCurrentPlan";
+			this.btnShowJustAppsFromCurrentPlan.Size = new System.Drawing.Size(32, 32);
+			this.btnShowJustAppsFromCurrentPlan.Text = "Show just apps from the current plan";
 			// 
 			// tabPagePlans
 			// 
@@ -682,6 +694,7 @@
         private System.Windows.Forms.ToolStripButton btnStopPlan;
         private System.Windows.Forms.ToolStripButton btnKillPlan;
         private System.Windows.Forms.ToolStripButton btnRestartPlan;
+		private System.Windows.Forms.ToolStripButton btnShowJustAppsFromCurrentPlan;
         private System.Windows.Forms.TabPage tabPagePlans;
         private System.Windows.Forms.DataGridView gridApps;
         private System.Windows.Forms.DataGridView gridPlans;
