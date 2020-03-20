@@ -701,7 +701,8 @@ Dirigent agent defines the following special variables for an app started from t
 
  * `DIRIGENT_MACHINEID` = the machine id the agent was configured to (the first part of the AppIdTuple).
  * `DIRIGENT_APPID` = the application id (the second part of the AppIdTuple).
- * `DIRIGENT_PLAN` = the plan in whose context the app was started. Current plan name for apps lauched without a plan via `LauchApp` command. Empty if no current plan.
+ * `DIRIGENT_PLAN` = the plan in whose context the app was started. Current plan name for apps launched without a plan via `LauchApp` command. Empty if no current plan.
+ * `DIRIGENT_SHAREDCONFDIR` = full directory path to the SharedConfig.xml file
 
 
 This provides a way to tell the processes started by the dirigent agent what station/machine (in terms of the dirigent machine naming) they are running at. This might come in handy if same process is started on many machines, it needs to know where it was started but you can not rely on the computer name.
@@ -712,8 +713,8 @@ Being environment variables, they can be used in command line parameters for the
             <App
                 AppIdTuple = "m1.a"
                 Template = "apps.notepad"
-                StartupDir = "c:\%DIRIGENT_APPID%"
-                CmdLineArgs = "%DIRIGENT_MACHINEID%.txt"
+                StartupDir = "%DIRIGENT_SHAREDCONFDIR%\..\Documents"
+                CmdLineArgs = "%DIRIGENT_MACHINEID%_%DIRIGENT_APPID%.txt"
                 >
             </App>
         </Plan>
