@@ -107,15 +107,19 @@ namespace Dirigent.Agent.Gui
             selectPlanToolStripMenuItem.DropDownItems.Clear();
 
             // fill the Plan -> Load menu with items
+            int index = 0;
             foreach (var plan in planRepo)
             {
+                index++;
+
                 var planName = plan.Name; // independent variable to be remebered by the lambda below
                 EventHandler clickHandler = (sender, args) => guardedOp( ()=> { ctrl.SelectPlan(planName); } );
 
-                var menuItem = new System.Windows.Forms.ToolStripMenuItem(plan.Name, null, clickHandler);
+                var itemText = String.Format("&{0}: {1}", index, plan.Name);
+                var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler);
                 selectPlanToolStripMenuItem.DropDownItems.Add(menuItem);
 
-                var menuItem2 = new System.Windows.Forms.MenuItem(plan.Name, clickHandler);
+                var menuItem2 = new System.Windows.Forms.MenuItem(itemText, clickHandler);
                 mnuPlanList.MenuItems.Add(menuItem2);
             }
         }

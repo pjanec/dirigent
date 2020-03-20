@@ -343,7 +343,9 @@ namespace Dirigent.Agent.Gui
 							List<ILaunchPlan> plans = new List<ILaunchPlan>(ctrl.GetPlanRepo());
 							if( i < plans.Count )
 							{
-								this.ctrl.SelectPlan( plans[i].Name );
+								var planName = plans[i].Name;
+								this.notifyIcon.ShowBalloonTip(1000, String.Format("{0}", planName), " ", ToolTipIcon.Info);
+								this.ctrl.SelectPlan( planName );
 							}
 							break;
 						}
