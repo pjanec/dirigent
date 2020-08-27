@@ -226,7 +226,8 @@ namespace Dirigent.Agent.Core
                 this.planRepo = new List<ILaunchPlan>(planRepo);
             }
 
-			// populate planRTInfo accordingly
+			// populate planRTInfo accordingly;
+			// also build the list of all apps (gather from all plans)
 			foreach (var p in planRepo)
 			{
 				planRTInfo[p.Name] = new PlanRuntimeInfo(p);
@@ -246,6 +247,7 @@ namespace Dirigent.Agent.Core
 					if (p.Name == currentPlanName) // is one of the new plans matching our current plan?
 					{
 						currentPlan = p;
+						AdoptPlan( p );	 // reload appdefs to the settings from the current plan
 					}
 				}
 			}
