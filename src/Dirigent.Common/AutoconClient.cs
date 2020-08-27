@@ -38,7 +38,9 @@ namespace Dirigent.Net
 
         public string Name { get { return name;} }
 
-        public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
+		public string MasterIP { get { return this.ipaddr; } }
+
+		public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
         {
             this.name = name;
             this.ipaddr = ipaddr;

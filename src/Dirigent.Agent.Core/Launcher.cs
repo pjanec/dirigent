@@ -18,11 +18,12 @@ namespace Dirigent.Agent.Core
         AppDef appDef;
         string RelativePathsRoot;
         string planName; // in what plan's context the app is going to be started (just informative)
+        string masterIP; // ip address of the Dirigent Master process
 
 		bool dying = false;	// already killed but still in the system
 		int exitCode = 0; // cached exit code from last run
 
-        public Launcher( AppDef appDef, String rootForRelativePaths, string planName )
+        public Launcher( AppDef appDef, String rootForRelativePaths, string planName, string masterIP )
         {
             this.appDef = appDef;
 
@@ -36,6 +37,7 @@ namespace Dirigent.Agent.Core
             }
 
             this.planName = planName;
+            this.masterIP = masterIP;
         }
 
 		public void Dispose()
@@ -78,6 +80,7 @@ namespace Dirigent.Agent.Core
             Environment.SetEnvironmentVariable("DIRIGENT_PLAN", planName);
             Environment.SetEnvironmentVariable("DIRIGENT_MACHINEID", appDef.AppIdTuple.MachineId);
             Environment.SetEnvironmentVariable("DIRIGENT_APPID", appDef.AppIdTuple.AppId);
+            Environment.SetEnvironmentVariable("DIRIGENT_MASTER_IP", masterIP);
 
 
             var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
@@ -457,9 +460,9 @@ namespace Dirigent.Agent.Core
 
     public class LauncherFactory : ILauncherFactory
     {
-        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths, string planName )
+        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths, string planName, string masterIP )
         {
-            return new Launcher( appDef, rootForRelativePaths, planName );
+            return new Launcher( appDef, rootForRelativePaths, planName, masterIP );
         }
     }
 

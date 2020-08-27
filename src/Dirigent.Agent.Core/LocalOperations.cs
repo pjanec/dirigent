@@ -57,6 +57,8 @@ namespace Dirigent.Agent.Core
 
         string rootForRelativePaths;
 
+		string masterIP; // ip address of the master (to be passed as env var for launched apps, for giving them a target for centralozed file storage etc.)
+
 		double currentTime; // time as set from tick()
 
 		/// <summary>
@@ -76,7 +78,9 @@ namespace Dirigent.Agent.Core
             string machineId,
             ILauncherFactory launcherFactory,
             IAppInitializedDetectorFactory appAppInitializedDetectorFactory,
-            string rootForRelativePaths )
+            string rootForRelativePaths,
+			string masterIP
+		)
         {
             this.launcherFactory = launcherFactory;
             this.appAppInitializedDetectorFactory = appAppInitializedDetectorFactory;
@@ -87,6 +91,7 @@ namespace Dirigent.Agent.Core
             currentPlan = null;
             planRepo = new List<ILaunchPlan>();
             this.machineId = machineId;
+			this.masterIP = masterIP;
 
 			this.appRestarterManager = new AppRestarterManager(this);
         }
@@ -399,7 +404,7 @@ namespace Dirigent.Agent.Core
             
             la.watchers.Clear();
 
-            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName );
+            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP );
 
             try
             {
@@ -534,7 +539,7 @@ namespace Dirigent.Agent.Core
 				{
 					var plan = GetCurrentPlan();
 					var planName = plan==null ? "" : plan.Name;
-					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName );
+					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP );
 					if( launcher.AdoptAlreadyRunning() )
 					{
 						launcher.Kill();

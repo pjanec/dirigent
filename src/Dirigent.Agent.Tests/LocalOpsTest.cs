@@ -92,7 +92,7 @@ namespace Dirigent.Agent.Tests
     {
         public List<AppDef> appsLaunched = new List<AppDef>();
         
-        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths, string planName)
+        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths, string planName, string masterIP )
         {
  	        return new FakeLauncher( appDef, this, planName );
         }
@@ -143,7 +143,7 @@ namespace Dirigent.Agent.Tests
         [Test]
         public void testLaunchSequence()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
             
             lo.SelectPlan( "p1" );
             
@@ -185,7 +185,7 @@ namespace Dirigent.Agent.Tests
         [Test]
         public void testRunApp()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
             
             lo.SelectPlan( "p1" );
             
@@ -218,7 +218,7 @@ namespace Dirigent.Agent.Tests
 
         public void testStopPlan()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
             
             var planName =  "p1";
             lo.SelectPlan( planName );
