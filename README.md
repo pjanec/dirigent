@@ -467,7 +467,7 @@ Each app in the launch plan has the following attributes:
 
 - `RestartOnCrash 0|1` - whether to automatically restart the app after crash. See the *Restarter* subsection for more details
 
-- `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption occurs when the app is about to be started or killed (i.e. not when the plan is not running). *WARNING: Should not be used with for apps that may run in multiple instances on the same computer!* 
+- `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption attempt is made only when the app is about to be started or killed. Dirigent does not scan all running processes periodically so it does not show the not-yet-adopted app as running until the app is launched via Dirigent. *WARNING: Should not be used for apps that may run in multiple instances on the same computer! Just first instance would be adopted!* 
 
 - `Dependencies` - what apps is this one dependent on, i.e. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
 

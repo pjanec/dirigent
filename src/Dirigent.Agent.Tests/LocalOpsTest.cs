@@ -41,7 +41,12 @@ namespace Dirigent.Agent.Tests
 			dying = true;
         }
 
-        public bool  Running
+		public bool AdoptAlreadyRunning()
+		{
+			return false;
+		}
+
+		public bool  Running
         {
             get
             {

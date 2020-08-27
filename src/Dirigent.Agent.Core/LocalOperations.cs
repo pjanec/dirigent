@@ -510,7 +510,8 @@ namespace Dirigent.Agent.Core
             }
 
             var la = localApps[appIdTuple];
-            var appState = appsState[la.AppDef.AppIdTuple];
+			var appDef = la.AppDef;
+            var appState = appsState[appDef.AppIdTuple];
 
             if( la.launcher != null ) // already started?
             {
@@ -519,13 +520,29 @@ namespace Dirigent.Agent.Core
                     appState.Killed = true;
                 }
 
-                log.DebugFormat("Killing app {0}", la.AppDef.AppIdTuple);
+                log.DebugFormat("Killing app {0}", appDef.AppIdTuple);
 
                 // this just initiates the dying
 				la.launcher.Kill();
                 
 				// we maintain the launcher instance until the app actually dies
             }
+			else
+			{
+				// try to adopt before killing
+				if( appDef.AdoptIfAlreadyRunning )
+				{
+					var plan = GetCurrentPlan();
+					var planName = plan==null ? "" : plan.Name;
+					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName );
+					if( launcher.AdoptAlreadyRunning() )
+					{
+						launcher.Kill();
+					}
+				}
+				
+			}
+
 
 			// Remove potential pending AppRestarter
 			// to avoid the app being restarted automatically

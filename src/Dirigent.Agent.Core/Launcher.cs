@@ -50,6 +50,20 @@ namespace Dirigent.Agent.Core
             return Path.Combine( RelativePathsRoot, anyPath );
         }
 
+        public bool AdoptAlreadyRunning()
+        {
+            var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+            ProcInfo found = FindProcessByExeName( appPath );
+            if( found != null )
+            {
+                log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
+                proc = found.Process;
+                return true;
+            }
+            return false;
+        }
+
+
         public void Launch()
         {
 			// don't run again if not yet killed
@@ -251,6 +265,19 @@ namespace Dirigent.Agent.Core
             //log.DebugFormat("Kill pid {0}", proc.Id );
             // bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
             
+            // try to adopt an already running process (matching by process image file name, regardless of path)
+            if( proc == null && appDef.AdoptIfAlreadyRunning )
+            {
+                var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+
+                ProcInfo found = FindProcessByExeName( appPath );
+                if( found != null )
+                {
+                    log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
+                    proc = found.Process;
+                }
+            }
+
             if( proc == null )
             {
                 log.DebugFormat("  pid {0} proc=null!", ProcessId);

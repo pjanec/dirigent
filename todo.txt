@@ -1,4 +1,19 @@
-﻿[NOTABUG] Before starting the last app from the plan (a volatile app) the plan reports Failure for a short time until that volatile app gets started.[Update] It's actually not a bug. In this case the timeout happened, moving the plan state to Failure, but then the app started and plan status went Success again.
+﻿Inter-plan dependencies. Do not check if the dependency exist in the same plan. It should exist in at least one of all plans. If the dependency app have never been started yet, it shall be treated as unitialized.
+
+Reload SharedConfig tray-icon option. Sends reset command to Master who in turn sends reset to to all agents and then reloads the Sharedconfig and sends new plan pack. On reset agents kill all their local apps so the ones started later on will be run with the settings from the new plan.
+
+Fix crash if Master console opened but terminated via Ctrl+C.
+
+Color-coding of app states (Killed=gray, FailedToSTart=red, Running=green, Planned=yellow, Initializing=orange, Not running=black, Terminated with exitcode<>0= red)
+
+Color-coding of plan states (Success = green, None=black, Killing=gray, Failure=red, InProgress=orange)
+
+Kill all running local apps on exit.
+
+Telnet: add 'quit' / 'exit' command.
+Telnet: take commanda from command line, exit after sending them (do not wait for confirmation). Take commands from std input.
+
+[NOTABUG] Before starting the last app from the plan (a volatile app) the plan reports Failure for a short time until that volatile app gets started.[Update] It's actually not a bug. In this case the timeout happened, moving the plan state to Failure, but then the app started and plan status went Success again.
 
 [FIXED] WindowPoppedUp init detector hands on process that creates a top level window but does not process window messages for it. SendMessage(GET_TEXT..) never returns. We might try SendMessageTimeout asynchronously to avoid blocking. [UODATE] we use timeout 10msec
 
