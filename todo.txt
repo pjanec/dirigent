@@ -1,4 +1,6 @@
-﻿Inter-plan dependencies. Do not check if the dependency exist in the same plan. It should exist in at least one of all plans. If the dependency app have never been started yet, it shall be treated as unitialized.
+﻿Define one plan as the default. Use it to initialize the list of all apps (initial order, initial configuration). Before switching to a new plan, always reset the app settings to the one from the default plan (so if the new plan does not contain an app, such app will be reset to the settings from the default plan).
+
+Inter-plan dependencies. Do not check if the dependency exist in the same plan. It should exist in at least one of all plans. If the dependency app have never been started yet, it shall be treated as unitialized.
 
 Reload SharedConfig tray-icon option. Sends reset command to Master who in turn sends reset to to all agents and then reloads the Sharedconfig and sends new plan pack. On reset agents kill all their local apps so the ones started later on will be run with the settings from the new plan.
 

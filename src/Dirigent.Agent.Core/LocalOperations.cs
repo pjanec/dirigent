@@ -984,11 +984,30 @@ namespace Dirigent.Agent.Core
 			var varList = new List<Tuple<string, string>>();
 			foreach( var kv in vars.Split(new string[] { "::" }, StringSplitOptions.None))
 			{
-				var m = Regex.Match(kv, @"\s*(\w+)\s*=\s*(\w*)\s*");
-				if( m != null )
+				if( string.IsNullOrWhiteSpace(kv) ) // nothing present
 				{
-					varList.Add( new Tuple<string, string>(m.Groups[1].Value, m.Groups[2].Value) );
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
 				}
+
+				int equalSignIdx = kv.IndexOf("=");
+
+				if( equalSignIdx < 0 ) // equal sign not present
+				{
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
+				}
+
+				string name = kv.Substring(0, equalSignIdx).Trim();
+				string value = kv.Substring(equalSignIdx+1).TrimStart();
+				
+				if( string.IsNullOrEmpty(name) )
+				{
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
+				}
+
+				varList.Add( new Tuple<string, string>(name, value) );
 			}
 
 			// apply
