@@ -54,7 +54,7 @@ namespace Dirigent.Agent.Core
 
         public bool AdoptAlreadyRunning()
         {
-            var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+            var appPath = Tools.ExpandEnvVars(appDef.ExeFullPath);
             ProcInfo found = FindProcessByExeName( appPath );
             if( found != null )
             {
@@ -83,7 +83,7 @@ namespace Dirigent.Agent.Core
             Environment.SetEnvironmentVariable("DIRIGENT_MASTER_IP", masterIP);
 
 
-            var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+            var appPath = Tools.ExpandEnvVars(appDef.ExeFullPath);
 
             // try to adopt an already running process (matching by process image file name, regardless of path)
             if( appDef.AdoptIfAlreadyRunning )
@@ -103,11 +103,11 @@ namespace Dirigent.Agent.Core
 			psi.FileName =  BuildAbsolutePath( appPath );
 			if( appDef.CmdLineArgs != null )
 			{
-				psi.Arguments = System.Environment.ExpandEnvironmentVariables(appDef.CmdLineArgs);
+				psi.Arguments = Tools.ExpandEnvVars(appDef.CmdLineArgs);
 			}
             if (appDef.StartupDir != null)
             {
-				var dir = System.Environment.ExpandEnvironmentVariables(appDef.StartupDir);
+				var dir = Tools.ExpandEnvVars(appDef.StartupDir);
                 psi.WorkingDirectory = BuildAbsolutePath(dir);
             }
 
@@ -128,13 +128,13 @@ namespace Dirigent.Agent.Core
 			foreach (var x in appDef.EnvVarsToSet)
 			{							
 				var name = x.Key;
-				var value = System.Environment.ExpandEnvironmentVariables(x.Value);
+				var value = Tools.ExpandEnvVars(x.Value);
 				psi.EnvironmentVariables[name] = value;
 			}
 			if (!String.IsNullOrEmpty(appDef.EnvVarPathToAppend))
 			{
 				var name = "PATH";
-				var postfix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToAppend);
+				var postfix = Tools.ExpandEnvVars(appDef.EnvVarPathToAppend);
 				// if relative path is specified, consider it relative to SharedConfig and make it absolute (per each ';' separated segment)
 				postfix = string.Join(";", postfix.Split(';').Select(p => BuildAbsolutePath(p)));
 				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + postfix;
@@ -142,7 +142,7 @@ namespace Dirigent.Agent.Core
 			if (!String.IsNullOrEmpty(appDef.EnvVarPathToPrepend))
 			{
 				var name = "PATH";
-				var prefix = System.Environment.ExpandEnvironmentVariables(appDef.EnvVarPathToPrepend);
+				var prefix = Tools.ExpandEnvVars(appDef.EnvVarPathToPrepend);
 				// if relative path is specified, consider it relative to SharedConfig and make it absolute (per each ';' separated segment)
 				prefix = string.Join(";", prefix.Split(';').Select(p => BuildAbsolutePath(p)));
 				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
@@ -271,7 +271,7 @@ namespace Dirigent.Agent.Core
             // try to adopt an already running process (matching by process image file name, regardless of path)
             if( proc == null && appDef.AdoptIfAlreadyRunning )
             {
-                var appPath = System.Environment.ExpandEnvironmentVariables(appDef.ExeFullPath);
+                var appPath = Tools.ExpandEnvVars(appDef.ExeFullPath);
 
                 ProcInfo found = FindProcessByExeName( appPath );
                 if( found != null )

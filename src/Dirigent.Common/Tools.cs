@@ -82,6 +82,29 @@ namespace Dirigent.Common
 				return Path.GetDirectoryName(path);
 			}
 		}
+
+		/// <summary>
+		/// Replaces %ENVVAR% in a string with actual value of evn vars; undefined ones will be replaced with empty string
+		/// </summary>
+		/// <param name="str"></param>
+		/// <returns></returns>
+		public static string ExpandEnvVars(String str)
+		{
+
+			System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(str, @"(%\w+%)");
+
+			while( match.Success )
+			{
+				string varName = match.Value.Replace("%", "").Trim();
+				string varValue = Environment.GetEnvironmentVariable(varName);
+				if( varValue == null )
+					varValue = String.Empty;
+
+				str = str.Replace( match.Value, varValue );
+				match = match.NextMatch();
+			}
+			return str;
+		}
 }
 
 }
