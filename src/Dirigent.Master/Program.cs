@@ -190,7 +190,7 @@ namespace Dirigent.Master
             {
 	            agent.tick();
 	            cliServer.Tick();
-	            Thread.Sleep(500);
+	            Thread.Sleep(50);
             }
         }
 
