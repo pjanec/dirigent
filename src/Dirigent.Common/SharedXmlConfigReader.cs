@@ -16,6 +16,8 @@ namespace Dirigent.Common
     
     public class SharedXmlConfigReader
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         SharedConfig cfg;
         XDocument doc;
@@ -43,9 +45,20 @@ namespace Dirigent.Common
             {
                 XElement te = (from t in doc.Element("Shared").Elements("AppTemplate")
                         where (string) t.Attribute("Name") == templateName
-                        select t).First();
+                        select t).FirstOrDefault();
 
-                a = readAppElement( te );
+                if( te == null )
+                {
+                    // FIXME: tog that template is missing
+                    var msg = String.Format("Template '{0}' not found", templateName);
+                    log.ErrorFormat(msg);
+                    throw new ConfigurationErrorException(msg);
+                    a = new AppDef();
+                }
+                else
+                {
+                    a = readAppElement( te );
+                }
             }
             else
             {
