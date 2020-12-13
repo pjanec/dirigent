@@ -21,7 +21,7 @@ namespace Dirigent.Common
         public AppIdTuple appIdTuple;
         
         public NotALocalApp( AppIdTuple appIdTuple, string localMachineId )
-            : base( "MachineId in '"+appIdTuple.MachineId+"."+appIdTuple.AppId+"' is not the one of this computer ("+localMachineId+")." )
+            : base( String.Format("App '{0}' not defined for machine '{1}'", appIdTuple, localMachineId) )
         {
             this.appIdTuple = appIdTuple;
         }
