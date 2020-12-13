@@ -160,12 +160,20 @@ namespace Dirigent.Agent.Gui
 
                 // set checkbox based on Enabled attribute od the appDef from current plan
                 var appDef = planAppDefsDict.ContainsKey(appIdTuple) ? planAppDefsDict[appIdTuple] : null;
-                var chkCell = item.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
-                chkCell.Value = appDef != null ? !appDef.Disabled : false;
-                // emulate "Disabled" grayed appearance
-                chkCell.FlatStyle = appDef != null ? FlatStyle.Standard: FlatStyle.Flat;
-                chkCell.Style.ForeColor = appDef != null ? Color.Black : Color.DarkGray;
-                chkCell.ReadOnly = appDef == null;
+                {
+                    var chkCell = item.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
+                    chkCell.Value = appDef != null ? !appDef.Disabled : false;
+                    // emulate "Disabled" grayed appearance
+                    chkCell.FlatStyle = appDef != null ? FlatStyle.Standard: FlatStyle.Flat;
+                    chkCell.Style.ForeColor = appDef != null ? Color.Black : Color.DarkGray;
+                    chkCell.ReadOnly = appDef == null;
+                }
+                // put app state into a tooltip
+                {
+                    var appStatusCell = item.Cells[appTabColStatus]; // as DataGridViewCell;
+                    appStatusCell.ToolTipText = Tools.GetAppStateString( appIdTuple, ctrl.GetAppState( appIdTuple ) );
+                }
+
             }
         }
 
@@ -370,6 +378,9 @@ namespace Dirigent.Agent.Gui
             return stCode;
         }
 
+        private void gridApps_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
+        {
+        }
 
     }
 }

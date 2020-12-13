@@ -16,6 +16,10 @@ namespace Dirigent.Agent.Gui
 {
     public partial class frmMain : Form
     {
+        const int planTabColName = 0;
+        const int planTabColStatus = 1;
+        const int planTabNumCols = planTabColStatus+1;
+
         void populatePlanGrid()
         {
             gridPlans.Rows.Clear();
@@ -52,13 +56,19 @@ namespace Dirigent.Agent.Gui
 			for(int i=0; i < gridPlans.RowCount; i++)
 			{
 				var r = gridPlans.Rows[i];
-				string planName = (string) r.Cells[0].Value;
+				string planName = (string) r.Cells[planTabColName].Value;
 				var planState = ctrl.GetPlanState(planName);
-				r.Cells[1].Value = planState.OpStatus.ToString();
+				r.Cells[planTabColStatus].Value = planState.OpStatus.ToString();
 
 				// mark currently running plans with different background color
 				var color = planState.Running ? Color.LightGoldenrodYellow : Color.White;
                 r.DefaultCellStyle.BackColor = color;
+
+                // put plan state into a tooltip
+                {
+                    var planStatusCell = r.Cells[appTabColStatus]; // as DataGridViewCell;
+                    planStatusCell.ToolTipText = Tools.GetPlanStateString( planName, ctrl.GetPlanState( planName ) );
+                }
 			}
 		}
 

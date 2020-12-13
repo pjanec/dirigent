@@ -40,7 +40,9 @@ namespace Dirigent.Common
 
 			var now = DateTime.UtcNow;
 
-			var stateStr = String.Format("APP:{0}:{1}:{2}:{3}:{4}:{5}:{6}:{7}",
+			var stateStr = String.Format(
+				System.Globalization.CultureInfo.InvariantCulture,
+				"APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}",
 				t.ToString(),
 				sbFlags.ToString(),
 				appState.ExitCode,
@@ -56,7 +58,12 @@ namespace Dirigent.Common
 
 		public static string GetPlanStateString(string planName, PlanState planState)
 		{
-			var stateStr = String.Format("PLAN:{0}:{1}", planName, planState.OpStatus.ToString());
+			var stateStr = String.Format(
+				System.Globalization.CultureInfo.InvariantCulture,
+				"PLAN:{0}:{1}",
+				planName,
+				planState.OpStatus.ToString()
+			);
 			return stateStr;
 		}
 
