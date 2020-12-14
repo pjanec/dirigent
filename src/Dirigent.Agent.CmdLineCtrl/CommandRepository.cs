@@ -7,6 +7,9 @@ namespace Dirigent.Agent.CmdLineCtrl
 {
     public class CommandRepository
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         Dictionary<string, ICommand> commands = new Dictionary<string, ICommand>();
 
 
@@ -51,7 +54,7 @@ namespace Dirigent.Agent.CmdLineCtrl
             {
                 if( token.IndexOf(";") < 0 ) // no semicolon in a token, simply add to the command 
                 {
-                    newTokens.Add( token );
+                    newTokens.Add( token.Trim() );
                 }
                 else // semicolons in token, split
                 {
@@ -116,7 +119,17 @@ namespace Dirigent.Agent.CmdLineCtrl
             var commands = ParseSubcommands( cmdLineTokens );
             foreach( var c in commands )
             {
-                ProcessSingleCommand( c );
+                var cmdString = string.Join(" ", c); // re-assemble form tokenized form
+                log.Info("Executing: "+ cmdString);
+
+                try
+                {
+                    ProcessSingleCommand( c );
+                }
+                catch( Exception ex )
+                {
+                    log.Error(String.Format("Command '{0}' failed. {1}", cmdString, ex.Message) );
+                }
             }
         }
 
