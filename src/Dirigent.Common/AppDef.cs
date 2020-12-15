@@ -107,6 +107,12 @@ namespace Dirigent.Common
         public Dictionary<string, string> EnvVarsToSet = new Dictionary<string, string>();
 
         /// <summary>
+        /// list of app-local vars to set (can be used in expansions for example in process exe path or command line)
+        /// </summary>
+        [DataMember]
+        public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
+
+        /// <summary>
         /// what to prepend to the PATH variable
         /// </summary>
         [DataMember]
@@ -153,6 +159,7 @@ namespace Dirigent.Common
                 this.WindowPosXml.SequenceEqual( other.WindowPosXml ) &&
                 this.RestarterXml == other.RestarterXml &&
 				this.EnvVarsToSet.DictionaryEqual( other.EnvVarsToSet ) &&
+				this.LocalVarsToSet.DictionaryEqual( other.LocalVarsToSet ) &&
 				this.EnvVarPathToPrepend == other.EnvVarPathToPrepend &&
 				this.EnvVarPathToAppend == other.EnvVarPathToAppend &&
                 this.InitDetectors.SequenceEqual( other.InitDetectors ) &&

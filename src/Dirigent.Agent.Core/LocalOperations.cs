@@ -74,6 +74,11 @@ namespace Dirigent.Agent.Core
 		Dictionary<string, PlanRestarter> planRestarters = new Dictionary<string, PlanRestarter>();
 
         
+        /// <summary>
+		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
+		/// </summary>
+		Dictionary<string, string> internalVars = new Dictionary<string, string>();
+
         public LocalOperations(
             string machineId,
             ILauncherFactory launcherFactory,
@@ -406,7 +411,7 @@ namespace Dirigent.Agent.Core
             
             la.watchers.Clear();
 
-            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP );
+            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 
             try
             {
@@ -541,7 +546,7 @@ namespace Dirigent.Agent.Core
 				{
 					var plan = GetCurrentPlan();
 					var planName = plan==null ? "" : plan.Name;
-					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP );
+					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 					if( launcher.AdoptAlreadyRunning() )
 					{
 						launcher.Kill();

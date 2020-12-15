@@ -532,6 +532,7 @@ App sub-sections:
         <Set Variable="TMP" Value="C:\TEMP" />
         <Set Variable="TEMP" Value="C:\TEMP" />
         <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
+        <Local Variable="P1" Value="myLocalParam1" />
       </Env>
   
   Modifies the environment variables for the started process, taking the Dirigent Agen't startup environment as a basis.
@@ -543,9 +544,9 @@ App sub-sections:
   Attributes:
   
   - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
-  
   - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
-
+  - `Local` - set Dirigent's internal variable to given value. The variable can be used for expansion inside process exe path and command line similarly as the env vars but is not propagated to the process environment.
+  
 - `Restarter`
   
       <Restarter maxTries="2" delay="5"/>

@@ -155,6 +155,14 @@ namespace Dirigent.Common
 						a.EnvVarsToSet[variable] = value;
 					}
 				
+					if (elem.Name == "Local")
+					{
+						// add/overwite variable
+						var variable = (string) elem.Attribute("Variable");
+						var value = (string) elem.Attribute("Value");
+						a.LocalVarsToSet[variable] = value;
+					}
+				
 					if (elem.Name == "Path")
 					{
 						// extend

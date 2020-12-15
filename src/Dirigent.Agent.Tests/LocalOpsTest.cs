@@ -92,7 +92,7 @@ namespace Dirigent.Agent.Tests
     {
         public List<AppDef> appsLaunched = new List<AppDef>();
         
-        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths, string planName, string masterIP )
+        public ILauncher createLauncher(AppDef appDef, string rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )
         {
  	        return new FakeLauncher( appDef, this, planName );
         }
