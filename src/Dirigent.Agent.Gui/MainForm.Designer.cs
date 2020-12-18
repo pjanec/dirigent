@@ -40,6 +40,19 @@
 			this.killPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
 			this.selectPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.reloadSharedConfigToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.killToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+			this.killAllRunningAppsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.powerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+			this.rebootAllToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+			this.shutdownAllToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+			this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.exitAndKillAppsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.exitAndLeaveAppsRunningToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.reinstallToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.reinstallManuallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.onlineDocumentationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -67,6 +80,8 @@
 			this.hdrPlanStop = new System.Windows.Forms.DataGridViewImageColumn();
 			this.hdrPlanKill = new System.Windows.Forms.DataGridViewImageColumn();
 			this.hdrPlanRestart = new System.Windows.Forms.DataGridViewImageColumn();
+			this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.exitToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
 			this.statusStrip.SuspendLayout();
 			this.menuMain.SuspendLayout();
 			this.tabControl1.SuspendLayout();
@@ -97,8 +112,10 @@
 			// 
 			this.menuMain.ImageScalingSize = new System.Drawing.Size(28, 28);
 			this.menuMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.planToolStripMenuItem,
-            this.helpToolStripMenuItem});
+            this.fileToolStripMenuItem,
+            this.toolsToolStripMenuItem,
+            this.helpToolStripMenuItem,
+            this.planToolStripMenuItem});
 			this.menuMain.Location = new System.Drawing.Point(0, 0);
 			this.menuMain.Name = "menuMain";
 			this.menuMain.Size = new System.Drawing.Size(711, 28);
@@ -156,6 +173,109 @@
 			this.selectPlanToolStripMenuItem.Name = "selectPlanToolStripMenuItem";
 			this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(130, 26);
 			this.selectPlanToolStripMenuItem.Text = "Select";
+			// 
+			// toolsToolStripMenuItem
+			// 
+			this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.reloadToolStripMenuItem,
+            this.killToolStripMenuItem1,
+            this.powerToolStripMenuItem1,
+            this.exitToolStripMenuItem,
+            this.reinstallToolStripMenuItem});
+			this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
+			this.toolsToolStripMenuItem.Size = new System.Drawing.Size(78, 34);
+			this.toolsToolStripMenuItem.Text = "Tools";
+			// 
+			// reloadToolStripMenuItem
+			// 
+			this.reloadToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.reloadSharedConfigToolStripMenuItem});
+			this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
+			this.reloadToolStripMenuItem.Size = new System.Drawing.Size(315, 40);
+			this.reloadToolStripMenuItem.Text = "Reload";
+			// 
+			// reloadSharedConfigToolStripMenuItem
+			// 
+			this.reloadSharedConfigToolStripMenuItem.Name = "reloadSharedConfigToolStripMenuItem";
+			this.reloadSharedConfigToolStripMenuItem.Size = new System.Drawing.Size(262, 40);
+			this.reloadSharedConfigToolStripMenuItem.Text = "Shared Config";
+			this.reloadSharedConfigToolStripMenuItem.Click += new System.EventHandler(this.reloadSharedConfigToolStripMenuItem_Click);
+			// 
+			// killToolStripMenuItem1
+			// 
+			this.killToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.killAllRunningAppsToolStripMenuItem});
+			this.killToolStripMenuItem1.Name = "killToolStripMenuItem1";
+			this.killToolStripMenuItem1.Size = new System.Drawing.Size(315, 40);
+			this.killToolStripMenuItem1.Text = "Kill";
+			// 
+			// killAllRunningAppsToolStripMenuItem
+			// 
+			this.killAllRunningAppsToolStripMenuItem.Name = "killAllRunningAppsToolStripMenuItem";
+			this.killAllRunningAppsToolStripMenuItem.Size = new System.Drawing.Size(292, 40);
+			this.killAllRunningAppsToolStripMenuItem.Text = "All Running Apps";
+			this.killAllRunningAppsToolStripMenuItem.Click += new System.EventHandler(this.killAllRunningAppsToolStripMenuItem_Click);
+			// 
+			// powerToolStripMenuItem1
+			// 
+			this.powerToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.rebootAllToolStripMenuItem1,
+            this.shutdownAllToolStripMenuItem1});
+			this.powerToolStripMenuItem1.Name = "powerToolStripMenuItem1";
+			this.powerToolStripMenuItem1.Size = new System.Drawing.Size(315, 40);
+			this.powerToolStripMenuItem1.Text = "Power";
+			// 
+			// rebootAllToolStripMenuItem1
+			// 
+			this.rebootAllToolStripMenuItem1.Name = "rebootAllToolStripMenuItem1";
+			this.rebootAllToolStripMenuItem1.Size = new System.Drawing.Size(254, 40);
+			this.rebootAllToolStripMenuItem1.Text = "Reboot All";
+			this.rebootAllToolStripMenuItem1.Click += new System.EventHandler(this.rebootAllToolStripMenuItem1_Click);
+			// 
+			// shutdownAllToolStripMenuItem1
+			// 
+			this.shutdownAllToolStripMenuItem1.Name = "shutdownAllToolStripMenuItem1";
+			this.shutdownAllToolStripMenuItem1.Size = new System.Drawing.Size(254, 40);
+			this.shutdownAllToolStripMenuItem1.Text = "Shutdown All";
+			this.shutdownAllToolStripMenuItem1.Click += new System.EventHandler(this.shutdownAllToolStripMenuItem1_Click);
+			// 
+			// exitToolStripMenuItem
+			// 
+			this.exitToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.exitAndKillAppsToolStripMenuItem,
+            this.exitAndLeaveAppsRunningToolStripMenuItem});
+			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
+			this.exitToolStripMenuItem.Size = new System.Drawing.Size(293, 40);
+			this.exitToolStripMenuItem.Text = "Terminate Agents";
+			// 
+			// exitAndKillAppsToolStripMenuItem
+			// 
+			this.exitAndKillAppsToolStripMenuItem.Name = "exitAndKillAppsToolStripMenuItem";
+			this.exitAndKillAppsToolStripMenuItem.Size = new System.Drawing.Size(312, 40);
+			this.exitAndKillAppsToolStripMenuItem.Text = "Kill apps";
+			this.exitAndKillAppsToolStripMenuItem.Click += new System.EventHandler(this.terminateAndKillAppsToolStripMenuItem_Click);
+			// 
+			// exitAndLeaveAppsRunningToolStripMenuItem
+			// 
+			this.exitAndLeaveAppsRunningToolStripMenuItem.Name = "exitAndLeaveAppsRunningToolStripMenuItem";
+			this.exitAndLeaveAppsRunningToolStripMenuItem.Size = new System.Drawing.Size(312, 40);
+			this.exitAndLeaveAppsRunningToolStripMenuItem.Text = "Leave apps running";
+			this.exitAndLeaveAppsRunningToolStripMenuItem.Click += new System.EventHandler(this.terminateAndLeaveAppsRunningToolStripMenuItem_Click);
+			// 
+			// reinstallToolStripMenuItem
+			// 
+			this.reinstallToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.reinstallManuallyToolStripMenuItem});
+			this.reinstallToolStripMenuItem.Name = "reinstallToolStripMenuItem";
+			this.reinstallToolStripMenuItem.Size = new System.Drawing.Size(293, 40);
+			this.reinstallToolStripMenuItem.Text = "Reinstall Agents";
+			// 
+			// reinstallManuallyToolStripMenuItem
+			// 
+			this.reinstallManuallyToolStripMenuItem.Name = "reinstallManuallyToolStripMenuItem";
+			this.reinstallManuallyToolStripMenuItem.Size = new System.Drawing.Size(231, 40);
+			this.reinstallManuallyToolStripMenuItem.Text = "Manually...";
+			this.reinstallManuallyToolStripMenuItem.Click += new System.EventHandler(this.reinstallManuallyToolStripMenuItem_Click);
 			// 
 			// helpToolStripMenuItem
 			// 
@@ -418,6 +538,21 @@
 			this.hdrPlanRestart.ReadOnly = true;
 			this.hdrPlanRestart.Width = 24;
 			// 
+			// fileToolStripMenuItem
+			// 
+			this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.exitToolStripMenuItem1});
+			this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
+			this.fileToolStripMenuItem.Size = new System.Drawing.Size(62, 34);
+			this.fileToolStripMenuItem.Text = "File";
+			// 
+			// exitToolStripMenuItem1
+			// 
+			this.exitToolStripMenuItem1.Name = "exitToolStripMenuItem1";
+			this.exitToolStripMenuItem1.Size = new System.Drawing.Size(315, 40);
+			this.exitToolStripMenuItem1.Text = "Exit";
+			this.exitToolStripMenuItem1.Click += new System.EventHandler(this.exitToolStripMenuItem1_Click);
+			// 
 			// frmMain
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -488,6 +623,21 @@
         private System.Windows.Forms.DataGridViewImageColumn hdrRestartIcon;
         private System.Windows.Forms.DataGridViewCheckBoxColumn hdrEnabled;
 		private System.Windows.Forms.ToolStripMenuItem onlineDocumentationToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem reloadSharedConfigToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem exitAndKillAppsToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem exitAndLeaveAppsRunningToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem killToolStripMenuItem1;
+		private System.Windows.Forms.ToolStripMenuItem killAllRunningAppsToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem powerToolStripMenuItem1;
+		private System.Windows.Forms.ToolStripMenuItem rebootAllToolStripMenuItem1;
+		private System.Windows.Forms.ToolStripMenuItem shutdownAllToolStripMenuItem1;
+		private System.Windows.Forms.ToolStripMenuItem reinstallToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem reinstallManuallyToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem1;
 	}
 }
 

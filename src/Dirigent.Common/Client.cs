@@ -62,6 +62,7 @@ namespace Dirigent.Net
         public string Name { get { return name;} }
 
 		public string MasterIP { get { return this.ipaddr; } }
+		public int MasterPort { get { return this.port; } }
 
         public Client( string name, string ipaddr, int port, int timeoutMs=5000 )
         {

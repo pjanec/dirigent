@@ -162,4 +162,131 @@ namespace Dirigent.Agent.CmdLineCtrl.Commands
         }
     }
 
+	public class KillAll : DirigentControlCommand
+	{
+		public KillAll( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+        public override void Execute(IList<string> args)
+		{
+			var argsStruct = new KillAllArgs() {}; 
+
+            if( args.Count > 0 )
+            {
+                argsStruct.MachineId = args[0];
+            }
+
+            ctrl.KillAll( argsStruct );
+		}
+	}
+
+
+	public class Shutdown : DirigentControlCommand
+	{
+		public Shutdown( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+        public override void Execute(IList<string> args)
+		{
+			var argsStruct = new ShutdownArgs() {}; 
+
+			var argsDict = Common.Tools.ParseKeyValList( args );
+
+			string modeStr;
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "mode", out modeStr ) )
+			{
+				if( !Common.Tools.GetEnumValueByNameIgnoreCase<EShutdownMode>( modeStr, out argsStruct.Mode ) )
+				{
+					throw new ArgumentException( String.Format("invalid mode '{0}'", modeStr), "mode" );
+				}
+			}
+
+            ctrl.Shutdown( argsStruct );
+		}
+	}
+
+	public class  Terminate : DirigentControlCommand
+	{
+		public Terminate( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+        public override void Execute(IList<string> args)
+		{
+			var argsStruct = new TerminateArgs() { KillApps=true }; 
+
+			var argsDict = Common.Tools.ParseKeyValList( args );
+			string valStr;
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			{
+				if( valStr=="1" ) argsStruct.KillApps = true;
+			}
+
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
+			{
+				argsStruct.MachineId = valStr;
+			}
+
+            ctrl.Terminate( argsStruct );
+		}
+	}
+
+	public class Reinstall : DirigentControlCommand
+	{
+		public Reinstall( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+        public override void Execute(IList<string> args)
+		{
+			var argsStruct = new ReinstallArgs() {}; 
+
+			var argsDict = Common.Tools.ParseKeyValList( args );
+
+			string modeStr;
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "downloadMode", out modeStr ) )
+			{
+				if( !Common.Tools.GetEnumValueByNameIgnoreCase<EDownloadMode>( modeStr, out argsStruct.DownloadMode ) )
+				{
+					throw new ArgumentException( String.Format("invalid download mode '{0}'", modeStr), "downloadMode" );
+				}
+			}
+
+			string urlStr;
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "url", out urlStr ) )
+			{
+				argsStruct.Url = urlStr;
+			}
+
+            ctrl.Reinstall( argsStruct );
+		}
+	}
+
+	public class ReloadSharedConfig : DirigentControlCommand
+	{
+		public ReloadSharedConfig( IDirigentControl ctrl )
+			: base( ctrl )
+		{
+		}
+
+        public override void Execute(IList<string> args)
+		{
+			var argsStruct = new ReloadSharedConfigArgs() {}; 
+
+			var argsDict = Common.Tools.ParseKeyValList( args );
+			string valStr;
+			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			{
+				if( valStr=="1" ) argsStruct.KillApps = true;
+			}
+
+            ctrl.ReloadSharedConfig( argsStruct );
+		}
+	}
 }

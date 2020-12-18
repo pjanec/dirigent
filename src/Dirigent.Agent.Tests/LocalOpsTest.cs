@@ -143,7 +143,7 @@ namespace Dirigent.Agent.Tests
         [Test]
         public void testLaunchSequence()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null, 0, false );
             
             lo.SelectPlan( "p1" );
             
@@ -185,7 +185,7 @@ namespace Dirigent.Agent.Tests
         [Test]
         public void testRunApp()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null, 0, false );
             
             lo.SelectPlan( "p1" );
             
@@ -218,7 +218,7 @@ namespace Dirigent.Agent.Tests
 
         public void testStopPlan()
         {
-            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null );
+            var lo = new LocalOperations("m1", lf, appInitializedDetectorFactory, null, null, 0, false );
             
             var planName =  "p1";
             lo.SelectPlan( planName );

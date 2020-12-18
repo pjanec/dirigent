@@ -55,20 +55,16 @@ namespace Dirigent.Net
             // start the initial launch plan if specified
             if (planRepo != null && startupPlanName != null && startupPlanName != "")
             {
-                ILaunchPlan startupPlan;
-                try
+                ILaunchPlan startupPlan = null;
+                startupPlan = planRepo.FirstOrDefault((i) => i.Name == startupPlanName);
+                if( startupPlan != null )
                 {
-                     startupPlan = planRepo.First((i) => i.Name == startupPlanName);
-                }
-                catch
-                {
-                    throw new UnknownPlanName(startupPlanName);
-                }
-
-				if (startupPlan != null)
-				{
 	                log.InfoFormat("Forcing plan '{0}'", startupPlanName);
 					service.BroadcastMessage(MasterSenderName, new CurrentPlanMessage(startupPlanName));
+                }
+                else
+				{
+                    log.ErrorFormat("Unknown default plan name '{0}'", startupPlanName);
 				}
             }
         

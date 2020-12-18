@@ -28,6 +28,11 @@ namespace Dirigent.Net
     [KnownType(typeof(CurrentPlanMessage))]
     [KnownType(typeof(PlanRepoMessage))]
     [KnownType(typeof(SetVarsMessage))]
+    [KnownType(typeof(KillAllMessage))]
+    [KnownType(typeof(ShutdownMessage))]
+    [KnownType(typeof(ReinstallMessage))]
+    [KnownType(typeof(TerminateMessage))]
+    [KnownType(typeof(ReloadSharedConfigMessage))]
     public class Message
     {
         [DataMember]
@@ -291,4 +296,96 @@ namespace Dirigent.Net
         }
 
     }
+
+
+    [DataContract]
+    public class KillAllMessage : Message
+    {
+        [DataMember]
+        public KillAllArgs args;
+
+        public KillAllMessage( KillAllArgs args )
+        {
+            this.args = args;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("KillAll");
+        }
+
+    }
+
+    [DataContract]
+    public class TerminateMessage : Message
+    {
+        [DataMember]
+        public TerminateArgs args;
+
+        public TerminateMessage( TerminateArgs args )
+        {
+            this.args = args;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Terminate killApps={0} machineId={1}", args.KillApps, args.MachineId);
+        }
+
+    }
+
+    [DataContract]
+    public class ShutdownMessage : Message
+    {
+        [DataMember]
+        public ShutdownArgs args;
+
+        public ShutdownMessage( ShutdownArgs args )
+        {
+            this.args = args;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Shutdown mode={0}", args.Mode.ToString());
+        }
+
+    }
+
+    [DataContract]
+    public class ReinstallMessage : Message
+    {
+        [DataMember]
+        public ReinstallArgs args;
+
+        public ReinstallMessage( ReinstallArgs args )
+        {
+            this.args = args;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("Reinstall dwonloadMode={0}, url={1}", args.DownloadMode.ToString(), args.Url);
+        }
+
+    }
+
+    [DataContract]
+    public class ReloadSharedConfigMessage : Message
+    {
+        [DataMember]
+        public ReloadSharedConfigArgs args;
+
+        public ReloadSharedConfigMessage( ReloadSharedConfigArgs args )
+        {
+            this.args = args;    
+        }
+
+        public override string ToString()
+        {
+            return string.Format("ReloadSharedConfig killApps={0}", args.KillApps);
+        }
+
+    }
+
 }

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -58,6 +60,7 @@ namespace Dirigent.Agent.Core
         string rootForRelativePaths;
 
 		string masterIP; // ip address of the master (to be passed as env var for launched apps, for giving them a target for centralozed file storage etc.)
+		int masterPort;
 
 		double currentTime; // time as set from tick()
 
@@ -79,17 +82,22 @@ namespace Dirigent.Agent.Core
 		/// </summary>
 		Dictionary<string, string> internalVars = new Dictionary<string, string>();
 
-        public LocalOperations(
+        bool doNotLaunchReinstaller = false;
+		
+		public LocalOperations(
             string machineId,
             ILauncherFactory launcherFactory,
             IAppInitializedDetectorFactory appAppInitializedDetectorFactory,
             string rootForRelativePaths,
-			string masterIP
+			string masterIP,
+			int masterPort,
+			bool doNotLaunchReinstaller
 		)
         {
             this.launcherFactory = launcherFactory;
             this.appAppInitializedDetectorFactory = appAppInitializedDetectorFactory;
             this.rootForRelativePaths = rootForRelativePaths;
+			this.doNotLaunchReinstaller = doNotLaunchReinstaller;
 
             appsState = new Dictionary<AppIdTuple,AppState>();
             localApps = new Dictionary<AppIdTuple,LocalApp>();
@@ -97,6 +105,7 @@ namespace Dirigent.Agent.Core
             planRepo = new List<ILaunchPlan>();
             this.machineId = machineId;
 			this.masterIP = masterIP;
+			this.masterPort = masterPort;
 
 			this.appRestarterManager = new AppRestarterManager(this);
         }
@@ -192,6 +201,8 @@ namespace Dirigent.Agent.Core
 		/// <param name="plan"></param>
 		public void SelectPlan(string planName)
 		{
+			log.DebugFormat( "Select plan {0}", planName );
+
 			// change the current plan to this one
 
             if (string.IsNullOrEmpty(planName))
@@ -263,6 +274,8 @@ namespace Dirigent.Agent.Core
 		/// </summary>
 		public void  StartPlan( string planName )
         {
+			log.DebugFormat( "Start plan plan {0}", planName );
+
 			PlanRuntimeInfo rti;
 			if( !planRTInfo.TryGetValue( planName, out rti ) )
 				return;
@@ -290,6 +303,8 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void StopPlan( string planName )
         {
+			log.DebugFormat( "Stop plan {0}", planName );
+
 			PlanRuntimeInfo rti;
 			if( !planRTInfo.TryGetValue( planName, out rti ) )
 				return;
@@ -310,6 +325,8 @@ namespace Dirigent.Agent.Core
         /// </summary>
         public void  KillPlan( string planName )
         {
+			log.DebugFormat( "Kill plan {0}", planName );
+
 			PlanRuntimeInfo rti;
 			if( !planRTInfo.TryGetValue( planName, out rti ) )
 				return;
@@ -345,6 +362,8 @@ namespace Dirigent.Agent.Core
 
         public void RestartPlan( string planName )
         {
+			log.DebugFormat( "Restart plan {0}", planName );
+
 			PlanRuntimeInfo rti;
 			if( !planRTInfo.TryGetValue( planName, out rti ) )
 				return;
@@ -516,6 +535,8 @@ namespace Dirigent.Agent.Core
         /// <param name="appIdTuple"></param>
         public void  KillApp(AppIdTuple appIdTuple)
         {
+			log.DebugFormat( "Kill app {0}", appIdTuple );
+
             if( !(localApps.ContainsKey(appIdTuple) ))
             {
                 throw new NotALocalApp(appIdTuple, machineId);
@@ -561,6 +582,30 @@ namespace Dirigent.Agent.Core
 			// after this explicit Kill (the user wants the app to stop until said otherwie)
 			appRestarterManager.Remove( la.AppDef );
         }
+
+		void killAllLocalAppsNoWait()
+		{
+			foreach( var kv in localApps )
+			{
+				var appIdTuple = kv.Key;
+				KillApp( appIdTuple );
+			}
+		}
+
+		void stopAllPlans()
+		{
+			foreach (var p in planRepo)
+			{
+				StopPlan( p.Name );
+			}
+		}
+
+		void killAll()
+		{
+			killAllLocalAppsNoWait();
+			stopAllPlans();
+		}
+
 
 
         /// <summary>
@@ -1033,6 +1078,125 @@ namespace Dirigent.Agent.Core
 			}
 
 		}
+
+        public void KillAll( KillAllArgs args )
+        {
+			if( !String.IsNullOrEmpty( args.MachineId ) && machineId != args.MachineId )
+				return;
+
+	        log.DebugFormat("KillAll");
+
+			killAll();
+        }
+
+        public void Terminate( TerminateArgs args )
+        {
+			if( !String.IsNullOrEmpty( args.MachineId ) && machineId != args.MachineId )
+				return;
+
+	        log.DebugFormat("Terminate killApps={0} machineId={1}", args.KillApps, args.MachineId);
+
+			if( args.KillApps )
+			{
+				killAll();
+			}
+
+			// terminate dirigent agent
+			AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() );
+        }
+
+        public void Shutdown( ShutdownArgs args )
+        {
+	        log.DebugFormat("Shutdown mode={0}", args.Mode.ToString());
+
+			string cmdl = "";
+			if( args.Mode == EShutdownMode.PowerOff ) cmdl="-s -t 0";
+			if( args.Mode == EShutdownMode.Reboot ) cmdl="-r -t 0";
+			
+			var psi = new System.Diagnostics.ProcessStartInfo("shutdown.exe", cmdl);
+			psi.CreateNoWindow = true;
+			psi.UseShellExecute = false;
+			psi.ErrorDialog = false;
+            log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\"", psi.FileName, psi.Arguments, psi.WorkingDirectory );
+			System.Diagnostics.Process.Start(psi);
+        }
+
+        public void Reinstall( ReinstallArgs args )
+        {
+			if( doNotLaunchReinstaller )
+				return;
+
+	        log.DebugFormat("Reinstall downloadMode={0} url={1}", args.DownloadMode.ToString(), args.Url );
+
+			// write information how to restart the agent into a temp file
+			var tmpFile = System.IO.Path.GetTempFileName();
+			var exePath = Environment.GetCommandLineArgs()[0];
+			var exeDir = System.IO.Path.GetDirectoryName(exePath);
+			var rawCmd = Environment.CommandLine;
+			var argsOnly = rawCmd.Replace("\"" + Environment.GetCommandLineArgs()[0] + "\"", "");
+			var cwd = System.IO.Directory.GetCurrentDirectory();
+			using (System.IO.StreamWriter file = new System.IO.StreamWriter(tmpFile))
+			{
+				file.WriteLine(	exePath );
+				file.WriteLine(	argsOnly );
+				file.WriteLine( cwd );
+				file.WriteLine( args.DownloadMode.ToString() );
+				file.WriteLine( args.Url );
+				file.WriteLine( masterIP );
+				file.WriteLine( masterPort );
+			}
+
+			// run restarter process (it is responsible for deleting the temp file passed as argument)
+            var psi = new ProcessStartInfo();
+			var appPath = exeDir+"\\Dirigent.Reinstaller.exe";
+			psi.FileName =  appPath;
+            psi.Arguments = "\""+tmpFile+"\"";
+            psi.WorkingDirectory = exeDir;
+            psi.WindowStyle = ProcessWindowStyle.Normal;
+			psi.UseShellExecute = false; // allows us using environment variables
+			Process proc = null;
+			try
+            {
+                log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
+                proc = Process.Start(psi);
+                if( proc != null )
+                {
+                    log.DebugFormat("StartProc SUCCESS pid {0}", proc.Id );
+                }
+                else
+                {
+                    log.DebugFormat("StartProc FAILED (no details)" );
+                    proc = null;
+					return;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.DebugFormat("StartProc FAILED except {0}", ex.Message );
+                throw new Exception(String.Format("Failed to run Dirigent Reinstaller process {0} from {1}", psi.FileName, psi.WorkingDirectory));
+            }
+
+			// kill local apps before terminating dirigent agent
+			killAll();
+
+			// terminate dirigent agent
+			AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() );
+
+        }
+
+        public void ReloadSharedConfig( ReloadSharedConfigArgs args )
+        {
+	        log.DebugFormat("ReloadSharedConfig killApps={0}", args.KillApps);
+
+			if( args.KillApps )
+			{
+				killAll();
+			}
+
+			// the rest is handled by the Tray App that is started as a master
+			//  (restarting the master to reload & resend the shared config)
+			AppMessenger.Instance.Send( new Common.AppMessages.CheckSharedConfigAndRestartMaster() );
+        }
 
 
 

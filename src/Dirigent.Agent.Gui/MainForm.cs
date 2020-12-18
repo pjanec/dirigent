@@ -358,5 +358,71 @@ namespace Dirigent.Agent.Gui
 		{
 			System.Diagnostics.Process.Start("https://github.com/pjanec/dirigent");
 		}
+
+		private void reloadSharedConfigToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var args = new ReloadSharedConfigArgs() { KillApps=false };
+			ctrl.ReloadSharedConfig( args );
+		}
+
+		private void terminateAndKillAppsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Terminate Dirigent on all computers?\n\nThis will also kill all apps!", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new TerminateArgs() { KillApps = true };
+				ctrl.Terminate( args );
+			}
+		}
+
+		private void terminateAndLeaveAppsRunningToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Terminate Dirigent on all computers?\n\nThis will leave the already started apps running and you will need to kill them yourselves!)", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new TerminateArgs() { KillApps = false };
+				ctrl.Terminate( args );
+			}
+		}
+
+		private void killAllRunningAppsToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			var args = new KillAllArgs() {};
+			ctrl.KillAll( args );
+		}
+
+		private void rebootAllToolStripMenuItem1_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Reboot all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new ShutdownArgs() { Mode=EShutdownMode.Reboot };
+				ctrl.Shutdown( args );
+			}
+		}
+
+		private void shutdownAllToolStripMenuItem1_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Shut down all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new ShutdownArgs() { Mode=EShutdownMode.PowerOff };
+				ctrl.Shutdown( args );
+			}
+		}
+
+		private void reinstallManuallyToolStripMenuItem_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Reinstall Dirigent on all computers?\n\nThis will kills all apps and temporarily terminates the dirigent on all computers!", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new ReinstallArgs() { DownloadMode=EDownloadMode.Manual };
+				ctrl.Reinstall( args );
+			}
+		}
+
+		private void exitToolStripMenuItem1_Click(object sender, EventArgs e)
+		{
+			if( MessageBox.Show("Exit Dirigent and kill apps on this computer?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new TerminateArgs() { KillApps = true, MachineId=this.machineId };
+				ctrl.Terminate( args );
+			}
+		}
 	}
 }

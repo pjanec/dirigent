@@ -1,4 +1,24 @@
-﻿BUG: if a bunch of DirigentAgentCmd.exe apps are started at once (each sending one KillPlan command), sometimes one or two of the plans are left running. Two obervations: 1. Sometimes the Dirigent.master does not receive the command. 2. Sometimes the master receives the command and forwards it to the agent but the agent does not receive it. There must be some singnificat problem in network communnication between Dirigent client and Dirigent master.... How to workaround this?  Allow AgentCmd to read the list of commands from a file or a long list from XML? Or instead of using AgentCmd try using Dirigent.CLI.Telnet.exe and add the processing of command from a file. In both case improve AgentCmd/CLI.Telnet logging to output more useful info (what command was processed and sent).
+﻿"Kill all" button killing all apps, plans, restarters, everything.
+
+[DONE] "Reload config" operation that just reloads the SharedConfig.xml without the need to shutdown all the apps. Should be failure proof - no reload if there is a bug in the config etc. To be used for  little changes not breaking much the plan/app structure so that the apps can remain running. On Master, monitor the shared config file for changes and reload automatically (leaving the already strated plans and apps running).
+
+[DONE] "Shutdown" operation that terminates all dirigent agents. Should optionally kill all running local apps started by each dirigent agent.
+
+[DONE] "Reinstall" operation that allows to replace the dirigent executables.
+ - Each agent launches a new restarter process knowing how to run the agent again on the same computer with same options.
+ - All agents terminate, allowing to replace their executables.
+ - Restarter process shows a button to relaunch the agent. If the relaunch is succesfull, the restarter terminates.
+ - Restartes might communicate with each other (via UDP broadcast for example) to invoke the relaunch operation on all stations at once (advanced solution for later)
+
+[DONE] Master, if run from agent, receives agent's pid on command line to indicate that the master does not need to open its own updater/restarted app because it is handled by the agent's one already.
+ 
+[DONE] "Terminate Dirigent" operation that kills dirigent agents on all computers. 
+ 
+[DONE] Allow DIRIGENT_MASTER_IP variables (and maybe others) to be used in app command lines.
+
+Allow defining internal variables in dirigent's shared config, usable for expansion on multiple places in the config. Consider switching to Lua based configuration.
+ 
+BUG: if a bunch of DirigentAgentCmd.exe apps are started at once (each sending one KillPlan command), sometimes one or two of the plans are left running. Two obervations: 1. Sometimes the Dirigent.master does not receive the command. 2. Sometimes the master receives the command and forwards it to the agent but the agent does not receive it. There must be some singnificat problem in network communnication between Dirigent client and Dirigent master.... How to workaround this?  Allow AgentCmd to read the list of commands from a file or a long list from XML? Or instead of using AgentCmd try using Dirigent.CLI.Telnet.exe and add the processing of command from a file. In both case improve AgentCmd/CLI.Telnet logging to output more useful info (what command was processed and sent).
 
 Define one plan as the default. Use it to initialize the list of all apps (initial order, initial configuration). Before switching to a new plan, always reset the app settings to the one from the default plan (so if the new plan does not contain an app, such app will be reset to the settings from the default plan).
 

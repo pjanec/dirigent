@@ -30,7 +30,7 @@ namespace Dirigent.Agent.TrayApp
             {
 
                 string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
-                var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths);
+                var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false);
 
 
                 IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;

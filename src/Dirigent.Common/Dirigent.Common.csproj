@@ -86,6 +86,8 @@
   <ItemGroup>
     <Compile Include="AppDef.cs" />
     <Compile Include="AppIdTuple.cs" />
+    <Compile Include="AppMessages.cs" />
+    <Compile Include="AppMessenger.cs" />
     <Compile Include="AppState.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="AutoconClient.cs" />

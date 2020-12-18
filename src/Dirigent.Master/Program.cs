@@ -41,6 +41,9 @@ namespace Dirigent.Master
         [Option("CLIPort", Required = false, DefaultValue = 0, HelpText = "Master's Command Line Interface TCP port.")]
         public int CLIPort { get; set; }
 
+        [Option("ParentAgentPid", Required = false, DefaultValue = -1, HelpText = "PID of agent that is running this Dirigent (-1 = standalone)")]
+        public int ParentAgentPid { get; set; }
+
 
         [ParserState]
         public IParserState LastParserState { get; set; }
@@ -76,6 +79,7 @@ namespace Dirigent.Master
             public SharedConfig scfg = null;
             public LocalConfig lcfg = null;
             public int CLIPort = 5033;
+            public int ParentAgentPid = -1;  // are we startd from an agent, i.e. not standalone?
         }
 
         static AppConfig getAppConfig()
@@ -99,6 +103,7 @@ namespace Dirigent.Master
                 if (options.LogFile != "") ac.logFileName = options.LogFile;
                 if (options.StartupPlan != "") ac.startupPlanName = options.StartupPlan;
                 if (options.CLIPort != 0) ac.CLIPort = options.CLIPort;
+                if (options.ParentAgentPid != -1) ac.ParentAgentPid = options.ParentAgentPid;
             }
 
             if (ac.logFileName != "")
@@ -157,7 +162,8 @@ namespace Dirigent.Master
                 string machineId = Guid.NewGuid().ToString();
                 var dirigClient = new Dirigent.Net.Client(machineId, "127.0.0.1", ac.masterPort);
                 string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
-				agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths);
+				bool doNotLaunchReinstaller = ac.ParentAgentPid != -1; // if started by agent, do not reinstall itself (agent will do)
+                agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths, doNotLaunchReinstaller);
 
                 // start master server
 				var s = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);

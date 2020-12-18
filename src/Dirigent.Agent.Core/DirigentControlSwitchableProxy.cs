@@ -109,5 +109,32 @@ namespace Dirigent.Agent.Core
 		{
             impl.SetVars( vars );
 		}
+
+        public void KillAll( KillAllArgs args )
+        {
+            impl.KillAll( args );
+        }
+
+        public void Terminate( TerminateArgs args )
+        {
+            impl.Terminate( args );
+        }
+
+        public void Shutdown( ShutdownArgs args )
+        {
+            impl.Shutdown( args );
+        }
+
+        public void Reinstall( ReinstallArgs args )
+        {
+            impl.Reinstall( args );
+        }
+
+        public void ReloadSharedConfig( ReloadSharedConfigArgs args )
+        {
+            impl.ReloadSharedConfig( args );
+        }
+
+
     }
 }

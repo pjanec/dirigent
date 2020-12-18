@@ -33,6 +33,11 @@ namespace Dirigent.Common
             Register(new Commands.GetAllPlansState(ctrl));
             Register(new Commands.GetAllAppsState(ctrl));
             Register(new Commands.SetVars(ctrl));
+            Register(new Commands.KillAll(ctrl));
+            Register(new Commands.Shutdown(ctrl));
+            Register(new Commands.Terminate(ctrl));
+            Register(new Commands.Reinstall(ctrl));
+            Register(new Commands.ReloadSharedConfig(ctrl));
         }
 
     }

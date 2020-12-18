@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Common", "Dirigent.Common\Dirigent.Common.csproj", "{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}"
 EndProject
@@ -18,6 +18,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Gui", "Dirigent.Agent.Gui\Dirigent.Agent.Gui.csproj", "{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.CmdLineCtrl", "Dirigent.Agent.CmdLineCtrl\Dirigent.Agent.CmdLineCtrl.csproj", "{C5F6E603-CC97-407B-8EDE-6113E4B01A09}"
+	ProjectSection(ProjectDependencies) = postProject
+		{802B60E8-B812-4B9B-8CA4-FC0CA4794945} = {802B60E8-B812-4B9B-8CA4-FC0CA4794945}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2918D3DC-3B3F-4258-9EBD-F38D1CF67704}"
 	ProjectSection(SolutionItems) = preProject
@@ -31,6 +34,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI", "Dirigent.CLI\Dirigent.CLI.csproj", "{8B33D98C-DCB9-47B3-9E8B-2857FFC81308}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI.Telnet", "Dirigent.CLI.Telnet\Dirigent.CLI.Telnet.csproj", "{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}"
+	ProjectSection(ProjectDependencies) = postProject
+		{802B60E8-B812-4B9B-8CA4-FC0CA4794945} = {802B60E8-B812-4B9B-8CA4-FC0CA4794945}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Reinstaller", "Dirigent.Reinstaller\Dirigent.Reinstaller.csproj", "{934EB60B-1901-476C-B672-8178F728DBEC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -239,6 +247,26 @@ Global
 		{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}.Release|x64.Build.0 = Release|x64
 		{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}.Release|x86.ActiveCfg = Release|x86
 		{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}.Release|x86.Build.0 = Release|x86
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|Win32.Build.0 = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|x64.Build.0 = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Debug|x86.Build.0 = Debug|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Win32.ActiveCfg = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|Win32.Build.0 = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x64.ActiveCfg = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x64.Build.0 = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x86.ActiveCfg = Release|Any CPU
+		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

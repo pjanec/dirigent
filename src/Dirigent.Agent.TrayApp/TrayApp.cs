@@ -27,6 +27,7 @@ namespace Dirigent.Agent.TrayApp
         NotifyIcon notifyIcon;
         MasterRunner masterRunner;
 		List<FolderWatcher> folderWatchers = new List<FolderWatcher>();
+        Dirigent.Agent.Core.Agent agent;
 
         class MyApplicationContext : ApplicationContext
         {
@@ -71,6 +72,11 @@ namespace Dirigent.Agent.TrayApp
 
         public void run()
         {
+            // listen to AppExit messages
+            AppMessenger.Instance.Register<Common.AppMessages.ExitApp>( (x) => Exit() );
+            AppMessenger.Instance.Register<Common.AppMessages.CheckSharedConfigAndRestartMaster>( (x) => CheckSharedConfigAndRestartMaster() );
+
+
             InitializeMaster();
         
             Application.EnableVisualStyles();
@@ -117,7 +123,11 @@ namespace Dirigent.Agent.TrayApp
                 }
                 )) );
             }
-            menuItems.Add( new MenuItem("Exit", new EventHandler( (s,e) => Exit() )) );
+            menuItems.Add( new MenuItem("Exit", new EventHandler( (s,e) =>
+            {
+                agent.LocalOps.Terminate( new TerminateArgs() { KillApps=true, MachineId=ac.machineId }  );
+                //Exit();
+            })) );
 
             notifyIcon.ContextMenu = new ContextMenu( menuItems.ToArray() );
             notifyIcon.Visible = true;
@@ -127,8 +137,6 @@ namespace Dirigent.Agent.TrayApp
         void InitializeMainForm()
         {
             log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}", ac.machineId, ac.masterIP, ac.masterPort);
-
-            Dirigent.Agent.Core.Agent agent;
 
             bool runningAsRemoteControlGui = (ac.machineId == "none");
 
@@ -142,7 +150,7 @@ namespace Dirigent.Agent.TrayApp
 
                 client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort);
 
-                agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths); // don't go local if not connected
+                agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, false); // don't go local if not connected
             }
             else // running as local app launcher
             {
@@ -150,7 +158,7 @@ namespace Dirigent.Agent.TrayApp
                 
                 client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort);
 
-                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths);
+                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false);
 
 				InitializeFolderWatchers(agent, rootForRelativePaths);
             }
@@ -261,12 +269,41 @@ namespace Dirigent.Agent.TrayApp
 
         void Exit()
         {
+            // release all delegates to allow disposal by releasing strong refereces
+            AppMessenger.Instance.Dispose();
+
             // We must manually tidy up and remove the icon before we exit.
             // Otherwise it will be left behind until the user mouses over.
             notifyIcon.Visible = false;
             Application.Exit();
         }
 
+        void CheckSharedConfigAndRestartMaster()
+        {
+            if( masterRunner != null ) // we are the master
+            {
+                log.DebugFormat("Dry-loading shared config {0}", ac.sharedCfgFileName);
+                // dry-load the configuration to see if any error there
+                // it will throw on some error, exception will be sent back to requestor as RemoteOperationError
+                try
+                {
+                    var scfg = new SharedXmlConfigReader().Load(System.IO.File.OpenText(ac.sharedCfgFileName));
+                }
+                catch( System.Exception ex )
+                {
+                    log.Error(String.Format("Failed to load shared config {0}", ac.sharedCfgFileName), ex );
+                    throw;
+                }
+
+                // the above has not thrown => probably success, restart the master
+                log.Debug("Restarting master");
+                masterRunner.StopKeepAlive();
+                masterRunner.Kill();
+                System.Threading.Thread.Sleep(1000);
+                masterRunner.Launch();
+                masterRunner.StartKeepAlive();
+            }
+        }
 
     }
 

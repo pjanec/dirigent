@@ -20,6 +20,8 @@ namespace Dirigent.Net
     /// </summary>
     public class AutoconClient : IClient
     {
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         string name;
         string ipaddr;
         int port;
@@ -39,6 +41,7 @@ namespace Dirigent.Net
         public string Name { get { return name;} }
 
 		public string MasterIP { get { return this.ipaddr; } }
+		public int MasterPort { get { return this.port; } }
 
 		public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
         {
@@ -134,8 +137,10 @@ namespace Dirigent.Net
                     if (!connected) return new List<Message>();
                     return server.ClientMessages(name);
                 }
-                catch
+                catch( System.Exception ex )
                 {
+                    log.Error( "Comm error", ex );
+
                     InternalDisconnect( false );
                 }
                 finally
@@ -158,12 +163,14 @@ namespace Dirigent.Net
                     msg.Sender = name;
                     server.BroadcastMessage(msg);
                 }
-                catch( CommunicationException )
+                catch( CommunicationException ex )
                 {
+                    log.Error( "Comm error", ex );
                     InternalDisconnect( false );
                 }
-                catch( TimeoutException )
+                catch( TimeoutException ex )
                 {
+                    log.Error( "Time Out", ex );
                     InternalDisconnect( false );
                 }
                 finally

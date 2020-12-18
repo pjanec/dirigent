@@ -22,6 +22,8 @@ copy ..\src\Dirigent.CLI\bin\%ARC%%CFG%\Dirigent.CLI.* .\
 
 copy ..\src\Dirigent.CLI.Telnet\bin\%ARC%%CFG%\Dirigent.CLI.Telnet.* .\
 
+copy ..\src\Dirigent.Reinstaller\bin\%ARC%%CFG%\Dirigent.Reinstaller.* .\
+
 copy ..\README.md .\
 
 ..\src\GenVerStamp.bat %~dp0VersionStamp.txt

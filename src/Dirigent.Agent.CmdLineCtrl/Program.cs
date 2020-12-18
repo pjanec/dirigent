@@ -149,7 +149,7 @@ namespace Dirigent.Agent.CmdLineCtrl
                 
                 // use network-only agent (never local)
                 string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
-                var agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths);
+                var agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, true);
                 
                 // let the agent receive the plan repository from master
                 agent.tick();

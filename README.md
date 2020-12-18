@@ -200,6 +200,15 @@ The Dirigent can work either with whole launch plan or with an individual applic
 
 - **Restart App.** The app is first killed and then launched again.
 
+#### Management Actions
+
+- **Set Vars.** Sets an environment variable(s) for the Dirigent process. They can be used for expansion in the applications' exe paths, command lines and other places.
+- **Kill All.** Kills all running apps on all computers and stops all running plans. Kind of a 'central stop' feature.
+- **Terminate.** Terminates Dirigent agents on all computers (optionally on selected one).
+- **Reboot.** Reboots all computers.
+- **Shutdown.** shuts down all computers.
+- **Reload Shared Config.** Tries to reload the shared config containing the plan and app definitions.
+
 ### Agent configuration options
 
 `Diregent.Agent.exe` is a Windows Forms application capable of running either as a background process with no user interface (just the log file) or as a GUI application that can be minimalized into a system tray.
@@ -290,6 +299,20 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   `GetAllAppsState` ...... returns one line per application; last line will be "END\n"
 
   `SetVars VAR=VALUE::VAR=VALUE` ...... sets environment variable(s) to be inherited by the processes launched afterwards (note that you can set multiple variables at once, separated by '::')
+
+  `KillAll` ...... kills all running apps on all computers, stops all plans
+
+  `Terminate [killApps=0] [machineId=<machineId>]` ...... terminates the Dirigent on all stations, optionally leaving the already started apps running
+
+  `Reinstall` ...... terminates the Dirigent on all station and invoke the reinstaller app allowing the Dirigent to be relaunched once the Dirigent files have been replaced with a newer version. 
+
+  `Reboot` ...... reboots all computers where the Dirigent is running
+
+  `Shutdown` ...... shuts down all computers where the Dirigent is running
+
+  `ReloadSharedConfig [killApps=1]` ...... tries to reload the shared config, optionally killing all apps before the reload
+
+
 
 ##### 
 
@@ -382,6 +405,38 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   Request:   `[002] SetVars VAR1=VALUE1::VAR2=VALUE2`
   Response:     `[002] ACK`
 
+###### Killing all apps
+
+  Request:   `KillApps`
+  Response:     `ACK`
+
+###### Terminating Dirigent
+
+  Request:   `Terminate`
+  Response:     `ACK`
+
+###### Reinstalling Dirigent
+
+  Request:   `Reinstall`
+  Response:     `ACK`
+
+###### Rebooting all computers
+
+  Request:   `Reboot`
+  Response:     `ACK`
+
+###### Shutting down all computers
+
+  Request:   `Shutdown`
+  Response:     `ACK`
+
+###### Reloading SharedConfig
+
+  Request:   `ReloadSharedConfig killApps=1`
+  Response:     `ACK`
+
+### 
+
 ### Agent Console Command Line Utility
 
 There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
@@ -402,6 +457,13 @@ The commands just simply follow the available agent actions, please see chapter 
     RestartApp <appId>
     
     SetVars VAR1=VALUE1::VAR2=VALUE2::VAR3=VALUE3
+    
+    KillApps
+    Terminate
+    Reinstall
+    Reboot
+    Shutdown
+    ReloadSharedConfig killApps=1
 
 Multiple commands on a single line can be separated by semicolon
     `Diregent.AgentCmd.exe LaunchApp m1.a;StartPlan plan1`
@@ -680,10 +742,10 @@ Example of setting in agent's local config file:
 		  <Action Type="LaunchApp" AppIdTuple="PC1.WarningApp"/>
 	  </FolderWatcher>
 
-
 The Path, if relative, is resolved relative to the location of the SharedConfig.xml file. Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 	  
 Conditions supported:
+
  * `NewFile` ... file gets created
 
 Action types supported

@@ -194,6 +194,36 @@ namespace Dirigent.Agent.Core
                 localOps.SetVars(m.vars);
             }
             else
+			if (t == typeof(KillAllMessage))
+            {
+                var m = msg as KillAllMessage;
+                localOps.KillAll(m.args);
+            }
+            else
+			if (t == typeof(TerminateMessage))
+            {
+                var m = msg as TerminateMessage;
+                localOps.Terminate(m.args);
+            }
+            else
+			if (t == typeof(ShutdownMessage))
+            {
+                var m = msg as ShutdownMessage;
+                localOps.Shutdown(m.args);
+            }
+            else
+			if (t == typeof(ReinstallMessage))
+            {
+                var m = msg as ReinstallMessage;
+                localOps.Reinstall(m.args);
+            }
+            else
+			if (t == typeof(ReloadSharedConfigMessage))
+            {
+                var m = msg as ReloadSharedConfigMessage;
+                localOps.ReloadSharedConfig(m.args);
+            }
+            else
             if (t == typeof(RemoteOperationErrorMessage))
             {
                 var m = msg as RemoteOperationErrorMessage;
@@ -335,5 +365,32 @@ namespace Dirigent.Agent.Core
         {
             client.BroadcastMessage( new SetVarsMessage( vars ) );
         }
+
+        public void KillAll( KillAllArgs args )
+        {
+            client.BroadcastMessage( new KillAllMessage( args ) );
+        }
+
+        public void Terminate( TerminateArgs args )
+        {
+            client.BroadcastMessage( new TerminateMessage( args ) );
+        }
+
+        public void Shutdown( ShutdownArgs args )
+        {
+            client.BroadcastMessage( new ShutdownMessage( args ) );
+        }
+
+        public void Reinstall( ReinstallArgs args )
+        {
+            client.BroadcastMessage( new ReinstallMessage( args ) );
+        }
+
+        public void ReloadSharedConfig( ReloadSharedConfigArgs args )
+        {
+            client.BroadcastMessage( new ReloadSharedConfigMessage( args ) );
+        }
+
+
     }
 }

@@ -6,6 +6,44 @@ using System.Net;
 
 namespace Dirigent.Common
 {
+    public struct KillAllArgs
+    {
+        public string MachineId; // where to kill the apps; null or empty means everywhere
+    }
+
+    public enum EShutdownMode
+    {
+        PowerOff = 0,
+        Reboot = 1
+    }
+
+    public struct ShutdownArgs
+    {
+        public EShutdownMode Mode;
+    }
+
+    public struct TerminateArgs
+    {
+        public bool KillApps;  // kill all local apps before terminating
+        public string MachineId; // where to kill the apps; null or empty means everywhere
+    }
+
+    public enum EDownloadMode
+    {
+        Manual = 0,  // shows a dialog offering to restart the dirigent once the dirigent binaries have been manually overwritten
+    }
+
+    public struct ReinstallArgs
+    {
+        public EDownloadMode DownloadMode;
+        public string Url;
+    }
+
+
+    public struct ReloadSharedConfigArgs
+    {
+        public bool KillApps;  // kill all local apps before terminating
+    }
 
     /// <summary>
     /// </summary>
@@ -96,6 +134,23 @@ namespace Dirigent.Common
 		// set the value of environment variables to be inherited by processes started from Dirigent
 		// format of string: VAR1=VALUE1::VAR2=VALUE2
 		void SetVars( string vars );
+
+        // stops/kills all apps, plans, restarters, everything
+        void KillAll( KillAllArgs args );
+
+        // Terminates the dirigent on all stations; optionally kills all the started apps.
+        void Terminate( TerminateArgs args );
+
+        // Reboots or shuts down the stations where dirigent agent is running.
+        void Shutdown( ShutdownArgs args );
+
+        // updates the dirigent installation/binaries from given URL; if null or empty, allow manual update of binaries
+        // This shuts down the dirigent
+        void Reinstall( ReinstallArgs args );
+
+        // Reloads the shared config (i.e. all plans). Optionally leaves the already running apps running.
+        // On error loding the new plan, rise an OperationalError and leave the currently loaded plans untouched.
+        void ReloadSharedConfig( ReloadSharedConfigArgs args );
 
     }
 

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Dirigent.Common;
 
 namespace Dirigent.Agent.TrayApp
 {
@@ -43,9 +44,9 @@ namespace Dirigent.Agent.TrayApp
         public void Launch()
         {
             var psi = new ProcessStartInfo();
-			var appPath = GetExeDir()+"\\Dirigent.Master.exe";
+			var appPath = Tools.GetExeDir()+"\\Dirigent.Master.exe";
 			psi.FileName =  appPath;
-            psi.Arguments = "";
+            psi.Arguments = string.Format("--ParentAgentPid {0} ", Process.GetCurrentProcess().Id ); // indicate master have been run as part of an agent
             if( MasterPort > 0 )
             {
                 psi.Arguments += string.Format("--masterPort {0} ", MasterPort);
@@ -63,7 +64,7 @@ namespace Dirigent.Agent.TrayApp
                 psi.Arguments += string.Format("--startupPlan {0} ", StartupPlan);
             }
 
-            psi.WorkingDirectory = GetExeDir();
+            psi.WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); // Tools.GetExeDir();
             psi.WindowStyle = ProcessWindowStyle.Minimized;
 			psi.UseShellExecute = false; // allows us using environment variables
 
@@ -189,14 +190,6 @@ namespace Dirigent.Agent.TrayApp
                 }
 
             }
-        }
-
-        private string GetExeDir()
-        {
-            var assemblyExe = System.Reflection.Assembly.GetEntryAssembly().CodeBase;
-            if (assemblyExe.StartsWith("file:///")) assemblyExe = assemblyExe.Remove(0, 8);
-            var exeDir = System.IO.Path.GetDirectoryName(assemblyExe);
-            return exeDir;
         }
 
         public void Dispose()

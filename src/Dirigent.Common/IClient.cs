@@ -5,6 +5,7 @@ namespace Dirigent.Net
     {
         string Name { get; }
         string MasterIP { get; }    
+        int MasterPort { get; }    
         void BroadcastMessage(Message msg);
         void Connect();
         void Disconnect();
