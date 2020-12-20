@@ -424,5 +424,12 @@ namespace Dirigent.Agent.Gui
 				ctrl.Terminate( args );
 			}
 		}
+
+		private void btnKillAll_Click(object sender, EventArgs e)
+		{
+			var args = new KillAllArgs() {};
+			ctrl.KillAll( args );
+		}
+
 	}
 }
