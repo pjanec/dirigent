@@ -517,6 +517,16 @@ Each app in the launch plan has the following attributes:
 
 - `ExeFullPath` - application binary file full path; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
+  The following reserved values are handled in a specific way:
+
+    - `[cmd]` - Similar to `cmd.exe <CmdLineArgs>`. Launches cmd.exe executable. Command line arguments stay untouched, passed to cmd.exe as they are specific in the `CmdLineArgs` attribute. 
+  - `[cmd.file]` - similar to `cmd.exe /c <CmdLineArgs>`
+  - `[cmd.command]` - same as `[cmd.file]`
+  - `[powershell]` - Similar to `powershell.exe <CmdLineArgs>`. Launches powershell executable. Command line arguments stay untouched, passed to powershell.exe as they are specific in the `CmdLineArgs` attribute.
+  - `[powershell.command]` - launches `powershell.exe -command <CmdLineArgs>`
+  - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`
+  - `[dirigent.command]` - not yet implemented; will execute a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirignet agent)
+
 - `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
 - `CmdLineArgs` - command line arguments

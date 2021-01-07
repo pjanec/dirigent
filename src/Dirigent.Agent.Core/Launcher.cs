@@ -66,6 +66,8 @@ namespace Dirigent.Agent.Core
         
         string ExpandVars( String str )
 		{
+            if( String.IsNullOrEmpty( str ) ) return String.Empty;
+
 			var s = Tools.ExpandEnvVars(str, true);
 			//s = ExpandNumericVars( s, numericParams, true );
 			s = Tools.ExpandInternalVars( s, internalVars, true ); 
@@ -94,7 +96,91 @@ namespace Dirigent.Agent.Core
             return false;
         }
 
+        string GetCmdExePath()
+        {
+            return Environment.GetEnvironmentVariable("ComSpec");
+        }
 
+        string GetPowershellExePath()
+        {
+            return Environment.ExpandEnvironmentVariables(@"%windir%\system32\WindowsPowerShell\v1.0\powershell.exe");
+        }
+
+        enum EExeType
+        {
+            Executable,   // normal executable startable via Process.Start
+            DirigentCmd   // dirigent command(s) in text form
+        }
+
+        struct ParsedExe
+        {
+            public EExeType ExeType;
+            public string Path;
+            public string CmdLine;
+        }
+
+        ParsedExe ParseExe()
+        {
+            ParsedExe pe = new ParsedExe();
+
+            // resolve reserved exe names
+            switch( appDef.ExeFullPath.ToLower() )
+            {
+                // just cmd shell
+                case "[cmd]":
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = GetCmdExePath();
+                    pe.CmdLine = ExpandVars(appDef.CmdLineArgs);
+                    break;
+
+                case "[cmd.file]":
+                case "[cmd.command]":
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = GetCmdExePath();
+                    pe.CmdLine = "/c "+ExpandVars(appDef.CmdLineArgs);
+                    break;
+
+                // just powershell with any command line
+                case "[powershell]":
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = GetPowershellExePath();
+                    pe.CmdLine = ExpandVars(appDef.CmdLineArgs);
+                    break;
+
+                // powershell script file specified in appDef.CmdLineArgs;
+                case "[powershell.file]":
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = GetPowershellExePath();
+                    pe.CmdLine = "-executionpolicy bypass -file "+ExpandVars(appDef.CmdLineArgs);
+                    break;
+
+                // powershell command specified in CmdLineArgs
+                case "[powershell.command]":
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = GetPowershellExePath();
+                    pe.CmdLine = "-executionpolicy bypass -command \""+ExpandVars(appDef.CmdLineArgs)+"\"";
+                    break;
+
+
+                // dirigent.AgentCmd command line
+                case "[dirigent.command]":
+                    pe.ExeType = EExeType.DirigentCmd;
+                    pe.Path = null;
+                    pe.CmdLine = ExpandVars( appDef.CmdLineArgs );
+                    break;
+                
+                default:
+                    pe.ExeType = EExeType.Executable;
+                    pe.Path = ExpandVars( appDef.ExeFullPath );
+                    pe.CmdLine = ExpandVars( appDef.CmdLineArgs );
+                    break;
+            }
+
+            return pe;
+        }
+
+
+        
         public void Launch()
         {
 			// don't run again if not yet killed
@@ -112,12 +198,27 @@ namespace Dirigent.Agent.Core
             Environment.SetEnvironmentVariable("DIRIGENT_MASTER_IP", masterIP);
 
 
-            var appPath = ExpandVars(appDef.ExeFullPath);
+            var pe = ParseExe();
 
+            switch( pe.ExeType )
+            {
+                case EExeType.DirigentCmd:
+                    LaunchDirigentCmd( pe );
+                    break;
+                default:
+                    LaunchExe( pe );
+                    break;
+            }
+
+        }
+
+
+        void LaunchExe( ParsedExe pe )
+        {
             // try to adopt an already running process (matching by process image file name, regardless of path)
             if( appDef.AdoptIfAlreadyRunning )
             {
-                ProcInfo found = FindProcessByExeName( appPath );
+                ProcInfo found = FindProcessByExeName( pe.Path );
                 if( found != null )
                 {
                     log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
@@ -126,13 +227,12 @@ namespace Dirigent.Agent.Core
                 }
             }
 
-
             // start the process
             var psi = new ProcessStartInfo();
-			psi.FileName =  BuildAbsolutePath( appPath );
-			if( appDef.CmdLineArgs != null )
+			psi.FileName = BuildAbsolutePath( pe.Path );
+			if( !String.IsNullOrEmpty( pe.CmdLine ) )
 			{
-				psi.Arguments = ExpandVars(appDef.CmdLineArgs);
+				psi.Arguments = pe.CmdLine;
 			}
             if (appDef.StartupDir != null)
             {
@@ -199,6 +299,10 @@ namespace Dirigent.Agent.Core
                 log.DebugFormat("StartProc FAILED except {0}", ex.Message );
                 throw new AppStartFailureException(appDef.AppIdTuple, ex.Message, ex);
             }
+        }
+
+        void LaunchDirigentCmd( ParsedExe pe )
+        {
         }
 
         /// <summary>
@@ -297,12 +401,18 @@ namespace Dirigent.Agent.Core
             //log.DebugFormat("Kill pid {0}", proc.Id );
             // bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
             
+            var pe = ParseExe();
+            
+            if( pe.ExeType != EExeType.Executable )
+            {
+    			dying = false;
+                return;
+            }
+
             // try to adopt an already running process (matching by process image file name, regardless of path)
             if( proc == null && appDef.AdoptIfAlreadyRunning )
             {
-                var appPath = ExpandVars(appDef.ExeFullPath);
-
-                ProcInfo found = FindProcessByExeName( appPath );
+                ProcInfo found = FindProcessByExeName( pe.Path );
                 if( found != null )
                 {
                     log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );

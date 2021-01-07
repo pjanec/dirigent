@@ -37,15 +37,6 @@
 
     <Plan Name="plan1">
     	<App
-    	    AppIdTuple = "m1.ps1"
-    		Template = "powershell"
-    		StartupDir = "c:\"
-    		CmdLineArgs = "-f kuk!"
-    		Volatile = "1"
-    	    >
-    	</App>
-
-    	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
     		Disabled = "1"
@@ -96,6 +87,51 @@
     		<WindowPos titleregexp="\s-\sNotepad" rect="410,450,300,200" screen="1" keep="0" />
     	</App>
     
+    	<App
+    	    AppIdTuple = "m1.ps1"
+    		ExeFullPath = "[powershell.command]"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "ls"
+    		Volatile = "1"
+    	    >
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.ps2"
+    		ExeFullPath = "[powershell.file]"
+    		StartupDir = ""
+    		CmdLineArgs = "%DIRIGENT_SHAREDCONFDIR%\test1.ps1"
+    		Volatile = "1"
+    	    >
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.batch1"
+    		ExeFullPath = "[cmd.file]"
+    		StartupDir = ""
+    		CmdLineArgs = "%DIRIGENT_SHAREDCONFDIR%\test1.bat"
+    		Volatile = "1"
+    	    >
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.batch-cmd"
+    		ExeFullPath = "[cmd.command]"
+    		StartupDir = ""
+    		CmdLineArgs = "dir"
+    		Volatile = "1"
+    	    >
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.dirig-cmd"
+    		ExeFullPath = "[dirigent.command]"
+    		StartupDir = ""
+    		CmdLineArgs = "LaunchApp m1.a1"
+    		Volatile = "1"
+    	    >
+    	</App>
+
     </Plan>
 
     <Plan Name="plan2">
