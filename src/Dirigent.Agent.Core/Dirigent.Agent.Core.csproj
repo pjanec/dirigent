@@ -107,7 +107,6 @@
     <Compile Include="IAppInitializedDetector.cs" />
     <Compile Include="LaunchDepsChecker.cs" />
     <Compile Include="LocalApp.cs" />
-    <Compile Include="ILauncher.cs" />
     <Compile Include="Launcher.cs" />
     <Compile Include="NetworkProxy.cs" />
     <Compile Include="PlanRuntimeInfo.cs" />

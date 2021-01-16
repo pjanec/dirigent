@@ -42,9 +42,8 @@ namespace Dirigent.Agent.CmdLineCtrl.Tests
 		[TestMethod]
 		public void Read1()
 		{
-			LauncherFactory launcherFactory = new LauncherFactory();
 			AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-			var localOps = new LocalOperations( "m1", launcherFactory, appInitializedDetectorFactory, null, null, 0, false );
+			var localOps = new LocalOperations( "m1", appInitializedDetectorFactory, null, null, 0, false );
 			localOps.SetPlanRepo( TestPlanRepo.plans.Values );
 
 			var server = new CLIServer( "127.0.0.1", 6001, localOps );

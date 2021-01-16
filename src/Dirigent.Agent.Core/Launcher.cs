@@ -10,7 +10,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent.Core
 {
-    public class Launcher : ILauncher
+    public class Launcher
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -594,14 +594,6 @@ namespace Dirigent.Agent.Core
             }
 
             return null;
-        }
-    }
-
-    public class LauncherFactory : ILauncherFactory
-    {
-        public ILauncher createLauncher( AppDef appDef, string rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )
-        {
-            return new Launcher( appDef, rootForRelativePaths, planName, masterIP, internalVars );
         }
     }
 

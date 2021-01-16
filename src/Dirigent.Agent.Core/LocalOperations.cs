@@ -47,8 +47,6 @@ namespace Dirigent.Agent.Core
         /// </summary>
         List<ILaunchPlan> planRepo;
 
-        ILauncherFactory launcherFactory;
-
         /// <summary>
         /// Whether we should launch apps during tick. False when plan is paused.
         /// </summary>
@@ -86,7 +84,6 @@ namespace Dirigent.Agent.Core
 		
 		public LocalOperations(
             string machineId,
-            ILauncherFactory launcherFactory,
             IAppInitializedDetectorFactory appAppInitializedDetectorFactory,
             string rootForRelativePaths,
 			string masterIP,
@@ -94,7 +91,6 @@ namespace Dirigent.Agent.Core
 			bool doNotLaunchReinstaller
 		)
         {
-            this.launcherFactory = launcherFactory;
             this.appAppInitializedDetectorFactory = appAppInitializedDetectorFactory;
             this.rootForRelativePaths = rootForRelativePaths;
 			this.doNotLaunchReinstaller = doNotLaunchReinstaller;
@@ -430,7 +426,7 @@ namespace Dirigent.Agent.Core
             
             la.watchers.Clear();
 
-            la.launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
+            la.launcher = new Launcher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 
             try
             {
@@ -567,7 +563,7 @@ namespace Dirigent.Agent.Core
 				{
 					var plan = GetCurrentPlan();
 					var planName = plan==null ? "" : plan.Name;
-					var launcher = launcherFactory.createLauncher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
+					var launcher = new Launcher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 					if( launcher.AdoptAlreadyRunning() )
 					{
 						launcher.Kill();

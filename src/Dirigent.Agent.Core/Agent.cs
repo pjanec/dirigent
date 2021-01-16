@@ -30,9 +30,8 @@ namespace Dirigent.Agent.Core
             bool doNotLaunchReinstaller
         )
         {
-            LauncherFactory launcherFactory = new LauncherFactory();
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-            this.localOps = new LocalOperations(machineId, launcherFactory, appInitializedDetectorFactory, rootForRelativePaths, client.MasterIP, client.MasterPort, doNotLaunchReinstaller );
+            this.localOps = new LocalOperations(machineId, appInitializedDetectorFactory, rootForRelativePaths, client.MasterIP, client.MasterPort, doNotLaunchReinstaller );
             this.netOps = new NetworkProxy( machineId, client, localOps );
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;
