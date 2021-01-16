@@ -431,5 +431,10 @@ namespace Dirigent.Agent.Gui
 			ctrl.KillAll( args );
 		}
 
+		private void bntKillAll2_Click(object sender, EventArgs e)
+		{
+			var args = new KillAllArgs() {};
+			ctrl.KillAll( args );
+		}
 	}
 }
