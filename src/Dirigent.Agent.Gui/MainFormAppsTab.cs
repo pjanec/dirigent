@@ -22,7 +22,8 @@ namespace Dirigent.Agent.Gui
         const int appTabColIconKill = 3;
         const int appTabColIconRestart = 4;
         const int appTabColEnabled = 5;
-        const int appTabNumCols = appTabColEnabled+1;
+        const int appTabColPlan = 6;
+        const int appTabNumCols = appTabColPlan+1;
 
 
         void refreshAppList()
@@ -44,6 +45,12 @@ namespace Dirigent.Agent.Gui
                     );
                 }
             }
+        }
+
+        struct UPD
+        {
+            public string Status;
+            public string PlanName;
         }
 
         /// <summary>
@@ -112,6 +119,7 @@ namespace Dirigent.Agent.Gui
                     item[appTabColIconKill]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20));
                     item[appTabColIconRestart]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.refresh), new Size(20,20));
                     item[appTabColEnabled]= false;
+                    item[appTabColPlan] = String.Empty;
                     toAdd.Add( item );
                 }
             }
@@ -126,19 +134,27 @@ namespace Dirigent.Agent.Gui
                 gridApps.Rows.Add( i );
             }                
             
-            Dictionary<DataGridViewRow, string> toUpdate = new Dictionary<DataGridViewRow, string>();
+            Dictionary<DataGridViewRow, UPD> toUpdate = new Dictionary<DataGridViewRow, UPD>();
             foreach( var o in oldApps )
             {
                 if( !toRemove.Contains(o.Value) )
                 {
-                    toUpdate[o.Value] = getAppStatusCode( newApps[o.Key], ctrl.GetAppState(newApps[o.Key]), planAppIdTuples.Contains(newApps[o.Key]) );
+                    var appIdTuple = newApps[o.Key];
+                    var appState = ctrl.GetAppState( appIdTuple );
+                    toUpdate[o.Value] = new UPD()
+                    {
+                        Status = getAppStatusCode( appIdTuple, appState, planAppIdTuples.Contains(appIdTuple) ),
+                        PlanName = appState.PlanName ?? String.Empty
+                    };
                 }
             }
 
             foreach (var tu in toUpdate)
             {
                 var row = tu.Key;
-                row.Cells[appTabColStatus].Value = tu.Value;
+                var upd = tu.Value;
+                row.Cells[appTabColStatus].Value = upd.Status;
+                row.Cells[appTabColPlan].Value = upd.PlanName;
             }
 
             // colorize the background of items from current plan
@@ -288,7 +304,7 @@ namespace Dirigent.Agent.Gui
 
                 if (row >= 0 )
                 {
-                    if(col == appTabColName || col == appTabColStatus )   // just Name and Status columns
+                    if(col == appTabColName || col == appTabColStatus || col == appTabColPlan )   // just Name and Status columns
                     {
                         DataGridViewRow focused = gridApps.Rows[row];
                         var appIdTuple = new AppIdTuple(focused.Cells[0].Value as string);

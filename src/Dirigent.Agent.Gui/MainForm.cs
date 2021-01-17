@@ -436,5 +436,6 @@ namespace Dirigent.Agent.Gui
 			var args = new KillAllArgs() {};
 			ctrl.KillAll( args );
 		}
+
 	}
 }
