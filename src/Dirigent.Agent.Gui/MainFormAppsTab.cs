@@ -53,6 +53,21 @@ namespace Dirigent.Agent.Gui
             public string PlanName;
         }
 
+        string GetPlanForApp( AppIdTuple appIdTuple )
+        {
+            var x = 
+                (from p in ctrl.GetPlanRepo()
+                from a in p.getAppDefs()
+                where a.AppIdTuple == appIdTuple
+                select p.Name).ToList();
+            if( x.Count > 1 )
+                return "<multiple>";
+            if( x.Count == 1 )
+                return x[0];
+            return String.Empty;
+        }
+
+
         /// <summary>
         /// Update the list of apps by doing minimal changes to avoid losing focus.
         /// Adding what is not yet there and deleting what has disappeared.
@@ -128,7 +143,7 @@ namespace Dirigent.Agent.Gui
                     item[appTabColIconKill]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.delete), new Size(20,20));
                     item[appTabColIconRestart]= ResizeImage( new Bitmap(Dirigent.Agent.Gui.Resource1.refresh), new Size(20,20));
                     item[appTabColEnabled]= false;
-                    item[appTabColPlan] = String.Empty;
+                    item[appTabColPlan] = GetPlanForApp(appIdTuple);
                     toAdd.Add( item );
                 }
             }
@@ -150,11 +165,17 @@ namespace Dirigent.Agent.Gui
                 {
                     var appIdTuple = newApps[o.Key];
                     var appState = ctrl.GetAppState( appIdTuple );
-                    toUpdate[o.Value] = new UPD()
+                    var upd = new UPD()
                     {
                         Status = getAppStatusCode( appIdTuple, appState, planAppIdTuples.Contains(appIdTuple) ),
-                        PlanName = appState.PlanName ?? String.Empty
+                        PlanName = null
                     };
+                    if( appState.PlanName != null )
+                    {
+                        upd.PlanName = appState.PlanName;
+                    }
+                    toUpdate[o.Value] = upd;
+
                 }
             }
 
@@ -162,8 +183,13 @@ namespace Dirigent.Agent.Gui
             {
                 var row = tu.Key;
                 var upd = tu.Value;
+                
                 row.Cells[appTabColStatus].Value = upd.Status;
-                row.Cells[appTabColPlan].Value = upd.PlanName;
+
+                if( upd.PlanName != null )
+                {
+                    row.Cells[appTabColPlan].Value = upd.PlanName;
+                }
             }
 
             // colorize the background of items from current plan

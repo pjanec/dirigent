@@ -630,7 +630,7 @@
 			// 
 			// hdrPlan
 			// 
-			this.hdrPlan.HeaderText = "Plan";
+			this.hdrPlan.HeaderText = "Last Plan";
 			this.hdrPlan.MinimumWidth = 9;
 			this.hdrPlan.Name = "hdrPlan";
 			this.hdrPlan.ReadOnly = true;
