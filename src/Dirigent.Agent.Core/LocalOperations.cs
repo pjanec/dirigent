@@ -841,6 +841,7 @@ namespace Dirigent.Agent.Core
                     appState.ExitCode = la.launcher.ExitCode;
 
 	                tickWachers( la );
+					la.launcher.Tick();
 
 					// forget about the running process if just exited
 					if(	!appState.Running )

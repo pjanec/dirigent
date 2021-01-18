@@ -549,13 +549,37 @@ Each app in the launch plan has the following attributes:
 
 - `Template` - where to load default settings from; the name of a AppTemplate section in the same XML file
 
-- `KillTree 0|1` - whether to kill not just the single process but also all its child processes
+- `KillTree 0|1` - whether to kill not just the single process but also all its child processes. Child processes are killed only in case of a hard kill if previous "softer" attempts (if any, see KillSeq) fail.
 
-- `KillSoftly 0|1` - whether to send the close command (as if user pressed the close button) instead of a forceful kill
+- `KillSoftly 0|1` - whether to send the close command (as if user pressed the close button) instead of a forceful kill. Note this is implemented using the *SoftKill* mechanism described below with timeout=10secs.
 
 - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
 
 App sub-sections:
+
+- `SoftKill`
+  
+        <SoftKill>
+           <Keys Timeout="1.5" Keys="^(c)"/>
+           <Close Timeout="0.7"/>
+        </SoftKill>
+  
+  Defines a a sequence of "soft" attempts to terminate a process. Dirigent try to terminate the process using the actions from the sequence, starting with the first one defined.
+  
+  If the action fail (the process is not terminated within defined timeout), next action (presumably more severe) is tried.
+  
+  Only if all actions fail, the process is killed in the hard way.
+  
+  If an extra Kill command is issued while the process is being attempted to be terminated in the soft way, the process is killed immediately in the hard way (impatient kill.)
+
+  Note: The *KillTree* option in NOT applied if Dirigent succeeded to terminate the process in one of the soft ways.
+
+  Sub-sections:
+  
+  - `Keys` - send one or more keys to the main window. See Window.Forms.SendKeys manual for the key name format. 
+
+  - `Close` - emulates the close command sent to the main window.
+
 
 - `WindowPos`
   

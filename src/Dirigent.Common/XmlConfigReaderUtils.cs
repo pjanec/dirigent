@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -23,7 +24,7 @@ namespace Dirigent.Common
         public static double getDoubleAttr( XElement e, string attrName, double def=0.0, bool ignoreCase=false )
         {
             var s = (string) Attribute( e, attrName, ignoreCase );
-            return (s == null)? def : double.Parse(s);
+            return (s == null)? def : double.Parse(s, CultureInfo.InvariantCulture);
         }
 
         public static bool getBoolAttr( XElement e, string attrName, bool def=false, bool ignoreCase=false )

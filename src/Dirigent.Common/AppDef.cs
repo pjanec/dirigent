@@ -95,10 +95,16 @@ namespace Dirigent.Common
         public List<string> WindowPosXml = new List<string>();
 
         /// <summary>
-        /// the <AutoRestart /> XML section as string (to be parsed later by specific app watcher code)
+        /// the <Restart /> XML section as string (to be parsed later by specific app watcher code)
         /// </summary>
         [DataMember]
         public string RestarterXml = String.Empty;
+
+        /// <summary>
+        /// the <KillSeq /> XML section as string (to be parsed later by Launcher code)
+        /// </summary>
+        [DataMember]
+        public string SoftKillXml = String.Empty;
 
         /// <summary>
         /// list of environment vars to set (in addition to inherited system environemnt)
@@ -158,6 +164,7 @@ namespace Dirigent.Common
                 this.WindowStyle == other.WindowStyle &&
                 this.WindowPosXml.SequenceEqual( other.WindowPosXml ) &&
                 this.RestarterXml == other.RestarterXml &&
+                this.SoftKillXml == other.SoftKillXml &&
 				this.EnvVarsToSet.DictionaryEqual( other.EnvVarsToSet ) &&
 				this.LocalVarsToSet.DictionaryEqual( other.LocalVarsToSet ) &&
 				this.EnvVarPathToPrepend == other.EnvVarPathToPrepend &&

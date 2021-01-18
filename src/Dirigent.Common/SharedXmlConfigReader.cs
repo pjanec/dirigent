@@ -84,6 +84,7 @@ namespace Dirigent.Common
                 WindowStyle = (string)e.Attribute("WindowStyle"),
                 WindowPos = e.Elements("WindowPos"),
                 Restarter = e.Element("Restarter"),
+                SoftKill = e.Element("SoftKill"),
                 Env = e.Element("Env"),
                 InitDetectors = e.Element("InitDetectors") != null ? e.Element("InitDetectors").Elements() : null,
             };
@@ -141,6 +142,11 @@ namespace Dirigent.Common
             if( x.Restarter != null )
             {
                 a.RestarterXml = x.Restarter.ToString();
+            }
+
+            if( x.SoftKill != null )
+            {
+                a.SoftKillXml = x.SoftKill.ToString();
             }
 
             if( x.Env != null )

@@ -7,6 +7,9 @@ using System.Diagnostics;
 using System.Management;
 
 using Dirigent.Common;
+using System.Xml.Linq;
+using X = Dirigent.Common.XmlConfigReaderUtils;
+using System.Runtime.InteropServices;
 
 namespace Dirigent.Agent.Core
 {
@@ -22,8 +25,16 @@ namespace Dirigent.Agent.Core
 
 		bool dying = false;	// already killed but still in the system
 		int exitCode = 0; // cached exit code from last run
-
+        
         Dictionary<string, string> internalVars;
+
+        SoftKiller softKiller;
+
+        // Mechanism for hard kill if multiple kills are sent while the process is being killed
+        // (likely using a kill sequnce) but still not dead (kill actions not effective and user is impatient,
+        // clicking the kill button multiple times
+        int numKillOrdersToForcedHardKill = 2; // how many extra kill commands needs to be isuued to hard kill the process if still being soft-killed.
+        int remainingKillOrdersToForcedHardKill = -1; // how many kill commands currently left before forced hard kill
 
         public Launcher( AppDef appDef, String rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )
         {
@@ -42,13 +53,41 @@ namespace Dirigent.Agent.Core
             this.masterIP = masterIP;
 
             this.internalVars = BuildVars(appDef, internalVars);
+
+            softKiller = new SoftKiller( appDef );
+
+            // handle the KillSoftly flag for backward compatibility
+            if( appDef.KillSoftly )
+            {
+                if( softKiller.IsDefined )
+                {
+                    log.ErrorFormat("{0}: KillSoftly can't be used together with SoftKill! Using just the SoftKill...", appDef.AppIdTuple);
+                }
+                else // add a single Close action to the soft kill seq, with default timeout
+                {
+                    softKiller.AddClose();
+                }
+            }
         }
 
 		public void Dispose()
 		{
+            softKiller.Dispose();
 		}
 
- 
+        public void Tick()
+        {
+            checkExited();
+
+            if( softKiller.IsRunning )
+            {
+                if( !softKiller.Tick() ) // have we failed to kill the process using a kill sequence?
+                {
+                    KillExeHard();
+                }
+            }
+        }
+
 		
         Dictionary<string, string> BuildVars( AppDef appDef, Dictionary<string, string> internalVars )
         {
@@ -227,6 +266,8 @@ namespace Dirigent.Agent.Core
                 }
             }
 
+            remainingKillOrdersToForcedHardKill = numKillOrdersToForcedHardKill;
+
             // start the process
             var psi = new ProcessStartInfo();
 			psi.FileName = BuildAbsolutePath( pe.Path );
@@ -309,7 +350,7 @@ namespace Dirigent.Agent.Core
         /// Kill a process, and all of its children.
         /// </summary>
         /// <param name="pid">Process ID.</param>
-        private static void KillProcessAndChildren(int pid, int indent, bool killSoftly)
+        private static void KillTree(int pid, int indent, bool includingParent=true)
         {
             Process proc;
             try
@@ -352,7 +393,7 @@ namespace Dirigent.Agent.Core
 
 						if( isOurChild )
 						{
-							KillProcessAndChildren( childPid, indent+2, killSoftly );
+							KillTree( childPid, indent+2 );
 						}
 						else
 						{
@@ -367,59 +408,39 @@ namespace Dirigent.Agent.Core
 
                 }
             }
-                
-            // kill process at current level
-            log.DebugFormat(new String(' ', indent)+"Kill pid {0}, name \"{1}\"", proc.Id, proc.ProcessName );
-            if( !proc.HasExited )
+
+            if( includingParent )
             {
-                try
+                // kill process at current level
+                log.DebugFormat(new String(' ', indent)+"Kill pid {0}, name \"{1}\"", proc.Id, proc.ProcessName );
+                if( !proc.HasExited )
                 {
-                    if (killSoftly)
-                    {
-                        proc.CloseMainWindow();
-                    }
-                    else
+                    try
                     {
                         proc.Kill();
+                        log.DebugFormat(new String(' ', indent)+"Kill pid {0} DONE", proc.Id );
                     }
-                    log.DebugFormat(new String(' ', indent)+"Kill pid {0} DONE", proc.Id );
+                    catch(Exception ex )
+                    {
+                        log.DebugFormat(new String(' ', indent)+"Kill pid {0} EXCEPTION {1}", proc.Id, ex );
+                    }
                 }
-                catch(Exception ex )
+                else
                 {
-                    log.DebugFormat(new String(' ', indent)+"Kill pid {0} EXCEPTION {1}", proc.Id, ex );
+                    log.DebugFormat(new String(' ', indent)+"     pid {0} already exited.", proc.Id );
                 }
             }
-            else
-            {
-                log.DebugFormat(new String(' ', indent)+"     pid {0} already exited.", proc.Id );
-            }
-
         }
         
-        public void Kill()
+        private static void KillChildren( int pid )
         {
-            //log.DebugFormat("Kill pid {0}", proc.Id );
-            // bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
-            
-            var pe = ParseExe();
-            
-            if( pe.ExeType != EExeType.Executable )
-            {
-    			dying = false;
-                return;
-            }
+            KillTree( pid, 0, includingParent: false );
+        }
 
-            // try to adopt an already running process (matching by process image file name, regardless of path)
-            if( proc == null && appDef.AdoptIfAlreadyRunning )
-            {
-                ProcInfo found = FindProcessByExeName( pe.Path );
-                if( found != null )
-                {
-                    log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
-                    proc = found.Process;
-                }
-            }
 
+        // kills the process immediately with no mercy (no "softer" stop actions applied)
+        void KillExeHard()
+        {
             if( proc == null )
             {
                 log.DebugFormat("  pid {0} proc=null!", ProcessId);
@@ -433,24 +454,17 @@ namespace Dirigent.Agent.Core
                 return;
             }
 
-            // kill the process and wait until it dies
+            // kill the process
             if (appDef.KillTree)
             {
-                KillProcessAndChildren(proc.Id, 0, appDef.KillSoftly);
+                KillTree( proc.Id, 0 );
             }
             else
             {
                 log.DebugFormat("Kill pid {0}, name \"{1}\"", proc.Id, proc.ProcessName );
                 try
                 {
-                    if (appDef.KillSoftly)
-                    {
-                        proc.CloseMainWindow();   
-                    }
-                    else
-                    {
-                        proc.Kill();
-                    }
+                    proc.Kill();
                     log.DebugFormat("Kill pid {0} DONE", proc.Id );
                 }
                 catch(Exception ex )
@@ -468,7 +482,83 @@ namespace Dirigent.Agent.Core
             //proc = null;
 
 			// instead we start monitoring it until it vanishes
+			//dying = true;
+        }
+
+
+
+        public void Kill()
+        {
+            //log.DebugFormat("Kill pid {0}", proc.Id );
+            // bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
+            
+            var pe = ParseExe();
+            
+            if( pe.ExeType != EExeType.Executable )
+            {
+    			dying = false;
+                return;
+            }
+
+
+            // try to adopt an already running process (matching by process image file name, regardless of path)
+            if( proc == null && appDef.AdoptIfAlreadyRunning )
+            {
+                ProcInfo found = FindProcessByExeName( pe.Path );
+                if( found != null )
+                {
+                    log.DebugFormat("Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
+                    proc = found.Process;
+                }
+            }
+
+            if( proc != null )
+            {
+    			dying = true;
+
+                KillExe();
+            }
+        }
+
+        void KillExe()
+        {
+            if( proc == null )
+            {
+                log.DebugFormat("  pid {0} proc=null!", ProcessId);
+                return;
+            }
+
+            if( proc.HasExited )
+            {
+                log.DebugFormat("  pid {0} already exited.", proc.Id );
+                proc = null;
+                return;
+            }
+
 			dying = true;
+
+            // if already executing a soft kill sequence?
+            if( softKiller.IsRunning )
+            {
+                // is impatient force killing enabled?
+                if( numKillOrdersToForcedHardKill > 0 )
+                {
+                    remainingKillOrdersToForcedHardKill--;
+                    if( remainingKillOrdersToForcedHardKill <= 0 )
+                    {
+                        log.DebugFormat("Impatient kill");
+                        KillExeHard();
+                    }
+                }
+            }
+            else if( softKiller.IsDefined ) // soft kill sequence defined, try it first
+            {
+                softKiller.Start( proc );
+            }
+            else // no kill sequence, kill hard immediately
+            {
+                KillExeHard();
+            }
         }
 
 		// If the process has exited, grabs the exit code and forgets about the process.
@@ -488,6 +578,8 @@ namespace Dirigent.Agent.Core
 			dying = false;
 
 			exitCode = proc.ExitCode;
+
+            softKiller.Stop();
 
 			proc = null;
 

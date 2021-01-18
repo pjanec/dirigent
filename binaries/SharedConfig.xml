@@ -67,6 +67,10 @@
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,450,300,200" screen="1" keep="0" />
     		<Restarter maxTries="2" delay="5"/>
+    		<SoftKill>
+    		   <Keys Timeout="1.5" Keys="closing{ESC}"/>
+    		   <Close Timeout="0.7"/>
+    		</SoftKill>
     	</App>
 
     	<App
@@ -112,6 +116,10 @@
     		CmdLineArgs = "%DIRIGENT_SHAREDCONFDIR%\test1.bat"
     		Volatile = "1"
     	    >
+    		<SoftKill>
+    		   <Keys Timeout="3.5" Keys="^(c)"/>
+    		   <Close Timeout="0.5"/>
+    		</SoftKill>
     	</App>
 
     	<App
