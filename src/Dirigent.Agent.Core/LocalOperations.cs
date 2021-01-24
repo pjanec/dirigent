@@ -1111,9 +1111,7 @@ namespace Dirigent.Agent.Core
 			if( args.Mode == EShutdownMode.Reboot ) cmdl="-r -t 0";
 			
 			var psi = new System.Diagnostics.ProcessStartInfo("shutdown.exe", cmdl);
-			psi.CreateNoWindow = true;
-			psi.UseShellExecute = false;
-			psi.ErrorDialog = false;
+			psi.UseShellExecute = true;
             log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\"", psi.FileName, psi.Arguments, psi.WorkingDirectory );
 			System.Diagnostics.Process.Start(psi);
         }
@@ -1125,53 +1123,16 @@ namespace Dirigent.Agent.Core
 
 	        log.DebugFormat("Reinstall downloadMode={0} url={1}", args.DownloadMode.ToString(), args.Url );
 
-			// write information how to restart the agent into a temp file
-			var tmpFile = System.IO.Path.GetTempFileName();
-			var exePath = Environment.GetCommandLineArgs()[0];
-			var exeDir = System.IO.Path.GetDirectoryName(exePath);
-			var rawCmd = Environment.CommandLine;
-			var argsOnly = rawCmd.Replace("\"" + Environment.GetCommandLineArgs()[0] + "\"", "");
-			var cwd = System.IO.Directory.GetCurrentDirectory();
-			using (System.IO.StreamWriter file = new System.IO.StreamWriter(tmpFile))
-			{
-				file.WriteLine(	exePath );
-				file.WriteLine(	argsOnly );
-				file.WriteLine( cwd );
-				file.WriteLine( args.DownloadMode.ToString() );
-				file.WriteLine( args.Url );
-				file.WriteLine( masterIP );
-				file.WriteLine( masterPort );
-			}
+			var launcher= new ReinstallLauncher();
+				
+			launcher.Launch(
+				args.DownloadMode.ToString(),
+				args.Url,
+				masterIP,
+				masterPort
+			);
 
-			// run restarter process (it is responsible for deleting the temp file passed as argument)
-            var psi = new ProcessStartInfo();
-			var appPath = exeDir+"\\Dirigent.Reinstaller.exe";
-			psi.FileName =  appPath;
-            psi.Arguments = "\""+tmpFile+"\"";
-            psi.WorkingDirectory = exeDir;
-            psi.WindowStyle = ProcessWindowStyle.Normal;
-			psi.UseShellExecute = false; // allows us using environment variables
-			Process proc = null;
-			try
-            {
-                log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
-                proc = Process.Start(psi);
-                if( proc != null )
-                {
-                    log.DebugFormat("StartProc SUCCESS pid {0}", proc.Id );
-                }
-                else
-                {
-                    log.DebugFormat("StartProc FAILED (no details)" );
-                    proc = null;
-					return;
-                }
-            }
-            catch (Exception ex)
-            {
-                log.DebugFormat("StartProc FAILED except {0}", ex.Message );
-                throw new Exception(String.Format("Failed to run Dirigent Reinstaller process {0} from {1}", psi.FileName, psi.WorkingDirectory));
-            }
+
 
 			// kill local apps before terminating dirigent agent
 			killAll();

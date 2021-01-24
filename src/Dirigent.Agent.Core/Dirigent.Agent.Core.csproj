@@ -112,6 +112,7 @@
     <Compile Include="PlanRuntimeInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AppWatchers\TimeOutInitDetector.cs" />
+    <Compile Include="ReinstallLauncher.cs" />
     <Compile Include="SoftKiller.cs" />
   </ItemGroup>
   <ItemGroup>
