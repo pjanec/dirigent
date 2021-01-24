@@ -228,6 +228,40 @@ namespace Dirigent.Agent.Gui
             }
         }
 
+	    private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+	    {
+		    var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
+		    var defst = gridApps.Rows[e.RowIndex].Cells[appTabColName].Style;
+		    if ( e.ColumnIndex == appTabColStatus )
+		    {
+			    var txt = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex].Value as string;
+			    if ( txt.StartsWith( "Running" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "Planned" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkViolet, SelectionForeColor = Color.Violet, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "Initializing" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkOrange, SelectionForeColor = Color.Orange, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "Terminated" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "Restarting" ) || txt.StartsWith( "Dying" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Blue, SelectionForeColor = Color.Blue, BackColor = defst.BackColor };
+			    }
+			    else
+			    {
+				    cell.Style = defst;
+			    }
+		    }
+        }
+
         private void gridApps_MouseClick(object sender, MouseEventArgs e)
         {
             var hti = gridApps.HitTest(e.X,e.Y);

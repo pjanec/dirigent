@@ -381,6 +381,8 @@
 			this.gridApps.TabIndex = 6;
 			this.gridApps.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseClick);
 			this.gridApps.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseDoubleClick);
+			this.gridApps.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler( this.gridApps_CellFormatting );
+
 			// 
 			// toolStripApps
 			// 
@@ -510,6 +512,7 @@
 			this.gridPlans.TabIndex = 6;
 			this.gridPlans.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseClick);
 			this.gridPlans.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseDoubleClick);
+			this.gridPlans.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler( this.gridPlans_CellFormatting );
 			// 
 			// hdrPlanName
 			// 

@@ -72,6 +72,32 @@ namespace Dirigent.Agent.Gui
 			}
 		}
 
+	    private void gridPlans_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+	    {
+		    var cell = gridPlans.Rows[e.RowIndex].Cells[e.ColumnIndex];
+		    var defst = gridPlans.Rows[e.RowIndex].Cells[planTabColName].Style;
+		    if ( e.ColumnIndex == planTabColStatus )
+		    {
+			    var txt = gridPlans.Rows[e.RowIndex].Cells[e.ColumnIndex].Value as string;
+			    if ( txt.StartsWith( "Success" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "Failure" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+			    }
+			    else if ( txt.StartsWith( "InProgress" ) || txt.StartsWith( "Killing" ) )
+			    {
+				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Blue, SelectionForeColor = Color.Blue, BackColor = defst.BackColor };
+			    }
+			    else
+			    {
+				    cell.Style = defst;
+			    }
+		    }
+	    }
+
         private void gridPlans_MouseClick(object sender, MouseEventArgs e)
         {
             var hti = gridPlans.HitTest(e.X,e.Y);
