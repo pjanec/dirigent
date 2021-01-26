@@ -33,7 +33,7 @@ namespace Dirigent.Agent.Core
         // Mechanism for hard kill if multiple kills are sent while the process is being killed
         // (likely using a kill sequnce) but still not dead (kill actions not effective and user is impatient,
         // clicking the kill button multiple times
-        int numKillOrdersToForcedHardKill = 2; // how many extra kill commands needs to be isuued to hard kill the process if still being soft-killed.
+        int numKillOrdersToForcedHardKill = 7; // how many extra kill commands needs to be isuued to hard kill the process if still being soft-killed.
         int remainingKillOrdersToForcedHardKill = -1; // how many kill commands currently left before forced hard kill
 
         public Launcher( AppDef appDef, String rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )

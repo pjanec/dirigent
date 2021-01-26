@@ -11,24 +11,28 @@ namespace Dirigent.Common
     {
         public static string getStringAttr( XElement e, string attrName, string def="", bool ignoreCase=false )
         {
+            if( e==null ) return def;
             var s = (string) Attribute( e, attrName, ignoreCase );
             return ( s == null )? def : s;
         }
 
         public static int getIntAttr( XElement e, string attrName, int def=0, bool ignoreCase=false )
         {
+            if( e==null ) return def;
             var s = (string) Attribute( e, attrName, ignoreCase );
             return (s == null)? def : int.Parse(s);
         }
 
         public static double getDoubleAttr( XElement e, string attrName, double def=0.0, bool ignoreCase=false )
         {
+            if( e==null ) return def;
             var s = (string) Attribute( e, attrName, ignoreCase );
             return (s == null)? def : double.Parse(s, CultureInfo.InvariantCulture);
         }
 
         public static bool getBoolAttr( XElement e, string attrName, bool def=false, bool ignoreCase=false )
         {
+            if( e==null ) return def;
             var s = (string) Attribute( e, attrName, ignoreCase );
             return ( s == null )? def : (s == "1") || (s.ToLower() == "true") || (s.ToLower() == "yes");
         }
