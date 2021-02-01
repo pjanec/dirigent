@@ -67,7 +67,6 @@ namespace Dirigent.Agent.Gui
             return String.Empty;
         }
 
-
         /// <summary>
         /// Update the list of apps by doing minimal changes to avoid losing focus.
         /// Adding what is not yet there and deleting what has disappeared.
@@ -230,7 +229,8 @@ namespace Dirigent.Agent.Gui
 
 	    private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 	    {
-		    var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
+		    var appIdTuple = new AppIdTuple( (string) gridApps.Rows[e.RowIndex].Cells[appTabColName].Value );
+            var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
 		    var defst = gridApps.Rows[e.RowIndex].Cells[appTabColName].Style;
 		    if ( e.ColumnIndex == appTabColStatus )
 		    {
@@ -249,7 +249,26 @@ namespace Dirigent.Agent.Gui
 			    }
 			    else if ( txt.StartsWith( "Terminated" ) )
 			    {
-				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+                    var appDef = 
+                        (from p in ctrl.GetPlanRepo()
+                        from a in p.getAppDefs()
+                        where a.AppIdTuple == appIdTuple
+                        select a).FirstOrDefault();
+                    if( appDef != null )
+                    {
+                        if( !appDef.Volatile ) // just non-volatile apps are not supposed to terminate on their own...
+                        {
+        				    cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+                        }
+                        else
+                        {
+        				    cell.Style = defst;
+                        }
+                    }
+                    else
+                    {
+    				    cell.Style = defst;
+                    }
 			    }
 			    else if ( txt.StartsWith( "Restarting" ) || txt.StartsWith( "Dying" ) )
 			    {
