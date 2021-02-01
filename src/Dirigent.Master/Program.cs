@@ -15,6 +15,7 @@ using Dirigent.Agent.Core;
 
 using log4net;
 using log4net.Appender;
+using System.Diagnostics;
 
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
 
@@ -67,6 +68,7 @@ namespace Dirigent.Master
 		static Dirigent.Agent.Core.Agent agent;
 
 		static CLIServer cliServer;
+        static int ParentPID = -1;
 			
 		class AppConfig
         {
@@ -177,6 +179,8 @@ namespace Dirigent.Master
 				cliServer = new CLIServer( "0.0.0.0", ac.CLIPort, agent.Control );
 				cliServer.Start();
 
+                ParentPID = ac.ParentAgentPid;
+
                 return true;
 
             }
@@ -196,6 +200,7 @@ namespace Dirigent.Master
             {
 	            agent.tick();
 	            cliServer.Tick();
+                if( parentExited() ) break;
 	            Thread.Sleep(50);
             }
         }
@@ -222,17 +227,36 @@ namespace Dirigent.Master
             if( !Initialize() )
                 return;
 
-			while(true)
+			while(!parentExited())
             {
                 try
                 {
                     Run();
+                    Console.WriteLine("Terminating...");
                 }
                 catch (RemoteOperationErrorException ex) // an error from another agent received
                 {
                     log.Info("RemoteOp error: "+Tools.JustFirstLine(ex.ToString()));
                 }
             }
+
+        }
+
+        static bool parentExited()
+        {
+            if( ParentPID != -1 )
+            {
+                try
+                {
+                    var p = Process.GetProcessById( ParentPID );
+                    return false;
+                }
+                catch( ArgumentException ex )
+                {
+                    return true;
+                }
+            }
+            return false; // we don't have a parent, act as if it still runninh (avoid terminating the master)
 
         }
 
