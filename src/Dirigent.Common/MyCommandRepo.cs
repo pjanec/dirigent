@@ -7,37 +7,28 @@ using Dirigent.Common;
 
 namespace Dirigent.Common
 {
-    public class MyCommandRepo : CommandRepository
+    public static class DirigentCommandRegistrator
     {
-        IDirigentControl ctrl;
-
-        public MyCommandRepo(IDirigentControl ctrl)
+        public static void Register( CommandRepository repo )
         {
-            this.ctrl = ctrl;
-            //var cmdClasses = Assembly.GetExecutingAssembly().GetTypes().Where(t =>  t.IsSubclassOf(typeof(Commands.DirigentControlCommand)));
-            //foreach( cmdClass in cmdClasses )
-            //{
-            //    Register( new cmd ????
-            //}
-
-            Register(new Commands.StartPlan(ctrl));
-            Register(new Commands.StopPlan(ctrl));
-            Register(new Commands.KillPlan(ctrl));
-            Register(new Commands.RestartPlan(ctrl));
-            Register(new Commands.LaunchApp(ctrl));
-            Register(new Commands.KillApp(ctrl));
-            Register(new Commands.RestartApp(ctrl));
+            repo.Register( "StartPlan",             (ctrl) => new Commands.StartPlan(ctrl));
+            repo.Register( "StopPlan",              (ctrl) => new Commands.StopPlan(ctrl));
+            repo.Register( "KillPlan",              (ctrl) => new Commands.KillPlan(ctrl));
+            repo.Register( "RestartPlan",           (ctrl) => new Commands.RestartPlan(ctrl));
+            repo.Register( "LaunchApp",             (ctrl) => new Commands.LaunchApp(ctrl));
+            repo.Register( "KillApp",               (ctrl) => new Commands.KillApp(ctrl));
+            repo.Register( "RestartApp",            (ctrl) => new Commands.RestartApp(ctrl));
             //Register(new Commands.SelectPlan(ctrl));
-            Register(new Commands.GetPlanState(ctrl));
-            Register(new Commands.GetAppState(ctrl));
-            Register(new Commands.GetAllPlansState(ctrl));
-            Register(new Commands.GetAllAppsState(ctrl));
-            Register(new Commands.SetVars(ctrl));
-            Register(new Commands.KillAll(ctrl));
-            Register(new Commands.Shutdown(ctrl));
-            Register(new Commands.Terminate(ctrl));
-            Register(new Commands.Reinstall(ctrl));
-            Register(new Commands.ReloadSharedConfig(ctrl));
+            repo.Register( "GetPlanState",          (ctrl) => new Commands.GetPlanState(ctrl));
+            repo.Register( "GetAppState",           (ctrl) => new Commands.GetAppState(ctrl));
+            repo.Register( "GetAllPlansState",      (ctrl) => new Commands.GetAllPlansState(ctrl));
+            repo.Register( "GetAllAppsState",       (ctrl) => new Commands.GetAllAppsState(ctrl));
+            repo.Register( "SetVars",               (ctrl) => new Commands.SetVars(ctrl));
+            repo.Register( "KillAll",               (ctrl) => new Commands.KillAll(ctrl));
+            repo.Register( "Shutdown",              (ctrl) => new Commands.Shutdown(ctrl));
+            repo.Register( "Terminate",             (ctrl) => new Commands.Terminate(ctrl));
+            repo.Register( "Reinstall",             (ctrl) => new Commands.Reinstall(ctrl));
+            repo.Register( "ReloadSharedConfig",    (ctrl) => new Commands.ReloadSharedConfig(ctrl));
         }
 
     }

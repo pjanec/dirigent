@@ -17,6 +17,7 @@ namespace Dirigent.Agent.Core
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        IDirigentControl ctrl;
         Process proc;
         AppDef appDef;
         string RelativePathsRoot;
@@ -30,14 +31,18 @@ namespace Dirigent.Agent.Core
 
         SoftKiller softKiller;
 
+        CommandRepository cmdRepo;
+
         // Mechanism for hard kill if multiple kills are sent while the process is being killed
         // (likely using a kill sequnce) but still not dead (kill actions not effective and user is impatient,
         // clicking the kill button multiple times
         int numKillOrdersToForcedHardKill = 7; // how many extra kill commands needs to be isuued to hard kill the process if still being soft-killed.
         int remainingKillOrdersToForcedHardKill = -1; // how many kill commands currently left before forced hard kill
 
-        public Launcher( AppDef appDef, String rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )
+        public Launcher( IDirigentControl ctrl, AppDef appDef, String rootForRelativePaths, string planName, string masterIP, Dictionary<string, string> internalVars )
         {
+            this.ctrl = ctrl;
+            if( ctrl == null ) throw new ArgumentNullException("ctrl", "Valid network-bound Dirigent Control required"); 
             this.appDef = appDef;
 
             if (String.IsNullOrEmpty(rootForRelativePaths))
@@ -54,6 +59,9 @@ namespace Dirigent.Agent.Core
 
             this.internalVars = BuildVars(appDef, internalVars);
 
+            cmdRepo = new CommandRepository( ctrl );
+            DirigentCommandRegistrator.Register( cmdRepo );
+
             softKiller = new SoftKiller( appDef );
 
             // handle the KillSoftly flag for backward compatibility
@@ -68,6 +76,7 @@ namespace Dirigent.Agent.Core
                     softKiller.AddClose();
                 }
             }
+
         }
 
 		public void Dispose()
@@ -344,6 +353,11 @@ namespace Dirigent.Agent.Core
 
         void LaunchDirigentCmd( ParsedExe pe )
         {
+            var commands = cmdRepo.ParseCmdLine( pe.CmdLine, null );
+            foreach( var cmd in commands )
+            {
+                cmd.Execute();
+            }
         }
 
         /// <summary>

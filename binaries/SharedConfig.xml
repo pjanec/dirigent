@@ -135,7 +135,7 @@
     	    AppIdTuple = "m1.dirig-cmd"
     		ExeFullPath = "[dirigent.command]"
     		StartupDir = ""
-    		CmdLineArgs = "LaunchApp m1.a1"
+    		CmdLineArgs = "LaunchApp m1.a"
     		Volatile = "1"
     	    >
     	</App>
@@ -155,6 +155,14 @@
     		Template = "apps.notepad"
     		StartupDir = "c:\"
     		CmdLineArgs = "ddd.txt"
+    	/>
+    </Plan>
+
+    <Plan Name="plan3">
+    	<App
+    	    AppIdTuple = "m1.dc1"
+    		ExeFullPath = "[dirigent.command]"
+    		CmdLineArgs = "SetVars X=1; StartPlan plan2; RestartApp m1.batch1"
     	/>
     </Plan>
 

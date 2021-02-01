@@ -31,8 +31,9 @@ namespace Dirigent.Agent.Core
         )
         {
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
-            this.localOps = new LocalOperations(machineId, appInitializedDetectorFactory, rootForRelativePaths, client.MasterIP, client.MasterPort, doNotLaunchReinstaller );
+            this.localOps = new LocalOperations( machineId, appInitializedDetectorFactory, rootForRelativePaths, client.MasterIP, client.MasterPort, doNotLaunchReinstaller );
             this.netOps = new NetworkProxy( machineId, client, localOps );
+            this.localOps.NetOps = this.netOps;
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;
             this.fallbackToLocalOnDisconnection = fallbackToLocalOnDisconnection;

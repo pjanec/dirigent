@@ -81,6 +81,11 @@ namespace Dirigent.Agent.Core
 		Dictionary<string, string> internalVars = new Dictionary<string, string>();
 
         bool doNotLaunchReinstaller = false;
+
+		/// <summary>
+		/// Network-bound command executor; must be set after construction of this object!
+		/// </summary>
+		public IDirigentControl NetOps { get; set; } // network-bound command executor
 		
 		public LocalOperations(
             string machineId,
@@ -426,7 +431,7 @@ namespace Dirigent.Agent.Core
             
             la.watchers.Clear();
 
-            la.launcher = new Launcher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
+            la.launcher = new Launcher( NetOps, la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 
             try
             {
@@ -563,7 +568,7 @@ namespace Dirigent.Agent.Core
 				{
 					var plan = GetCurrentPlan();
 					var planName = plan==null ? "" : plan.Name;
-					var launcher = new Launcher( la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
+					var launcher = new Launcher( NetOps, la.AppDef, rootForRelativePaths, planName, masterIP, internalVars );
 					if( launcher.AdoptAlreadyRunning() )
 					{
 						launcher.Kill();

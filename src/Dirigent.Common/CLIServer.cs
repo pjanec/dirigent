@@ -184,7 +184,7 @@ namespace Dirigent.Common
 							   //public string CmdLine; // command line to be parsed and executed
 			public bool Finished; // is processing of this request finished? If so, will be discarded.
 			Queue<ICommand> Commands; // commands to be performed as part of the request
-			MyCommandRepo cmdRepo;
+			CommandRepository cmdRepo;
 			IDirigentControl ctrl;
 
 			public TRequest( TClient client, IDirigentControl ctrl, string cmdLine )
@@ -192,24 +192,17 @@ namespace Dirigent.Common
 				this.ctrl = ctrl;
 				Client = client;
 				Commands = new Queue<ICommand>();
-				cmdRepo = new MyCommandRepo( ctrl );
+				cmdRepo = new CommandRepository( ctrl );
+				DirigentCommandRegistrator.Register( cmdRepo );
 
 				// parse commands and fill cmd queue
-				List<string> tokens = null;
 				string restAfterUid;
 				SplitToUuidAndRest( cmdLine, out Uid, out restAfterUid );
 
 				try
 				{
-					if( !string.IsNullOrEmpty( restAfterUid ) )
-					{
-						SplitToWordTokens( restAfterUid, out tokens );
-					}
-					if( tokens != null && tokens.Count > 0 )
-					{
-						var cmdList = cmdRepo.ParseCmdLineTokens( tokens, WriteResponseLine );
-						Commands = new Queue<ICommand>( cmdList );
-					}
+					var cmdList = cmdRepo.ParseCmdLine( restAfterUid, WriteResponseLine );
+					Commands = new Queue<ICommand>( cmdList );
 				}
 				catch( Exception e )
 				{
@@ -258,21 +251,6 @@ namespace Dirigent.Common
 					rest = m.Groups[2].Value;
 				}
 			}
-
-			void SplitToWordTokens( string s, out List<string> tokens )
-			{
-				tokens = new List<string>();
-				var parts = s.Split( null );
-				foreach( var p in parts )
-				{
-					if( !string.IsNullOrEmpty( p ) )
-					{
-						tokens.Add( p );
-					}
-				}
-			}
-
-
 
 			public virtual void Tick()
 			{

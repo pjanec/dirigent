@@ -7,19 +7,25 @@ namespace Dirigent.Common
 {
     public class CommandRepository
     {
-        Dictionary<string, ICommand> commands = new Dictionary<string, ICommand>();
+        IDirigentControl ctrl;
+        public delegate ICommand CmdCreatorDeleg(IDirigentControl ctrl);
+        Dictionary<string, CmdCreatorDeleg> commands = new Dictionary<string, CmdCreatorDeleg>();
 
-
-        public void Register(ICommand command)
+        public CommandRepository( IDirigentControl ctrl )
         {
-            commands[command.Name] = command;
+            this.ctrl = ctrl;
         }
 
-        public ICommand Find( string name )
+        public void Register( string name, CmdCreatorDeleg creator )
+        {
+            commands[name] = creator;
+        }
+
+        public ICommand Create( string name )
         {
             if (commands.ContainsKey(name))
             {
-                return commands[name];
+                return commands[name](ctrl);
             }
 
             return null;
@@ -29,7 +35,7 @@ namespace Dirigent.Common
         {
             string cmdName = cmdLineTokens[0];
 
-            ICommand cmd = Find(cmdName);
+            ICommand cmd = Create(cmdName);
             if (cmd == null)
             {
                 throw new UnknownCommandException(cmdName);
@@ -118,11 +124,45 @@ namespace Dirigent.Common
             foreach( var c in commands )
             {
                 var cmd = ParseSingleCommand( c );
-				cmd.Response += writeRespDeleg;
+                
+                if( writeRespDeleg != null )
+                {
+				    cmd.Response += writeRespDeleg;
+                }
+
 				result.Add(cmd);
             }
 
 			return result;
         }
+
+        public List<ICommand> ParseCmdLine( string cmdLine, WriteResponseDeleg writeRespDeleg )
+        {
+			List<string> tokens = null;
+			if( !string.IsNullOrEmpty( cmdLine ) )
+			{
+				SplitToWordTokens( cmdLine, out tokens );
+			}
+			if( tokens != null && tokens.Count > 0 )
+			{
+				var cmdList = ParseCmdLineTokens( tokens, writeRespDeleg );
+				return cmdList;
+			}
+            return new List<ICommand>();
+        }
+
+		void SplitToWordTokens( string s, out List<string> tokens )
+		{
+			tokens = new List<string>();
+			var parts = s.Split( null );
+			foreach( var p in parts )
+			{
+				if( !string.IsNullOrEmpty( p ) )
+				{
+					tokens.Add( p );
+				}
+			}
+		}
+
     }
 }
