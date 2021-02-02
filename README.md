@@ -519,13 +519,18 @@ Each app in the launch plan has the following attributes:
 
   The following reserved values are handled in a specific way:
 
-    - `[cmd]` - Similar to `cmd.exe <CmdLineArgs>`. Launches cmd.exe executable. Command line arguments stay untouched, passed to cmd.exe as they are specific in the `CmdLineArgs` attribute. 
-  - `[cmd.file]` - similar to `cmd.exe /c <CmdLineArgs>`
+    - `[cmd]` - Similar to `cmd.exe <CmdLineArgs>`. Launches cmd.exe executable. Command line arguments stay untouched, passed to cmd.exe as they are specific in the `CmdLineArgs` attribute.
+      Example: `ExeFullPath = "[cmd]" CmdLineArgs = "/c dir"`
+  - `[cmd.file]` - similar to `cmd.exe /c <CmdLineArgs>`. Example: `ExeFullPath = "[cmd.file]" CmdLineArgs = "dir"`
   - `[cmd.command]` - same as `[cmd.file]`
   - `[powershell]` - Similar to `powershell.exe <CmdLineArgs>`. Launches powershell executable. Command line arguments stay untouched, passed to powershell.exe as they are specific in the `CmdLineArgs` attribute.
-  - `[powershell.command]` - launches `powershell.exe -command <CmdLineArgs>`
-  - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`
-  - `[dirigent.command]` - not yet implemented; will execute a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirignet agent)
+    Example: `ExeFullPath = "[powershell]" CmdLineArgs = "--file test1.ps1"`
+  - `[powershell.command]` - launches `powershell.exe -command <CmdLineArgs>`.
+    Example: `ExeFullPath = "[powershell.command]" CmdLineArgs = "ls"`
+  - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`.
+    Example: `ExeFullPath = "[powershell.file]" CmdLineArgs = "test1.ps1"`
+  - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirignet agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
+    Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "LaunchApp m1.a; KillPlan plan2" Volatile="1"`
 
 - `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
 
@@ -533,7 +538,7 @@ Each app in the launch plan has the following attributes:
 
 - `StartupOrder` - the launch order in case of same priority of multiple apps
 
-- `Volatile 0|1` - whether the application is expected to terminate automatically and not stay forever until killed; Such apps are not part of plan start success condition.
+- `Volatile 0|1` - whether the application is expected to terminate automatically and not stay forever until killed; Such apps are not part of plan start success condition, meaning the plan reports 'success' even if this app already terminates.
 
 - `Disabled 0|1` - whether the application is initially excluded from plan operation.
 
@@ -551,7 +556,7 @@ Each app in the launch plan has the following attributes:
 
 - `KillTree 0|1` - whether to kill not just the single process but also all its child processes. Child processes are killed only in case of a hard kill if previous "softer" attempts (if any, see KillSeq) fail.
 
-- `KillSoftly 0|1` - whether to send the close command (as if user pressed the close button) instead of a forceful kill. Note this is implemented using the *SoftKill* mechanism described below with timeout=10secs.
+- `KillSoftly 0|1` - whether to send the close command (as if user pressed the close button) instead of a forceful kill. Note this is implemented using the *SoftKill* mechanism described below with timeout=10secs. **DEPRECATED**, use the `SoftKill` section instead
 
 - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
 
