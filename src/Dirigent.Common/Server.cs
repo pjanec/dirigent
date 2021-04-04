@@ -42,7 +42,17 @@ namespace Dirigent.Net
             var host = new ServiceHost( service, uri);
             var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");
             //endpoint.Behaviors.Add(new ClientTrackerEndpointBehavior());
-            host.Open(); // never closed as the server runs forever
+            endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
+			//foreach (var op in endpoint.Contract.Operations)
+			//{
+			//             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
+			//             if (dcsBehavior != null)
+			//                 op.Behaviors.Remove(dcsBehavior);
+			//             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
+			//}
+            Dirigent.Net.Message.RegisterProtobufTypeMaps();
+
+			host.Open(); // never closed as the server runs forever
 
             // although there can't be any clients connected, this caches the planRepo internally
             // this cached one is then sent to the client when it first connects

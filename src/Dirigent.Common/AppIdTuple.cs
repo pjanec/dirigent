@@ -6,12 +6,15 @@ using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class AppIdTuple
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string MachineId { get; private set; }
 
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         public string AppId { get; private set; }
 

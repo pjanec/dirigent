@@ -21,24 +21,30 @@ namespace Dirigent.Common
     /// <summary>
     /// Definition of an application in a launch plan
     /// </summary>
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class AppDef : IEquatable<AppDef>
     {
         /// <summary>
         /// Unique application name; together with MachineId makes a unique name across all applications on all machines.
         /// </summary>
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public AppIdTuple AppIdTuple;
 
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         public string ExeFullPath;
 
+        [ProtoBuf.ProtoMember(3)]
         [DataMember]
         public string StartupDir;
 
+        [ProtoBuf.ProtoMember(4)]
         [DataMember]
         public string CmdLineArgs;
 
+        [ProtoBuf.ProtoMember(5)]
         [DataMember]
         public int StartupOrder;
 
@@ -46,96 +52,115 @@ namespace Dirigent.Common
         /// Is the application expected to terminate automatically
 		/// Such apps are not part of plan start success condition
         /// </summary>
+        [ProtoBuf.ProtoMember(6)]
         [DataMember]
         public bool Volatile;
 
+        [ProtoBuf.ProtoMember(7)]
         [DataMember]
         public bool RestartOnCrash;
 
+        [ProtoBuf.ProtoMember(8)]
         [DataMember]
         public bool AdoptIfAlreadyRunning;
 
+        [ProtoBuf.ProtoMember(9)]
         [DataMember]
         public string PriorityClass; // idle, belownormal, normal, abovenormal, high, realtime; empty = normal
 
         [DataMember]
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
+        //[ProtoBuf.ProtoMember(10)]
         //[DataMember]
         //public List<string> Watchers = new List<string>();
 
+        [ProtoBuf.ProtoMember(11)]
         [DataMember]
         public double SeparationInterval; // seconds before next app can be started on the same computer
 
         /// <summary>
         /// AppIds of applications that need to be initialized before this app can be started 
         /// </summary>
+        [ProtoBuf.ProtoMember(12)]
         [DataMember]
         public List<string> Dependencies;
 
         /// <summary>
         /// Shall it be processed as part of plan?
         /// </summary>
+        [ProtoBuf.ProtoMember(13)]
         [DataMember]
         public bool Disabled;
 
+        [ProtoBuf.ProtoMember(14)]
         [DataMember]
         public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
 
         /// <summary>
         /// Specifies whether the process should be 'killed' through the CloseMainWindow() method (giving it a chance to handle the termination gracefully) instead of the Kill() method call.
         /// </summary>
+        [ProtoBuf.ProtoMember(15)]
         [DataMember]
         public bool KillSoftly;
 
+        [ProtoBuf.ProtoMember(16)]
         [DataMember]
         public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
         /// <summary>
         /// list of all <WindowPos /> XML sections as string (to be parsed later by specific app watcher code)
         /// </summary>
+        [ProtoBuf.ProtoMember(17)]
         [DataMember]
         public List<string> WindowPosXml = new List<string>();
 
         /// <summary>
         /// the <Restart /> XML section as string (to be parsed later by specific app watcher code)
         /// </summary>
+        [ProtoBuf.ProtoMember(18)]
         [DataMember]
         public string RestarterXml = String.Empty;
 
         /// <summary>
         /// the <KillSeq /> XML section as string (to be parsed later by Launcher code)
         /// </summary>
+        [ProtoBuf.ProtoMember(19)]
         [DataMember]
         public string SoftKillXml = String.Empty;
 
         /// <summary>
         /// list of environment vars to set (in addition to inherited system environemnt)
         /// </summary>
+        [ProtoBuf.ProtoMember(20)]
         [DataMember]
         public Dictionary<string, string> EnvVarsToSet = new Dictionary<string, string>();
 
         /// <summary>
         /// list of app-local vars to set (can be used in expansions for example in process exe path or command line)
         /// </summary>
+        [ProtoBuf.ProtoMember(21)]
         [DataMember]
         public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
 
         /// <summary>
         /// what to prepend to the PATH variable
         /// </summary>
+        [ProtoBuf.ProtoMember(22)]
         [DataMember]
         public String EnvVarPathToPrepend;
 
         /// <summary>
         /// what to append to the PATH variable
         /// </summary>
+        [ProtoBuf.ProtoMember(23)]
         [DataMember]
         public String EnvVarPathToAppend;
 
         /// <summary>
         /// the element within the InitDetectors section
         /// </summary>
+        [ProtoBuf.ProtoMember(24)]
         [DataMember]
         public List<string> InitDetectors = new List<string>();
 

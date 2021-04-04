@@ -10,6 +10,7 @@ namespace Dirigent.Common
     /// <summary>
     /// App status shared among all Dirigent participants.
     /// </summary>
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class AppState
     {
@@ -36,6 +37,7 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process was launched successfully
 		/// </summary>
+        [ProtoBuf.ProtoMember(1)]
 		[DataMember]
         public bool Started
         {
@@ -46,6 +48,7 @@ namespace Dirigent.Common
         /// <summary>
         /// process was launched but failed to start
         /// </summary>
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         public bool StartFailed
         {
@@ -56,6 +59,7 @@ namespace Dirigent.Common
         /// <summary>
         /// process is currently running
         /// </summary>
+        [ProtoBuf.ProtoMember(3)]
         [DataMember]
         public bool Running
         {
@@ -66,6 +70,7 @@ namespace Dirigent.Common
         /// <summary>
         /// forced to terminate	by KillApp request (not by a KillPlan)
         /// </summary>
+        [ProtoBuf.ProtoMember(4)]
         [DataMember]
         public bool Killed
         {
@@ -76,6 +81,7 @@ namespace Dirigent.Common
         /// <summary>
         /// Still dying (after termination request)
         /// </summary>
+        [ProtoBuf.ProtoMember(5)]
         [DataMember]
         public bool Dying
         {
@@ -86,6 +92,7 @@ namespace Dirigent.Common
         /// <summary>
         /// Just being restarted (waiting until dies in order to be lanuched again)
         /// </summary>
+        [ProtoBuf.ProtoMember(6)]
         [DataMember]
         public bool Restarting
         {
@@ -99,6 +106,7 @@ namespace Dirigent.Common
         /// By default true upon launching but can be immediately reset by a freshly instantiated AppWatcher acting like an InitDetector.
         /// This is to avoid app to stay in unitialized if an Initdetector-class watcher is not defined
         /// </summary>
+        [ProtoBuf.ProtoMember(7)]
         [DataMember]
         public bool Initialized
         {
@@ -109,6 +117,7 @@ namespace Dirigent.Common
         /// <summary>
         /// process was processed by the launch plan already, won't be touched by the launch plan again (until plan is stopped)
         /// </summary>
+        [ProtoBuf.ProtoMember(8)]
         [DataMember]
         public bool PlanApplied
         {
@@ -120,6 +129,7 @@ namespace Dirigent.Common
         /// Whether the app has been disabled from execution as part of the plan;
         /// This is set by the owner 
         /// </summary>
+        [ProtoBuf.ProtoMember(9)]
         [DataMember]
         public bool Disabled
         {
@@ -130,6 +140,7 @@ namespace Dirigent.Common
         /// <summary>
         /// process exit code; valid only if is Started && !Running && !Killed
         /// </summary>
+        [ProtoBuf.ProtoMember(10)]
         [DataMember]
         public int ExitCode
         {
@@ -140,6 +151,7 @@ namespace Dirigent.Common
         /// <summary>
         /// Timne of the last change in the application state.
         /// </summary>
+        [ProtoBuf.ProtoMember(11)]
         [DataMember]
         public DateTime LastChange
         {
@@ -150,6 +162,7 @@ namespace Dirigent.Common
         /// <summary>
         ///	percentage of CPU usage
         /// </summary>
+        [ProtoBuf.ProtoMember(12)]
         [DataMember]
         public int CPU
         {
@@ -160,6 +173,7 @@ namespace Dirigent.Common
         /// <summary>
         ///	percentage of GPU usage
         /// </summary>
+        [ProtoBuf.ProtoMember(13)]
         [DataMember]
         public int GPU
         {
@@ -170,6 +184,7 @@ namespace Dirigent.Common
         /// <summary>
         ///	MBytes of memory allocated
         /// </summary>
+        [ProtoBuf.ProtoMember(14)]
         [DataMember]
         public int Memory
         {
@@ -180,6 +195,7 @@ namespace Dirigent.Common
 		/// <summary>
 		///	How many restart tries to make before giving up
 		/// </summary>
+        [ProtoBuf.ProtoMember(15)]
 		[DataMember]
 		public int RestartsRemaining
 		{
@@ -190,6 +206,7 @@ namespace Dirigent.Common
         /// <summary>
         /// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
         /// </summary>
+        [ProtoBuf.ProtoMember(16)]
         [DataMember]
         public string PlanName
         {

@@ -6,15 +6,19 @@ using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class LaunchPlan : ILaunchPlan
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         List<AppDef> appDefs;
 
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         string name;
         
+        [ProtoBuf.ProtoMember(3)]
         [DataMember]
         double startTimeout;
         

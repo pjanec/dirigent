@@ -12,42 +12,53 @@ namespace Dirigent.Net
     /// <summary>
     /// Base class for all messages.
     /// </summary>
+    [ProtoBuf.ProtoContract]
     [DataContract]
-    [KnownType(typeof(RemoteOperationErrorMessage))]
-    [KnownType(typeof(AppsStateMessage))]
-    [KnownType(typeof(PlansStateMessage))]
-    [KnownType(typeof(LaunchAppMessage))]
-    [KnownType(typeof(KillAppMessage))]
-    [KnownType(typeof(RestartAppMessage))]
-    [KnownType(typeof(SetAppEnabledMessage))]
-    //[KnownType(typeof(SelectPlanMessage))]
-    [KnownType(typeof(StartPlanMessage))]
-    [KnownType(typeof(StopPlanMessage))]
-    [KnownType(typeof(KillPlanMessage))]
-    [KnownType(typeof(RestartPlanMessage))]
-    [KnownType(typeof(CurrentPlanMessage))]
-    [KnownType(typeof(PlanRepoMessage))]
-    [KnownType(typeof(SetVarsMessage))]
-    [KnownType(typeof(KillAllMessage))]
-    [KnownType(typeof(ShutdownMessage))]
-    [KnownType(typeof(ReinstallMessage))]
-    [KnownType(typeof(TerminateMessage))]
-    [KnownType(typeof(ReloadSharedConfigMessage))]
+    [KnownType(typeof(RemoteOperationErrorMessage)) , ProtoBuf.ProtoInclude(101, typeof(RemoteOperationErrorMessage))]
+    [KnownType(typeof(AppsStateMessage))            , ProtoBuf.ProtoInclude(102, typeof(AppsStateMessage))]
+    [KnownType(typeof(PlansStateMessage))           , ProtoBuf.ProtoInclude(103, typeof(PlansStateMessage))]
+    [KnownType(typeof(LaunchAppMessage))            , ProtoBuf.ProtoInclude(104, typeof(LaunchAppMessage))]
+    [KnownType(typeof(KillAppMessage))              , ProtoBuf.ProtoInclude(105, typeof(KillAppMessage))]
+    [KnownType(typeof(RestartAppMessage))           , ProtoBuf.ProtoInclude(106, typeof(RestartAppMessage))]
+    [KnownType(typeof(SetAppEnabledMessage))        , ProtoBuf.ProtoInclude(107, typeof(SetAppEnabledMessage))]
+    //[KnownType(typeof(SelectPlanMessage))         , ProtoBuf.ProtoInclude(108, typeof(SelectPlanMessage))]
+    [KnownType(typeof(StartPlanMessage))            , ProtoBuf.ProtoInclude(109, typeof(StartPlanMessage))]
+    [KnownType(typeof(StopPlanMessage))             , ProtoBuf.ProtoInclude(110, typeof(StopPlanMessage))]
+    [KnownType(typeof(KillPlanMessage))             , ProtoBuf.ProtoInclude(111, typeof(KillPlanMessage))]
+    [KnownType(typeof(RestartPlanMessage))          , ProtoBuf.ProtoInclude(112, typeof(RestartPlanMessage))]
+    [KnownType(typeof(CurrentPlanMessage))          , ProtoBuf.ProtoInclude(113, typeof(CurrentPlanMessage))]
+    [KnownType(typeof(PlanRepoMessage))             , ProtoBuf.ProtoInclude(114, typeof(PlanRepoMessage))]
+    [KnownType(typeof(SetVarsMessage))              , ProtoBuf.ProtoInclude(115, typeof(SetVarsMessage))]
+    [KnownType(typeof(KillAllMessage))              , ProtoBuf.ProtoInclude(116, typeof(KillAllMessage))]
+    [KnownType(typeof(ShutdownMessage))             , ProtoBuf.ProtoInclude(117, typeof(ShutdownMessage))]
+    [KnownType(typeof(ReinstallMessage))            , ProtoBuf.ProtoInclude(118, typeof(ReinstallMessage))]
+    [KnownType(typeof(TerminateMessage))            , ProtoBuf.ProtoInclude(119, typeof(TerminateMessage))]
+    [KnownType(typeof(ReloadSharedConfigMessage))   , ProtoBuf.ProtoInclude(120, typeof(ReloadSharedConfigMessage))]
     public class Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string Sender { get; set; }
+
+        public static void RegisterProtobufTypeMaps()
+        {
+			ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof (ILaunchPlan), true).AddSubType(50, typeof(LaunchPlan));
+        }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class RemoteOperationErrorMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string Requestor;
         
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         public string Message; // Error description 
         
+        [ProtoBuf.ProtoMember(3)]
         [DataMember]
         public Dictionary<string, string> Attributes; // additional attribute pairs (name, value)
 
@@ -62,9 +73,11 @@ namespace Dirigent.Net
         }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class AppsStateMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public Dictionary<AppIdTuple, AppState> appsState;
 
@@ -74,9 +87,11 @@ namespace Dirigent.Net
         }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class PlansStateMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public Dictionary<string, PlanState> plansState;
 
@@ -86,9 +101,11 @@ namespace Dirigent.Net
         }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class LaunchAppMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public AppIdTuple appIdTuple;
 
@@ -104,9 +121,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class KillAppMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public AppIdTuple appIdTuple;
 
@@ -122,9 +141,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class RestartAppMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public AppIdTuple appIdTuple;
 
@@ -139,15 +160,19 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class SetAppEnabledMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string planName;
 
+        [ProtoBuf.ProtoMember(2)]
         [DataMember]
         public AppIdTuple appIdTuple;
 
+        [ProtoBuf.ProtoMember(3)]
         [DataMember]
         public bool enabled;
 
@@ -165,9 +190,11 @@ namespace Dirigent.Net
 
     }
 
+    //[ProtoBuf.ProtoContract]
     //[DataContract]
     //public class SelectPlanMessage : Message
     //{
+    //    [ProtoBuf.ProtoMember(1)]
     //    [DataMember]
     //    public string planName;
 
@@ -183,9 +210,11 @@ namespace Dirigent.Net
 
     //}
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class StartPlanMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public String planName;
 
@@ -197,9 +226,11 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format("StartPlan {0}", planName); }
     }
 
-     [DataContract]
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public class StopPlanMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string planName;
 
@@ -211,9 +242,11 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format("StopPlan {0}", planName); }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class KillPlanMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string planName;
 
@@ -225,9 +258,11 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format("KillPlan {0}", planName); }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class RestartPlanMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string planName;
 
@@ -242,9 +277,11 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about the current launch plan
 	/// </summary>
-	[DataContract]
+	[ProtoBuf.ProtoContract]
+    [DataContract]
 	public class CurrentPlanMessage : Message
 	{
+        [ProtoBuf.ProtoMember(1)]
 		[DataMember]
 		public string planName;
 
@@ -262,9 +299,11 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing plans
 	/// </summary>
+    [ProtoBuf.ProtoContract]
 	[DataContract]
     public class PlanRepoMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public IEnumerable<ILaunchPlan> repo;
 
@@ -279,9 +318,11 @@ namespace Dirigent.Net
         }
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class SetVarsMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public string vars;
 
@@ -298,9 +339,11 @@ namespace Dirigent.Net
     }
 
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class KillAllMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public KillAllArgs args;
 
@@ -316,9 +359,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class TerminateMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public TerminateArgs args;
 
@@ -334,9 +379,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class ShutdownMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public ShutdownArgs args;
 
@@ -352,9 +399,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class ReinstallMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public ReinstallArgs args;
 
@@ -370,9 +419,11 @@ namespace Dirigent.Net
 
     }
 
+    [ProtoBuf.ProtoContract]
     [DataContract]
     public class ReloadSharedConfigMessage : Message
     {
+        [ProtoBuf.ProtoMember(1)]
         [DataMember]
         public ReloadSharedConfigArgs args;
 

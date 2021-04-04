@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Dirigent.Common
 {
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public struct KillAllArgs
     {
         public string MachineId; // where to kill the apps; null or empty means everywhere
@@ -17,11 +20,15 @@ namespace Dirigent.Common
         Reboot = 1
     }
 
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public struct ShutdownArgs
     {
         public EShutdownMode Mode;
     }
 
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public struct TerminateArgs
     {
         public bool KillApps;  // kill all local apps before terminating
@@ -33,6 +40,8 @@ namespace Dirigent.Common
         Manual = 0,  // shows a dialog offering to restart the dirigent once the dirigent binaries have been manually overwritten
     }
 
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public struct ReinstallArgs
     {
         public EDownloadMode DownloadMode;
@@ -40,6 +49,8 @@ namespace Dirigent.Common
     }
 
 
+    [ProtoBuf.ProtoContract]
+    [DataContract]
     public struct ReloadSharedConfigArgs
     {
         public bool KillApps;  // kill all local apps before terminating

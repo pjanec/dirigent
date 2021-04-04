@@ -22,7 +22,7 @@ namespace Dirigent.Net
         public long lastActivityTicks;
     }
 
-    [ServiceBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, InstanceContextMode=InstanceContextMode.Single)]
+    [ServiceBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, InstanceContextMode=InstanceContextMode.Single, IncludeExceptionDetailInFaults = true)]
     public class MasterService : IDirigentMasterContract
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
