@@ -40,6 +40,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI.Telnet", "Diri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Reinstaller", "Dirigent.Reinstaller\Dirigent.Reinstaller.csproj", "{934EB60B-1901-476C-B672-8178F728DBEC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GriffinTest1", "GriffinTest1\GriffinTest1.csproj", "{5B3767A8-B85F-404B-A33B-7D51B6202758}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -267,6 +269,26 @@ Global
 		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x64.Build.0 = Release|Any CPU
 		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x86.ActiveCfg = Release|Any CPU
 		{934EB60B-1901-476C-B672-8178F728DBEC}.Release|x86.Build.0 = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|Win32.Build.0 = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|x64.Build.0 = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Debug|x86.Build.0 = Debug|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Win32.ActiveCfg = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|Win32.Build.0 = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|x64.ActiveCfg = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|x64.Build.0 = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|x86.ActiveCfg = Release|Any CPU
+		{5B3767A8-B85F-404B-A33B-7D51B6202758}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
