@@ -74,7 +74,8 @@ namespace Dirigent.Agent.Gui
 			string clientId,
 			NotifyIcon notifyIcon,
 			bool allowLocalIfDisconnected,
-			GuiAppCallbacks callbacks
+			GuiAppCallbacks callbacks,
+			int tickPeriod
             )
         {
             this.ctrl = ctrl;
@@ -98,6 +99,7 @@ namespace Dirigent.Agent.Gui
             }
 
             // start ticking
+			tmrTick.Interval = tickPeriod;
             tmrTick.Enabled = true;
         }
 

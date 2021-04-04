@@ -45,6 +45,12 @@ namespace Dirigent.Master
         [Option("ParentAgentPid", Required = false, DefaultValue = -1, HelpText = "PID of agent that is running this Dirigent (-1 = standalone)")]
         public int ParentAgentPid { get; set; }
 
+        [Option("tickPeriod", Required = false, DefaultValue = 0, HelpText = "Refresh period in msec.")]
+        public int TickPeriod { get; set; }
+
+        [Option("CLITickPeriod", Required = false, DefaultValue = 0, HelpText = "CLI server refresh period in msec.")]
+        public int CLITickPeriod { get; set; }
+
 
         [ParserState]
         public IParserState LastParserState { get; set; }
@@ -82,6 +88,8 @@ namespace Dirigent.Master
             public LocalConfig lcfg = null;
             public int CLIPort = 5033;
             public int ParentAgentPid = -1;  // are we startd from an agent, i.e. not standalone?
+            public int tickPeriod = 500; // msec
+            public int CLITickPeriod = 50; // msec
         }
 
         static AppConfig getAppConfig()
@@ -94,6 +102,8 @@ namespace Dirigent.Master
             if (Properties.Settings.Default.LocalConfigFile != "") ac.localCfgFileName = Properties.Settings.Default.LocalConfigFile;
             if (Properties.Settings.Default.StartupPlan != "") ac.startupPlanName = Properties.Settings.Default.StartupPlan;
             if (Properties.Settings.Default.CLIPort != 0) ac.CLIPort = Properties.Settings.Default.CLIPort;
+            if (Properties.Settings.Default.TickPeriod != 0) ac.tickPeriod = Properties.Settings.Default.TickPeriod;
+            if (Properties.Settings.Default.CLITickPeriod != 0) ac.CLITickPeriod = Properties.Settings.Default.CLITickPeriod;
 
             // overwrite with command line options
             var options = new Options();
@@ -106,6 +116,8 @@ namespace Dirigent.Master
                 if (options.StartupPlan != "") ac.startupPlanName = options.StartupPlan;
                 if (options.CLIPort != 0) ac.CLIPort = options.CLIPort;
                 if (options.ParentAgentPid != -1) ac.ParentAgentPid = options.ParentAgentPid;
+                if (options.TickPeriod != 0) ac.tickPeriod = options.TickPeriod;
+                if (options.CLITickPeriod != 0) ac.CLITickPeriod = options.CLITickPeriod;
             }
 
             if (ac.logFileName != "")
@@ -144,11 +156,15 @@ namespace Dirigent.Master
             }
         }
 
+        
+        static AppConfig conf;
+
         static bool Initialize()
         {
             try
             {
                 var ac = getAppConfig();
+                conf = ac;
 
                 if (AppInstanceAlreadyRunning(ac.masterPort))
                 {
@@ -195,13 +211,29 @@ namespace Dirigent.Master
         static void Run()
         {
             Console.WriteLine("Press Ctr+C to stop the server.");
+
+            int numCliTicksPerMainTick = conf.tickPeriod / conf.CLITickPeriod;
+            if( numCliTicksPerMainTick <= 0 ) numCliTicksPerMainTick = 1;
+            int cliSleep = conf.tickPeriod / numCliTicksPerMainTick;
+            if( cliSleep <= 0 ) cliSleep = 1;
+            int extraSleep = conf.tickPeriod - numCliTicksPerMainTick * cliSleep;
+
+            
             // run forever
             while (true)
             {
 	            agent.tick();
-	            cliServer.Tick();
+
+                // multiple cli ticks per one main tick
+                for( int i=0; i < numCliTicksPerMainTick; i++)
+                {
+	                cliServer.Tick();
+                    Thread.Sleep( cliSleep );
+                }
+
                 if( parentExited() ) break;
-	            Thread.Sleep(50);
+	            
+                Thread.Sleep( extraSleep ); // this is already included
             }
         }
 

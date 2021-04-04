@@ -49,6 +49,9 @@ namespace Dirigent.Agent.TrayApp
         [Option("mode", Required = false, DefaultValue = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui].")]
         public string Mode { get; set; }
 
+        [Option("tickPeriod", Required = false, DefaultValue = 0, HelpText = "Refresh period in msec.")]
+        public int TickPeriod { get; set; }
+
         [ParserState]
         public IParserState LastParserState { get; set; }
 
@@ -76,6 +79,7 @@ namespace Dirigent.Agent.TrayApp
         public SharedConfig scfg = null;
         public LocalConfig lcfg = null;
         public string isMaster = "0"; // "1"=run the master process automatically
+        public int tickPeriod = 500; // msec
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -103,6 +107,7 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.Mode != "") mode = Properties.Settings.Default.Mode;
             if (Properties.Settings.Default.IsMaster != "") isMaster = Properties.Settings.Default.IsMaster;
             if (Properties.Settings.Default.CLIPort != 0) cliPort = Properties.Settings.Default.CLIPort;
+            if (Properties.Settings.Default.TickPeriod != 0) tickPeriod = Properties.Settings.Default.TickPeriod;
 
             // overwrite with command line options
             var args = System.Environment.GetCommandLineArgs();
@@ -120,6 +125,7 @@ namespace Dirigent.Agent.TrayApp
                 if (options.Mode != "") mode = options.Mode;
                 if (options.IsMaster != "") isMaster = options.IsMaster;
                 if (options.CLIPort != 0) cliPort = options.CLIPort;
+                if (options.TickPeriod != 0) tickPeriod = options.TickPeriod;
             }
             else
             {

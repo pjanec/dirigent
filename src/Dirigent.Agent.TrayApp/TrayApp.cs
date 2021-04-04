@@ -182,7 +182,7 @@ namespace Dirigent.Agent.TrayApp
             callbacks.isConnectedDeleg = client.IsConnected;
             callbacks.onTickDeleg = agent.tick;
 
-            mainForm = new frmMain(agent.Control, planRepo, ac.machineId, client.Name, notifyIcon, !runningAsRemoteControlGui, callbacks);
+            mainForm = new frmMain(agent.Control, planRepo, ac.machineId, client.Name, notifyIcon, !runningAsRemoteControlGui, callbacks, ac.tickPeriod);
 
             // restore saved location if SHIFT not held
             if ((Control.ModifierKeys & Keys.Shift) == 0)

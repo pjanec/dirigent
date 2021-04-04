@@ -41,5 +41,41 @@
     <Setting Name="RestartPlanPlanHotKey" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control + Shift + Alt + R</Value>
     </Setting>
+    <Setting Name="LocalConfigFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ShowJustAppsFromCurrentPlan" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectPlan1HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 1</Value>
+    </Setting>
+    <Setting Name="SelectPlan2HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 2</Value>
+    </Setting>
+    <Setting Name="SelectPlan3HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 3</Value>
+    </Setting>
+    <Setting Name="SelectPlan4HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 4</Value>
+    </Setting>
+    <Setting Name="SelectPlan5HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 5</Value>
+    </Setting>
+    <Setting Name="SelectPlan6HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 6</Value>
+    </Setting>
+    <Setting Name="SelectPlan7HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 7</Value>
+    </Setting>
+    <Setting Name="SelectPlan8HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 8</Value>
+    </Setting>
+    <Setting Name="SelectPlan9HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 9</Value>
+    </Setting>
+    <Setting Name="TickPeriod" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">500</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -253,6 +253,8 @@ The following options changes the mode of operation:
 
  `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
 
+ `--tickPeriod 500` ... Period in milliseconds of commands/plan processing & GUI refresh.
+
 ### Master configuration options
 
 `Dirigent.Master.exe` is a console application designed to run in background on one of the computers.
@@ -266,6 +268,10 @@ The following options changes the mode of operation:
  `--startupPlan <plan_name>` ... what plan to be forced (make selected) on agents when they connect to master
 
  `--CLIPort 5050` ... what TPC port to run the Command Line Interface server on
+
+ `--tickPeriod 500` ... Period in milliseconds of themain loop of incoming command broadcasting to clients, plan processing etc.
+
+ `--CLITickPeriod 50` ... Period in milliseconds of processing the CLI server requests. Should be a fraction of the `tickPeriod`. If larger than `tickPeriod`, one CLI server tick per main loop will be executed.
 
 ### Agent Command Line Interface over TCP line-based connection
 

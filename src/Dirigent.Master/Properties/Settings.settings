@@ -14,5 +14,11 @@
     <Setting Name="CLIPort" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">5050</Value>
     </Setting>
+    <Setting Name="TickPeriod" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">500</Value>
+    </Setting>
+    <Setting Name="CLITickPeriod" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">50</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

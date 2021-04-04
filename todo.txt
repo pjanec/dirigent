@@ -1,4 +1,6 @@
-﻿"Kill all" button killing all apps, plans, restarters, everything.
+﻿BUG: Dirigent seems sets DIRIGENT_PLAN to the locally selected plan on the agent on the target machine, not to the plan selected on the agent the start commadn was issued from.
+
+[DONE] "Kill all" button killing all apps, plans, restarters, everything.
 
 [DONE] "Reload config" operation that just reloads the SharedConfig.xml without the need to shutdown all the apps. Should be failure proof - no reload if there is a bug in the config etc. To be used for  little changes not breaking much the plan/app structure so that the apps can remain running. On Master, monitor the shared config file for changes and reload automatically (leaving the already strated plans and apps running).
 

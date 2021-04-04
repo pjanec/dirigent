@@ -53,7 +53,7 @@ namespace Dirigent.Common
                     var msg = String.Format("Template '{0}' not found", templateName);
                     log.ErrorFormat(msg);
                     throw new ConfigurationErrorException(msg);
-                    a = new AppDef();
+                    //a = new AppDef();
                 }
                 else
                 {

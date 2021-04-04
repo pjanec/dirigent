@@ -60,7 +60,10 @@ namespace Dirigent.Agent.Core
 				}
 			}
 
-            client.BroadcastMessage( new AppsStateMessage( localAppsState ) );
+            if( localAppsState.Count > 0 )
+            {
+                client.BroadcastMessage( new AppsStateMessage( localAppsState ) );
+            }
 
         }
 
