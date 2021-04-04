@@ -83,16 +83,6 @@ namespace Dirigent.Agent.Gui {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap killall {
-            get {
-                object obj = ResourceManager.GetObject("killall", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
-        /// </summary>
         internal static System.Drawing.Bitmap itemlist {
             get {
                 object obj = ResourceManager.GetObject("itemlist", resourceCulture);
@@ -119,7 +109,17 @@ namespace Dirigent.Agent.Gui {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap killall {
+            get {
+                object obj = ResourceManager.GetObject("killall", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
