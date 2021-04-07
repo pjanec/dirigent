@@ -85,7 +85,7 @@ namespace Dirigent.Net
 			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
-            client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
+            //client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
 			//foreach (var op in client.Endpoint.Contract.Operations)
 			//{
    //             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
@@ -93,7 +93,7 @@ namespace Dirigent.Net
    //                 op.Behaviors.Remove(dcsBehavior);
    //             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
 			//}
-            Dirigent.Net.Message.RegisterProtobufTypeMaps();
+            //Dirigent.Net.Message.RegisterProtobufTypeMaps();
 
             server = client.ChannelFactory.CreateChannel();
 

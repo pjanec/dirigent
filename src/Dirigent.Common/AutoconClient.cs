@@ -47,7 +47,7 @@ namespace Dirigent.Net
 
 		public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
         {
-            Test1();
+            //Test1();
 
             this.name = name;
             this.ipaddr = ipaddr;
@@ -65,7 +65,7 @@ namespace Dirigent.Net
 			binding.Security.Mode = SecurityMode.None;
             callback = new MasterServiceCallback();
             client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
-            client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
+            //client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
 			//foreach (var op in client.Endpoint.Contract.Operations)
 			//{
    //             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
@@ -96,8 +96,6 @@ namespace Dirigent.Net
                     channel.OperationTimeout = TimeSpan.FromSeconds((double)timeoutMs/1000);
 
                     server.AddClient(name);
-
-                    var localIP = channel.LocalAddress;
 
                     connected = true;
                 }
@@ -257,17 +255,17 @@ namespace Dirigent.Net
 
 
 
-	    static void Test1()
-	    {
-            var ser = new System.Runtime.Serialization.DataContractSerializer(typeof(Dirigent.Net.AppsStateMessage));
-            var payload = new Dictionary<Common.AppIdTuple, Common.AppState>();
-            payload[ new Common.AppIdTuple("m1.app1")] = new Common.AppState();
-            var msg = new Dirigent.Net.AppsStateMessage( payload );
-            var stream = new System.IO.MemoryStream();
-            ser.WriteObject( stream, msg );
-            stream.Seek(0, System.IO.SeekOrigin.Begin);
-            var rawDataStr = new System.IO.StreamReader(stream).ReadToEnd();
-	    }
+	    //static void Test1()
+	    //{
+     //       var ser = new System.Runtime.Serialization.DataContractSerializer(typeof(Dirigent.Net.AppsStateMessage));
+     //       var payload = new Dictionary<Common.AppIdTuple, Common.AppState>();
+     //       payload[ new Common.AppIdTuple("m1.app1")] = new Common.AppState();
+     //       var msg = new Dirigent.Net.AppsStateMessage( payload );
+     //       var stream = new System.IO.MemoryStream();
+     //       ser.WriteObject( stream, msg );
+     //       stream.Seek(0, System.IO.SeekOrigin.Begin);
+     //       var rawDataStr = new System.IO.StreamReader(stream).ReadToEnd();
+	    //}
 
 
     }

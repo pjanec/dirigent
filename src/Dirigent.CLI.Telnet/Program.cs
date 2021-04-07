@@ -157,7 +157,9 @@ namespace Dirigent.CLI.Telnet
 
         static ErrorCode consoleAppMain( string[] args )
         {
-			Dirigent.CLI.CommandLineClient client;
+		    ErrorCode errorCode = ErrorCode.OK;
+
+            Dirigent.CLI.CommandLineClient client;
             try
             {
                 var ac = getAppConfig();
@@ -177,7 +179,7 @@ namespace Dirigent.CLI.Telnet
                 if( ac.nonOptionArgs.Count > 0 ) // non-interactive cmd line; retruns error code 0 if command reply is not error
                 {
                     var input = string.Join( " ", ac.nonOptionArgs );
-                    return NonInteractive( client, input );
+                    errorCode = NonInteractive( client, input );
                 }
                 else // interactive
                 {
@@ -206,30 +208,11 @@ namespace Dirigent.CLI.Telnet
 					    if(string.IsNullOrEmpty(input) ) break;
 					    client.SendReq( input );
 				    }
-                    return ErrorCode.OK;
+                    errorCode = ErrorCode.OK;
                 }
-
-				//// use unique client id to avoid conflict with any other possible client
-                //string machineId = Guid.NewGuid().ToString();
-                //var client = new Dirigent.Net.Client(machineId, ac.masterIP, ac.masterPort);
-                
-                //// first connect
-                //client.Connect();
-                
-                //// use network-only agent (never local)
-                //string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
-                //var agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths);
-                
-                //// let the agent receive the plan repository from master
-                //agent.tick();
-
-                //// process the console command
-                //MyCommandRepo cmdRepo = new MyCommandRepo(agent.Control);
-                //cmdRepo.ParseAndExecute(ac.nonOptionArgs);
-
                 client.Dispose();
 
-				return ErrorCode.OK; // everything OK
+				return errorCode;
 
             }
             catch (Exception ex)

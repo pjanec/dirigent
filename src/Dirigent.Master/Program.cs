@@ -283,7 +283,7 @@ namespace Dirigent.Master
                     var p = Process.GetProcessById( ParentPID );
                     return false;
                 }
-                catch( ArgumentException ex )
+                catch( ArgumentException  )
                 {
                     return true;
                 }

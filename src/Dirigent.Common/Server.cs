@@ -42,7 +42,7 @@ namespace Dirigent.Net
             var host = new ServiceHost( service, uri);
             var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");
             //endpoint.Behaviors.Add(new ClientTrackerEndpointBehavior());
-            endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
+            //endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
 			//foreach (var op in endpoint.Contract.Operations)
 			//{
 			//             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
@@ -50,7 +50,7 @@ namespace Dirigent.Net
 			//                 op.Behaviors.Remove(dcsBehavior);
 			//             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
 			//}
-            Dirigent.Net.Message.RegisterProtobufTypeMaps();
+            //Dirigent.Net.Message.RegisterProtobufTypeMaps();
 
 			host.Open(); // never closed as the server runs forever
 

@@ -68,10 +68,11 @@ namespace Dirigent.Common
         [DataMember]
         public string PriorityClass; // idle, belownormal, normal, abovenormal, high, realtime; empty = normal
 
+        [ProtoBuf.ProtoMember(10)]
         [DataMember]
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
-        //[ProtoBuf.ProtoMember(10)]
+        //[ProtoBuf.ProtoMember(??)]
         //[DataMember]
         //public List<string> Watchers = new List<string>();
 
