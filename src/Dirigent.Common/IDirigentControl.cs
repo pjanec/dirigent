@@ -61,6 +61,13 @@ namespace Dirigent.Common
     public interface IDirigentControl
     {
         /// <summary>
+        /// Checkis if an app is the local one
+        /// </summary>
+        /// <param name="appIdTuple"></param>
+        /// <returns>true if local, false if remote</returns>
+        bool IsLocalApp( AppIdTuple appIdTuple );
+
+        /// <summary>
         /// Get the status of an application (no matter whether local or remote)
 		/// If used on a LocalOperation instance, returns reference to a live writable 
 		/// state - you can modify the app state.

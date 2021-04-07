@@ -100,6 +100,11 @@ namespace Dirigent.Net
 			disconTimer = new Timer(DetectDisconnections, null, 0, 1000);
         }
 
+        public void Dispose()
+        {
+            clients.Clear();
+        }
+
         /// <summary>
         /// returns true if the message was fully handled and shall not be further processed
         /// </summary>

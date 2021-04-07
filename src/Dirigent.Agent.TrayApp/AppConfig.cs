@@ -22,6 +22,12 @@ namespace Dirigent.Agent.TrayApp
         [Option("masterIp", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
         public string MasterIP { get; set; }
 
+        [Option("mcastIp", Required = false, DefaultValue = "", HelpText = "Multicast IP address.")]
+        public string McastIP { get; set; }
+
+        [Option("localIp", Required = false, DefaultValue = "", HelpText = "Local addapter IP address to bind to when multicasting.")]
+        public string LocalIP { get; set; }
+
         [Option("machineId", Required = false, DefaultValue = "", HelpText = "Machine Id.")]
         public string MachineId { get; set; }
 
@@ -80,6 +86,8 @@ namespace Dirigent.Agent.TrayApp
         public LocalConfig lcfg = null;
         public string isMaster = "0"; // "1"=run the master process automatically
         public int tickPeriod = 500; // msec
+        public string mcastIP = "239.121.121.121";
+        public string localIP = "0.0.0.0";
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -98,6 +106,8 @@ namespace Dirigent.Agent.TrayApp
             // overwrite with application config
             if (Properties.Settings.Default.MachineId != "") machineId = Properties.Settings.Default.MachineId;
             if (Properties.Settings.Default.MasterIP != "") masterIP = Properties.Settings.Default.MasterIP;
+            if (Properties.Settings.Default.McastIP != "") mcastIP = Properties.Settings.Default.McastIP;
+            if (Properties.Settings.Default.LocalIP != "") localIP = Properties.Settings.Default.LocalIP;
             if (Properties.Settings.Default.MasterPort != 0) masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.SharedConfigFile != "") sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
             if (Properties.Settings.Default.LocalConfigFile != "") localCfgFileName = Properties.Settings.Default.LocalConfigFile;
@@ -116,6 +126,8 @@ namespace Dirigent.Agent.TrayApp
             {
                 if (options.MachineId != "") machineId = options.MachineId;
                 if (options.MasterIP != "") masterIP = options.MasterIP;
+                if (options.McastIP != "") mcastIP = options.McastIP;
+                if (options.LocalIP != "") localIP = options.LocalIP;
                 if (options.MasterPort != 0) masterPort = options.MasterPort;
                 if (options.SharedConfigFile != "") sharedCfgFileName = options.SharedConfigFile;
                 if (options.LocalConfigFile != "") localCfgFileName = options.LocalConfigFile;

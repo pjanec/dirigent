@@ -55,6 +55,9 @@ namespace Dirigent.Net
         string name;
         string ipaddr;
         int port;
+        string mcastIP;
+        int mcastPort;
+        string localIP;
 		int timeoutMs;
 
         MasterServiceClient client;
@@ -65,12 +68,18 @@ namespace Dirigent.Net
 
 		public string MasterIP { get { return this.ipaddr; } }
 		public int MasterPort { get { return this.port; } }
+		public string McastIP { get { return this.mcastIP; } }
+		public int McastPort { get { return this.mcastPort; } }
+		public string LocalIP { get { return this.localIP; } }
 
-        public Client( string name, string ipaddr, int port, int timeoutMs=5000 )
+        public Client( string name, string ipaddr, int port, string mcastIP, int mcastPort, string localIP, int timeoutMs=5000 )
         {
             this.name = name;
             this.ipaddr = ipaddr;
             this.port = port;
+            this.mcastIP = mcastIP;
+            this.mcastPort = mcastPort;
+            this.localIP = localIP;
 			this.timeoutMs = timeoutMs;
         }
         

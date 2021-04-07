@@ -241,6 +241,10 @@ The following options changes the mode of operation:
 
  `--masterIp 1.2.3.4` ... mater's IP address
 
+ `--mcastIp 239.121.121.121` ... multicast IP address used for application state sharing among agents
+
+ `--localIp 10.0.0.17` ... local network interface address used for multicasting (default 0.0.0.0 = auto select)
+
  `--logFile xyz.log` ... what log file to use
 
  `--startupPlan <plan_name>` ... immediately loads an initial plan and makes it the current one (local agent) before the connection to the master is established
@@ -260,6 +264,10 @@ The following options changes the mode of operation:
 `Dirigent.Master.exe` is a console application designed to run in background on one of the computers.
 
  `--masterPort 5042` ... what TPC port to run on
+
+ `--mcastIp 239.121.121.121` ... multicast IP address used for application state sharing among agents
+
+ `--localIp 10.0.0.17` ... local network interface address used for multicasting (default 0.0.0.0 = auto select)
 
  `--logFile xyz.log` ... what log file to use
 

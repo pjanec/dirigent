@@ -27,6 +27,9 @@ namespace Dirigent.Net
         string name;
         string ipaddr;
         int port;
+        string mcastIP;
+        int mcastPort;
+        string localIP;
         bool connected;
 		int timeoutMs;
 
@@ -44,14 +47,20 @@ namespace Dirigent.Net
 
 		public string MasterIP { get { return this.ipaddr; } }
 		public int MasterPort { get { return this.port; } }
+		public string McastIP { get { return this.mcastIP; } }
+		public int McastPort { get { return this.mcastPort; } }
+		public string LocalIP { get { return this.localIP; } }
 
-		public AutoconClient(string name, string ipaddr, int port, int timeoutMs=5000)
+		public AutoconClient(string name, string ipaddr, int port, string mcastIP, int mcastPort, string localIP, int timeoutMs=5000)
         {
             //Test1();
 
             this.name = name;
             this.ipaddr = ipaddr;
             this.port = port;
+            this.mcastIP = mcastIP;
+            this.mcastPort = mcastPort;
+            this.localIP = localIP;
             this.connected = false;
 			this.timeoutMs = timeoutMs;
 
@@ -78,7 +87,6 @@ namespace Dirigent.Net
             terminate = false;
             connectionThread = new Thread(connectionThreadLoop);
             connectionThread.Start();
-
         }
 
 
@@ -267,7 +275,6 @@ namespace Dirigent.Net
      //       var rawDataStr = new System.IO.StreamReader(stream).ReadToEnd();
 	    //}
 
-
-    }
+	}
 
 }

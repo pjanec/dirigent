@@ -53,6 +53,7 @@ public partial class frmMain : Form
 		udpClient = new UdpClient();
 		udpClient.ExclusiveAddressUse = false;
 		udpClient.EnableBroadcast = true;
+		udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 		udpClient.Client.Bind( new IPEndPoint( IPAddress.Any, masterPort ) );
 
 

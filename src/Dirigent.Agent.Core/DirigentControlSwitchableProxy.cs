@@ -19,6 +19,11 @@ namespace Dirigent.Agent.Core
         {
             impl = newImpl;
         }
+
+        public bool IsLocalApp( AppIdTuple appIdTuple)
+        {
+            return impl.IsLocalApp( appIdTuple );
+        }
         
         public AppState GetAppState(AppIdTuple appIdTuple)
         {

@@ -102,6 +102,7 @@
     <Compile Include="AppMessages.cs" />
     <Compile Include="AppMessenger.cs" />
     <Compile Include="AppState.cs" />
+    <Compile Include="AppStateUpdater.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="AutoconClient.cs" />
     <Compile Include="CLIServer.cs" />

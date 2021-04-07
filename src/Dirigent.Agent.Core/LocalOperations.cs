@@ -159,6 +159,11 @@ namespace Dirigent.Agent.Core
 			rti.State = state;
 		}
 
+		public bool IsLocalApp( AppIdTuple appIdTuple )
+		{
+			return appIdTuple.MachineId == machineId;
+		}
+
 		// Merges the appdefs from the plan with the current ones (add new, replace existing).
 		private void AdoptPlan( ILaunchPlan plan )
 		{
@@ -177,7 +182,7 @@ namespace Dirigent.Agent.Core
 					};
 				}
 
-				if (a.AppIdTuple.MachineId == machineId)
+				if ( IsLocalApp( a.AppIdTuple ) )
 				{
 					if (!localApps.ContainsKey(a.AppIdTuple))
 					{
@@ -697,7 +702,7 @@ namespace Dirigent.Agent.Core
 				{
 					var apst = appsState[appDef.AppIdTuple];
 
-		            bool isRemoteApp = appDef.AppIdTuple.MachineId != this.machineId;
+		            bool isRemoteApp = !IsLocalApp( appDef.AppIdTuple );
 
 					var statusInfoAge = currTime - apst.LastChange;
 					bool offline = ( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds(3) );

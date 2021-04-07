@@ -3,8 +3,9 @@ SET ARC=%2
 IF "%1"=="" SET CFG=Debug
 REM IF "%2"=="" SET ARC=x64\
 
-copy ..\src\packages\CommandLineParser.1.9.71\lib\net35\CommandLine.dll  .\
-copy ..\src\packages\log4net.2.0.3\lib\net35-full\log4net.dll  .\
+copy ..\src\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll  .\
+copy ..\src\packages\log4net.2.0.3\lib\net40-full\log4net.dll  .\
+copy ..\src\packages\protobuf-net.2.4.6\lib\net40\protobuf-net.dll  .\
 
 copy ..\src\Dirigent.Agent.Core\bin\%ARC%%CFG%\Dirigent.Agent.Core.* .\
 

@@ -29,6 +29,10 @@ namespace Dirigent.Agent.TrayApp
 		List<FolderWatcher> folderWatchers = new List<FolderWatcher>();
         Dirigent.Agent.Core.Agent agent;
 
+        // trying to run the server within the master agent (failing, not communicating..)
+        //Net.Server server;
+		//CLIServer cliServer;
+
         class MyApplicationContext : ApplicationContext
         {
         }
@@ -42,33 +46,58 @@ namespace Dirigent.Agent.TrayApp
         {
             if( AppConfig.BoolFromString(ac.isMaster) )
             {
-                masterRunner = new MasterRunner();
-                masterRunner.MasterPort = ac.masterPort;
-                masterRunner.CLIPort = ac.cliPort;
-                masterRunner.StartupPlan = ac.startupPlanName;
-                masterRunner.SharedConfigFile = ac.sharedCfgFileName;
-                try
-                {
-                    masterRunner.Launch();
-                    masterRunner.StartKeepAlive();
-                }
-                catch (Exception ex)
-                {
-                    log.Error(ex);
-                    ExceptionDialog.showException( ex, "Dirigent Exception", "" );    
-                    masterRunner = null;
-                }
-            }
+				masterRunner = new MasterRunner();
+				masterRunner.MasterPort = ac.masterPort;
+				masterRunner.CLIPort = ac.cliPort;
+				masterRunner.StartupPlan = ac.startupPlanName;
+				masterRunner.SharedConfigFile = ac.sharedCfgFileName;
+				try
+				{
+					masterRunner.Launch();
+					masterRunner.StartKeepAlive();
+				}
+				catch (Exception ex)
+				{
+					log.Error(ex);
+					ExceptionDialog.showException(ex, "Dirigent Exception", "");
+					masterRunner = null;
+				}
+
+				//            // start master server
+				//            IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;
+				//server = new Net.Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);
+				//            // server works through its ServerRemoteObject
+
+				//// start a telnet client server
+				//            log.InfoFormat("Command Line Interface running on port {0}", ac.cliPort);
+				//cliServer = new CLIServer( "0.0.0.0", ac.cliPort, agent.Control );
+				//cliServer.Start();
+
+
+
+			}
         }
 
         private void DeinitializeMaster()
         {
-            if( masterRunner != null )
-            {
-                masterRunner.Dispose();
-                masterRunner = null;
-            }
-        }
+			if (masterRunner != null)
+			{
+				masterRunner.Dispose();
+				masterRunner = null;
+			}
+
+			//if( cliServer != null )
+			//{
+			//    cliServer.Dispose();
+			//    cliServer = null;
+			//}
+
+			//if( server != null )
+			//{
+			//    server.Dispose();
+			//    server = null;
+			//}
+		}
 
         public void run()
         {
@@ -136,7 +165,7 @@ namespace Dirigent.Agent.TrayApp
 
         void InitializeMainForm()
         {
-            log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}", ac.machineId, ac.masterIP, ac.masterPort);
+            log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}, mcastIP={3}, localIP={4}", ac.machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.localIP);
 
             bool runningAsRemoteControlGui = (ac.machineId == "none");
 
@@ -148,7 +177,7 @@ namespace Dirigent.Agent.TrayApp
                 // generate unique GUID to avoid matching any machineId in the launch plans
                 string machineId = "remoteControlGui-"+Guid.NewGuid().ToString();
 
-                client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort);
+                client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
 
                 agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, false); // don't go local if not connected
             }
@@ -156,7 +185,7 @@ namespace Dirigent.Agent.TrayApp
             {
                 string clientId = "agent-" + ac.machineId;
                 
-                client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort);
+                client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
 
                 agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false);
 

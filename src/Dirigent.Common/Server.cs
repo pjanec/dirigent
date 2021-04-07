@@ -18,6 +18,8 @@ namespace Dirigent.Net
     public class Server // WCF serve
     {
         int port;
+        MasterService service;
+        ServiceHost host;
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -38,8 +40,8 @@ namespace Dirigent.Net
 			binding.Name = "MasterConnBinding";
             binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
 			binding.Security.Mode = SecurityMode.None;
-            var service = new MasterService(localAgent);
-            var host = new ServiceHost( service, uri);
+            service = new MasterService(localAgent);
+            host = new ServiceHost( service, uri);
             var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");
             //endpoint.Behaviors.Add(new ClientTrackerEndpointBehavior());
             //endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
@@ -52,7 +54,7 @@ namespace Dirigent.Net
 			//}
             //Dirigent.Net.Message.RegisterProtobufTypeMaps();
 
-			host.Open(); // never closed as the server runs forever
+			host.Open();
 
             // although there can't be any clients connected, this caches the planRepo internally
             // this cached one is then sent to the client when it first connects
@@ -79,6 +81,13 @@ namespace Dirigent.Net
             }
         
         }
+
+		public void Dispose()
+		{
+            host.Close();
+            service.Dispose();
+        }
+
     }
 
 

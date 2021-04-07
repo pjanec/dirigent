@@ -28,6 +28,12 @@ namespace Dirigent.Agent.CmdLineCtrl
         [Option("masterIP", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
         public string MasterIP { get; set; }
 
+        [Option("mcastIP", Required = false, DefaultValue = "", HelpText = "Multicast IP")]
+        public string McastIP { get; set; }
+
+        [Option("localIP", Required = false, DefaultValue = "", HelpText = "Local adapter IP to bind to when multicasting")]
+        public string LocalIP { get; set; }
+
         [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "Shared config file name.")]
         public string SharedConfigFile { get; set; }
 
@@ -80,6 +86,8 @@ namespace Dirigent.Agent.CmdLineCtrl
             public string localCfgFileName = ""; // empty by default - we won't try to load it
             public int masterPort = 5032;
             public string masterIP = "127.0.0.1";
+            public string mcastIP = "239.121.121.121";
+            public string localIP = "0.0.0.0";
             public string logFileName = "";
             public IList<string> nonOptionArgs = null;
             public SharedConfig scfg = null;
@@ -93,6 +101,8 @@ namespace Dirigent.Agent.CmdLineCtrl
             // overwrite with application config
             if (Properties.Settings.Default.MasterIP != "") ac.masterIP = Properties.Settings.Default.MasterIP;
             if (Properties.Settings.Default.MasterPort != 0) ac.masterPort = Properties.Settings.Default.MasterPort;
+            if (Properties.Settings.Default.McastIP != "") ac.mcastIP = Properties.Settings.Default.McastIP;
+            if (Properties.Settings.Default.LocalIP != "") ac.localIP = Properties.Settings.Default.LocalIP;
             if (Properties.Settings.Default.SharedConfigFile != "") ac.sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
             if (Properties.Settings.Default.LocalConfigFile != "") ac.localCfgFileName = Properties.Settings.Default.LocalConfigFile;
 
@@ -102,6 +112,8 @@ namespace Dirigent.Agent.CmdLineCtrl
             {
                 if (options.MasterIP != "") ac.masterIP = options.MasterIP;
                 if (options.MasterPort != 0) ac.masterPort = options.MasterPort;
+                if (options.McastIP != "") ac.mcastIP = options.McastIP;
+                if (options.LocalIP != "") ac.localIP = options.LocalIP;
                 if (options.SharedConfigFile != "") ac.sharedCfgFileName = options.SharedConfigFile;
                 if (options.LocalConfigFile != "") ac.localCfgFileName = options.LocalConfigFile;
                 if (options.LogFile != "") ac.logFileName = options.LogFile;
@@ -142,7 +154,7 @@ namespace Dirigent.Agent.CmdLineCtrl
 
                 // use unique client id to avoid conflict with any other possible client
                 string machineId = Guid.NewGuid().ToString();
-                var client = new Dirigent.Net.Client(machineId, ac.masterIP, ac.masterPort);
+                var client = new Dirigent.Net.Client(machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
                 
                 // first connect
                 client.Connect();

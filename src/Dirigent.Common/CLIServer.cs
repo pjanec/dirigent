@@ -290,6 +290,11 @@ namespace Dirigent.Common
 			this.ctrl = ctrl;
 		}
 
+		public void Dispose()
+		{
+			Stop();
+		}
+
 		/// <summary>
 		/// Call this to accept pending connections and process requests
 		/// </summary>
@@ -391,12 +396,14 @@ namespace Dirigent.Common
 			{
 				r.Dispose();
 			}
+			pendingRequests.Clear();
 
 			// kill all clients
 			foreach( var c in clients )
 			{
 				c.Dispose();
 			}
+			clients.Clear();
 		}
 	}
 }

@@ -18,6 +18,10 @@ namespace Dirigent.Common
         [DataMember]
         public string AppId { get; private set; }
 
+        public AppIdTuple()
+        {
+        }
+
         public AppIdTuple(string machineId, string appId)
         {
             MachineId = machineId;
