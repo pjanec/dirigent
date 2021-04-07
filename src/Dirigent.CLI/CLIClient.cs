@@ -13,7 +13,7 @@ namespace Dirigent.CLI
 	public class CommandLineClient : IDisposable
 	{
 		int lastReqId = 0;
-		string NewReqId() { return string.Format("{0:0000}", ++lastReqId); }
+		public string NewReqId() { return string.Format("{0:0000}", ++lastReqId); }
 
 		TcpClient client = null;
 		StreamReader reader = null;
@@ -48,9 +48,9 @@ namespace Dirigent.CLI
 		/// </summary>
 		/// <param name="req">text of the request</param>
 		/// <returns>requestId used</returns>
-		public string SendReq( string req )
+		public string SendReq( string req, string reqId=null )
 		{
-			var reqId = NewReqId();
+			if( string.IsNullOrEmpty(reqId) ) reqId = NewReqId();
 			lock(client)
 			{
 				var stream = client.GetStream();

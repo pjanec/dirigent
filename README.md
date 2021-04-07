@@ -277,6 +277,11 @@ The following options changes the mode of operation:
 
 Master is running a TCP server providing for controlling agents' operations.
 
+To send a command you can user a generic TCP socket from your app. Or use `Dirigent.CLI.Telnet.exe` app for testing:
+
+    Dirigent.CLI.Telnet.exe --masterIp 10.1.1.2 --masterCLIPort 5050 Start plan1; StartPlan plan2
+
+
 TCP server allows multiple simultaneous clients. Server accepts single text line based requests from clients. Line separation character is `\n`. For each request the server sends back one or more status reply lines depending on the command type. Each request can be optionally marked with request id which is then used to mark appropriate response lines. Requests are buffered and processed sequentially, response may come later. Clients do not need to wait for a response before sending another request.
 
 ##### Request line format:
