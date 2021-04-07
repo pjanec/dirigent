@@ -243,7 +243,7 @@ The following options changes the mode of operation:
 
  `--logFile xyz.log` ... what log file to use
 
- `--startupPlan <plan_name>` ... immediately loads an initial plan and makes it the current one (local agent) before the connection to the master is estabilished
+ `--startupPlan <plan_name>` ... immediately loads an initial plan and makes it the current one (local agent) before the connection to the master is established
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use
 
@@ -269,7 +269,7 @@ The following options changes the mode of operation:
 
  `--CLIPort 5050` ... what TPC port to run the Command Line Interface server on
 
- `--tickPeriod 500` ... Period in milliseconds of themain loop of incoming command broadcasting to clients, plan processing etc.
+ `--tickPeriod 500` ... Period in milliseconds of the main loop of incoming command broadcasting to clients, plan processing etc.
 
  `--CLITickPeriod 50` ... Period in milliseconds of processing the CLI server requests. Should be a fraction of the `tickPeriod`. If larger than `tickPeriod`, one CLI server tick per main loop will be executed.
 
@@ -310,7 +310,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
   `Terminate [killApps=0] [machineId=<machineId>]` ...... terminates the Dirigent on all stations, optionally leaving the already started apps running
 
-  `Reinstall` ...... terminates the Dirigent on all station and invoke the reinstaller app allowing the Dirigent to be relaunched once the Dirigent files have been replaced with a newer version. 
+  `Reinstall` ...... terminates the Dirigent on all station and invoke the re-installer app allowing the Dirigent to be relaunched once the Dirigent files have been replaced with a newer version. 
 
   `Reboot` ...... reboots all computers where the Dirigent is running
 
@@ -348,7 +348,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 ###### ExitCode
 
-  Integer number    if exit code (valid only if aff has exited, i.e. Started but not Running)
+  Integer number    if exit code (valid only if app has exited, i.e. Started but not Running)
 
 ###### StatusAge
 
@@ -356,15 +356,15 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 ###### CPU
 
-  Integer percentage of CPU usage
+[NOT IMPLEMENTED]  Integer percentage of CPU usage
 
 ###### GPU
 
-  Integer percentage of GPU usage
+[NOT IMPLEMENTED]    Integer percentage of GPU usage
 
 ###### MemoryMB
 
-  Integer number of MBytes used
+[NOT IMPLEMENTED]    Integer number of MBytes used
 
 ###### PlanName
 
@@ -535,12 +535,14 @@ Each app in the launch plan has the following attributes:
     Example: `ExeFullPath = "[powershell.command]" CmdLineArgs = "ls"`
   - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`.
     Example: `ExeFullPath = "[powershell.file]" CmdLineArgs = "test1.ps1"`
-  - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirignet agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
+  - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirigent agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
     Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "LaunchApp m1.a; KillPlan plan2" Volatile="1"`
 
-- `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agen't current environment.
+- `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
 - `CmdLineArgs` - command line arguments
+
+- `PriorityClass` - one of `Idle`, `BelowNormal`,  `Normal`, `AboveNormal` , `High`, `RealTime`. If missing or empty, default priority class as set by the OS is used.
 
 - `StartupOrder` - the launch order in case of same priority of multiple apps
 
@@ -552,9 +554,9 @@ Each app in the launch plan has the following attributes:
 
 - `AdoptIfAlreadyRunning 0|1` - whether not to start a new instance of a process if the process with same executable image name is already running. The adoption attempt is made only when the app is about to be started or killed. Dirigent does not scan all running processes periodically so it does not show the not-yet-adopted app as running until the app is launched via Dirigent. *WARNING: Should not be used for apps that may run in multiple instances on the same computer! Just first instance would be adopted!* 
 
-- `Dependencies` - what apps is this one dependent on, i.e. what apps have to be launched and fully initalized before this one can be started; semicolon separated AppIdTuples.
+- `Dependencies` - what apps is this one dependent on, i.e. what apps have to be launched and fully initialized before this one can be started; semicolon separated AppIdTuples.
 
-- `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*. **DEPRECATED**, use the InitDetectors section instead.
+- `InitCondition` - a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*. **DEPRECATED**, use the `InitDetectors` section instead.
 
 - `WindowStyle` - "normal" (default), "minimized", "maximized", "hidden"
 
@@ -631,7 +633,7 @@ App sub-sections:
   
   Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*  
   
-  If multiple detectors are defined, the first one whose condition is satified marks the app as initialized.
+  If multiple detectors are defined, the first one whose condition is satisfied marks the app as initialized.
 
 - `Env`
   
@@ -642,7 +644,7 @@ App sub-sections:
         <Local Variable="P1" Value="myLocalParam1" />
       </Env>
   
-  Modifies the environment variables for the started process, taking the Dirigent Agen't startup environment as a basis.
+  Modifies the environment variables for the started process, taking the Dirigent Agent's startup environment as a basis.
   
   Existing environment variables can be set to a new value. Non-existing will be created, existing will be overwritten.
   
@@ -650,8 +652,8 @@ App sub-sections:
   
   Attributes:
   
-  - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agen't current environment.
-  - `Path` - if attribute `Prepend` is present, prepends its value at the begining of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agen't current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
+  - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agent's current environment.
+  - `Path` - if attribute `Prepend` is present, prepends its value at the beginning of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agent's current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
   - `Local` - set Dirigent's internal variable to given value. The variable can be used for expansion inside process exe path and command line similarly as the env vars but is not propagated to the process environment.
   
 - `Restarter`
@@ -842,7 +844,7 @@ Plans shall be designed and manipulated (started/killed etc.) in a non-conflicti
 
 The application from the plan are initially assigned the state 'not launched'.
 
-The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose dependencied have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on anything else. In the next wave there are apps dependent on the apps from the previous wave.
+The launch order of all apps form the plan is determined. The result is a sequence of so called launch waves. A wave contains applications whose dependencies have been satisfied by the previous launch wave. The first wave comprises apps that do not depend on anything else. In the next wave there are apps dependent on the apps from the previous wave.
 
 The waves are launched sequentially one after another until all apps from all waves have been launched. 
 

@@ -56,6 +56,9 @@ namespace Dirigent.Common
         public bool AdoptIfAlreadyRunning;
 
         [DataMember]
+        public string PriorityClass; // idle, belownormal, normal, abovenormal, high, realtime; empty = normal
+
+        [DataMember]
         public string InitializedCondition; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
         //[DataMember]
@@ -150,6 +153,7 @@ namespace Dirigent.Common
                 this.Volatile == other.Volatile &&
                 this.RestartOnCrash == other.RestartOnCrash &&
                 this.AdoptIfAlreadyRunning == other.AdoptIfAlreadyRunning &&
+                this.PriorityClass == other.PriorityClass &&
                 this.InitializedCondition == other.InitializedCondition &&
                 this.SeparationInterval == other.SeparationInterval &&
                 ( // either both dependecies are null or they are the same list

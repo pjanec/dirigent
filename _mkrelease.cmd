@@ -9,6 +9,8 @@ pushd binaries
 for %%a in (%MASKS%) do del /q %%a
 call _update.cmd %*
 for %%a in (%MASKS%) do copy /y %%a ..\release\%%a
+copy DummyApp.exe.templ DummyApp.exe
+copy DummyApp.exe.config.templ DummyApp.exe.config
 popd
 
 

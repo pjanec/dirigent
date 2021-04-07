@@ -42,7 +42,7 @@ namespace Dirigent.Net
 
         Timer disconTimer;
 
-        double inactivityTimeout = 60.0;
+        double inactivityTimeout = 120.0;
 
 		IDirigentControl localAgent;
 

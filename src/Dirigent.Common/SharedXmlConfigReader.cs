@@ -76,6 +76,7 @@ namespace Dirigent.Common
 				Volatile = (string) e.Attribute("Volatile"),
                 RestartOnCrash = (string) e.Attribute("RestartOnCrash"),
                 AdoptIfAlreadyRunning = (string) e.Attribute("AdoptIfAlreadyRunning"),
+                PriorityClass = (string) e.Attribute("PriorityClass"),
                 InitCondition = (string) e.Attribute("InitCondition"),
                 SeparationInterval = (string) e.Attribute("SeparationInterval"),
                 Dependecies = (string) e.Attribute("Dependencies"),
@@ -99,6 +100,7 @@ namespace Dirigent.Common
             if( x.Volatile != null ) a.Volatile = (int.Parse( x.Volatile ) != 0);
             if( x.RestartOnCrash != null ) a.RestartOnCrash = (int.Parse( x.RestartOnCrash ) != 0);
             if( x.AdoptIfAlreadyRunning != null ) a.AdoptIfAlreadyRunning = (int.Parse( x.AdoptIfAlreadyRunning ) != 0);
+            if( x.PriorityClass != null ) a.PriorityClass = x.PriorityClass;
             if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
             if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse(x.SeparationInterval, CultureInfo.InvariantCulture );
             if (x.Dependecies != null)

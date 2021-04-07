@@ -349,6 +349,20 @@ namespace Dirigent.Agent.Core
                 log.DebugFormat("StartProc FAILED except {0}", ex.Message );
                 throw new AppStartFailureException(appDef.AppIdTuple, ex.Message, ex);
             }
+
+
+			if (proc != null)
+			{
+                try
+                {
+                    SetPriorityClass( appDef.PriorityClass );
+                }
+                catch(Exception ex)
+                {
+                    log.DebugFormat("SetPriority FAILED except {0}", ex.Message );
+                }
+			}
+
         }
 
         void LaunchDirigentCmd( ParsedExe pe )
@@ -701,6 +715,25 @@ namespace Dirigent.Agent.Core
 
             return null;
         }
+
+		void SetPriorityClass( string priorityClass )
+		{
+            if( proc == null ) return;
+            if( string.IsNullOrEmpty( priorityClass ) ) return;
+
+            ProcessPriorityClass prioClassNum = ProcessPriorityClass.Normal;
+            foreach( var e in Enum.GetValues(typeof(ProcessPriorityClass)))
+            {
+                if( string.Equals( e.ToString(), priorityClass, StringComparison.OrdinalIgnoreCase ) )
+                {
+                    prioClassNum = (ProcessPriorityClass)e;
+                }
+            }
+
+            log.DebugFormat("{0}: Setting PriorityClass = {1}", appDef.AppIdTuple, prioClassNum.ToString());
+            proc.PriorityClass = prioClassNum;
+		}
+
     }
 
 }

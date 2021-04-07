@@ -99,6 +99,8 @@ namespace Dirigent.Agent.Gui
             }
 
             // start ticking
+			log.DebugFormat("MainForm's timer period: {0}", tickPeriod);
+			//MessageBox.Show(String.Format("MainForm's timer period: {0}", tickPeriod));
 			tmrTick.Interval = tickPeriod;
             tmrTick.Enabled = true;
         }
