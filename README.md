@@ -170,11 +170,11 @@ Select a launch plan to start, issue a Select Plan command followed by a Start P
 
 For example using a command ling control app:
 
-    Dirigent.AgentCmd.exe --masterIp 10.1.1.2 --masterPort 5045 StartPlan plan1
+    Dirigent.CLI.Telnet --masterIp 10.1.1.2 --masterPort 5045 StartPlan plan1
 
 Multiple commands can be executed at once if separated by a semicolon. For example  
 
-    Dirigent.AgentCmd.exe --masterIp 10.1.1.2 --masterPort 5045 Start plan1; StartPlan plan2
+    Dirigent.CLI.Telnet --masterIp 10.1.1.2 --masterPort 5045 Start plan1; StartPlan plan2
 
 ### Available Actions
 
@@ -237,13 +237,15 @@ The following options changes the mode of operation:
 
 #### Another options
 
- `--masterPort 5042` ... mater's port number
+ `--masterPort 5042` ... mater's port number.  Passed to the master process when `--IsMaster 1` is used.
 
  `--masterIp 1.2.3.4` ... mater's IP address
 
- `--mcastIp 239.121.121.121` ... multicast IP address used for application state sharing among agents
+ `--mcastIp 239.121.121.121` ... multicast IP address used for application state sharing among agents.  Passed to the master process when `--IsMaster 1` is used.
 
- `--localIp 10.0.0.17` ... local network interface address used for multicasting (default 0.0.0.0 = auto select)
+ `--localIp 10.0.0.17` ... local network interface address used for multicasting (default 0.0.0.0 = auto select)  Passed to the master process when `--IsMaster 1` is used.
+
+ `--mcastAppStates 1` ... use multicast for sharing application states instead of sending via master; multicast improves network performance for many agents.  Passed to the master process when `--IsMaster 1` is used.
 
  `--logFile xyz.log` ... what log file to use
 
@@ -257,7 +259,7 @@ The following options changes the mode of operation:
 
  `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
 
- `--tickPeriod 500` ... Period in milliseconds of commands/plan processing & GUI refresh.
+ `--tickPeriod 500` ... Period in milliseconds of commands/plan processing & GUI refresh. Passed to the master process when `--IsMaster 1` is used.
 
 ### Master configuration options
 
@@ -268,6 +270,8 @@ The following options changes the mode of operation:
  `--mcastIp 239.121.121.121` ... multicast IP address used for application state sharing among agents
 
  `--localIp 10.0.0.17` ... local network interface address used for multicasting (default 0.0.0.0 = auto select)
+
+ `--mcastAppStates 1` ... use multicast for sharing application states instead of sending via master; multicast improves network performance for many agents
 
  `--logFile xyz.log` ... what log file to use
 
@@ -460,7 +464,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 There is a small executable specialized for sending commands to agents. It connects to the master and send a command specified on the command line.
 
- `Dirigent.AgentCmd.exe <command> <arg1> <arg2> ...`
+ `Dirigent.CLI.Telnet <command> <arg1> <arg2>; <command> <arg1>...`
 
 Zero exit code is returned on success, positive error code on failure.
 
@@ -485,7 +489,7 @@ The commands just simply follow the available agent actions, please see chapter 
     ReloadSharedConfig killApps=1
 
 Multiple commands on a single line can be separated by semicolon
-    `Diregent.AgentCmd.exe LaunchApp m1.a;StartPlan plan1`
+    `Dirigent.CLI.Telnet LaunchApp m1.a;StartPlan plan1`
 
 ## Configuration
 
@@ -548,7 +552,7 @@ Each app in the launch plan has the following attributes:
     Example: `ExeFullPath = "[powershell.command]" CmdLineArgs = "ls"`
   - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`.
     Example: `ExeFullPath = "[powershell.file]" CmdLineArgs = "test1.ps1"`
-  - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.AgentCmd.exe command line (but parsed and executed internally by the dirigent agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
+  - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.CLI.Telnet command line (but parsed and executed internally by the dirigent agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
     Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "LaunchApp m1.a; KillPlan plan2" Volatile="1"`
 
 - `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.

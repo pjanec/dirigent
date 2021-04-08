@@ -73,6 +73,8 @@ namespace Dirigent.Net
         }
     }
 
+    // not used just if multicast option is enabled (like in case of many agents;
+    // this msg causes the master to resend to all clients (as in case of any other message) - heavy network load as this message is frequent!
     [ProtoBuf.ProtoContract]
     [DataContract]
     public class AppsStateMessage : Message

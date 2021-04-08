@@ -34,6 +34,10 @@ namespace Dirigent.Agent.TrayApp
         public string LocalConfigFile = ""; // empty = default
         public string StartupPlan = "";
         public int CLIPort = -1;
+        public string McastIP = "";
+        public string LocalIP = "";
+        public string McastAppStates = "";
+        public int TickPeriod = -1;
         
         /// <summary>
         /// Starts the dirigent master process. Throw exception!
@@ -62,6 +66,22 @@ namespace Dirigent.Agent.TrayApp
             if( !string.IsNullOrEmpty(StartupPlan) )
             {
                 psi.Arguments += string.Format("--startupPlan {0} ", StartupPlan);
+            }
+            if( !string.IsNullOrEmpty(McastIP) )
+            {
+                psi.Arguments += string.Format("--mcastIP {0} ", McastIP);
+            }
+            if( !string.IsNullOrEmpty(LocalIP) )
+            {
+                psi.Arguments += string.Format("--localIP {0} ", LocalIP);
+            }
+            if( !string.IsNullOrEmpty( McastAppStates ) )
+            {
+                psi.Arguments += string.Format("--mcastAppStates {0} ", McastAppStates);
+            }
+            if( TickPeriod > 0 )
+            {
+                psi.Arguments += string.Format("--tickPeriod {0} ", TickPeriod);
             }
 
             psi.WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); // Tools.GetExeDir();

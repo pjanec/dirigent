@@ -73,9 +73,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Griffin.Core, Version=2.1.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Griffin.Framework.2.1.1\lib\net461\Griffin.Core.dll</HintPath>
-    </Reference>
     <Reference Include="log4net, Version=1.2.13.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
     </Reference>
@@ -102,7 +99,7 @@
     <Compile Include="AppMessages.cs" />
     <Compile Include="AppMessenger.cs" />
     <Compile Include="AppState.cs" />
-    <Compile Include="AppStateUpdater.cs" />
+    <Compile Include="AppStateMcaster.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="AutoconClient.cs" />
     <Compile Include="CLIServer.cs" />

@@ -16,7 +16,7 @@ namespace Dirigent.Net
     // Asynchronously receives app state packets from other agents and store to locaked queue.
     // The receive queue is polled each tick and app states are updated.
     // Each tick serializes all local app state to a blob and sends via UDP.
-    public class AppStateUpdater
+    public class AppStateMcaster
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -31,7 +31,7 @@ namespace Dirigent.Net
 		IPAddress localIP;
 		int mcastPort;
 
-		public AppStateUpdater( string mcastIP, int mcastPort, string localIP, IDirigentControl localOps )
+		public AppStateMcaster( string mcastIP, int mcastPort, string localIP, IDirigentControl localOps )
 		{
 			this.localOps = localOps;
 			this.mcastIP = IPAddress.Parse( mcastIP );

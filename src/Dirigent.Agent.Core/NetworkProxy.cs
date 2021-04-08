@@ -22,7 +22,8 @@ namespace Dirigent.Agent.Core
         string machineId;
         IClient client;
         LocalOperations localOps;
-        AppStateUpdater appStateUpdater;
+        AppStateMcaster appStateMcaster;
+        bool useMulticastForAppState;
 
         /// <summary>
         /// Client needs to be already connected or autoconnecting!
@@ -32,45 +33,50 @@ namespace Dirigent.Agent.Core
         public NetworkProxy(
                     string machineId,
                     IClient client,
-                    LocalOperations localOps
+                    LocalOperations localOps,
+                    bool useMulticastForAppState
                     )
         {
                 
             this.machineId = machineId;
             this.client = client;
             this.localOps = localOps;
-            
-            this.appStateUpdater = new AppStateUpdater( client.McastIP, client.MasterPort, client.LocalIP, localOps );
+            this.useMulticastForAppState = useMulticastForAppState;
+
+            if( useMulticastForAppState )
+            {
+                this.appStateMcaster = new AppStateMcaster( client.McastIP, client.MasterPort, client.LocalIP, localOps );
+            }
 
         }
 
-   //     void publishLocalAppState()
-   //     {
-   //         // get status of local apps and send to others
-   //         Dictionary<AppIdTuple, AppState> localAppsState = new Dictionary<AppIdTuple, AppState>();
-            
-			//foreach (var plan in localOps.GetPlanRepo())
-			//{
-			//	foreach (var pair in localOps.GetAllAppsState())
-			//	{
-			//		var appId = pair.Key;
-			//		var appState = pair.Value;
+		void publishLocalAppStateViaMsgs()
+		{
+			// get status of local apps and send to others
+			Dictionary<AppIdTuple, AppState> localAppsState = new Dictionary<AppIdTuple, AppState>();
 
-			//		if (appId.MachineId == machineId)
-			//		{
-			//			localAppsState[appId] = appState;
-			//		}
-			//	}
-			//}
+			foreach (var plan in localOps.GetPlanRepo())
+			{
+				foreach (var pair in localOps.GetAllAppsState())
+				{
+					var appId = pair.Key;
+					var appState = pair.Value;
 
-   //         if( localAppsState.Count > 0 )
-   //         {
-   //             client.BroadcastMessage( new AppsStateMessage( localAppsState ) );
-   //         }
+					if (appId.MachineId == machineId)
+					{
+						localAppsState[appId] = appState;
+					}
+				}
+			}
 
-   //     }
+			if (localAppsState.Count > 0)
+			{
+				client.BroadcastMessage(new AppsStateMessage(localAppsState));
+			}
 
-        void updatePlansState( Dictionary<string, PlanState> plansState )
+		}
+
+		void updatePlansState( Dictionary<string, PlanState> plansState )
         {
             foreach( KeyValuePair<string, PlanState> kvp in plansState )
             {
@@ -93,7 +99,7 @@ namespace Dirigent.Agent.Core
         {
             Type t = msg.GetType();
 
-            //if( t != typeof(AppsStateMessage)) // do not log frequent messages [UPDATE] no longer frequent, replace by UDP so should be rare or non-existing
+            if( t != typeof(AppsStateMessage)) // do not log frequent messages; UPDATE: this msg is optionally replaced by UDP so should be rare or non-existing
             {
                 log.DebugFormat("Incoming Message {0}", msg.ToString());
             }
@@ -271,8 +277,14 @@ namespace Dirigent.Agent.Core
         
         public void tick( double currentTime )
         {
-            //publishLocalAppState();
-            appStateUpdater.Tick();  // sends/receives app states
+            if( useMulticastForAppState )
+            {
+                appStateMcaster?.Tick();  // sends/receives app states via multicast
+            }
+            else
+            {
+                publishLocalAppStateViaMsgs();
+            }
             processIncomingMessages();
         }
 

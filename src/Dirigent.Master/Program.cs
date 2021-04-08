@@ -33,6 +33,9 @@ namespace Dirigent.Master
         [Option("localIP", Required = false, DefaultValue = "", HelpText = "Local adapter IP to bind to when multicasting")]
         public string LocalIP { get; set; }
 
+        [Option("mcastAppStates", Required = false, DefaultValue = "", HelpText = "Use multical for sharing app states among agents.")]
+        public string McastAppStates { get; set; }
+
         [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "Shared config file name.")]
         public string SharedConfigFile { get; set; }
 
@@ -90,6 +93,7 @@ namespace Dirigent.Master
             public int masterPort = 5032;
             public string mcastIP = "239.121.121.121";
             public string localIP = "0.0.0.0";
+            public string mcastAppStates = "0";
             public string logFileName = "";
             public string startupPlanName = "";
             public SharedConfig scfg = null;
@@ -98,6 +102,11 @@ namespace Dirigent.Master
             public int ParentAgentPid = -1;  // are we startd from an agent, i.e. not standalone?
             public int tickPeriod = 500; // msec
             public int CLITickPeriod = 50; // msec
+
+            public static bool BoolFromString( string boolString )
+            {
+                return (new List<string>() { "1", "YES", "Y", "TRUE" }.Contains(boolString.ToUpper()));
+            }
         }
 
         static AppConfig getAppConfig()
@@ -108,6 +117,7 @@ namespace Dirigent.Master
             if (Properties.Settings.Default.MasterPort != 0) ac.masterPort = Properties.Settings.Default.MasterPort;
             if (Properties.Settings.Default.McastIP != "") ac.mcastIP = Properties.Settings.Default.McastIP;
             if (Properties.Settings.Default.LocalIP != "") ac.localIP = Properties.Settings.Default.LocalIP;
+            if (Properties.Settings.Default.McastAppStates != "") ac.mcastAppStates = Properties.Settings.Default.McastAppStates;
             if (Properties.Settings.Default.SharedConfigFile != "") ac.sharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
             if (Properties.Settings.Default.LocalConfigFile != "") ac.localCfgFileName = Properties.Settings.Default.LocalConfigFile;
             if (Properties.Settings.Default.StartupPlan != "") ac.startupPlanName = Properties.Settings.Default.StartupPlan;
@@ -121,6 +131,7 @@ namespace Dirigent.Master
             {
                 if (options.McastIP != "") ac.mcastIP = options.McastIP;
                 if (options.LocalIP != "") ac.localIP = options.LocalIP;
+                if (options.McastAppStates != "") ac.mcastAppStates = options.McastAppStates;
                 if (options.MasterPort != 0) ac.masterPort = options.MasterPort;
                 if (options.SharedConfigFile != "") ac.sharedCfgFileName = options.SharedConfigFile;
                 if (options.LocalConfigFile != "") ac.localCfgFileName = options.LocalConfigFile;
@@ -140,14 +151,14 @@ namespace Dirigent.Master
             if( ac.sharedCfgFileName != "" )
             {
                 ac.sharedCfgFileName = Path.GetFullPath(ac.sharedCfgFileName);
-                log.DebugFormat("Loading shared config file '{0}'", ac.sharedCfgFileName);
+                log.InfoFormat("Loading shared config file '{0}'", ac.sharedCfgFileName);
                 ac.scfg = new SharedXmlConfigReader().Load(File.OpenText(ac.sharedCfgFileName));
             }
 
             if( ac.localCfgFileName != "" )
             {
                 ac.localCfgFileName = Path.GetFullPath(ac.localCfgFileName);
-                log.DebugFormat("Loading local config file '{0}'", ac.localCfgFileName);
+                log.InfoFormat("Loading local config file '{0}'", ac.localCfgFileName);
                 ac.lcfg = new LocalXmlConfigReader().Load(File.OpenText(ac.localCfgFileName));
             }
             return ac;
@@ -193,7 +204,7 @@ namespace Dirigent.Master
                 var dirigClient = new Dirigent.Net.Client(machineId, "127.0.0.1", ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
                 string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
 				bool doNotLaunchReinstaller = ac.ParentAgentPid != -1; // if started by agent, do not reinstall itself (agent will do)
-                agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths, doNotLaunchReinstaller);
+                agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths, doNotLaunchReinstaller, AppConfig.BoolFromString(ac.mcastAppStates));
 
                 // start master server
 				var s = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);

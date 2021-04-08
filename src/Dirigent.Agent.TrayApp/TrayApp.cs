@@ -51,6 +51,10 @@ namespace Dirigent.Agent.TrayApp
 				masterRunner.CLIPort = ac.cliPort;
 				masterRunner.StartupPlan = ac.startupPlanName;
 				masterRunner.SharedConfigFile = ac.sharedCfgFileName;
+                masterRunner.McastIP = ac.mcastIP;
+                masterRunner.LocalIP = ac.localIP;
+                masterRunner.McastAppStates = ac.mcastAppStates;
+                masterRunner.TickPeriod = ac.tickPeriod;
 				try
 				{
 					masterRunner.Launch();
@@ -165,7 +169,7 @@ namespace Dirigent.Agent.TrayApp
 
         void InitializeMainForm()
         {
-            log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}, mcastIP={3}, localIP={4}", ac.machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.localIP);
+            log.InfoFormat("Running with machineId={0}, masterIp={1}, masterPort={2}, mcastIP={3}, localIP={4}, useMcast={5}", ac.machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.localIP, ac.mcastAppStates);
 
             bool runningAsRemoteControlGui = (ac.machineId == "none");
 
@@ -179,7 +183,7 @@ namespace Dirigent.Agent.TrayApp
 
                 client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
 
-                agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, false); // don't go local if not connected
+                agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, false, AppConfig.BoolFromString(ac.mcastAppStates)); // don't go local if not connected
             }
             else // running as local app launcher
             {
@@ -187,7 +191,7 @@ namespace Dirigent.Agent.TrayApp
                 
                 client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
 
-                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false);
+                agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false, AppConfig.BoolFromString(ac.mcastAppStates));
 
 				InitializeFolderWatchers(agent, rootForRelativePaths);
             }

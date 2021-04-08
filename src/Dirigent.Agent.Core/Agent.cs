@@ -27,12 +27,13 @@ namespace Dirigent.Agent.Core
             IClient client,
             bool fallbackToLocalOnDisconnection,
             string rootForRelativePaths,
-            bool doNotLaunchReinstaller
+            bool doNotLaunchReinstaller,
+            bool useMulticastForAppState
         )
         {
             AppInitializedDetectorFactory appInitializedDetectorFactory = new AppInitializedDetectorFactory();
             this.localOps = new LocalOperations( machineId, appInitializedDetectorFactory, rootForRelativePaths, client.MasterIP, client.MasterPort, doNotLaunchReinstaller );
-            this.netOps = new NetworkProxy( machineId, client, localOps );
+            this.netOps = new NetworkProxy( machineId, client, localOps, useMulticastForAppState );
             this.localOps.NetOps = this.netOps;
             this.proxy = new DirigentControlSwitchableProxy(selectProxyImpl(client.IsConnected()));
             this.client = client;

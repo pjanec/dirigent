@@ -45,7 +45,6 @@
     		WindowStyle = "normal"
     		AdoptIfAlreadyRunning = "0"
     		RestartOnCrash = "0"
-    		PriorityClass = "belownormal"
     	    >
     	    <InitDetectors>
     	      <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
