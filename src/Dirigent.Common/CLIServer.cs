@@ -102,6 +102,8 @@ namespace Dirigent.Common
 	/// </example>
 	public class CLIServer
 	{
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
 		private string localIPstr;
 		private int port;
 		private IDirigentControl ctrl;
@@ -110,6 +112,7 @@ namespace Dirigent.Common
 		// describes a client that connected
 		private class TClient
 		{
+	        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
 			public TcpClient client; // what client sent this request, what client to respond to
 			NetworkStream ns;
@@ -122,6 +125,11 @@ namespace Dirigent.Common
 				this.client = client;
 				ns = client.GetStream();
 				buf = new StringBuilder();
+			}
+
+			public string Name
+			{
+				get { return client.Client.RemoteEndPoint.ToString(); }
 			}
 
 			// reads input data if avalable, cadd ProcesLine if a completely line found
@@ -234,6 +242,8 @@ namespace Dirigent.Common
 
 				sb.Append( respLine );
 
+				log.DebugFormat("{0}: Response: {1}", Client.Name, respLine);
+
 				sb.Append( "\n" );
 
 				Client.WriteResponse( sb.ToString() );
@@ -327,6 +337,7 @@ namespace Dirigent.Common
 
 		void AddRequest( TClient c, string cmdLine )
 		{
+			log.DebugFormat("{0}: CLI Request: {1}", c.Name,  cmdLine );
 			var r = new TRequest( c, ctrl, cmdLine );
 			if( !r.Finished ) // parsed succesfully?
 			{
