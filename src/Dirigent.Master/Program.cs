@@ -24,52 +24,42 @@ namespace Dirigent.Master
     // Define a class to receive parsed values
     class Options
     {
-        [Option("masterPort", Required = false, DefaultValue = 0, HelpText = "Master's TCP port.")]
+        [Option("masterPort", Required = false, Default = 0, HelpText = "Master's TCP port.")]
         public int MasterPort { get; set; }
 
-        [Option("mcastIP", Required = false, DefaultValue = "", HelpText = "Multicast IP")]
+        [Option("mcastIP", Required = false, Default = "", HelpText = "Multicast IP")]
         public string McastIP { get; set; }
 
-        [Option("localIP", Required = false, DefaultValue = "", HelpText = "Local adapter IP to bind to when multicasting")]
+        [Option("localIP", Required = false, Default = "", HelpText = "Local adapter IP to bind to when multicasting")]
         public string LocalIP { get; set; }
 
-        [Option("mcastAppStates", Required = false, DefaultValue = "", HelpText = "Use multical for sharing app states among agents.")]
+        [Option("mcastAppStates", Required = false, Default = "", HelpText = "Use multical for sharing app states among agents.")]
         public string McastAppStates { get; set; }
 
-        [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "Shared config file name.")]
+        [Option("sharedConfigFile", Required = false, Default = "", HelpText = "Shared config file name.")]
         public string SharedConfigFile { get; set; }
 
-        [Option("localConfigFile", Required = false, DefaultValue = "", HelpText = "Local config file name.")]
+        [Option("localConfigFile", Required = false, Default = "", HelpText = "Local config file name.")]
         public string LocalConfigFile { get; set; }
 
-        [Option("logFile", Required = false, DefaultValue = "", HelpText = "Log file name.")]
+        [Option("logFile", Required = false, Default = "", HelpText = "Log file name.")]
         public string LogFile { get; set; }
 
-        [Option("startupPlan", Required = false, DefaultValue = "", HelpText = "Plan to be started on startup.")]
+        [Option("startupPlan", Required = false, Default = "", HelpText = "Plan to be started on startup.")]
         public string StartupPlan { get; set; }
 
-        [Option("CLIPort", Required = false, DefaultValue = 0, HelpText = "Master's Command Line Interface TCP port.")]
+        [Option("CLIPort", Required = false, Default = 0, HelpText = "Master's Command Line Interface TCP port.")]
         public int CLIPort { get; set; }
 
-        [Option("ParentAgentPid", Required = false, DefaultValue = -1, HelpText = "PID of agent that is running this Dirigent (-1 = standalone)")]
+        [Option("ParentAgentPid", Required = false, Default = -1, HelpText = "PID of agent that is running this Dirigent (-1 = standalone)")]
         public int ParentAgentPid { get; set; }
 
-        [Option("tickPeriod", Required = false, DefaultValue = 0, HelpText = "Refresh period in msec.")]
+        [Option("tickPeriod", Required = false, Default = 0, HelpText = "Refresh period in msec.")]
         public int TickPeriod { get; set; }
 
-        [Option("CLITickPeriod", Required = false, DefaultValue = 0, HelpText = "CLI server refresh period in msec.")]
+        [Option("CLITickPeriod", Required = false, Default = 0, HelpText = "CLI server refresh period in msec.")]
         public int CLITickPeriod { get; set; }
 
-
-        [ParserState]
-        public IParserState LastParserState { get; set; }
-
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this,
-              (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
-        }
     }
 
     class Program
@@ -84,6 +74,8 @@ namespace Dirigent.Master
 
 		static CLIServer cliServer;
         static int ParentPID = -1;
+
+        static ParserResult<Options> _parserResult;
 			
 		class AppConfig
         {
@@ -126,8 +118,10 @@ namespace Dirigent.Master
             if (Properties.Settings.Default.CLITickPeriod != 0) ac.CLITickPeriod = Properties.Settings.Default.CLITickPeriod;
 
             // overwrite with command line options
-            var options = new Options();
-            if (CommandLine.Parser.Default.ParseArguments(System.Environment.GetCommandLineArgs(), options))
+
+            _parserResult = CommandLine.Parser.Default.ParseArguments<Options>(System.Environment.GetCommandLineArgs());
+
+            _parserResult.WithParsed<Options>( (Options options) =>
             {
                 if (options.McastIP != "") ac.mcastIP = options.McastIP;
                 if (options.LocalIP != "") ac.localIP = options.LocalIP;
@@ -141,7 +135,7 @@ namespace Dirigent.Master
                 if (options.ParentAgentPid != -1) ac.ParentAgentPid = options.ParentAgentPid;
                 if (options.TickPeriod != 0) ac.tickPeriod = options.TickPeriod;
                 if (options.CLITickPeriod != 0) ac.CLITickPeriod = options.CLITickPeriod;
-            }
+            });
 
             if (ac.logFileName != "")
             {

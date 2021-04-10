@@ -18,28 +18,18 @@ namespace Dirigent.CLI.Telnet
     // Define a class to receive parsed values
     class Options
     {
-        [Option("masterCLIPort", Required = false, DefaultValue = 0, HelpText = "Master's CLI TCP port.")]
+        [Option("masterCLIPort", Required = false, Default = 0, HelpText = "Master's CLI TCP port.")]
         public int MasterCLIPort { get; set; }
 
-        [Option("masterIP", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
+        [Option("masterIP", Required = false, Default = "", HelpText = "Master's IP address.")]
         public string MasterIP { get; set; }
 
-        [Option("logFile", Required = false, DefaultValue = "", HelpText = "Log file name.")]
+        [Option("logFile", Required = false, Default = "", HelpText = "Log file name.")]
         public string LogFile { get; set; }
 
-        [ValueList(typeof(List<string>))]
-        public IList<string> Items { get; set; }
-
-
-        [ParserState]
-        public IParserState LastParserState { get; set; }
-
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this,
-              (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
-        }
+        
+        [Value(0)]
+        public IEnumerable<string> Items { get; set; }
     }
 
     enum ErrorCode
@@ -88,15 +78,15 @@ namespace Dirigent.CLI.Telnet
             if (Properties.Settings.Default.MasterCLIPort != 0) ac.masterCLIPort = Properties.Settings.Default.MasterCLIPort;
 
             // overwrite with command line options
-            var options = new Options();
-            if (CommandLine.Parser.Default.ParseArguments(System.Environment.GetCommandLineArgs(), options))
-            {
-                if (options.MasterIP != "") ac.masterIP = options.MasterIP;
-                if (options.MasterCLIPort != 0) ac.masterCLIPort = options.MasterCLIPort;
-                if (options.LogFile != "") ac.logFileName = options.LogFile;
-                ac.nonOptionArgs = options.Items.ToList().GetRange(1, options.Items.Count-1); // strip the executable name
-            }
-
+            CommandLine.Parser.Default.ParseArguments<Options>(System.Environment.GetCommandLineArgs())
+                .WithParsed<Options>( (Options options) =>
+                {
+                    if (options.MasterIP != "") ac.masterIP = options.MasterIP;
+                    if (options.MasterCLIPort != 0) ac.masterCLIPort = options.MasterCLIPort;
+                    if (options.LogFile != "") ac.logFileName = options.LogFile;
+                    ac.nonOptionArgs = options.Items.ToList().GetRange(1, options.Items.Count()-1); // strip the executable name
+                }
+            );
 
             return ac;
         }

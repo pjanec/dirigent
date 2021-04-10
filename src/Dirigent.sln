@@ -13,13 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.TrayApp", "D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Gui", "Dirigent.Agent.Gui\Dirigent.Agent.Gui.csproj", "{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{2918D3DC-3B3F-4258-9EBD-F38D1CF67704}"
-	ProjectSection(SolutionItems) = preProject
-		Dirigent.vsmdi = Dirigent.vsmdi
-		Local.testsettings = Local.testsettings
-		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI", "Dirigent.CLI\Dirigent.CLI.csproj", "{8B33D98C-DCB9-47B3-9E8B-2857FFC81308}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI.Telnet", "Dirigent.CLI.Telnet\Dirigent.CLI.Telnet.csproj", "{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}"

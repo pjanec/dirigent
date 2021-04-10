@@ -16,60 +16,51 @@ namespace Dirigent.Agent.TrayApp
     // Define a class to receive parsed values
     class Options
     {
-        [Option("masterPort", Required = false, DefaultValue = 0, HelpText = "Master's TCP port.")]
+        [Option("masterPort", Required = false, Default = 0, HelpText = "Master's TCP port.")]
         public int MasterPort { get; set; }
 
-        [Option("masterIp", Required = false, DefaultValue = "", HelpText = "Master's IP address.")]
+        [Option("masterIp", Required = false, Default = "", HelpText = "Master's IP address.")]
         public string MasterIP { get; set; }
 
-        [Option("mcastIp", Required = false, DefaultValue = "", HelpText = "Multicast IP address.")]
+        [Option("mcastIp", Required = false, Default = "", HelpText = "Multicast IP address.")]
         public string McastIP { get; set; }
 
-        [Option("localIp", Required = false, DefaultValue = "", HelpText = "Local addapter IP address to bind to when multicasting.")]
+        [Option("localIp", Required = false, Default = "", HelpText = "Local addapter IP address to bind to when multicasting.")]
         public string LocalIP { get; set; }
 
-        [Option("mcastAppStates", Required = false, DefaultValue = "", HelpText = "Use multical for sharing app states among agents.")]
+        [Option("mcastAppStates", Required = false, Default = "", HelpText = "Use multical for sharing app states among agents.")]
         public string McastAppStates { get; set; }
 
-        [Option("machineId", Required = false, DefaultValue = "", HelpText = "Machine Id.")]
+        [Option("machineId", Required = false, Default = "", HelpText = "Machine Id.")]
         public string MachineId { get; set; }
 
-        [Option("sharedConfigFile", Required = false, DefaultValue = "", HelpText = "shared config file name.")]
+        [Option("sharedConfigFile", Required = false, Default = "", HelpText = "shared config file name.")]
         public string SharedConfigFile { get; set; }
 
-        [Option("localConfigFile", Required = false, DefaultValue = "", HelpText = "local config file name.")]
+        [Option("localConfigFile", Required = false, Default = "", HelpText = "local config file name.")]
         public string LocalConfigFile { get; set; }
 
-        [Option("logFile", Required = false, DefaultValue = "", HelpText = "log file name.")]
+        [Option("logFile", Required = false, Default = "", HelpText = "log file name.")]
         public string LogFile { get; set; }
 
-        [Option("startupPlan", Required = false, DefaultValue = "", HelpText = "Plan to be started on startup.")]
+        [Option("startupPlan", Required = false, Default = "", HelpText = "Plan to be started on startup.")]
         public string StartupPlan { get; set; }
 
-        [Option("startHidden", Required = false, DefaultValue = "", HelpText = "Start with Dirigent GUI hidden in tray [0|1].")]
+        [Option("startHidden", Required = false, Default = "", HelpText = "Start with Dirigent GUI hidden in tray [0|1].")]
         public string StartHidden { get; set; }
 
-        [Option("isMaster", Required = false, DefaultValue = "", HelpText = "Start Master process automatically [0|1].")]
+        [Option("isMaster", Required = false, Default = "", HelpText = "Start Master process automatically [0|1].")]
         public string IsMaster { get; set; }
 
-        [Option("CLIPort", Required = false, DefaultValue = 0, HelpText = "Master's Command Line Interface TCP port (passed to Master process).")]
+        [Option("CLIPort", Required = false, Default = 0, HelpText = "Master's Command Line Interface TCP port (passed to Master process).")]
         public int CLIPort { get; set; }
 
-        [Option("mode", Required = false, DefaultValue = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui].")]
+        [Option("mode", Required = false, Default = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui].")]
         public string Mode { get; set; }
 
-        [Option("tickPeriod", Required = false, DefaultValue = 0, HelpText = "Refresh period in msec.")]
+        [Option("tickPeriod", Required = false, Default = 0, HelpText = "Refresh period in msec.")]
         public int TickPeriod { get; set; }
 
-        [ParserState]
-        public IParserState LastParserState { get; set; }
-
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this,
-              (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
-        }
     }
 
     public class AppConfig
@@ -97,10 +88,12 @@ namespace Dirigent.Agent.TrayApp
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public bool HadErrors = false;
+
+        ParserResult<Options> _parserResult;
         
         public string GetUsageHelpText()
         {
-            return options.GetUsage();
+            return HelpText.AutoBuild( _parserResult ).ToString();
         }
 
         Options options = new Options();
@@ -124,31 +117,30 @@ namespace Dirigent.Agent.TrayApp
             if (Properties.Settings.Default.CLIPort != 0) cliPort = Properties.Settings.Default.CLIPort;
             if (Properties.Settings.Default.TickPeriod != 0) tickPeriod = Properties.Settings.Default.TickPeriod;
 
-            // overwrite with command line options
-            var args = System.Environment.GetCommandLineArgs();
-            string aaa = HelpText.AutoBuild(options);
-            if (CommandLine.Parser.Default.ParseArguments(args, options))
-            {
-                if (options.MachineId != "") machineId = options.MachineId;
-                if (options.MasterIP != "") masterIP = options.MasterIP;
-                if (options.McastIP != "") mcastIP = options.McastIP;
-                if (options.McastAppStates != "") mcastAppStates = options.McastAppStates;
-                if (options.LocalIP != "") localIP = options.LocalIP;
-                if (options.MasterPort != 0) masterPort = options.MasterPort;
-                if (options.SharedConfigFile != "") sharedCfgFileName = options.SharedConfigFile;
-                if (options.LocalConfigFile != "") localCfgFileName = options.LocalConfigFile;
-                if (options.LogFile != "") logFileName = options.LogFile;
-                if (options.StartupPlan != "") startupPlanName = options.StartupPlan;
-                if (options.StartHidden != "") startHidden = options.StartHidden;
-                if (options.Mode != "") mode = options.Mode;
-                if (options.IsMaster != "") isMaster = options.IsMaster;
-                if (options.CLIPort != 0) cliPort = options.CLIPort;
-                if (options.TickPeriod != 0) tickPeriod = options.TickPeriod;
-            }
-            else
-            {
-                HadErrors = true;
-            }
+            _parserResult = CommandLine.Parser.Default.ParseArguments<Options>(System.Environment.GetCommandLineArgs());
+            
+            _parserResult.WithParsed<Options>( (Options options) =>
+                {
+                    if (options.MachineId != "") machineId = options.MachineId;
+                    if (options.MasterIP != "") masterIP = options.MasterIP;
+                    if (options.McastIP != "") mcastIP = options.McastIP;
+                    if (options.McastAppStates != "") mcastAppStates = options.McastAppStates;
+                    if (options.LocalIP != "") localIP = options.LocalIP;
+                    if (options.MasterPort != 0) masterPort = options.MasterPort;
+                    if (options.SharedConfigFile != "") sharedCfgFileName = options.SharedConfigFile;
+                    if (options.LocalConfigFile != "") localCfgFileName = options.LocalConfigFile;
+                    if (options.LogFile != "") logFileName = options.LogFile;
+                    if (options.StartupPlan != "") startupPlanName = options.StartupPlan;
+                    if (options.StartHidden != "") startHidden = options.StartHidden;
+                    if (options.Mode != "") mode = options.Mode;
+                    if (options.IsMaster != "") isMaster = options.IsMaster;
+                    if (options.CLIPort != 0) cliPort = options.CLIPort;
+                    if (options.TickPeriod != 0) tickPeriod = options.TickPeriod;
+                })
+                .WithNotParsed<Options>( (errList) =>
+                {
+                    HadErrors = true;
+                });
 
 
             if (logFileName != "")

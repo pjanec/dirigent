@@ -17,7 +17,7 @@ namespace Dirigent.Agent.Gui
     public partial class frmMain : Form
     {
 
-        ContextMenu mnuPlanList;  // context menu for the 'Open' toolbar button
+        ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
 
         private void aboutMenuItem_Click(object sender, EventArgs e)
@@ -101,7 +101,7 @@ namespace Dirigent.Agent.Gui
 
         void populatePlanSelectionMenu()
         {
-            mnuPlanList = new ContextMenu();
+            mnuPlanList = new ContextMenuStrip();
 
             selectPlanToolStripMenuItem.DropDownItems.Clear();
 
@@ -118,8 +118,7 @@ namespace Dirigent.Agent.Gui
                 var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler);
                 selectPlanToolStripMenuItem.DropDownItems.Add(menuItem);
 
-                var menuItem2 = new System.Windows.Forms.MenuItem(itemText, clickHandler);
-                mnuPlanList.MenuItems.Add(menuItem2);
+                mnuPlanList.Items.Add(itemText, null, clickHandler);
             }
         }
         

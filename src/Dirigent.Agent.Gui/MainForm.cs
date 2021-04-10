@@ -122,12 +122,12 @@ namespace Dirigent.Agent.Gui
 
 		void registerHotKeys()
 		{
-			var exeConfigFileName = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile;
+			var exeConfigFileName = System.Reflection.Assembly.GetEntryAssembly().Location+".config";
 			XDocument document = XDocument.Load(exeConfigFileName);
 			var templ = "/configuration/userSettings/Dirigent.Agent.TrayApp.Properties.Settings/setting[@name='{0}']/value";
 			{
 				var x = document.XPathSelectElement(String.Format(templ, "StartPlanHotKey"));
-				string hotKeyStr = ( x!=null) ? x.Value : "Control + Shift + Alt + S";
+				string hotKeyStr = (x != null) ? x.Value : "Control + Shift + Alt + S";
 				if (!String.IsNullOrEmpty(hotKeyStr))
 				{
 					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
@@ -157,7 +157,7 @@ namespace Dirigent.Agent.Gui
 				}
 			}
 
-			for(int i=1; i <= 9; i++)
+			for (int i = 1; i <= 9; i++)
 			{
 				var x = document.XPathSelectElement(String.Format(templ, String.Format("SelectPlan{0}HotKey", i)));
 				string hotKeyStr = (x != null) ? x.Value : String.Format("Control + Shift + Alt + {0}", i);
@@ -165,7 +165,7 @@ namespace Dirigent.Agent.Gui
 				{
 					var key = (HotKeys.Keys)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(1);
 					var modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(hotKeyStr).GetValue(0);
-					RegisterHotKey(this.Handle, HOTKEY_ID_SELECT_PLAN_0+i, (int)modifier, (int)key);
+					RegisterHotKey(this.Handle, HOTKEY_ID_SELECT_PLAN_0 + i, (int)modifier, (int)key);
 				}
 			}
 

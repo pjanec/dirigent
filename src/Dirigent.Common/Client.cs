@@ -34,19 +34,19 @@ namespace Dirigent.Net
         }
     }
 
-    public class MasterServiceClient : DuplexClientBase<IDirigentMasterContract>
-    {
-        public MasterServiceClient(object callbackInstance, Binding binding, EndpointAddress remoteAddress)
-            : base(callbackInstance, binding, remoteAddress) { }
-    }
+    //public class MasterServiceClient : DuplexClientBase<IDirigentMasterContract>
+    //{
+    //    public MasterServiceClient(object callbackInstance, Binding binding, EndpointAddress remoteAddress)
+    //        : base(callbackInstance, binding, remoteAddress) { }
+    //}
 
-    public class MasterServiceCallback : IDirigentMasterContractCallback
-    {
-        public void MessageFromServer(  Message msg )
-        {
-            //Console.WriteLine("Text from server: {0}", line);
-        }
-    }
+    //public class MasterServiceCallback : IDirigentMasterContractCallback
+    //{
+    //    public void MessageFromServer(  Message msg )
+    //    {
+    //        //Console.WriteLine("Text from server: {0}", line);
+    //    }
+    //}
 
     public class Client : IClient
     {
@@ -60,9 +60,9 @@ namespace Dirigent.Net
         string localIP;
 		int timeoutMs;
 
-        MasterServiceClient client;
-        MasterServiceCallback callback;
-        IDirigentMasterContract server;  // server proxy
+        //MasterServiceClient client;
+        //MasterServiceCallback callback;
+        //IDirigentMasterContract server;  // server proxy
         
         public string Name { get { return name;} }
 
@@ -85,52 +85,52 @@ namespace Dirigent.Net
         
         public void Connect()
         {
-            var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
-            var binding = new NetTcpBinding();
-			binding.Name = "MasterConnBinding";
-            //binding.SendTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when accessing the service
-            binding.CloseTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when closing the channel and there is an error
-            binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
-			binding.Security.Mode = SecurityMode.None;
-            callback = new MasterServiceCallback();
-            client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
-            //client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
-			//foreach (var op in client.Endpoint.Contract.Operations)
-			//{
-   //             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
-   //             if (dcsBehavior != null)
-   //                 op.Behaviors.Remove(dcsBehavior);
-   //             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
-			//}
-            //Dirigent.Net.Message.RegisterProtobufTypeMaps();
+   //         var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
+   //         var binding = new NetTcpBinding();
+			//binding.Name = "MasterConnBinding";
+   //         //binding.SendTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when accessing the service
+   //         binding.CloseTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when closing the channel and there is an error
+   //         binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
+			//binding.Security.Mode = SecurityMode.None;
+   //         callback = new MasterServiceCallback();
+   //         client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
+   //         //client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
+			////foreach (var op in client.Endpoint.Contract.Operations)
+			////{
+   ////             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
+   ////             if (dcsBehavior != null)
+   ////                 op.Behaviors.Remove(dcsBehavior);
+   ////             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
+			////}
+   //         //Dirigent.Net.Message.RegisterProtobufTypeMaps();
 
-            server = client.ChannelFactory.CreateChannel();
+   //         server = client.ChannelFactory.CreateChannel();
 
-            try
-            {
-                server.AddClient(name);
-            }
-            catch
-            {
-                CloseChannel();
-                throw new MasterConnectionTimeoutException(ipaddr, port);
-            }
+   //         try
+   //         {
+   //             server.AddClient(name);
+   //         }
+   //         catch
+   //         {
+   //             CloseChannel();
+   //             throw new MasterConnectionTimeoutException(ipaddr, port);
+   //         }
 
         }
 
         public void Disconnect()
         {
-            if( server == null ) return; // was not connected
+            //if( server == null ) return; // was not connected
 
-            try
-            {
-                server.RemoveClient( name );
-            }
-            catch (CommunicationException)
-            {
-            }
+            //try
+            //{
+            //    server.RemoveClient( name );
+            //}
+            //catch (CommunicationException)
+            //{
+            //}
 
-            CloseChannel();
+            //CloseChannel();
         }
 
 		static List<Message> _emptyMsgList = new List<Message>();
@@ -138,26 +138,27 @@ namespace Dirigent.Net
 		public IEnumerable<Message> ReadMessages()
         {
 			
-            try
-            {
-                return server.ClientMessages(name);
-            }
-            catch (KeyNotFoundException)
-            {
-                throw new UnknownClientName(name);
-            }
-			catch( System.ServiceModel.CommunicationException ex)
-			{
-				// this happens if computer awakes from hibernation
-				log.Error(String.Format("Error reading client '{0}' messages from master.", name), ex);
-				return _emptyMsgList;
-			}
+   //         try
+   //         {
+   //             return server.ClientMessages(name);
+   //         }
+   //         catch (KeyNotFoundException)
+   //         {
+   //             throw new UnknownClientName(name);
+   //         }
+			//catch( System.ServiceModel.CommunicationException ex)
+			//{
+			//	// this happens if computer awakes from hibernation
+			//	log.Error(String.Format("Error reading client '{0}' messages from master.", name), ex);
+			//	return _emptyMsgList;
+			//}
+			return _emptyMsgList;
         }
 
         public void BroadcastMessage( Message msg )
         {
-            msg.Sender = name;
-            server.BroadcastMessage( msg );
+            //msg.Sender = name;
+            //server.BroadcastMessage( msg );
         }
 
         public bool IsConnected()
@@ -171,29 +172,29 @@ namespace Dirigent.Net
         /// </summary>
         void CloseChannel()
         {
-            if (server == null) return;
+            //if (server == null) return;
 
-            var channel = server as ICommunicationObject;
-            try
-            {
-                channel.Close();
-            }
-            catch (CommunicationException)
-            {
-                channel.Abort();
-            }
-            catch (TimeoutException)
-            {
-                channel.Abort();
-            }
+            //var channel = server as ICommunicationObject;
+            //try
+            //{
+            //    channel.Close();
+            //}
+            //catch (CommunicationException)
+            //{
+            //    channel.Abort();
+            //}
+            //catch (TimeoutException)
+            //{
+            //    channel.Abort();
+            //}
 
-            server = null;
+            //server = null;
         }
         
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing) return;
-            CloseChannel();
+            //CloseChannel();
         }
 
         public void Dispose()

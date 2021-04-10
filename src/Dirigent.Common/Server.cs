@@ -5,21 +5,18 @@ using System.Text;
 using System.Threading;
 
 
-using System.ServiceModel;
-using System.ServiceModel.Channels;
-using System.ServiceModel.Dispatcher;
-using System.ServiceModel.Description;
-
 using Dirigent.Common;
 
 namespace Dirigent.Net
 {
 
-    public class Server // WCF serve
+    public class Server 
     {
         int port;
+/*
         MasterService service;
         ServiceHost host;
+*/
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -34,7 +31,7 @@ namespace Dirigent.Net
         public Server( int port, IDirigentControl localAgent, IEnumerable<ILaunchPlan> planRepo=null, string startupPlanName="" )
         {
             this.port = port;
-
+/*
             var uri = new Uri( string.Format("net.tcp://0.0.0.0:{0}", port) );
             var binding = new NetTcpBinding();
 			binding.Name = "MasterConnBinding";
@@ -79,13 +76,15 @@ namespace Dirigent.Net
                     log.ErrorFormat("Unknown default plan name '{0}'", startupPlanName);
 				}
             }
-        
+*/        
         }
 
 		public void Dispose()
 		{
+/*
             host.Close();
             service.Dispose();
+*/
         }
 
     }

@@ -141,13 +141,13 @@ namespace Dirigent.Agent.TrayApp
             notifyIcon.Text = "Dirigent";
             notifyIcon.Icon = Dirigent.Agent.TrayApp.Properties.Resources.AppIcon;
             
-            var menuItems = new List<MenuItem>();
-            menuItems.Add( new MenuItem("Show", new EventHandler( (s,e) => Show() )) );
+            var menuItems = new List<ToolStripMenuItem>();
+            menuItems.Add( new ToolStripMenuItem("Show", null, new EventHandler( (s,e) => Show() )) );
             if( masterRunner != null )
             {
-                menuItems.Add( new MenuItem("Master's Console", new EventHandler( (s,e) =>
+                menuItems.Add( new ToolStripMenuItem("Master's Console", null, new EventHandler( (s,e) =>
                 {
-                    MenuItem mi = s as MenuItem;
+                    ToolStripMenuItem mi = s as ToolStripMenuItem;
                     if( masterRunner != null )
                     {
                         masterRunner.IsConsoleShown = !mi.Checked;
@@ -156,13 +156,16 @@ namespace Dirigent.Agent.TrayApp
                 }
                 )) );
             }
-            menuItems.Add( new MenuItem("Exit", new EventHandler( (s,e) =>
+            menuItems.Add( new ToolStripMenuItem("Exit", null, new EventHandler( (s,e) =>
             {
                 agent.LocalOps.Terminate( new TerminateArgs() { KillApps=true, MachineId=ac.machineId }  );
                 //Exit();
             })) );
 
-            notifyIcon.ContextMenu = new ContextMenu( menuItems.ToArray() );
+            //menuItems
+            var cms = new ContextMenuStrip();
+            foreach( var x in menuItems ) cms.Items.Add( x );
+            notifyIcon.ContextMenuStrip = cms;
             notifyIcon.Visible = true;
             notifyIcon.DoubleClick += new EventHandler((s, e) => Show());
         }
