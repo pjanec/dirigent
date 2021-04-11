@@ -9,6 +9,34 @@ using Dirigent.Common;
 
 namespace Dirigent.Net
 {
+    public static class TypeMapRegistry
+    {
+        static public Dictionary<uint, System.Type> TypeMap = new Dictionary<uint, Type>()
+        {
+            { 100, typeof(Message) },
+            { 101, typeof(RemoteOperationErrorMessage) },
+            { 102, typeof(AppsStateMessage) },
+            { 103, typeof(PlansStateMessage) },
+            { 104, typeof(LaunchAppMessage) },
+            { 105, typeof(KillAppMessage) },
+            { 106, typeof(RestartAppMessage) },
+            { 107, typeof(SetAppEnabledMessage) },
+            //{ 108, typeof(SelectPlanMessage) },
+            { 109, typeof(StartPlanMessage) },
+            { 110, typeof(StopPlanMessage) },
+            { 111, typeof(KillPlanMessage) },
+            { 112, typeof(RestartPlanMessage) },
+            { 113, typeof(CurrentPlanMessage) },
+            { 114, typeof(PlanRepoMessage) },
+            { 115, typeof(SetVarsMessage) },
+            { 116, typeof(KillAllMessage) },
+            { 117, typeof(ShutdownMessage) },
+            { 118, typeof(ReinstallMessage) },
+            { 119, typeof(TerminateMessage) },
+            { 120, typeof(ReloadSharedConfigMessage) },
+        };
+    }
+
     /// <summary>
     /// Base class for all messages.
     /// </summary>
@@ -62,6 +90,7 @@ namespace Dirigent.Net
         [DataMember]
         public Dictionary<string, string> Attributes; // additional attribute pairs (name, value)
 
+        public RemoteOperationErrorMessage() {}
         public RemoteOperationErrorMessage(string requestor, string msg, Dictionary<string, string> attribs = null)
         {
             this.Requestor = requestor;
@@ -83,6 +112,7 @@ namespace Dirigent.Net
         [DataMember]
         public Dictionary<AppIdTuple, AppState> appsState;
 
+        public AppsStateMessage() {}
         public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
         {
             this.appsState = new Dictionary<AppIdTuple, AppState>(appsState);
@@ -97,6 +127,7 @@ namespace Dirigent.Net
         [DataMember]
         public Dictionary<string, PlanState> plansState;
 
+        public PlansStateMessage() {}
         public PlansStateMessage( Dictionary<string, PlanState> plansState )
         {
             this.plansState = new Dictionary<string, PlanState>(plansState);
@@ -111,6 +142,7 @@ namespace Dirigent.Net
         [DataMember]
         public AppIdTuple appIdTuple;
 
+        public LaunchAppMessage() {}
         public LaunchAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
@@ -131,6 +163,7 @@ namespace Dirigent.Net
         [DataMember]
         public AppIdTuple appIdTuple;
 
+        public KillAppMessage() {}
         public KillAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
@@ -151,6 +184,7 @@ namespace Dirigent.Net
         [DataMember]
         public AppIdTuple appIdTuple;
 
+        public RestartAppMessage() {}
         public RestartAppMessage( AppIdTuple appIdTuple )
         {
             this.appIdTuple = appIdTuple;
@@ -178,6 +212,7 @@ namespace Dirigent.Net
         [DataMember]
         public bool enabled;
 
+        public SetAppEnabledMessage() {}
         public SetAppEnabledMessage( string planName, AppIdTuple appIdTuple, bool enabled )
         {
             this.planName = planName;    
@@ -200,6 +235,7 @@ namespace Dirigent.Net
     //    [DataMember]
     //    public string planName;
 
+    //    public SelectPlanMessage() {}
     //    public SelectPlanMessage( String planName )
     //    {
     //        this.plan = plan
@@ -220,6 +256,7 @@ namespace Dirigent.Net
         [DataMember]
         public String planName;
 
+        public StartPlanMessage() {}
         public StartPlanMessage( String planName )
         {
             this.planName = planName;
@@ -236,6 +273,7 @@ namespace Dirigent.Net
         [DataMember]
         public string planName;
 
+        public StopPlanMessage() {}
         public StopPlanMessage( String planName )
         {
             this.planName = planName;
@@ -252,6 +290,7 @@ namespace Dirigent.Net
         [DataMember]
         public string planName;
 
+        public KillPlanMessage() {}
         public KillPlanMessage( String planName )
         {
             this.planName = planName;
@@ -268,6 +307,7 @@ namespace Dirigent.Net
         [DataMember]
         public string planName;
 
+        public RestartPlanMessage() {}
         public RestartPlanMessage( String planName )
         {
             this.planName = planName;
@@ -287,6 +327,7 @@ namespace Dirigent.Net
 		[DataMember]
 		public string planName;
 
+        public CurrentPlanMessage() {}
 		public CurrentPlanMessage(String planName)
 		{
 			this.planName = planName;
@@ -309,6 +350,7 @@ namespace Dirigent.Net
         [DataMember]
         public IEnumerable<ILaunchPlan> repo;
 
+        public PlanRepoMessage() {}
         public PlanRepoMessage(IEnumerable<ILaunchPlan> repo)
         {
             this.repo = repo;
@@ -328,6 +370,7 @@ namespace Dirigent.Net
         [DataMember]
         public string vars;
 
+        public SetVarsMessage() {}
         public SetVarsMessage( string vars )
         {
             this.vars = vars;    
@@ -349,6 +392,7 @@ namespace Dirigent.Net
         [DataMember]
         public KillAllArgs args;
 
+        public KillAllMessage() {}
         public KillAllMessage( KillAllArgs args )
         {
             this.args = args;    
@@ -369,6 +413,7 @@ namespace Dirigent.Net
         [DataMember]
         public TerminateArgs args;
 
+        public TerminateMessage() {}
         public TerminateMessage( TerminateArgs args )
         {
             this.args = args;    
@@ -389,6 +434,7 @@ namespace Dirigent.Net
         [DataMember]
         public ShutdownArgs args;
 
+        public ShutdownMessage() {}
         public ShutdownMessage( ShutdownArgs args )
         {
             this.args = args;    
@@ -409,6 +455,7 @@ namespace Dirigent.Net
         [DataMember]
         public ReinstallArgs args;
 
+        public ReinstallMessage() {}
         public ReinstallMessage( ReinstallArgs args )
         {
             this.args = args;    
@@ -429,6 +476,7 @@ namespace Dirigent.Net
         [DataMember]
         public ReloadSharedConfigArgs args;
 
+        public ReloadSharedConfigMessage() {}
         public ReloadSharedConfigMessage( ReloadSharedConfigArgs args )
         {
             this.args = args;    

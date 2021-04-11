@@ -3,90 +3,106 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-
-
+using System.Net.Sockets;
+using System.Net;
+using NetCoreServer;
 using Dirigent.Common;
+
 
 namespace Dirigent.Net
 {
 
-    public class Server 
+    class ProtoSession : NetCoreServer.TcpSession
     {
-        int port;
-/*
-        MasterService service;
-        ServiceHost host;
-*/
+        private ProtoBufCodec _msgCodec;
+        private NetCoreServer.TcpServer _server;
+
+        public ProtoSession( NetCoreServer.TcpServer server ) : base(server)
+        {
+            _server = server;
+            _msgCodec = new ProtoBufCodec( TypeMapRegistry.TypeMap );
+            _msgCodec.MessageReceived = OnProtoMessageReceived;
+        }
+
+        void OnProtoMessageReceived( uint msgCode, object instance )
+        {
+            // server just re-broadcasts messages to all clients
+            var msg = instance as Message;
+            if( msg != null )
+            {
+				BroadcastMessage( msg );
+            }
+		}
+
+        //public void SendProtoMsg<T>( T msg )
+        //{
+        //    var ms = new System.IO.MemoryStream();
+        //    _msgCodec.ConstructProtoMessage( ms, msg );
+        //    SendAsync( ms.GetBuffer(), 0, ms.Position );
+        //}
+        
+        public void BroadcastMessage<T>( T msg )
+        {
+            var ms = new System.IO.MemoryStream();
+            _msgCodec.ConstructProtoMessage( ms, msg );
+            _server.Multicast( ms.GetBuffer(), 0, ms.Position );
+        }
+
+        //public void SendText( string text )
+        //{
+        //    var msg = new Common.Messages.Message1() { someTypeMember = new Common.SomeType() { stringMember = text } };
+        //    SendProtoMsg( msg );
+        //}
+
+
+        protected override void OnConnected()
+        {
+            Console.WriteLine($"TCP session with Id {Id} connected!");
+
+            //// Send invite message
+            //SendText("Hello from TCP chat! Please send a message or '!' to disconnect the client!");
+            //SendAsync(message);
+            
+        }
+
+        protected override void OnDisconnected()
+        {
+            Console.WriteLine($"TCP session with Id {Id} disconnected!");
+        }
+
+
+        protected override void OnReceived(byte[] buffer, long offset, long size)
+        {
+            _msgCodec.ReceivedMessagePart( buffer, offset, size );
+        }
+
+        protected override void OnError(SocketError error)
+        {
+            Console.WriteLine($"TCP session caught an error with code {error}");
+        }
+
+    }
+
+    public class Server : NetCoreServer.TcpServer 
+    {
+        private int port;
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
             (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public static string MasterSenderName = "<master>";
-			/// <summary>
-        /// The "message broker" for forwarding messages to clients.
-        /// Just instantiate the class to make the server working.
-        /// The clients remotely access the MasterService via the IDirigentMasterContract interface.
-        /// </summary>
-        /// <param name="port"></param>
         public Server( int port, IDirigentControl localAgent, IEnumerable<ILaunchPlan> planRepo=null, string startupPlanName="" )
+           : base( IPAddress.Any, port)
         {
             this.port = port;
-/*
-            var uri = new Uri( string.Format("net.tcp://0.0.0.0:{0}", port) );
-            var binding = new NetTcpBinding();
-			binding.Name = "MasterConnBinding";
-            binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
-			binding.Security.Mode = SecurityMode.None;
-            service = new MasterService(localAgent);
-            host = new ServiceHost( service, uri);
-            var endpoint = host.AddServiceEndpoint(typeof(IDirigentMasterContract), binding, "");
-            //endpoint.Behaviors.Add(new ClientTrackerEndpointBehavior());
-            //endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
-			//foreach (var op in endpoint.Contract.Operations)
-			//{
-			//             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
-			//             if (dcsBehavior != null)
-			//                 op.Behaviors.Remove(dcsBehavior);
-			//             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
-			//}
-            //Dirigent.Net.Message.RegisterProtobufTypeMaps();
-
-			host.Open();
-
-            // although there can't be any clients connected, this caches the planRepo internally
-            // this cached one is then sent to the client when it first connects
-            if (planRepo != null)
-            {
-                log.InfoFormat("Forcing plan repository ({0} items)", planRepo.Count() );
-                service.BroadcastMessage(MasterSenderName, new PlanRepoMessage(planRepo));
-            }
-
-            // start the initial launch plan if specified
-            if (planRepo != null && startupPlanName != null && startupPlanName != "")
-            {
-                ILaunchPlan startupPlan = null;
-                startupPlan = planRepo.FirstOrDefault((i) => i.Name == startupPlanName);
-                if( startupPlan != null )
-                {
-	                log.InfoFormat("Forcing plan '{0}'", startupPlanName);
-					service.BroadcastMessage(MasterSenderName, new CurrentPlanMessage(startupPlanName));
-                }
-                else
-				{
-                    log.ErrorFormat("Unknown default plan name '{0}'", startupPlanName);
-				}
-            }
-*/        
+            Start();
         }
 
-		public void Dispose()
+		protected override void Dispose(bool disposingManagedResources)
 		{
-/*
-            host.Close();
-            service.Dispose();
-*/
-        }
+			base.Dispose(disposingManagedResources);
+		}
 
+        protected override TcpSession CreateSession() { return new ProtoSession(this); }
     }
 
 

@@ -3,24 +3,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Common", "Dirigent.Common\Dirigent.Common.csproj", "{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Common", "Dirigent.Common\Dirigent.Common.csproj", "{12E74B96-B1C0-4F2A-9C2B-BDA63045201E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Core", "Dirigent.Agent.Core\Dirigent.Agent.Core.csproj", "{FAB65232-663A-48D9-B0A0-8DF9F82FB53D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Agent.Core", "Dirigent.Agent.Core\Dirigent.Agent.Core.csproj", "{FAB65232-663A-48D9-B0A0-8DF9F82FB53D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Master", "Dirigent.Master\Dirigent.Master.csproj", "{A7980E0D-F343-4DAF-91FD-1328558FDCD2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Master", "Dirigent.Master\Dirigent.Master.csproj", "{A7980E0D-F343-4DAF-91FD-1328558FDCD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.TrayApp", "Dirigent.Agent.TrayApp\Dirigent.Agent.TrayApp.csproj", "{802B60E8-B812-4B9B-8CA4-FC0CA4794945}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Agent.TrayApp", "Dirigent.Agent.TrayApp\Dirigent.Agent.TrayApp.csproj", "{802B60E8-B812-4B9B-8CA4-FC0CA4794945}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Gui", "Dirigent.Agent.Gui\Dirigent.Agent.Gui.csproj", "{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Agent.Gui", "Dirigent.Agent.Gui\Dirigent.Agent.Gui.csproj", "{CDC2F0B7-21F2-4843-9C6F-3D1C7B547D89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI", "Dirigent.CLI\Dirigent.CLI.csproj", "{8B33D98C-DCB9-47B3-9E8B-2857FFC81308}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.CLI", "Dirigent.CLI\Dirigent.CLI.csproj", "{8B33D98C-DCB9-47B3-9E8B-2857FFC81308}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CLI.Telnet", "Dirigent.CLI.Telnet\Dirigent.CLI.Telnet.csproj", "{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.CLI.Telnet", "Dirigent.CLI.Telnet\Dirigent.CLI.Telnet.csproj", "{D726C6FB-0A34-47C0-9E7E-84F6BF27A653}"
 	ProjectSection(ProjectDependencies) = postProject
 		{802B60E8-B812-4B9B-8CA4-FC0CA4794945} = {802B60E8-B812-4B9B-8CA4-FC0CA4794945}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Reinstaller", "Dirigent.Reinstaller\Dirigent.Reinstaller.csproj", "{934EB60B-1901-476C-B672-8178F728DBEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Reinstaller", "Dirigent.Reinstaller\Dirigent.Reinstaller.csproj", "{934EB60B-1901-476C-B672-8178F728DBEC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

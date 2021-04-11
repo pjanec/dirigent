@@ -13,10 +13,6 @@ echo %VER_STR% >> %OUT%
 echo. >> %OUT%
 :NO_VER
 
-:: list versions of all binaries
-powershell -ExecutionPolicy Bypass -NoLogo -Command ls *.exe,*.dll -r ^| Sort name ^| %% ^{ $_.Name + ' - ' + $_.VersionInfo.FileVersion ^} >> %OUT%
-echo. >> %OUT%
-
 echo Source Code: >> %OUT%
 
 git config --get remote.origin.url >> %OUT%
@@ -33,5 +29,9 @@ if "%LOCALMODS%" EQU "" goto NO_LOCAL_MODS
 echo WARNING: LOCAL MODIFICATIONS! >> %OUT%
 %GIT_STATUS% >> %OUT%
 :NO_LOCAL_MODS
+echo. >> %OUT%
+
+:: list versions of all binaries
+powershell -ExecutionPolicy Bypass -NoLogo -Command ls *.exe,*.dll -r ^| Sort name ^| %% ^{ $_.Name + ' - ' + $_.VersionInfo.FileVersion ^} >> %OUT%
 echo. >> %OUT%
 

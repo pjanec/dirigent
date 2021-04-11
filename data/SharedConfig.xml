@@ -21,7 +21,7 @@
     	/>
 
     	<App
-    	    AppIdTuple = "m1.c"
+    	    AppIdTuple = "m2.c"
     		Template = "apps.notepad"
     		ExeFullPath = "c:\windows\notepad.exe"
     		StartupDir = "c:\"
@@ -59,7 +59,7 @@
 
     <Plan Name="plan3">
     	<App
-    	    AppIdTuple = "m1.c"
+    	    AppIdTuple = "m2.c"
     		Template = "apps.notepad"
     		ExeFullPath = "c:\windows\notepad.exe"
     		StartupDir = "c:\"

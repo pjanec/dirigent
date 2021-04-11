@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using System.ServiceModel;
-using System.ServiceModel.Channels;
-using System.ServiceModel.Description;
-using Dirigent.Common;
-
 namespace Dirigent.Net
 {
     public class MasterConnectionTimeoutException : Exception
@@ -34,167 +29,94 @@ namespace Dirigent.Net
         }
     }
 
-    //public class MasterServiceClient : DuplexClientBase<IDirigentMasterContract>
-    //{
-    //    public MasterServiceClient(object callbackInstance, Binding binding, EndpointAddress remoteAddress)
-    //        : base(callbackInstance, binding, remoteAddress) { }
-    //}
-
-    //public class MasterServiceCallback : IDirigentMasterContractCallback
-    //{
-    //    public void MessageFromServer(  Message msg )
-    //    {
-    //        //Console.WriteLine("Text from server: {0}", line);
-    //    }
-    //}
-
     public class Client : IClient
     {
+        public string Name { get { return _name;} }
+		public string MasterIP { get { return _ipaddr; } }
+		public int MasterPort { get { return _port; } }
+		public string McastIP { get { return _mcastIP; } }
+		public int McastPort { get { return _mcastPort; } }
+		public string LocalIP { get { return _localIP; } }
+
+
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        string name;
-        string ipaddr;
-        int port;
-        string mcastIP;
-        int mcastPort;
-        string localIP;
-		int timeoutMs;
+        private string _name;
+        private string _ipaddr;
+        private int _port;
+        private string _mcastIP;
+        private int _mcastPort;
+        private string _localIP;
+		private int _timeoutMs;
 
-        //MasterServiceClient client;
-        //MasterServiceCallback callback;
-        //IDirigentMasterContract server;  // server proxy
+
+        private ProtoClient _protoClient;
         
-        public string Name { get { return name;} }
 
-		public string MasterIP { get { return this.ipaddr; } }
-		public int MasterPort { get { return this.port; } }
-		public string McastIP { get { return this.mcastIP; } }
-		public int McastPort { get { return this.mcastPort; } }
-		public string LocalIP { get { return this.localIP; } }
-
-        public Client( string name, string ipaddr, int port, string mcastIP, int mcastPort, string localIP, int timeoutMs=5000 )
+        public Client( string name, string ipaddr, int port, string mcastIP, int mcastPort, string localIP, bool autoConn=false, int timeoutMs=5000 )
         {
-            this.name = name;
-            this.ipaddr = ipaddr;
-            this.port = port;
-            this.mcastIP = mcastIP;
-            this.mcastPort = mcastPort;
-            this.localIP = localIP;
-			this.timeoutMs = timeoutMs;
+            _name = name;
+            _ipaddr = ipaddr;
+            _port = port;
+            _mcastIP = mcastIP;
+            _mcastPort = mcastPort;
+            _localIP = localIP;
+			_timeoutMs = timeoutMs;
+
+            _protoClient = new ProtoClient( ipaddr, port, autoConn );
+
+            if( autoConn ) // if we want autoconnecting, do not wait for it...
+            {
+                _protoClient.ConnectAsync();
+            }
+            else // if we do not want autoconnecting, throw exception on disconnection
+            {
+                _protoClient.Disconnected = () =>
+                {
+                    throw new MasterConnectionTimeoutException( _ipaddr, _port );
+                };
+
+            }
+
         }
         
         public void Connect()
         {
-   //         var uri = new Uri( string.Format("net.tcp://{0}:{1}", ipaddr, port) );
-   //         var binding = new NetTcpBinding();
-			//binding.Name = "MasterConnBinding";
-   //         //binding.SendTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when accessing the service
-   //         binding.CloseTimeout = new TimeSpan(0,0,0,0,timeoutMs); // shorten the timeout when closing the channel and there is an error
-   //         binding.MaxReceivedMessageSize =  Int32.MaxValue; // default 65535 is not enough for long plans
-			//binding.Security.Mode = SecurityMode.None;
-   //         callback = new MasterServiceCallback();
-   //         client = new MasterServiceClient(callback, binding, new EndpointAddress(uri));
-   //         //client.Endpoint.Behaviors.Add( new ProtoBuf.ServiceModel.ProtoEndpointBehavior() );
-			////foreach (var op in client.Endpoint.Contract.Operations)
-			////{
-   ////             DataContractSerializerOperationBehavior dcsBehavior = op.Behaviors.Find<DataContractSerializerOperationBehavior>();
-   ////             if (dcsBehavior != null)
-   ////                 op.Behaviors.Remove(dcsBehavior);
-   ////             op.Behaviors.Add(new ProtoBuf.ServiceModel.ProtoOperationBehavior(op));
-			////}
-   //         //Dirigent.Net.Message.RegisterProtobufTypeMaps();
-
-   //         server = client.ChannelFactory.CreateChannel();
-
-   //         try
-   //         {
-   //             server.AddClient(name);
-   //         }
-   //         catch
-   //         {
-   //             CloseChannel();
-   //             throw new MasterConnectionTimeoutException(ipaddr, port);
-   //         }
-
+            _protoClient.Connect();
         }
 
         public void Disconnect()
         {
-            //if( server == null ) return; // was not connected
-
-            //try
-            //{
-            //    server.RemoveClient( name );
-            //}
-            //catch (CommunicationException)
-            //{
-            //}
-
-            //CloseChannel();
+            _protoClient.Disconnect();
         }
 
 		static List<Message> _emptyMsgList = new List<Message>();
 		
+		private List<object> _messagesReceived = new List<object>();
+
 		public IEnumerable<Message> ReadMessages()
         {
-			
-   //         try
-   //         {
-   //             return server.ClientMessages(name);
-   //         }
-   //         catch (KeyNotFoundException)
-   //         {
-   //             throw new UnknownClientName(name);
-   //         }
-			//catch( System.ServiceModel.CommunicationException ex)
-			//{
-			//	// this happens if computer awakes from hibernation
-			//	log.Error(String.Format("Error reading client '{0}' messages from master.", name), ex);
-			//	return _emptyMsgList;
-			//}
-			return _emptyMsgList;
+            _protoClient.GetMessages( ref _messagesReceived );
+            
+            // retype to Message (side effect: ignores mesages not derived from Message)
+            return from x in _messagesReceived where x is Message select x as Message;
         }
 
         public void BroadcastMessage( Message msg )
         {
-            //msg.Sender = name;
-            //server.BroadcastMessage( msg );
+            msg.Sender = _name;
+            _protoClient.SendMessage( msg );
         }
 
         public bool IsConnected()
         {
-            // we don't know whether wqe are still connected, we throw exceptions if not, just return true
-            return true;
-        }
-
-        /// <summary>
-        /// close the WCF channel
-        /// </summary>
-        void CloseChannel()
-        {
-            //if (server == null) return;
-
-            //var channel = server as ICommunicationObject;
-            //try
-            //{
-            //    channel.Close();
-            //}
-            //catch (CommunicationException)
-            //{
-            //    channel.Abort();
-            //}
-            //catch (TimeoutException)
-            //{
-            //    channel.Abort();
-            //}
-
-            //server = null;
+            return _protoClient.IsConnected;
         }
         
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing) return;
-            //CloseChannel();
+            _protoClient.Dispose();
         }
 
         public void Dispose()

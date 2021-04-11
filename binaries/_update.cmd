@@ -1,29 +1,13 @@
 SET CFG=%1
 SET ARC=%2
 IF "%1"=="" SET CFG=Debug
-REM IF "%2"=="" SET ARC=x64\
+IF "%2"=="" SET ARC=net5.0-windows
+SET OPTIONS=/e /xf SharedConfig.xml /xf *.config
 
-copy ..\src\packages\CommandLineParser.1.9.71\lib\net45\CommandLine.dll  .\
-copy ..\src\packages\log4net.2.0.3\lib\net40-full\log4net.dll  .\
-copy ..\src\packages\protobuf-net.2.4.6\lib\net40\protobuf-net.dll  .\
-
-copy ..\src\Dirigent.Agent.Core\bin\%ARC%%CFG%\Dirigent.Agent.Core.* .\
-
-copy ..\src\Dirigent.Agent.Gui\bin\%ARC%%CFG%\Dirigent.Agent.Gui.* .\
-
-copy ..\src\Dirigent.Common\bin\%ARC%%CFG%\Dirigent.Common.*  .\
-
-copy ..\src\Dirigent.Master\bin\%ARC%%CFG%\Dirigent.Master.*  .\
-
-copy ..\src\Dirigent.Agent.TrayApp\bin\%ARC%%CFG%\Dirigent.Agent.* .\
-
-copy ..\src\Dirigent.Agent.CmdLineCtrl\bin\%ARC%%CFG%\Dirigent.AgentCmd.* .\
-
-copy ..\src\Dirigent.CLI\bin\%ARC%%CFG%\Dirigent.CLI.* .\
-
-copy ..\src\Dirigent.CLI.Telnet\bin\%ARC%%CFG%\Dirigent.CLI.Telnet.* .\
-
-copy ..\src\Dirigent.Reinstaller\bin\%ARC%%CFG%\Dirigent.Reinstaller.* .\
+robocopy ..\src\Dirigent.Agent.TrayApp\bin\%CFG%\%ARC%\ . %OPTIONS%
+robocopy ..\src\Dirigent.Master\bin\%CFG%\%ARC%\ . %OPTIONS%
+robocopy ..\src\Dirigent.CLI.Telnet\bin\%CFG%\%ARC%\ . %OPTIONS%
+robocopy ..\src\Dirigent.Reinstaller\bin\%CFG%\%ARC%\ . %OPTIONS%
 
 copy ..\README.md .\
 

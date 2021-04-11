@@ -184,7 +184,7 @@ namespace Dirigent.Agent.TrayApp
                 // generate unique GUID to avoid matching any machineId in the launch plans
                 string machineId = "remoteControlGui-"+Guid.NewGuid().ToString();
 
-                client = new Dirigent.Net.AutoconClient(machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
+                client = new Dirigent.Net.Client(machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP, autoConn:true);
 
                 agent = new Dirigent.Agent.Core.Agent(machineId, client, false, rootForRelativePaths, false, AppConfig.BoolFromString(ac.mcastAppStates)); // don't go local if not connected
             }
@@ -192,7 +192,7 @@ namespace Dirigent.Agent.TrayApp
             {
                 string clientId = "agent-" + ac.machineId;
                 
-                client = new Dirigent.Net.AutoconClient(clientId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP);
+                client = new Dirigent.Net.Client(clientId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP, autoConn:true);
 
                 agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false, AppConfig.BoolFromString(ac.mcastAppStates));
 

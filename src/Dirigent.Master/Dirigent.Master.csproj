@@ -5,21 +5,6 @@
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <OutputPath>bin\x64\Debug\</OutputPath>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
   <ItemGroup>
     <Compile Update="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -48,10 +33,7 @@
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
   </ItemGroup>
   <PropertyGroup />
-  <Target Name="CopyFiles">
-    <ItemGroup>
-        <MySourceFiles Include="$(TargetPath)" />
-    </ItemGroup>        
-    <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(ProjectDir)..\Dirigent.Agent.TrayApp\$(OutDir)" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /Y D:\Work\Dirigent\src\Dirigent.Master\bin\Debug\net5.0-windows\*.* D:\Work\Dirigent\src\Dirigent.Agent.TrayApp\bin\Debug\net5.0-windows\" />
   </Target>
 </Project>

@@ -175,6 +175,7 @@ namespace Dirigent.Master
 
         
         static AppConfig conf;
+        static Server server;
 
         static bool Initialize()
         {
@@ -201,10 +202,9 @@ namespace Dirigent.Master
                 agent = new Dirigent.Agent.Core.Agent(machineId, dirigClient, false, rootForRelativePaths, doNotLaunchReinstaller, AppConfig.BoolFromString(ac.mcastAppStates));
 
                 // start master server
-				var s = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);
-                // server works through its ServerRemoteObject
+				server = new Server(ac.masterPort, agent.Control, planRepo, ac.startupPlanName);
 
-
+                // connect local client
                 dirigClient.Connect(); // connect should succeed immediately (server runs locally)
 
 				// start a telnet client server
@@ -225,9 +225,28 @@ namespace Dirigent.Master
             }
         }
 
+        static void Deinitialize()
+        {
+            cliServer?.Dispose();
+            server?.Dispose();
+        }
+
+
+        static bool _exitApp = false;
+
+        protected static void myCtrlCHandler(object sender, ConsoleCancelEventArgs args)
+        {
+            // Set the Cancel property to true to prevent the process from terminating.
+            args.Cancel = true;
+
+            // we will terminate gracefully
+            _exitApp = true;
+        }
+
         static void Run()
         {
             Console.WriteLine("Press Ctr+C to stop the server.");
+            Console.CancelKeyPress += new ConsoleCancelEventHandler(myCtrlCHandler);
 
             int numCliTicksPerMainTick = conf.tickPeriod / conf.CLITickPeriod;
             if( numCliTicksPerMainTick <= 0 ) numCliTicksPerMainTick = 1;
@@ -237,7 +256,7 @@ namespace Dirigent.Master
 
             
             // run forever
-            while (true)
+            while( !_exitApp )
             {
 	            agent.tick();
 
@@ -276,7 +295,7 @@ namespace Dirigent.Master
             if( !Initialize() )
                 return;
 
-			while(!parentExited())
+			while( !parentExited() && !_exitApp )
             {
                 try
                 {
@@ -288,6 +307,8 @@ namespace Dirigent.Master
                     log.Info("RemoteOp error: "+Tools.JustFirstLine(ex.ToString()));
                 }
             }
+
+            Deinitialize();
 
         }
 

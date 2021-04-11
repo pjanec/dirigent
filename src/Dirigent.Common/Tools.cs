@@ -83,7 +83,7 @@ namespace Dirigent.Common
 		{
 			get
 			{
-				string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+				string codeBase = Assembly.GetExecutingAssembly().Location;
 				UriBuilder uri = new UriBuilder(codeBase);
 				string path = Uri.UnescapeDataString(uri.Path);
 				return Path.GetDirectoryName(path);
@@ -272,7 +272,7 @@ namespace Dirigent.Common
 
         public static string GetExePath()
         {
-            var assemblyExe = System.Reflection.Assembly.GetEntryAssembly().CodeBase;
+            var assemblyExe = System.Reflection.Assembly.GetEntryAssembly().Location;
             if (assemblyExe.StartsWith("file:///")) assemblyExe = assemblyExe.Remove(0, 8);
 			return assemblyExe;
         }

@@ -1,6 +1,8 @@
 ## Dirigent Overview
 
-Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. It runs on Windows platform with .net 4.
+Dirigent is an application life cycle management and diagnostic tool. It allows launching a given set of applications in given order on given computers according to a predefined launch plan. 
+
+It runs on Windows platform with .net 5.0
 
 ![dirigent-agent](dirigent-agent.png)
 
