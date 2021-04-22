@@ -227,7 +227,7 @@ namespace Dirigent.Common
 		/// </summary>
 		[ProtoBuf.ProtoMember( 16 )]
 		[DataMember]
-		public string PlanName
+		public string? PlanName
 		{
 			get { return planName; }
 			set { planName = value; changed(); }

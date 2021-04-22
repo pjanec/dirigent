@@ -50,7 +50,7 @@ namespace Dirigent.Agent
         {
             _app = app;
             _appState = _app.AppState;
-            _appDef = _app.AppDef;
+            _appDef = _app.RecentAppDef;
 
 	        _state =  eState.WaitingForCrash;
         }

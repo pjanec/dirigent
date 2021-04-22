@@ -66,7 +66,7 @@ namespace Dirigent.Common
 			// read element content into memory, apply defaults
 			var x = new
 			{
-				AppIdTuple = e.Attribute( "AppIdTuple" )?.Value,
+				Id = e.Attribute( "AppIdTuple" )?.Value,
 				ExeFullPath = e.Attribute( "ExeFullPath" )?.Value,
 				StartupDir = e.Attribute( "StartupDir" )?.Value,
 				CmdLineArgs = e.Attribute( "CmdLineArgs" )?.Value,
@@ -90,7 +90,7 @@ namespace Dirigent.Common
 			};
 
 			// then overwrite templated values with current content
-			if( x.AppIdTuple != null ) a.AppIdTuple = new AppIdTuple( x.AppIdTuple );
+			if( x.Id != null ) a.Id = new AppIdTuple( x.Id );
 			if( x.ExeFullPath != null ) a.ExeFullPath = x.ExeFullPath;
 			if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
 			if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
@@ -247,7 +247,9 @@ namespace Dirigent.Common
 				int index = 1;
 				foreach( var a in apps )
 				{
-					if( string.IsNullOrEmpty(a.AppIdTuple.AppId) || string.IsNullOrEmpty(a.AppIdTuple.MachineId) )
+					a.PlanName = planName;
+
+					if( string.IsNullOrEmpty(a.Id.AppId) || string.IsNullOrEmpty(a.Id.MachineId) )
 					{
 						throw new ConfigurationErrorException( string.Format( "App #{0} in plan '{1}' not having valid AppTupleId", index, planName ) );
 					}

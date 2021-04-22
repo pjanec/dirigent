@@ -34,7 +34,7 @@ namespace Dirigent.Agent
             _app = app;
             this._appState = app.AppState;
             this._processId = app.Launcher.ProcessId;
-            this._appDef = app.AppDef;
+            this._appDef = app.RecentAppDef;
 
             
             try
@@ -51,7 +51,7 @@ namespace Dirigent.Agent
             _appState.Initialized = false; // will be set to true as soon as the exit code condition is met
 
             _initialTicks = DateTime.UtcNow.Ticks;
-            log.DebugFormat("TimeOutInitDetector: Waiting {0} sec, appid {1}, pid {2}", _timeOut, _appDef.AppIdTuple, _processId );
+            log.DebugFormat("TimeOutInitDetector: Waiting {0} sec, appid {1}, pid {2}", _timeOut, _appDef.Id, _processId );
         }
 
         bool IsInitialized()
@@ -60,7 +60,7 @@ namespace Dirigent.Agent
             double delta = Math.Abs(ts.TotalSeconds);
             if( delta >= _timeOut )
             {
-                log.DebugFormat("TimeOutInitDetector: Timeout, reporting INITIALIZED appid {0} pid {1}", _appDef.AppIdTuple, _processId );
+                log.DebugFormat("TimeOutInitDetector: Timeout, reporting INITIALIZED appid {0} pid {1}", _appDef.Id, _processId );
                 return true;
             }
             return false;

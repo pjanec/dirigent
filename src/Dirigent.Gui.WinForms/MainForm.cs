@@ -60,9 +60,9 @@ namespace Dirigent.Gui.WinForms
 				_reflStates = reflStates;
 			}
 
-			public AppState GetAppState( AppIdTuple appId )
+			public AppState GetAppState( AppIdTuple id )
 			{
-				if( _reflStates.AppStates.TryGetValue( appId, out var appState ) )
+				if( _reflStates.AppStates.TryGetValue( id, out var appState ) )
 				{
 					return appState;
 				}

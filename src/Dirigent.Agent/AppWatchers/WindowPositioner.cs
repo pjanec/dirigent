@@ -57,13 +57,13 @@ namespace Dirigent.Agent
         {
             _app = app;
             _appState = _app.AppState;
-			_appDef = _app.AppDef;
+			_appDef = _app.RecentAppDef;
             _processId = app.Launcher.ProcessId;
 
             parseXml( xml );
 
             //if( pos.Rect == System.Drawing.Rectangle.Empty ) throw new InvalidAppConfig(appDef.AppIdTuple, "WindowPos: Missing Rectangle attribute");
-            if( string.IsNullOrEmpty( _pos.TitleRegExp ))  throw new InvalidAppConfig(_appDef.AppIdTuple, "WindowPos: Missing TitleRegExp atribute");
+            if( string.IsNullOrEmpty( _pos.TitleRegExp ))  throw new InvalidAppConfig(_appDef.Id, "WindowPos: Missing TitleRegExp atribute");
 
             _titleRegExp = new Regex( _pos.TitleRegExp );
         }

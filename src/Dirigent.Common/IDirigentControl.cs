@@ -72,9 +72,9 @@ namespace Dirigent.Common
 		/// <summary>
 		/// Checkis if an app is the local one
 		/// </summary>
-		/// <param name="appIdTuple"></param>
+		/// <param name="id"></param>
 		/// <returns>true if local, false if remote</returns>
-		bool IsLocalApp( AppIdTuple appIdTuple ) { return false; }
+		bool IsLocalApp( AppIdTuple id ) { return false; }
 
 		/// <summary>
 		/// Get the status of an application (no matter whether local or remote)
@@ -83,9 +83,9 @@ namespace Dirigent.Common
 		/// If used on non-owning instance, you should not modify the state (it
 		/// is likely to be overwritten soon anyway).
 		/// </summary>
-		/// <param name="appIdTuple"></param>
+		/// <param name="id"></param>
 		/// <returns></returns>
-		AppState? GetAppState( AppIdTuple appIdTuple ) { return null; }
+		AppState? GetAppState( AppIdTuple id ) { return null; }
 
 		/// <summary>
 		/// Get the status of a plan
@@ -108,9 +108,9 @@ namespace Dirigent.Common
 		/// <summary>
 		/// Set the status of a remote application (received from another agent through master for example)
 		/// </summary>
-		/// <param name="appIdTuple"></param>
+		/// <param name="id"></param>
 		/// <returns></returns>
-		void SetRemoteAppState( AppIdTuple appIdTuple, AppState state ) {}
+		void SetRemoteAppState( AppIdTuple id, AppState state ) {}
 
 		/// <summary>
 		/// Set the status of a plan (updated after connecting an agent to an already running master)
@@ -153,16 +153,16 @@ namespace Dirigent.Common
 		void RestartPlan( string planName ) {}
 
 		// run specific app
-		void LaunchApp( AppIdTuple appIdTuple ) {}
+		void LaunchApp( AppIdTuple id ) {}
 
 		// kill and then start given app (must be part of some plan)
-		void RestartApp( AppIdTuple appIdTuple ) {}
+		void RestartApp( AppIdTuple id ) {}
 
 		// kill specified app
-		void KillApp( AppIdTuple appIdTuple ) {}
+		void KillApp( AppIdTuple id ) {}
 
 		// disable (do not run as part of plan)
-		void SetAppEnabled( string planName, AppIdTuple appIdTuple, bool enabled ) {}
+		void SetAppEnabled( string planName, AppIdTuple id, bool enabled ) {}
 
 		// set the value of environment variables to be inherited by processes started from Dirigent
 		// format of string: VAR1=VALUE1::VAR2=VALUE2

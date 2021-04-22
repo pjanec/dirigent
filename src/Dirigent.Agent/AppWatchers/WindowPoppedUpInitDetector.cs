@@ -51,7 +51,7 @@ namespace Dirigent.Agent
         {
             _app = app;
             _appState = _app.AppState;
-            _appDef = _app.AppDef;
+            _appDef = _app.RecentAppDef;
             _processId = _processId;
 
             try
@@ -65,7 +65,7 @@ namespace Dirigent.Agent
 
             _appState.Initialized = false; // will be set to true as soon as the exit code condition is met
 
-            log.DebugFormat("WindowPoppedUpInitDetector: Waiting for window with titleRegExp {0}, appid {1}, pid {2}", _titleRegExpString, _appDef.AppIdTuple, _processId );
+            log.DebugFormat("WindowPoppedUpInitDetector: Waiting for window with titleRegExp {0}, appid {1}, pid {2}", _titleRegExpString, _appDef.Id, _processId );
         }
 
         bool IsInitialized()

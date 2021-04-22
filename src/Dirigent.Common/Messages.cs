@@ -155,7 +155,7 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple appIdTuple;
+		public AppIdTuple Id;
 
 		/// <summary>
 		/// From what plan the app def should be taken.
@@ -171,15 +171,15 @@ namespace Dirigent.Net
 
 
 		public LaunchAppMessage() {}
-		public LaunchAppMessage( AppIdTuple appIdTuple, string? planName )
+		public LaunchAppMessage( AppIdTuple id, string? planName )
 		{
-			this.appIdTuple = appIdTuple;
+			this.Id = id;
 			this.PlanName = planName;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StartApp {0} plan {1}", appIdTuple.ToString(), PlanName );
+			return string.Format( "StartApp {0} plan {1}", Id.ToString(), PlanName );
 		}
 
 	}
@@ -190,17 +190,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple? appIdTuple;
+		public AppIdTuple id;
 
 		public KillAppMessage() {}
-		public KillAppMessage( AppIdTuple appIdTuple )
+		public KillAppMessage( AppIdTuple id )
 		{
-			this.appIdTuple = appIdTuple;
+			this.id = id;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StopApp {0}", appIdTuple.ToString() );
+			return string.Format( "StopApp {0}", id.ToString() );
 		}
 
 	}
@@ -211,16 +211,16 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple? appIdTuple;
+		public AppIdTuple id;
 
 		public RestartAppMessage() {}
-		public RestartAppMessage( AppIdTuple appIdTuple )
+		public RestartAppMessage( AppIdTuple id )
 		{
-			this.appIdTuple = appIdTuple;
+			this.id = id;
 		}
 		public override string ToString()
 		{
-			return string.Format( "RestartApp {0}", appIdTuple.ToString() );
+			return string.Format( "RestartApp {0}", id.ToString() );
 		}
 
 	}
@@ -235,23 +235,23 @@ namespace Dirigent.Net
 
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
-		public AppIdTuple? appIdTuple;
+		public AppIdTuple id;
 
 		[ProtoBuf.ProtoMember( 3 )]
 		[DataMember]
 		public bool enabled;
 
 		public SetAppEnabledMessage() {}
-		public SetAppEnabledMessage( string planName, AppIdTuple appIdTuple, bool enabled )
+		public SetAppEnabledMessage( string planName, AppIdTuple id, bool enabled )
 		{
 			this.planName = planName;
-			this.appIdTuple = appIdTuple;
+			this.id = id;
 			this.enabled = enabled;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "SetAppEnabled [{0}] {1} {2}", planName, appIdTuple.ToString(), enabled );
+			return string.Format( "SetAppEnabled [{0}] {1} {2}", planName, id.ToString(), enabled );
 		}
 
 	}
@@ -558,6 +558,7 @@ namespace Dirigent.Net
 	[DataContract]
 	public class AppDefsMessage : Message
 	{
+
 		private static List<AppDef> emptyDefs = new();
 
 		[ProtoBuf.ProtoMember( 1 )]

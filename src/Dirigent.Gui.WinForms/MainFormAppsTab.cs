@@ -39,8 +39,8 @@ namespace Dirigent.Gui.WinForms
 					gridApps.Rows.Add(
 						new object[]
 					{
-						a.AppIdTuple.ToString(),
-						getAppStatusCode( a.AppIdTuple, _ctrl.GetAppState( a.AppIdTuple ), true )
+						a.Id.ToString(),
+						getAppStatusCode( a.Id, _ctrl.GetAppState( a.Id ), true )
 					}
 					);
 				}
@@ -53,12 +53,12 @@ namespace Dirigent.Gui.WinForms
 			public string PlanName;
 		}
 
-		string GetPlanForApp( AppIdTuple appIdTuple )
+		string GetPlanForApp( AppIdTuple id )
 		{
 			var x =
 				( from p in _ctrl.GetPlanRepo()
 				  from a in p.AppDefs
-				  where a.AppIdTuple == appIdTuple
+				  where a.Id == id
 				  select p.Name ).ToList();
 			if( x.Count > 1 )
 				return "<multiple>";
@@ -77,8 +77,8 @@ namespace Dirigent.Gui.WinForms
 
 			var plan = _ctrl.GetCurrentPlan();
 
-			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.AppIdTuple, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
-			var planAppIdTuples = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad.AppIdTuple ).ToList() : new List<AppIdTuple>();
+			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
+			var planAppIdTuples = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad.Id ).ToList() : new List<AppIdTuple>();
 
 			Dictionary<AppIdTuple, AppState> appStates;
 			if( ShowJustAppFromCurrentPlan )
@@ -130,19 +130,19 @@ namespace Dirigent.Gui.WinForms
 
 			foreach( var x in appStates )
 			{
-				var id = x.Key.ToString();
-				if( !oldApps.ContainsKey( id ) )
+				var idStr = x.Key.ToString();
+				if( !oldApps.ContainsKey( idStr ) )
 				{
-					var appIdTuple = x.Key;
+					var id = x.Key;
 					var appState = x.Value;
 					var item = new object[appTabNumCols];
-					item[appTabColName] = id;
-					item[appTabColStatus] = getAppStatusCode( appIdTuple, appState, planAppIdTuples.Contains( appIdTuple ) );
+					item[appTabColName] = idStr;
+					item[appTabColStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
 					item[appTabColIconStart] = ResizeImage( new Bitmap( Resource1.play ), new Size( 20, 20 ) );
 					item[appTabColIconKill] = ResizeImage( new Bitmap( Resource1.delete ), new Size( 20, 20 ) );
 					item[appTabColIconRestart] = ResizeImage( new Bitmap( Resource1.refresh ), new Size( 20, 20 ) );
 					item[appTabColEnabled] = false;
-					item[appTabColPlan] = GetPlanForApp( appIdTuple );
+					item[appTabColPlan] = GetPlanForApp( id );
 					toAdd.Add( item );
 				}
 			}
@@ -162,11 +162,11 @@ namespace Dirigent.Gui.WinForms
 			{
 				if( !toRemove.Contains( o.Value ) )
 				{
-					var appIdTuple = newApps[o.Key];
-					var appState = _ctrl.GetAppState( appIdTuple );
+					var id = newApps[o.Key];
+					var appState = _ctrl.GetAppState( id );
 					var upd = new UPD()
 					{
-						Status = getAppStatusCode( appIdTuple, appState, planAppIdTuples.Contains( appIdTuple ) ),
+						Status = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) ),
 						PlanName = null
 					};
 					if( appState.PlanName != null )
@@ -196,10 +196,10 @@ namespace Dirigent.Gui.WinForms
 
 			foreach( DataGridViewRow item in gridApps.Rows )
 			{
-				string id = item.Cells[0].Value as string;
-				var appIdTuple = AppIdTuple.fromString( id, "" );
+				string idStr = item.Cells[0].Value as string;
+				var id = AppIdTuple.fromString( idStr, "" );
 
-				if( planAppIds.Contains( id ) )
+				if( planAppIds.Contains( idStr ) )
 				{
 					item.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
 				}
@@ -209,7 +209,7 @@ namespace Dirigent.Gui.WinForms
 				}
 
 				// set checkbox based on Enabled attribute od the appDef from current plan
-				var appDef = planAppDefsDict.ContainsKey( appIdTuple ) ? planAppDefsDict[appIdTuple] : null;
+				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 				{
 					var chkCell = item.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
 					chkCell.Value = appDef != null ? !appDef.Disabled : false;
@@ -221,7 +221,7 @@ namespace Dirigent.Gui.WinForms
 				// put app state into a tooltip
 				{
 					var appStatusCell = item.Cells[appTabColStatus]; // as DataGridViewCell;
-					appStatusCell.ToolTipText = Tools.GetAppStateString( appIdTuple, _ctrl.GetAppState( appIdTuple ) );
+					appStatusCell.ToolTipText = Tools.GetAppStateString( id, _ctrl.GetAppState( id ) );
 				}
 
 			}
@@ -229,7 +229,7 @@ namespace Dirigent.Gui.WinForms
 
 		private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
-			var appIdTuple = new AppIdTuple( ( string ) gridApps.Rows[e.RowIndex].Cells[appTabColName].Value );
+			var id = new AppIdTuple( ( string ) gridApps.Rows[e.RowIndex].Cells[appTabColName].Value );
 			var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
 			var defst = gridApps.Rows[e.RowIndex].Cells[appTabColName].Style;
 			if( e.ColumnIndex == appTabColStatus )
@@ -252,7 +252,7 @@ namespace Dirigent.Gui.WinForms
 					var appDef =
 						( from p in _ctrl.GetPlanRepo()
 						  from a in p.AppDefs
-						  where a.AppIdTuple == appIdTuple
+						  where a.Id == id
 						  select a ).FirstOrDefault();
 					if( appDef != null )
 					{
@@ -287,17 +287,17 @@ namespace Dirigent.Gui.WinForms
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
 			var plan = _ctrl.GetCurrentPlan();
-			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.AppIdTuple, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
+			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
 				DataGridViewRow focused = gridApps.Rows[currentRow];
-				var appIdTuple = new AppIdTuple( focused.Cells[0].Value as string );
-				var st = _ctrl.GetAppState( appIdTuple );
+				var id = new AppIdTuple( focused.Cells[0].Value as string );
+				var st = _ctrl.GetAppState( id );
 				bool connected = IsConnected;
-				bool isLocalApp = appIdTuple.MachineId == this._machineId;
+				bool isLocalApp = id.MachineId == this._machineId;
 				bool isAccessible = isLocalApp || connected; // can we change its state?
-				var appDef = planAppDefsDict.ContainsKey( appIdTuple ) ? planAppDefsDict[appIdTuple] : null;
+				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 
 				if( e.Button == MouseButtons.Right )
 				{
@@ -306,31 +306,31 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.LaunchApp( appIdTuple ) );
+					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.LaunchApp( id ) );
 					launchItem.Enabled = isAccessible && !st.Running;
 					popup.Items.Add( launchItem );
 
 					var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.KillApp( appIdTuple ) );
+					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.KillApp( id ) );
 					killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
 					popup.Items.Add( killItem );
 
 					var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.RestartApp( appIdTuple ) );
+					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.RestartApp( id ) );
 					restartItem.Enabled = isAccessible; // && st.Running;
 					popup.Items.Add( restartItem );
 
 					if( appDef != null && appDef.Disabled )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, appIdTuple, true ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, true ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
 					if( appDef != null && !appDef.Disabled )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, appIdTuple, false ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, false ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
@@ -345,7 +345,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.LaunchApp( appIdTuple ) );
+							guardedOp( () => _ctrl.LaunchApp( id ) );
 						}
 					}
 
@@ -353,7 +353,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.KillApp( appIdTuple ) );
+							guardedOp( () => _ctrl.KillApp( id ) );
 						}
 					}
 
@@ -361,7 +361,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.RestartApp( appIdTuple ) );
+							guardedOp( () => _ctrl.RestartApp( id ) );
 						}
 					}
 
@@ -370,7 +370,7 @@ namespace Dirigent.Gui.WinForms
 						var wasEnabled = ( bool ) focused.Cells[currentCol].Value;
 						if( plan != null )
 						{
-							guardedOp( () => _ctrl.SetAppEnabled( plan.Name, appIdTuple, !wasEnabled ) );
+							guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, !wasEnabled ) );
 						}
 						else
 						{
@@ -394,22 +394,22 @@ namespace Dirigent.Gui.WinForms
 					if( col == appTabColName || col == appTabColStatus || col == appTabColPlan )  // just Name and Status columns
 					{
 						DataGridViewRow focused = gridApps.Rows[row];
-						var appIdTuple = new AppIdTuple( focused.Cells[0].Value as string );
-						var st = _ctrl.GetAppState( appIdTuple );
+						var id = new AppIdTuple( focused.Cells[0].Value as string );
+						var st = _ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.LaunchApp( appIdTuple ) );
+						guardedOp( () => _ctrl.LaunchApp( id ) );
 					}
 				}
 			}
 		}
 
-		string getAppStatusCode( AppIdTuple appIdTuple, AppState st, bool isPartOfPlan )
+		string getAppStatusCode( AppIdTuple id, AppState st, bool isPartOfPlan )
 		{
 			string stCode = "Not running";
 
 			bool connected = IsConnected;
 			var currTime = DateTime.UtcNow;
-			bool isRemoteApp = appIdTuple.MachineId != this._machineId;
+			bool isRemoteApp = id.MachineId != this._machineId;
 
 			if( isRemoteApp && !connected )
 			{

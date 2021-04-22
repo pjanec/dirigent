@@ -30,7 +30,7 @@ namespace Dirigent.Common
 		/// </summary>
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple AppIdTuple;
+		public AppIdTuple Id;
 
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
@@ -165,13 +165,21 @@ namespace Dirigent.Common
 		[DataMember]
 		public List<string> InitDetectors = new List<string>();
 
+		/// <summary>
+		/// What plan this appdef belongs to
+		/// </summary>
+		[ProtoBuf.ProtoMember(25)]
+		[DataMember]
+		public string? PlanName = null;
+
+
 		public bool Equals( AppDef? other )
 		{
 			if( other is null )
 				return false;
 
 			if(
-				this.AppIdTuple == other.AppIdTuple &&
+				this.Id == other.Id &&
 				this.ExeFullPath == other.ExeFullPath &&
 				this.StartupDir == other.StartupDir &&
 				this.CmdLineArgs == other.CmdLineArgs &&
@@ -222,23 +230,33 @@ namespace Dirigent.Common
 
 		public override int GetHashCode()
 		{
-			return this.AppIdTuple.GetHashCode() ^ this.ExeFullPath.GetHashCode();
+			return this.Id.GetHashCode() ^ this.ExeFullPath.GetHashCode();
 		}
 
-		public static bool operator ==( AppDef person1, AppDef person2 )
+		public static bool operator ==( AppDef t1, AppDef t2 )
 		{
-			if( ( object )person1 == null || ( ( object )person2 ) == null )
-				return Object.Equals( person1, person2 );
+			if( ( object )t1 == null || ( ( object )t2 ) == null )
+				return Object.Equals( t1, t2 );
 
-			return person1.Equals( person2 );
+			return t1.Equals( t2 );
 		}
 
-		public static bool operator !=( AppDef person1, AppDef person2 )
+		public static bool operator !=( AppDef t1, AppDef t2 )
 		{
-			if( person1 is null || person2 is null )
-				return !Object.Equals( person1, person2 );
+			if( t1 is null || t2 is null )
+				return !Object.Equals( t1, t2 );
 
-			return !( person1.Equals( person2 ) );
+			return !( t1.Equals( t2 ) );
+		}
+
+
+		public override string ToString()
+		{
+			if( !string.IsNullOrEmpty(PlanName) )
+				return $"{Id}";
+			else
+				return $"{Id}@{PlanName}";
 		}
 	}
+
 }

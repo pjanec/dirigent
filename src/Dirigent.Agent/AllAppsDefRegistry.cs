@@ -27,42 +27,41 @@ namespace Dirigent.Agent
 			_appDefs.Clear();
 			foreach( var ad in allAppDefs )
 			{
-				_appDefs[ad.AppIdTuple] = ad;
+				_appDefs[ad.Id] = ad;
 			}
 		}
 
-		public void AddOrUpdate( AppDef newDef )
+		public void AddOrUpdate( AppDef newAppDef )
 		{
 			// check for change, fire change cb if there is
-			if( _appDefs.TryGetValue( newDef.AppIdTuple, out var existingDef ) )
+			if( _appDefs.TryGetValue( newAppDef.Id, out var existingRec ) )
 			{
-				if( existingDef != newDef )
+				if( existingRec != newAppDef )
 				{
-					_appDefs[newDef.AppIdTuple] = newDef;
-					Updated?.Invoke( newDef );
+					_appDefs[newAppDef.Id] = newAppDef;
+					Updated?.Invoke( newAppDef );
 				}
 			}
 			else
 			{
-				_appDefs[newDef.AppIdTuple] = newDef;
-				Added?.Invoke( newDef );
+				_appDefs[newAppDef.Id] = newAppDef;
+				Added?.Invoke( newAppDef );
 			}
 
 		}
 
-		public AppDef? FindApp( AppIdTuple appIdTuple, string? requestor = null )
+		/// <summary>
+		/// Finds app definition by id. Throws if failed.
+		/// </summary>
+		public AppDef FindApp( AppIdTuple id )
 		{
-			if( _appDefs.TryGetValue( appIdTuple, out var existingDef ) )
+			if( _appDefs.TryGetValue( id, out var existingAdr ) )
 			{
-				return existingDef;
-			}
-			else if( requestor is not null )
-			{
-				throw new RemoteOperationErrorException( requestor, $"App {appIdTuple} does not exist." );
+				return existingAdr;
 			}
 			else
 			{
-				return null;
+				throw new UnknownAppIdException( id );
 			}
 		}						  
 

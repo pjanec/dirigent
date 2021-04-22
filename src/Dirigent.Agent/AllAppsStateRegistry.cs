@@ -30,9 +30,9 @@ namespace Dirigent.Agent
 
 		public Dictionary<AppIdTuple, AppState> AppStates => _appStates;
 
-		public void AddOrUpdate( AppIdTuple appId, AppState appState )
+		public void AddOrUpdate( AppIdTuple id, AppState appState )
 		{
-			_appStates[appId] = appState;
+			_appStates[id] = appState;
 		}
 	}
 }

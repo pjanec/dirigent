@@ -43,7 +43,7 @@ namespace Dirigent.Agent
 
 		SharedContext _sharedContext;
 
-		public Launcher( IDirigentControl ctrl, AppDef appDef, SharedContext sharedContext, string planName )
+		public Launcher( IDirigentControl ctrl, AppDef appDef, SharedContext sharedContext )
 		{
 			this.ctrl = ctrl;
 			if( ctrl == null ) throw new ArgumentNullException( "ctrl", "Valid network-bound Dirigent Control required" );
@@ -59,7 +59,7 @@ namespace Dirigent.Agent
 				_relativePathsRoot = sharedContext.RootForRelativePaths;
 			}
 
-			this._planName = planName;
+			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
 
 			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars );
@@ -74,7 +74,7 @@ namespace Dirigent.Agent
 			{
 				if( _softKiller.IsDefined )
 				{
-					log.ErrorFormat( "{0}: KillSoftly can't be used together with SoftKill! Using just the SoftKill...", appDef.AppIdTuple );
+					log.ErrorFormat( "{0}: KillSoftly can't be used together with SoftKill! Using just the SoftKill...", appDef.Id );
 				}
 				else // add a single Close action to the soft kill seq, with default timeout
 				{
@@ -234,10 +234,15 @@ namespace Dirigent.Agent
 
 
 
-		public void Launch()
+		/// <summary>
+		/// Starts the process (may also adopt an existing one if set in AppDef)
+		/// Throws on failure.
+		/// </summary>
+		/// <returns>true if the app was launched, false if still dying</returns>
+		public bool Launch()
 		{
 			// don't run again if not yet killed
-			if( _dying ) return;
+			if( _dying ) return false;
 
 			// not exited yet
 			_exitCode = 0;
@@ -246,8 +251,8 @@ namespace Dirigent.Agent
 			// set environment variables here so we can use them when expanding process path/args/cwd
 			Environment.SetEnvironmentVariable( "DIRIGENT_SHAREDCONFDIR", _relativePathsRoot );
 			Environment.SetEnvironmentVariable( "DIRIGENT_PLAN", _planName );
-			Environment.SetEnvironmentVariable( "DIRIGENT_MACHINEID", _appDef.AppIdTuple.MachineId );
-			Environment.SetEnvironmentVariable( "DIRIGENT_APPID", _appDef.AppIdTuple.AppId );
+			Environment.SetEnvironmentVariable( "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
+			Environment.SetEnvironmentVariable( "DIRIGENT_APPID", _appDef.Id.AppId );
 			Environment.SetEnvironmentVariable( "DIRIGENT_MASTER_IP", _masterIP );
 
 
@@ -256,17 +261,15 @@ namespace Dirigent.Agent
 			switch( pe.ExeType )
 			{
 				case EExeType.DirigentCmd:
-					LaunchDirigentCmd( pe );
-					break;
+					return LaunchDirigentCmd( pe );
 				default:
-					LaunchExe( pe );
-					break;
+					return LaunchExe( pe );
 			}
 
 		}
 
 
-		void LaunchExe( ParsedExe pe )
+		bool LaunchExe( ParsedExe pe )
 		{
 			// try to adopt an already running process (matching by process image file name, regardless of path)
 			if( _appDef.AdoptIfAlreadyRunning )
@@ -276,7 +279,7 @@ namespace Dirigent.Agent
 				{
 					log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
 					_proc = found.Process;
-					return;
+					return true; // act as if we started it
 				}
 			}
 
@@ -296,27 +299,28 @@ namespace Dirigent.Agent
 			}
 
 			psi.WindowStyle = _appDef.WindowStyle switch
-		{
+			{
 				EWindowStyle.Normal => ProcessWindowStyle.Normal,
 				EWindowStyle.Minimized => ProcessWindowStyle.Minimized,
 				EWindowStyle.Maximized => ProcessWindowStyle.Maximized,
 				EWindowStyle.Hidden => ProcessWindowStyle.Hidden,
 				_ => ProcessWindowStyle.Normal
-		};
+			};
 
 
 
-		psi.UseShellExecute = false; // allows us using environment variables
+			psi.UseShellExecute = false; // allows us using environment variables
 
-		//
-		// modify the environment
-		//
-		foreach( var x in _appDef.EnvVarsToSet )
+			//
+			// modify the environment
+			//
+			foreach( var x in _appDef.EnvVarsToSet )
 			{
 				var name = x.Key;
 				var value = ExpandVars( x.Value );
 				psi.EnvironmentVariables[name] = value;
 			}
+
 			if( !String.IsNullOrEmpty( _appDef.EnvVarPathToAppend ) )
 			{
 				var name = "PATH";
@@ -325,6 +329,7 @@ namespace Dirigent.Agent
 				postfix = string.Join( ";", postfix.Split( ';' ).Select( p => BuildAbsolutePath( p ) ) );
 				psi.EnvironmentVariables[name] = psi.EnvironmentVariables[name] + ";" + postfix;
 			}
+
 			if( !String.IsNullOrEmpty( _appDef.EnvVarPathToPrepend ) )
 			{
 				var name = "PATH";
@@ -334,6 +339,8 @@ namespace Dirigent.Agent
 				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
 			}
 
+			// run the process
+			_proc = null;
 			try
 			{
 				log.DebugFormat( "StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
@@ -349,36 +356,36 @@ namespace Dirigent.Agent
 				else
 				{
 					log.DebugFormat( "StartProc FAILED (no details)" );
+					throw new AppStartFailureException( _appDef.Id, "no details" );
 				}
 			}
 			catch( Exception ex )
 			{
 				log.DebugFormat( "StartProc FAILED except {0}", ex.Message );
-				throw new AppStartFailureException( _appDef.AppIdTuple, ex.Message, ex );
+				throw new AppStartFailureException( _appDef.Id, ex.Message, ex );
 			}
 
 
-			if( _proc != null )
+			try
 			{
-				try
-				{
-					SetPriorityClass( _appDef.PriorityClass );
-				}
-				catch( Exception ex )
-				{
-					log.DebugFormat( "SetPriority FAILED except {0}", ex.Message );
-				}
+				SetPriorityClass( _appDef.PriorityClass );
+			}
+			catch( Exception ex )
+			{
+				log.DebugFormat( "SetPriority FAILED except {0}", ex.Message );
 			}
 
+			return true;
 		}
 
-		void LaunchDirigentCmd( ParsedExe pe )
+		bool LaunchDirigentCmd( ParsedExe pe )
 		{
 			var commands = _cmdRepo.ParseCmdLine( pe.CmdLine, null );
 			foreach( var cmd in commands )
 			{
 				cmd.Execute();
 			}
+			return true;
 		}
 
 		/// <summary>
@@ -738,7 +745,7 @@ namespace Dirigent.Agent
 				}
 			}
 
-			log.DebugFormat( "{0}: Setting PriorityClass = {1}", _appDef.AppIdTuple, prioClassNum.ToString() );
+			log.DebugFormat( "{0}: Setting PriorityClass = {1}", _appDef.Id, prioClassNum.ToString() );
 			_proc.PriorityClass = prioClassNum;
 		}
 

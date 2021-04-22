@@ -56,7 +56,7 @@ namespace Dirigent.Agent
 		public AppRestarter( LocalApp app, bool waitBeforeRestart )
 		{
 			_app = app;
-			_appDef = _app.AppDef;
+			_appDef = _app.RecentAppDef;
 			_appState = _app.AppState;
 
             parseXml();
@@ -92,7 +92,7 @@ namespace Dirigent.Agent
 
                     if( _appState.Running )
                     {
-                        log.DebugFormat("AppRestarter: Waiting for app to die appid {0}", _appDef.AppIdTuple );
+                        log.DebugFormat("AppRestarter: Waiting for app to die appid {0}", _appDef.Id );
 						_state = eState.WaitingForDeath;
                     }
 					else
@@ -124,7 +124,7 @@ namespace Dirigent.Agent
 
                 case eState.WaitBeforeRestart:
                 {
-                    log.DebugFormat("AppRestarter: Waiting before restart appid {0}", _appDef.AppIdTuple );
+                    log.DebugFormat("AppRestarter: Waiting before restart appid {0}", _appDef.Id );
                     _waitingStartTime = DateTime.Now;
                     _state = eState.WaitingBeforeRestart;
 					break;
@@ -158,7 +158,7 @@ namespace Dirigent.Agent
 					if( launch )
 					{
 						// start the app again (and leave the number of restarts as is)
-						_app.LaunchAppInternal( false, _appState.PlanName );
+						_app.LaunchApp( false );
 					}
 					
 					// deactivate itself

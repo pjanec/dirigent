@@ -43,21 +43,21 @@ namespace Dirigent.Agent
 			Def = def;
 		}
 
-		public AppDef? FindApp( AppIdTuple appId, string? exceptionRecipient=null )
+		/// <summary>
+		/// Finds app def by Id. Throws on failure.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public AppDef FindApp( AppIdTuple id )
 		{
-			var appDef = AppDefs.Find( (ad) => ad.AppIdTuple == appId );
+			var appDef = AppDefs.Find( (ad) => ad.Id == id );
 			if( appDef is not null )
 			{
 				return appDef;
 			}
 			else
-			if( exceptionRecipient is not null )
 			{
-				throw new RemoteOperationErrorException( exceptionRecipient, $"Plan {Name} does not contain app {appId}" );
-			}
-			else
-			{
-				return null;
+				throw new UnknownAppInPlanException( id, Name );
 			}
 		}
 
@@ -86,25 +86,29 @@ namespace Dirigent.Agent
 
 		}
 
-		public Plan? FindPlan( string planName, string? exceptionRecipient=null )
+		/// <summary>
+		/// Finds plan ba name. Throws if failed.
+		/// </summary>
+		public Plan FindPlan( string planName )
 		{
 			if( Plans.TryGetValue( planName, out var p ) )
 			{
 				return p;
 			}
-			else if( exceptionRecipient is not null )
-			{
-				throw new RemoteOperationErrorException( exceptionRecipient, $"No plan with name {planName}" );
-			}
 			else
 			{
-				return null;
+				throw new UnknownPlanName( planName );
 			}
 		}
 
-		public AppDef? FindAppInPlan( string planName, AppIdTuple appId, string? exceptionRecipient=null )
+		/// <summary>
+		/// Finds app def in a plan. Throws if failed.
+		/// </summary>
+		public AppDef FindAppInPlan( string planName, AppIdTuple id )
 		{
-			return FindPlan( planName, exceptionRecipient )?.FindApp( appId, exceptionRecipient );
+#pragma warning disable CS8603 // Possible null reference return.
+			return FindPlan( planName ).FindApp( id );
+#pragma warning restore CS8603 // Possible null reference return.
 		}
 
 

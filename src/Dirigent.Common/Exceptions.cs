@@ -16,14 +16,27 @@ namespace Dirigent.Common
 		}
 	}
 
+	public class UnknownAppInPlanException : Exception
+	{
+		public AppIdTuple id;
+		public string planName;
+
+		public UnknownAppInPlanException( AppIdTuple id, string planName )
+			: base( $"{id} not found in plan {planName}" )
+		{
+			this.id = id;
+			this.planName = planName;
+		}
+	}
+
 	public class NotALocalApp : Exception
 	{
-		public AppIdTuple appIdTuple;
+		public AppIdTuple id;
 
-		public NotALocalApp( AppIdTuple appIdTuple, string localMachineId )
-			: base( String.Format( "App '{0}' not defined for machine '{1}'", appIdTuple, localMachineId ) )
+		public NotALocalApp( AppIdTuple id, string localMachineId )
+			: base( String.Format( "App '{0}' not defined for machine '{1}'", id, localMachineId ) )
 		{
-			this.appIdTuple = appIdTuple;
+			this.id = id;
 		}
 	}
 
@@ -40,13 +53,13 @@ namespace Dirigent.Common
 
 	public class InvalidAppConfig : Exception
 	{
-		public AppIdTuple app;
+		public AppIdTuple id;
 		public string msg;
 
-		public InvalidAppConfig( AppIdTuple app, string msg )
-			: base( string.Format( "Invalid app '{0}' config: '{1}'.", app, msg ) )
+		public InvalidAppConfig( AppIdTuple id, string msg )
+			: base( string.Format( "Invalid app '{0}' config: '{1}'.", id, msg ) )
 		{
-			this.app = app;
+			this.id = id;
 			this.msg = msg;
 		}
 	}
@@ -109,15 +122,15 @@ namespace Dirigent.Common
 
 	public class AppStartFailureException : Exception
 	{
-		public AppIdTuple appIdTuple;
+		public AppIdTuple id;
 		public string reason;
 
-		public AppStartFailureException( AppIdTuple appIdTuple, string reason, Exception? innerEx = null )
+		public AppStartFailureException( AppIdTuple id, string reason, Exception? innerEx = null )
 			: base(
-				  string.Format( "Application '{0}' failed to start. Reason: {1}", appIdTuple, reason ),
+				  string.Format( "Application '{0}' failed to start. Reason: {1}", id, reason ),
 				  innerEx )
 		{
-			this.appIdTuple = appIdTuple;
+			this.id = id;
 			this.reason = reason;
 		}
 	}

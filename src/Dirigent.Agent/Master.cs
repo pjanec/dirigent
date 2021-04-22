@@ -137,7 +137,7 @@ namespace Dirigent.Agent
 			// send list of app defs belonging to the just connected agent
 			{
 				var appDefs = from ad in _allAppDefs.AppDefs.Values
-								where ad.AppIdTuple.MachineId == ident.Name
+								where ad.Id.MachineId == ident.Name
 								select ad;
 				var m = new Net.AppDefsMessage( appDefs, incremental: false );
 				_server.SendToSingle( m, ident.Name );
@@ -174,14 +174,14 @@ namespace Dirigent.Agent
 			{
 				foreach( var ad in p.Def.AppDefs )
 				{
-					allAppDefs[ad.AppIdTuple] = ad;
+					allAppDefs[ad.Id] = ad;
 				}
 			}
 
 			// last use free/defaults app defs to initially override those from plans
 			foreach( var ad in sharedConfig.AppDefaults )
 			{
-				allAppDefs[ad.AppIdTuple] = ad;
+				allAppDefs[ad.Id] = ad;
 			}
 
 			_allAppDefs.SetAll( allAppDefs.Values );
@@ -192,13 +192,13 @@ namespace Dirigent.Agent
 		/// This happens when the appdef changes because of plan switch etc.
 		/// </summary>
 		/// <param name="appDef"></param>
-		void SendAppDefAddedOrUpdated( AppDef appDef )
+		void SendAppDefAddedOrUpdated( AppDef ad )
 		{
 			foreach( var cl in _server.Clients )
 			{
-				if( cl.Name == appDef.AppIdTuple.AppId )
+				if( cl.Name == ad.Id.AppId )
 				{
-					var m = new Net.AppDefsMessage( new AppDef[1] { appDef }, incremental: true );
+					var m = new Net.AppDefsMessage( new AppDef[1] { ad }, incremental: true );
 					_server.SendToSingle( m, cl.Name );
 				}
 			}
@@ -217,35 +217,43 @@ namespace Dirigent.Agent
 		}
 
 		/// <summary>
-		/// Launches given app by sending LaunchApp command directly to owneing agent.
+		/// Launches given app by sending LaunchApp command directly to owning agent.
+		/// Throws on failure.
 		/// </summary>
-		/// <param name="appIdTuple">App to run</param>
+		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		/// <param name="requestor">who to address the exception (null=do not throw exceptions)</param>
-		/// <returns>false if failed</returns>
-		public bool LaunchApp( AppIdTuple appIdTuple, string? planName, string? requestor=null )
+		public void LaunchApp( AppIdTuple id, string? planName )
 		{
-			// load app def from given plan
+			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
 			{
-				var appDef = _plans.FindAppInPlan( planName, appIdTuple, requestor );
-				if( appDef is null )
-					return false;
+				var appDef = _plans.FindAppInPlan( planName, id );
 
 				// this sends app def to agent if different from the previous
 				_allAppDefs.AddOrUpdate( appDef );
 			}
 
 			// send app start command
-			var msg = new Net.LaunchAppMessage( appIdTuple, null );
-			_server.SendToSingle( msg, appIdTuple.MachineId );
-
-			return true;
+			var msg = new Net.LaunchAppMessage( id, null );
+			_server.SendToSingle( msg, id.MachineId );
 		}
 
-		public bool KillApp( AppIdTuple appIdTuple, string? requestor=null )
+		/// <summary>
+		/// Send app kill command directly to owning agent
+		/// </summary>
+		public void KillApp( AppIdTuple id )
 		{
-			if( _allAppDefs.
+			var msg = new Net.KillAppMessage( id );
+			_server.SendToSingle( msg, id.MachineId );
+		}
+
+		/// <summary>
+		/// Sends app restart command directly to owning agent.
+		/// </summary>
+		public void RestartApp( AppIdTuple id )
+		{
+			var msg = new Net.RestartAppMessage( id );
+			_server.SendToSingle( msg, id.MachineId );
 		}
 
 	}
