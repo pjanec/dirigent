@@ -45,20 +45,20 @@ namespace Dirigent.Agent
 		public LocalApp( AppDef ad, SharedContext sharedContext )
 		{
             Id = ad.Id;
+            RecentAppDef = ad;
 			UpcomingAppDef = ad;
             AppState.PlanName = ad.PlanName;
             _sharedContext = sharedContext;
 		}
 
-		public void UpdateAppDef(AppDef ad)
+		/// <summary>
+        /// Sets the app def to be usef for next launch
+        /// </summary>
+        /// <param name="ad"></param>
+        public void UpdateAppDef(AppDef ad)
 		{
 			UpcomingAppDef = ad;
 		}
-
-		//public void Launch()
-		//{
-
-		//}
 
 		public void Tick()
         {
@@ -67,6 +67,10 @@ namespace Dirigent.Agent
 
         class FakeCtrl : IDirigentControl {}
 
+        /// <summary>
+        /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
+        /// on successful launch.
+        /// </summary>
         public void LaunchApp( bool resetRestartsToMax=true )
         {
             LaunchApp( UpcomingAppDef, resetRestartsToMax );

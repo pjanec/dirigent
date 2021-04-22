@@ -13,9 +13,6 @@ namespace Dirigent.Agent
 
 		public bool WantsQuit { get; private set; }
 
-		/// <summary>App defs as received from master. Applied when launching an app.</summary>
-		private AllAppsDefRegistry _appDefsReg;
-
 		private LocalAppsRegistry _localApps;
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private Net.Client _client;
@@ -32,7 +29,7 @@ namespace Dirigent.Agent
 		{
 			log.Info( $"Running Agent machineId={machineId}, masterIp={masterIP}, masterPort={masterPort}" );
 
-			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
+			_clientIdent = new Net.ClientIdent() { Sender = machineId, SubscribedTo = Net.EMsgRecipCateg.Agent };
 			_client = new Net.Client( _clientIdent, masterIP, masterPort, autoConn: true );
 
 			_sharedContext = new SharedContext(
@@ -41,8 +38,6 @@ namespace Dirigent.Agent
 				new AppInitializedDetectorFactory(),
 				_client
 			);
-
-			_appDefsReg = new AllAppsDefRegistry();
 
 			_localApps = new LocalAppsRegistry( _sharedContext );
 
@@ -68,8 +63,6 @@ namespace Dirigent.Agent
 				{
 					foreach( var ad in m.AppDefs )
 					{
-						_appDefsReg.AddOrUpdate( ad );
-
 						_localApps.AddOrUpdate( ad );
 					}
 					break;
@@ -77,12 +70,8 @@ namespace Dirigent.Agent
 
 				case Net.LaunchAppMessage m:
 				{
-					// get most recently sent app def (might be newer than the one currently used)	
-					var ad = _appDefsReg.FindApp( m.Id );
-
 					var la = _localApps.FindApp( m.Id );
-					
-					la.LaunchApp( ad );
+					la.LaunchApp();
 					break;
 				}
 			}

@@ -55,9 +55,12 @@ namespace Dirigent.Gui.WinForms
 		class FakeCtrl : IDirigentControl
 		{
 			ReflectedStateRepo _reflStates;
-			public FakeCtrl( ReflectedStateRepo reflStates )
+			Net.Client _client;
+
+			public FakeCtrl( ReflectedStateRepo reflStates, Net.Client client )
 			{
 				_reflStates = reflStates;
+				_client = client;
 			}
 
 			public AppState GetAppState( AppIdTuple id )
@@ -83,6 +86,25 @@ namespace Dirigent.Gui.WinForms
 				return _reflStates.PlanDefs;
 			}
 
+			public void LaunchApp( AppIdTuple id )
+			{
+				// run specific app using the most recent app def
+				var m = new Net.LaunchAppMessage( id, string.Empty );
+				_client.Send( m );
+			}
+
+			public void RestartApp( AppIdTuple id )
+			{
+				// restarts specific app using the most recent app def
+				var m = new Net.RestartAppMessage( id );
+				_client.Send( m );
+			}
+
+			public void KillApp( AppIdTuple id )
+			{
+				var m = new Net.KillAppMessage( id );
+				_client.Send( m );
+			}
 		}
 
 		public frmMain(
@@ -107,7 +129,7 @@ namespace Dirigent.Gui.WinForms
 
 			_client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
 			_reflStates = new ReflectedStateRepo( _client );
-			_ctrl = new FakeCtrl( _reflStates );
+			_ctrl = new FakeCtrl( _reflStates, _client );
 
 			// start ticking
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
