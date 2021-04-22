@@ -13,7 +13,7 @@ namespace Dirigent.Agent
 {
     public class TimeOutInitDetector : IAppInitializedDetector
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         bool IAppWatcher.ShallBeRemoved => _shallBeRemoved;
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
@@ -23,7 +23,6 @@ namespace Dirigent.Agent
         private double _timeOut = 0.0;
         private long _initialTicks;
         private AppState _appState;
-        private int _processId;
         private AppDef _appDef;
         private bool _shallBeRemoved = false;
         private LocalApp _app;
@@ -33,7 +32,6 @@ namespace Dirigent.Agent
         {
             _app = app;
             this._appState = app.AppState;
-            this._processId = app.Launcher.ProcessId;
             this._appDef = app.RecentAppDef;
 
             
@@ -51,7 +49,7 @@ namespace Dirigent.Agent
             _appState.Initialized = false; // will be set to true as soon as the exit code condition is met
 
             _initialTicks = DateTime.UtcNow.Ticks;
-            log.DebugFormat("TimeOutInitDetector: Waiting {0} sec, appid {1}, pid {2}", _timeOut, _appDef.Id, _processId );
+            log.DebugFormat("TimeOutInitDetector: Waiting {0} sec, appid {1}", _timeOut, _appDef.Id );
         }
 
         bool IsInitialized()
@@ -60,7 +58,7 @@ namespace Dirigent.Agent
             double delta = Math.Abs(ts.TotalSeconds);
             if( delta >= _timeOut )
             {
-                log.DebugFormat("TimeOutInitDetector: Timeout, reporting INITIALIZED appid {0} pid {1}", _appDef.Id, _processId );
+                log.DebugFormat("TimeOutInitDetector: Timeout, reporting INITIALIZED appid {0}", _appDef.Id );
                 return true;
             }
             return false;

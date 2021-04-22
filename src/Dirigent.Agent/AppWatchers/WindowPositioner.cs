@@ -23,7 +23,7 @@ namespace Dirigent.Agent
     {
         public Rectangle Rect = Rectangle.Empty;
         public int Screen = 0; // 0=primary, 1=first screen, 2=seconds screen etc.
-        public string TitleRegExp; // .net regexp for window name
+        public string TitleRegExp = string.Empty; // .net regexp for window name
         public bool Keep = false; // keep the window in the position (if false, apply the position just once)
         public bool Topmost = false; // set the window's on top flag
         public bool BringToFront = false; // bring the window to front and focusing it; usefull with keep=1 to keep window focused and visible
@@ -38,7 +38,7 @@ namespace Dirigent.Agent
     /// </summary>
     public class WindowPositioner : IAppWatcher
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
         public bool ShallBeRemoved => _shallBeRemoved;
@@ -48,8 +48,7 @@ namespace Dirigent.Agent
         private AppState _appState;
         private AppDef _appDef;
         private bool _shallBeRemoved = false;
-        private WindowPos _pos;
-        private int _processId;
+        private WindowPos _pos = new();
         private Regex _titleRegExp;
 
 
@@ -58,7 +57,6 @@ namespace Dirigent.Agent
             _app = app;
             _appState = _app.AppState;
 			_appDef = _app.RecentAppDef;
-            _processId = app.Launcher.ProcessId;
 
             parseXml( xml );
 
@@ -71,8 +69,6 @@ namespace Dirigent.Agent
         // <WindowPos titleregexp=".*?\s-\sNotepad" rect="10,50,300,200" screen="1" keep="1" />
         void parseXml( XElement xml )
         {
-            _pos = new WindowPos();
-            
             if( xml != null )
             {
                 var xrect = X.Attribute( xml, "Rect", true );
@@ -92,15 +88,15 @@ namespace Dirigent.Agent
                 }
 
                 _pos.Screen = X.getIntAttr(xml, "Screen", 0, ignoreCase:true);
-                _pos.TitleRegExp = X.getStringAttr(xml, "TitleRegExp", null, ignoreCase:true);
+                _pos.TitleRegExp = X.getStringAttr(xml, "TitleRegExp", ignoreCase:true);
                 _pos.Keep = X.getBoolAttr(xml, "Keep", false, ignoreCase:true);
                 _pos.Topmost = X.getBoolAttr(xml, "TopMost", false, ignoreCase:true);
                 _pos.BringToFront = X.getBoolAttr(xml, "BringToFront", false, ignoreCase:true);
                 _pos.SendToBack = X.getBoolAttr(xml, "SendToBack", false, ignoreCase:true);
                 //pos.SetFocus = X.getBoolAttr(xml, "SetFocus", false, ignoreCase:true);
 
-                string wsstr = X.getStringAttr(xml, "WindowStyle", null, ignoreCase:true);
-                if( wsstr != null )
+                string wsstr = X.getStringAttr(xml, "WindowStyle", ignoreCase:true);
+                if( !string.IsNullOrEmpty(wsstr) )
                 {
                     if (wsstr.ToLower() == "minimized") _pos.WindowStyle = EWindowStyle.Minimized;
                     else
@@ -226,7 +222,7 @@ namespace Dirigent.Agent
                 var m = _titleRegExp.Match( w.Title );
                 if( m != null && m.Success )
                 {
-                    log.DebugFormat("WindowPositioner: Applying settings to handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _processId );
+                    log.DebugFormat("WindowPositioner: Applying settings to handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _app.ProcessId );
 
                     ApplyWindowSettings( w.Handle );
                     found = true;
@@ -238,26 +234,19 @@ namespace Dirigent.Agent
 
         void IAppWatcher.Tick()
         {
+            if( !_appState.Running || _app.Process is null  )
+            {
+				_shallBeRemoved = true;
+				return; // do nothing if process has terminated
+            }
+
             // if a window with given title exists, reposition it and stop operating
 
-            // is process still existing?
-            Process p;
-            try
-            {
-                p = Process.GetProcessById( _processId ); // throws if process noed not exist
-                if( p == null || p.HasExited ) throw new Exception("dummy"); // force the catch block to run
-            }
-            catch
-            {
-                _shallBeRemoved = true;
-                return; // do nothing if process has terminated
-            }
-
-            var list = WinApi.GetProcessWindows( _processId );
+            var list = WinApi.GetProcessWindows( _app.ProcessId );
             bool found = ApplyWindowSettingsToListedWindows( list );
 
             // look in child subprocess windows as well
-            var childProcessPids = WinApi.GetChildProcesses( _processId );
+            var childProcessPids = WinApi.GetChildProcesses( _app.ProcessId );
             foreach( var childPid in childProcessPids )
             {
                 var list2 = WinApi.GetProcessWindows( childPid );

@@ -21,7 +21,7 @@ namespace Dirigent.Agent
     /// </summary>
     public class WindowPoppedUpInitDetector : IAppInitializedDetector
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
         public bool ShallBeRemoved => _shallBeRemoved;
@@ -32,19 +32,16 @@ namespace Dirigent.Agent
         private AppDef _appDef;
         private bool _shallBeRemoved = false;
         
-        private string _titleRegExpString;
+        private string _titleRegExpString = string.Empty;
         private Regex _titleRegExp;
         private LocalApp _app;
 
         // args example: titleregexp=".*?\s-\sNotepad"
         void parseArgs( XElement xml )
         {
-            if( xml != null )
-            {
-                _titleRegExpString = X.getStringAttr(xml, "TitleRegExp", null, ignoreCase:true);
+            _titleRegExpString = X.getStringAttr(xml, "TitleRegExp", ignoreCase:true);
 
-                _titleRegExp = new Regex( _titleRegExpString );
-            }
+            _titleRegExp = new Regex( _titleRegExpString );
         }
         
         public WindowPoppedUpInitDetector( LocalApp app, XElement xml)
@@ -52,7 +49,7 @@ namespace Dirigent.Agent
             _app = app;
             _appState = _app.AppState;
             _appDef = _app.RecentAppDef;
-            _processId = _processId;
+            _processId = _app.ProcessId;
 
             try
             {
@@ -63,54 +60,42 @@ namespace Dirigent.Agent
                 throw new InvalidAppInitDetectorArguments(Name, xml.ToString());
             }
 
+            if( _titleRegExp is null )
+            {
+                throw new InvalidAppInitDetectorArguments(Name, xml.ToString());
+            }
+
             _appState.Initialized = false; // will be set to true as soon as the exit code condition is met
 
-            log.DebugFormat("WindowPoppedUpInitDetector: Waiting for window with titleRegExp {0}, appid {1}, pid {2}", _titleRegExpString, _appDef.Id, _processId );
+            log.DebugFormat("WindowPoppedUpInitDetector: Waiting for window with titleRegExp {0}, appid {1}, pid {2}", _titleRegExpString, _appDef.Id, _app.ProcessId );
         }
 
         bool IsInitialized()
         {
-            Process pr = null;
-            try
+            if( !_appState.Running || _app.Process is null  )
             {
-                pr = Process.GetProcessById(_processId);
-            }
-            catch( ArgumentException )
-            {
+				_shallBeRemoved = true;
+				return false; // do nothing if process has terminated
             }
 
-            if( pr != null )
+            bool found = false;
+            var windows = WinApi.GetProcessWindows( _processId );
+            foreach( var w in windows )
             {
-                bool found = false;
-                var windows = WinApi.GetProcessWindows( _processId );
-                foreach( var w in windows )
+                // apply pos for matching titles
+                var m = _titleRegExp.Match( w.Title );
+                if( m != null && m.Success )
                 {
-                    // apply pos for matching titles
-                    var m = _titleRegExp.Match( w.Title );
-                    if( m != null && m.Success )
-                    {
-                        log.DebugFormat("WindowPoppedUpInitDetector: Found matching window handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _processId );
+                    log.DebugFormat("WindowPoppedUpInitDetector: Found matching window handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _processId );
                     
-                        found = true;
-                        _shallBeRemoved = true;
-                    }
+                    found = true;
+                    _shallBeRemoved = true;
                 }
-                return found;
             }
-            else
-            {
-                _shallBeRemoved = true;
-                return false;
-            }
+            return found;
         }
 
-        bool IAppInitializedDetector.IsInitialized
-        {
-            get
-            {
-                return IsInitialized();
-            }
-        }
+        bool IAppInitializedDetector.IsInitialized => IsInitialized();
 
         static public string Name { get { return "WindowPoppedUp"; } }
         static public IAppInitializedDetector create( LocalApp app, XElement xml)

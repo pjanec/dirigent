@@ -54,6 +54,8 @@ namespace Dirigent.Agent
 		{
 			_client.Tick( OnMessage );
 
+			_localApps.Tick();
+
 			PublishAgentState();
 		}
 
@@ -92,6 +94,20 @@ namespace Dirigent.Agent
 				{
 					var la = _localApps.FindApp( m.Id );
 					la.LaunchApp();
+					break;
+				}
+
+				case Net.KillAppMessage m:
+				{
+					var la = _localApps.FindApp( m.Id );
+					la.KillApp();
+					break;
+				}
+
+				case Net.RestartAppMessage m:
+				{
+					var la = _localApps.FindApp( m.Id );
+					la.RestartApp();
 					break;
 				}
 			}

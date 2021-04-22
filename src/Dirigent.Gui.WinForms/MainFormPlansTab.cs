@@ -58,16 +58,24 @@ namespace Dirigent.Gui.WinForms
 				var r = gridPlans.Rows[i];
 				string planName = ( string ) r.Cells[planTabColName].Value;
 				var planState = _ctrl.GetPlanState( planName );
-				r.Cells[planTabColStatus].Value = planState.OpStatus.ToString();
-
-				// mark currently running plans with different background color
-				var color = planState.Running ? Color.LightGoldenrodYellow : Color.White;
-				r.DefaultCellStyle.BackColor = color;
-
-				// put plan state into a tooltip
+				if( planState != null )
 				{
-					var planStatusCell = r.Cells[appTabColStatus]; // as DataGridViewCell;
-					planStatusCell.ToolTipText = Tools.GetPlanStateString( planName, _ctrl.GetPlanState( planName ) );
+					r.Cells[planTabColStatus].Value = planState.OpStatus.ToString();
+
+					// mark currently running plans with different background color
+					var color = planState.Running ? Color.LightGoldenrodYellow : Color.White;
+					r.DefaultCellStyle.BackColor = color;
+
+					// put plan state into a tooltip
+					{
+						var planStatusCell = r.Cells[appTabColStatus]; // as DataGridViewCell;
+						planStatusCell.ToolTipText = Tools.GetPlanStateString( planName, _ctrl.GetPlanState( planName ) );
+					}
+				}
+				else
+				{
+					r.Cells[planTabColStatus].Value = "null";
+					r.DefaultCellStyle.BackColor = Color.White;
 				}
 			}
 		}

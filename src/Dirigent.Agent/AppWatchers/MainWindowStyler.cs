@@ -26,16 +26,15 @@ namespace Dirigent.Agent
     /// </summary>
     public class MainWindowStyler : IAppWatcher
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
         public bool ShallBeRemoved => _shallBeRemoved;
 		public LocalApp App => _app;
 
         private bool _shallBeRemoved = false;
-        private int _processId;
 		private AppDef _appDef;
-        //private AppState _appState;
+        private AppState _appState;
         private LocalApp _app;
 
         public MainWindowStyler( LocalApp app )
@@ -43,32 +42,21 @@ namespace Dirigent.Agent
             _app = app;
             //_appState = _app.AppState;
             _appDef = _app.RecentAppDef;
-            _processId = _app.Launcher.ProcessId;
+            _appState = _app.AppState;
         }
 
 
         void IAppWatcher.Tick()
         {
-            // is process still existing?
-            Process proc;
-            try
+            if( !_appState.Running || _app.Process is null  )
             {
-                proc = Process.GetProcessById( _processId ); // throws if process noed not exist
-                if( proc == null || proc.HasExited )
-				{
-					_shallBeRemoved = true;
-					return; // do nothing if process has terminated
-				}
-            }
-            catch
-            {
-                _shallBeRemoved = true;
-                return; // do nothing if process has terminated
+				_shallBeRemoved = true;
+				return; // do nothing if process has terminated
             }
 
 			try
 			{
-				IntPtr mainHwnd = proc.MainWindowHandle;
+				IntPtr mainHwnd = _app.Process.MainWindowHandle;
 				if( mainHwnd != IntPtr.Zero ) // window has been created!
 				{
 					int showCmd = WinApi.SW_SHOWNORMAL;
@@ -80,7 +68,7 @@ namespace Dirigent.Agent
 						case EWindowStyle.Normal: showCmd=WinApi.SW_SHOWNORMAL; break;
 					}
 					WinApi.ShowWindowAsync( mainHwnd, showCmd );
-					log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", _appDef.WindowStyle, mainHwnd.ToInt64(), proc.Id );
+					log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", _appDef.WindowStyle, mainHwnd.ToInt64(), _app.ProcessId );
 					_shallBeRemoved = true;
 				}
 			}

@@ -21,7 +21,7 @@ namespace Dirigent.Agent
         {
             var handles = new List<IntPtr>();
 
-            Process pr = null;
+            Process? pr = null;
             try
             {
                 pr = Process.GetProcessById(processId);

@@ -21,6 +21,7 @@ namespace Dirigent.Agent
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
+		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
 
@@ -33,6 +34,8 @@ namespace Dirigent.Agent
 			_allAppDefs = new AllAppsDefRegistry();
 			_allAppDefs.Added += SendAppDefAddedOrUpdated;
 			_allAppDefs.Updated += SendAppDefAddedOrUpdated;
+
+			_defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
 
 			_plans = new PlanRegistry();
 			_server = new Server( port );
@@ -88,9 +91,17 @@ namespace Dirigent.Agent
 				// agent is sending the state of its apps
 				case AppsStateMessage m:
 				{
-					foreach( var( appId, appState ) in m.appsState )
+					if( m.AppsState is null )
 					{
-						_allAppStates.AddOrUpdate( appId, appState );
+						// WTF?? no one is sending empty message!!!
+						int i = 1;
+					}
+					else
+					{
+						foreach( var( appId, appState ) in m.AppsState )
+						{
+							_allAppStates.AddOrUpdate( appId, appState );
+						}
 					}
 					break;
 				}
@@ -98,6 +109,18 @@ namespace Dirigent.Agent
 				case LaunchAppMessage m:
 				{
 					LaunchApp( m.Id, m.PlanName );
+					break;
+				}
+
+				case KillAppMessage m:
+				{
+					KillApp( m.Id );
+					break;
+				}
+
+				case RestartAppMessage m:
+				{
+					RestartApp( m.Id );
 					break;
 				}
 
@@ -189,6 +212,7 @@ namespace Dirigent.Agent
 			// last use free/defaults app defs to initially override those from plans
 			foreach( var ad in sharedConfig.AppDefaults )
 			{
+				_defaultAppDefs[ad.Id] = ad;
 				allAppDefs[ad.Id] = ad;
 			}
 
@@ -240,6 +264,19 @@ namespace Dirigent.Agent
 				// this sends app def to agent if different from the previous
 				_allAppDefs.AddOrUpdate( appDef );
 			}
+			else// load from defaults 
+			if( planName is null )
+			{
+				if( _defaultAppDefs.TryGetValue( id, out var appDef ) )
+				{
+					_allAppDefs.AddOrUpdate( appDef );
+				}
+			}
+			else // plan name empty, keep recent app def
+			{
+				// nothing to do, app defs are already loaded, no change
+			}
+
 
 			// send app start command
 			var msg = new Net.LaunchAppMessage( id, null );

@@ -81,8 +81,6 @@ namespace Dirigent.Net
 	[DataContract]
 	public class RemoteOperationErrorMessage : Message
 	{
-		private static Dictionary<string, string> _emptyAttribs = new();
-
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
 		public string Requestor = string.Empty;
@@ -93,14 +91,14 @@ namespace Dirigent.Net
 
 		[ProtoBuf.ProtoMember( 3 )]
 		[DataMember]
-		public Dictionary<string, string> Attributes = _emptyAttribs; // additional attribute pairs (name, value)
+		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		public RemoteOperationErrorMessage() {}
 		public RemoteOperationErrorMessage( string requestor, string msg, Dictionary<string, string>? attribs = null )
 		{
 			this.Requestor = requestor;
 			this.Message = msg;
-			this.Attributes = attribs ?? _emptyAttribs;
+			this.Attributes = attribs;
 		}
 	}
 
@@ -110,16 +108,14 @@ namespace Dirigent.Net
 	[DataContract]
 	public class AppsStateMessage : Message
 	{
-		private static Dictionary<AppIdTuple, AppState> _empty = new();
-
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public Dictionary<AppIdTuple, AppState> appsState = new(); //_empty;
+		public Dictionary<AppIdTuple, AppState>? AppsState;
 
 		public AppsStateMessage() {}
 		public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
 		{
-			this.appsState = new Dictionary<AppIdTuple, AppState>( appsState );
+			this.AppsState = new Dictionary<AppIdTuple, AppState>( appsState );
 		}
 	}
 
@@ -127,16 +123,14 @@ namespace Dirigent.Net
 	[DataContract]
 	public class PlansStateMessage : Message
 	{
-		private static Dictionary<string, PlanState> _empty = new();
-
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public Dictionary<string, PlanState> plansState = _empty;
+		public Dictionary<string, PlanState>? PlansState;
 
 		public PlansStateMessage() {}
 		public PlansStateMessage( Dictionary<string, PlanState> plansState )
 		{
-			this.plansState = new Dictionary<string, PlanState>( plansState );
+			this.PlansState = new Dictionary<string, PlanState>( plansState );
 		}
 	}
 
@@ -190,17 +184,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple id;
+		public AppIdTuple Id;
 
 		public KillAppMessage() {}
 		public KillAppMessage( AppIdTuple id )
 		{
-			this.id = id;
+			this.Id = id;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StopApp {0}", id.ToString() );
+			return string.Format( "StopApp {0}", Id.ToString() );
 		}
 
 	}
@@ -211,16 +205,16 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public AppIdTuple id;
+		public AppIdTuple Id;
 
 		public RestartAppMessage() {}
 		public RestartAppMessage( AppIdTuple id )
 		{
-			this.id = id;
+			this.Id = id;
 		}
 		public override string ToString()
 		{
-			return string.Format( "RestartApp {0}", id.ToString() );
+			return string.Format( "RestartApp {0}", Id.ToString() );
 		}
 
 	}
@@ -231,27 +225,27 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string? planName;
+		public string? PlanName;
 
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
-		public AppIdTuple id;
+		public AppIdTuple Id;
 
 		[ProtoBuf.ProtoMember( 3 )]
 		[DataMember]
-		public bool enabled;
+		public bool Enabled;
 
 		public SetAppEnabledMessage() {}
 		public SetAppEnabledMessage( string planName, AppIdTuple id, bool enabled )
 		{
-			this.planName = planName;
-			this.id = id;
-			this.enabled = enabled;
+			this.PlanName = planName;
+			this.Id = id;
+			this.Enabled = enabled;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "SetAppEnabled [{0}] {1} {2}", planName, id.ToString(), enabled );
+			return string.Format( "SetAppEnabled [{0}] {1} {2}", PlanName, Id.ToString(), Enabled );
 		}
 
 	}
@@ -283,15 +277,15 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public String planName = string.Empty;
+		public String PlanName = string.Empty;
 
 		public StartPlanMessage() {}
 		public StartPlanMessage( String planName )
 		{
-			this.planName = planName;
+			this.PlanName = planName;
 		}
 
-		public override string ToString() { return string.Format( "StartPlan {0}", planName ); }
+		public override string ToString() { return string.Format( "StartPlan {0}", PlanName ); }
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -300,15 +294,15 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string planName = string.Empty;
+		public string PlanName = string.Empty;
 
 		public StopPlanMessage() {}
 		public StopPlanMessage( String planName )
 		{
-			this.planName = planName;
+			this.PlanName = planName;
 		}
 
-		public override string ToString() { return string.Format( "StopPlan {0}", planName ); }
+		public override string ToString() { return string.Format( "StopPlan {0}", PlanName ); }
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -317,15 +311,15 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string planName = string.Empty;
+		public string PlanName = string.Empty;
 
 		public KillPlanMessage() {}
 		public KillPlanMessage( String planName )
 		{
-			this.planName = planName;
+			this.PlanName = planName;
 		}
 
-		public override string ToString() { return string.Format( "KillPlan {0}", planName ); }
+		public override string ToString() { return string.Format( "KillPlan {0}", PlanName ); }
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -334,15 +328,15 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string planName = string.Empty;
+		public string PlanName = string.Empty;
 
 		public RestartPlanMessage() {}
 		public RestartPlanMessage( String planName )
 		{
-			this.planName = planName;
+			this.PlanName = planName;
 		}
 
-		public override string ToString() { return string.Format( "RestartPlan {0}", planName ); }
+		public override string ToString() { return string.Format( "RestartPlan {0}", PlanName ); }
 	}
 
 	/// <summary>
@@ -354,17 +348,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string planName = string.Empty;
+		public string PlanName = string.Empty;
 
 		public CurrentPlanMessage() {}
 		public CurrentPlanMessage( String planName )
 		{
-			this.planName = planName;
+			this.PlanName = planName;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "CurrentPlan {0}", planName );
+			return string.Format( "CurrentPlan {0}", PlanName );
 		}
 	}
 
@@ -375,11 +369,9 @@ namespace Dirigent.Net
 	[DataContract]
 	public class PlanDefsMessage : Message
 	{
-		static List<PlanDef> _emptyDefs = new();
-
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public IEnumerable<PlanDef> PlanDefs = _emptyDefs;
+		public IEnumerable<PlanDef>? PlanDefs;
 
 		public PlanDefsMessage() {}
 		public PlanDefsMessage( IEnumerable<PlanDef> planDefs )
@@ -399,17 +391,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string vars = string.Empty;
+		public string Vars = string.Empty;
 
 		public SetVarsMessage() {}
 		public SetVarsMessage( string vars )
 		{
-			this.vars = vars;
+			this.Vars = vars;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "SetVars {0}", vars );
+			return string.Format( "SetVars {0}", Vars );
 		}
 
 	}
@@ -421,12 +413,12 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public KillAllArgs args;
+		public KillAllArgs Args;
 
 		public KillAllMessage() {}
 		public KillAllMessage( KillAllArgs args )
 		{
-			this.args = args;
+			this.Args = args;
 		}
 
 		public override string ToString()
@@ -442,17 +434,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public TerminateArgs args;
+		public TerminateArgs Args;
 
 		public TerminateMessage() {}
 		public TerminateMessage( TerminateArgs args )
 		{
-			this.args = args;
+			this.Args = args;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "Terminate killApps={0} machineId={1}", args.KillApps, args.MachineId );
+			return string.Format( "Terminate killApps={0} machineId={1}", Args.KillApps, Args.MachineId );
 		}
 
 	}
@@ -463,17 +455,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public ShutdownArgs args;
+		public ShutdownArgs Args;
 
 		public ShutdownMessage() {}
 		public ShutdownMessage( ShutdownArgs args )
 		{
-			this.args = args;
+			this.Args = args;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "Shutdown mode={0}", args.Mode.ToString() );
+			return string.Format( "Shutdown mode={0}", Args.Mode.ToString() );
 		}
 
 	}
@@ -484,17 +476,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public ReinstallArgs args;
+		public ReinstallArgs Args;
 
 		public ReinstallMessage() {}
 		public ReinstallMessage( ReinstallArgs args )
 		{
-			this.args = args;
+			this.Args = args;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "Reinstall dwonloadMode={0}, url={1}", args.DownloadMode.ToString(), args.Url );
+			return string.Format( "Reinstall dwonloadMode={0}, url={1}", Args.DownloadMode.ToString(), Args.Url );
 		}
 
 	}
@@ -505,17 +497,17 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public ReloadSharedConfigArgs args;
+		public ReloadSharedConfigArgs Args;
 
 		public ReloadSharedConfigMessage() {}
 		public ReloadSharedConfigMessage( ReloadSharedConfigArgs args )
 		{
-			this.args = args;
+			this.Args = args;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "ReloadSharedConfig killApps={0}", args.KillApps );
+			return string.Format( "ReloadSharedConfig killApps={0}", Args.KillApps );
 		}
 
 	}

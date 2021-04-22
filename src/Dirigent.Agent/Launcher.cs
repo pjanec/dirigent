@@ -23,7 +23,7 @@ namespace Dirigent.Agent
 		Process? _proc;
 		AppDef _appDef;
 		string _relativePathsRoot;
-		string _planName; // in what plan's context the app is going to be started (just informative)
+		string? _planName; // in what plan's context the app is going to be started (just informative)
 		string _masterIP; // ip address of the Dirigent Master process
 
 		bool _dying = false;	// already killed but still in the system
@@ -414,7 +414,7 @@ namespace Dirigent.Agent
 			            {
 			                var childPid = Convert.ToInt32(mo["ProcessID"]);
 
-			                Process childProc = null;
+			                Process? childProc = null;
 			                try { childProc = Process.GetProcessById(childPid); }
 			                catch( ArgumentException ) {
 			                    log.DebugFormat(new String(' ', indent)+"KillTree ChildProc pid {0} - NOT RUNNING", childPid );
@@ -487,7 +487,7 @@ namespace Dirigent.Agent
 		{
 			if( _proc == null )
 			{
-				log.DebugFormat( "  pid {0} proc=null!", ProcessId );
+				//log.DebugFormat( "  pid {0} proc=null!", ProcessId );
 				return;
 			}
 
@@ -568,7 +568,6 @@ namespace Dirigent.Agent
 		{
 			if( _proc == null )
 			{
-				log.DebugFormat( "  pid {0} proc=null!", ProcessId );
 				return;
 			}
 
@@ -654,10 +653,7 @@ namespace Dirigent.Agent
 		/// If true, the process termination attempt has been made (and the process is hopefully
 		/// terminating) but it is still present in the system.
 		/// </summary>
-		public bool Dying
-		{
-			get { return _dying; }
-		}
+		public bool Dying => _dying;
 
 
 		public int ExitCode
@@ -678,13 +674,9 @@ namespace Dirigent.Agent
 			}
 		}
 
-		public int ProcessId
-		{
-			get
-			{
-				return _proc?.Id ?? -1;
-			}
-		}
+		//public int ProcessId => _proc?.Id ?? -1;
+		public Process? Process => _proc;
+
 
 		public record ProcInfo(
 		    Process Process,

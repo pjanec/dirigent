@@ -47,7 +47,7 @@ namespace Dirigent.Common
 		int memory; // MBytes of memory allocated
 
 		[ProtoBuf.ProtoMember( 7 )]
-		string planName = string.Empty; // in what plan's context the app was started
+		string? planName; // in what plan's context the app was started
 
 		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
 		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration

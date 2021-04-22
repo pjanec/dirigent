@@ -23,6 +23,14 @@ namespace Dirigent.Agent
             _sharedContext = shCtx;
 		}
 
+		public void Tick()
+		{
+			foreach( var li in Apps.Values )
+			{
+				li.Tick();
+			}
+		}
+
 		//public bool TryGet( AppIdTuple appId, out AppState appState )
 		//{
 		//	appState = default(AppState);

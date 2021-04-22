@@ -48,7 +48,7 @@ namespace Dirigent.Agent
 
 			EAppExitCode exitCode = EAppExitCode.NoError;
 
-			try
+			//try
 			{
 				log.Info( $"Started with cmdLine: {Environment.CommandLine}" );
 				var ac = new AppConfig();
@@ -110,11 +110,11 @@ namespace Dirigent.Agent
 					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}
-			catch( Exception ex )
-			{
-				log.Error( ex );
-				exitCode = EAppExitCode.ExceptionError;
-			}
+			//catch( Exception ex )
+			//{
+			//	log.Error( ex );
+			//	exitCode = EAppExitCode.ExceptionError;
+			//}
 
 			return ( int )exitCode;
 		}

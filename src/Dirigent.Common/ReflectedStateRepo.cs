@@ -33,22 +33,36 @@ namespace Dirigent.Common
 			{
 				case Net.AppsStateMessage m:
 				{
-					foreach( var (id, state) in m.appsState )
+					if( m.AppsState != null )
 					{
-						_appStates[id] = state;	
+						foreach( var (id, state) in m.AppsState )
+						{
+							_appStates[id] = state;	
+						}
+					}
+					else
+					{
+						// WTF?? no one is sending empty message!!!
+						int i =1;
 					}
 					break;
 				}
 
 				case Net.PlansStateMessage m:
 				{
-					_planStates = m.plansState;
+					if( m.PlansState != null )
+					{
+						_planStates = m.PlansState;
+					}
 					break;
 				}
 
 				case Net.PlanDefsMessage m:
 				{
-					_planDefs = new List<PlanDef>( m.PlanDefs );
+					if( m.PlanDefs != null )
+					{
+						_planDefs = new List<PlanDef>( m.PlanDefs );
+					}
 					break;
 				}
 			}

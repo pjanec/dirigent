@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Xml.Linq;
 using Dirigent.Common;
 
@@ -30,6 +31,9 @@ namespace Dirigent.Agent
 		public AppState AppState = new();
 
 		//public AppScript? AppScript;
+
+        public Process? Process => Launcher?.Process;
+        public int ProcessId => Process?.Id ?? -1;
 
         ///<summary>Starts/kills the app process. Null if app is not supposed to be running (not launched)</summary>
 		public Launcher? Launcher { get; private set; }
@@ -62,7 +66,11 @@ namespace Dirigent.Agent
 
 		public void Tick()
         {
+            Launcher?.Tick();
+
             _watchers.Tick();
+
+            RefreshAppState();
         }
 
         class FakeCtrl : IDirigentControl {}
@@ -110,6 +118,7 @@ namespace Dirigent.Agent
                     RecentAppDef = appDef;
                     AppState.Started = true;
                     AppState.Initialized = true; // a watcher can set it to false upon its creation if it works like an AppInitDetector
+                    AppState.Running = true;  // will be updated in periodical refresh, here we think the app is running as it ahs been just started
     			    AppState.PlanName = appDef.PlanName;
 
                     #if Windows
@@ -176,6 +185,80 @@ namespace Dirigent.Agent
 
                 AppState.StartFailed = true;
                 throw;
+            }
+        }
+
+        public void RestartApp()
+        {
+			// kill (will do nothing if not running)
+			KillApp();
+
+	        // setup restarter (reset to MAX tries)
+			AppState.RestartsRemaining = AppState.RESTARTS_UNITIALIZED; // will reset to max tries
+            _watchers.ReinstallWatcher( new AppRestarter( this, waitBeforeRestart: false ) ); // restart immediately (no waiting)
+        }
+
+        public void KillApp()
+        {
+			log.DebugFormat( "Kill app {0}", Id );
+
+            if( Launcher != null ) // already started?
+            {
+                if (Launcher.Running)
+                {
+                    AppState.Killed = true;
+                }
+
+                log.DebugFormat("Killing app {0}", Id);
+
+                // this just initiates the dying
+				Launcher.Kill();
+                
+				// we maintain the launcher instance until the app actually dies
+            }
+			else // not started
+			{
+
+				// try to adopt before killing
+				if( RecentAppDef.AdoptIfAlreadyRunning )
+				{
+					var launcher = new Launcher( new FakeCtrl(), UpcomingAppDef, _sharedContext );
+					if( launcher.AdoptAlreadyRunning() )
+					{
+						launcher.Kill();
+					}
+				}
+				
+			}
+
+			// Remove potential pending AppRestarter
+			// to avoid the app being restarted automatically
+			// after this explicit Kill (the user wants the app to stop until said otherwie)
+            _watchers.RemoveWatchersOfType<AppRestarter>();
+        }
+
+        /// <summary>
+        /// Updates the status info for all local apps.
+        /// </summary>
+        void RefreshAppState()
+        {
+            if( Launcher != null ) // already launched
+            {
+                AppState.Running = Launcher.Running;
+				AppState.Dying = Launcher.Dying;	// if dying=true, then running=true
+                AppState.ExitCode = Launcher.ExitCode;
+
+				// nullify launcher if the process not running any more
+				if(	!AppState.Running )
+				{
+					Launcher.Dispose();
+					Launcher = null;
+				}
+            }
+            else // not running
+            {
+                AppState.Running = false;
+				AppState.Dying = false;
             }
         }
 	}

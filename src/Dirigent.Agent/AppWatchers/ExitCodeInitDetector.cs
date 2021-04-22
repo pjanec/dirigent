@@ -12,7 +12,7 @@ namespace Dirigent.Agent
 {
     public class ExitCodeInitDetector : IAppInitializedDetector
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
         public bool ShallBeRemoved => _shallBeRemoved;

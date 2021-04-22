@@ -29,7 +29,7 @@ namespace Dirigent.Agent
         public IAppWatcher.EFlags Flags => 0; // this one should stay after launch
 		public LocalApp App => _app;
 		
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 		
         private AppDef _appDef;
         private AppState _appState; // reference to a live writable appState - we will modify it here
@@ -66,7 +66,7 @@ namespace Dirigent.Agent
 
         void parseXml()
         {
-			XElement xml = null;
+			XElement? xml = null;
 			if( !String.IsNullOrEmpty( _appDef.RestarterXml ) )
 			{
 				var rootedXmlString = String.Format("<root>{0}</root>", _appDef.RestarterXml);

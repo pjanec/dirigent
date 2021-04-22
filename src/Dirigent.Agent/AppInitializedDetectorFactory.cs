@@ -55,7 +55,7 @@ namespace Dirigent.Agent
 
             string name = xml.Name.LocalName;
 
-            CreateDeleg cd = Find(name);
+            CreateDeleg? cd = Find(name);
             if( cd == null )
             {
                 throw new UnknownAppInitDetectorType( name );
