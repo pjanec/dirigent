@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Dirigent.Gui.WinForms": {
+      "commandName": "Project",
+      "commandLineArgs": "--mode TrayGui"
+    }
+  }
+}

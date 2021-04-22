@@ -1,0 +1,84 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Dirigent.Common.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="MasterIP" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">127.0.0.1</Value>
+    </Setting>
+    <Setting Name="MachineId" Type="System.String" Scope="Application">
+      <Value Profile="(Default)"></Value>
+    </Setting>
+    <Setting Name="MasterPort" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">5045</Value>
+    </Setting>
+    <Setting Name="LogFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)"></Value>
+    </Setting>
+    <Setting Name="SharedConfigFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">SharedConfig.xml</Value>
+    </Setting>
+    <Setting Name="StartupPlan" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="StartHidden" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="Mode" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">trayGui</Value>
+    </Setting>
+    <Setting Name="MainFormLocation" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="IsMaster" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="CLIPort" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">5050</Value>
+    </Setting>
+    <Setting Name="StartPlanHotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + S</Value>
+    </Setting>
+    <Setting Name="KillPlanPlanHotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + K</Value>
+    </Setting>
+    <Setting Name="RestartPlanPlanHotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + R</Value>
+    </Setting>
+    <Setting Name="LocalConfigFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ShowJustAppsFromCurrentPlan" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectPlan1HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 1</Value>
+    </Setting>
+    <Setting Name="SelectPlan2HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 2</Value>
+    </Setting>
+    <Setting Name="SelectPlan3HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 3</Value>
+    </Setting>
+    <Setting Name="SelectPlan4HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 4</Value>
+    </Setting>
+    <Setting Name="SelectPlan5HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 5</Value>
+    </Setting>
+    <Setting Name="SelectPlan6HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 6</Value>
+    </Setting>
+    <Setting Name="SelectPlan7HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 7</Value>
+    </Setting>
+    <Setting Name="SelectPlan8HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 8</Value>
+    </Setting>
+    <Setting Name="SelectPlan9HotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control + Shift + Alt + 9</Value>
+    </Setting>
+    <Setting Name="TickPeriod" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">500</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

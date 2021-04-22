@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Shared>
+    <!-- Free apps (app defaults if an app is not part of any plan, having own app definition -->
+    <AppDefaults>
+    	<App
+    	    AppIdTuple = "m1.a"
+    		Template = "apps.notepad"
+    	    >
+    	</App>
+    </AppDefaults>
+
+    <!-- Plans -->
+    <Plan Name="plan1" StartTimeout="10">
+    	<App
+    	    AppIdTuple = "m1.a"
+    		Template = "apps.notepad"
+    		ExeFullPath = "%SystemRoot%\notepad.exe"
+    		StartupDir = "%USERPROFILE%\Documents"
+    		CmdLineArgs = "aaa.txt"
+    		XXX_InitCondition = "exitcode 0"
+    	    >
+    		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.b"
+    		Template = "apps.notepad"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "bbb.txt"
+    		Dependencies = "m1.a;"
+    	/>
+
+    	<App
+    	    AppIdTuple = "m2.c"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "ccc.txt"
+    	/>
+
+    	<App
+    	    AppIdTuple = "m1.d"
+    		Template = "apps.cmd"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
+    		Volatile = "1"
+    		>
+    		<Env>
+    		  <!-- Generic environment variable handling-->
+    		  <Set Variable="TMP" Value="X:\TEMP" />
+    		  <Set Variable="EXPANSION_TEST" Value="xxx%USERNAME%xxx" />
+    		  <!-- specific support for Path variable modifications-->
+    		  <Path Prepend="C:\BIN;%ProgramFiles%\MyApp\Bin;RelPath1\sub1;..\RelPath2\sub1" /> 
+    		</Env>
+    	</App>
+
+    </Plan>
+
+    <Plan Name="plan2">
+    	<App
+    	    AppIdTuple = "m1.b"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "bbb.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="plan3">
+    	<App
+    	    AppIdTuple = "m2.c"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "CCCx.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="planX">
+    	<App
+    	    AppIdTuple = "m1.x"
+    		Template = "apps.notepad"
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "xxx.txt"
+    		InitCondition = "exitcode 0"
+    	/>
+    </Plan>
+
+    <Plan Name="empty">
+    </Plan>
+
+    <AppTemplate Name="apps.notepad"
+    		Template = ""
+    		ExeFullPath = "c:\windows\notepad.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = ""
+    		StartupOrder = "0"
+    		RestartOnCrash = "1"
+    		InitCondition = "timeout 2.0"
+    		SeparationInterval = "0.5"
+    />
+
+    <AppTemplate Name="apps.cmd"
+    		Template = ""
+    		ExeFullPath = "c:\windows\system32\cmd.exe"
+    		StartupDir = "c:\"
+    		CmdLineArgs = ""
+    		StartupOrder = "0"
+    		RestartOnCrash = "0"
+    		InitCondition = "timeout 2.0"
+    		SeparationInterval = "0.5"
+    		KillTree = "1"
+    		WindowStyle = "normal"
+    />
+
+</Shared>

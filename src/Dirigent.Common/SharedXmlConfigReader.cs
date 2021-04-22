@@ -13,171 +13,171 @@ using System.Diagnostics;
 
 namespace Dirigent.Common
 {
-    
-    public class SharedXmlConfigReader
-    {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger
-            (System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        SharedConfig cfg;
-        XDocument doc;
+	public class SharedXmlConfigReader
+	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-        public SharedConfig Load( System.IO.TextReader textReader )
-        {
-            cfg = new SharedConfig();
-            doc = XDocument.Load(textReader);
+		public SharedConfig cfg;
+		XDocument doc;
 
-            
-            loadPlans();
-            //loadMachines();
-            //loadMaster();
+		public SharedXmlConfigReader( System.IO.TextReader textReader )
+		{
+			cfg = new SharedConfig();
+			doc = XDocument.Load( textReader );
 
-            return cfg;
-        }
+			loadAppDefaults();
+			loadPlans();
+			//loadMachines();
+			//loadMaster();
+		}
 
-        AppDef readAppElement( XElement e )
-        {
-            AppDef a;
+		AppDef readAppElement( XElement e )
+		{
+			AppDef a;
 
-            // first load templates
-            var templateName = X.getStringAttr(e, "Template");
-            if( templateName != "" )
-            {
-                XElement te = (from t in doc.Element("Shared").Elements("AppTemplate")
-                        where (string) t.Attribute("Name") == templateName
-                        select t).FirstOrDefault();
+			// first load templates
+			var templateName = X.getStringAttr( e, "Template" );
+			if( !string.IsNullOrEmpty(templateName) )
+			{
+				XElement? te = ( from t in doc?.Element( "Shared" )?.Elements( "AppTemplate" )
+								where t.Attribute( "Name" )?.Value == templateName
+								select t ).FirstOrDefault();
 
-                if( te == null )
-                {
-                    // FIXME: tog that template is missing
-                    var msg = String.Format("Template '{0}' not found", templateName);
-                    log.ErrorFormat(msg);
-                    throw new ConfigurationErrorException(msg);
-                    //a = new AppDef();
-                }
-                else
-                {
-                    a = readAppElement( te );
-                }
-            }
-            else
-            {
-                a = new AppDef();
-            }
-            
-            // read element content into memory, apply defaults
-            var x = new {
-                AppIdTuple = (string) e.Attribute("AppIdTuple"),
-                ExeFullPath = (string) e.Attribute("ExeFullPath"),
-                StartupDir = (string) e.Attribute("StartupDir"),
-                CmdLineArgs = (string) e.Attribute("CmdLineArgs"),
-                StartupOrder = (string) e.Attribute("StartupOrder"),
-                Disabled = (string)e.Attribute("Disabled"),
-				Volatile = (string) e.Attribute("Volatile"),
-                RestartOnCrash = (string) e.Attribute("RestartOnCrash"),
-                AdoptIfAlreadyRunning = (string) e.Attribute("AdoptIfAlreadyRunning"),
-                PriorityClass = (string) e.Attribute("PriorityClass"),
-                InitCondition = (string) e.Attribute("InitCondition"),
-                SeparationInterval = (string) e.Attribute("SeparationInterval"),
-                Dependecies = (string) e.Attribute("Dependencies"),
-                KillTree = (string)e.Attribute("KillTree"),
-                KillSoftly = (string)e.Attribute("KillSoftly"),
-                WindowStyle = (string)e.Attribute("WindowStyle"),
-                WindowPos = e.Elements("WindowPos"),
-                Restarter = e.Element("Restarter"),
-                SoftKill = e.Element("SoftKill"),
-                Env = e.Element("Env"),
-                InitDetectors = e.Element("InitDetectors") != null ? e.Element("InitDetectors").Elements() : null,
-            };
+				if( te == null )
+				{
+					// FIXME: tog that template is missing
+					var msg = String.Format( "Template '{0}' not found", templateName );
+					log.ErrorFormat( msg );
+					throw new ConfigurationErrorException( msg );
+					//a = new AppDef();
+				}
+				else
+				{
+					a = readAppElement( te );
+				}
+			}
+			else
+			{
+				a = new AppDef();
+			}
 
-            // then overwrite templated values with current content
-            if( x.AppIdTuple != null ) a.AppIdTuple = new AppIdTuple( x.AppIdTuple );
-            if( x.ExeFullPath != null ) a.ExeFullPath = x.ExeFullPath;
-            if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
-            if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
-            if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
-            if( x.Disabled != null ) a.Disabled = (int.Parse( x.Disabled ) != 0);
-            if( x.Volatile != null ) a.Volatile = (int.Parse( x.Volatile ) != 0);
-            if( x.RestartOnCrash != null ) a.RestartOnCrash = (int.Parse( x.RestartOnCrash ) != 0);
-            if( x.AdoptIfAlreadyRunning != null ) a.AdoptIfAlreadyRunning = (int.Parse( x.AdoptIfAlreadyRunning ) != 0);
-            if( x.PriorityClass != null ) a.PriorityClass = x.PriorityClass;
-            if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
-            if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse(x.SeparationInterval, CultureInfo.InvariantCulture );
-            if (x.Dependecies != null)
-            {
-                var deps = new List<string>();
-                foreach( var d in x.Dependecies.Split(';'))
-                {
-                    var stripped = d.Trim();
-                    if( stripped != "" )
-                    {
-                        deps.Add( d );
-                    }
+			// read element content into memory, apply defaults
+			var x = new
+			{
+				AppIdTuple = e.Attribute( "AppIdTuple" )?.Value,
+				ExeFullPath = e.Attribute( "ExeFullPath" )?.Value,
+				StartupDir = e.Attribute( "StartupDir" )?.Value,
+				CmdLineArgs = e.Attribute( "CmdLineArgs" )?.Value,
+				StartupOrder = e.Attribute( "StartupOrder" )?.Value,
+				Disabled = e.Attribute( "Disabled" )?.Value,
+				Volatile = e.Attribute( "Volatile" )?.Value,
+				RestartOnCrash = e.Attribute( "RestartOnCrash" )?.Value,
+				AdoptIfAlreadyRunning = e.Attribute( "AdoptIfAlreadyRunning" )?.Value,
+				PriorityClass = e.Attribute( "PriorityClass" )?.Value,
+				InitCondition = e.Attribute( "InitCondition" )?.Value,
+				SeparationInterval = e.Attribute( "SeparationInterval" )?.Value,
+				Dependecies = e.Attribute( "Dependencies" )?.Value,
+				KillTree = e.Attribute( "KillTree" )?.Value,
+				KillSoftly = e.Attribute( "KillSoftly" )?.Value,
+				WindowStyle = e.Attribute( "WindowStyle" )?.Value,
+				WindowPos = e.Elements( "WindowPos" ),
+				Restarter = e.Element( "Restarter" ),
+				SoftKill = e.Element( "SoftKill" ),
+				Env = e.Element( "Env" ),
+				InitDetectors = e.Element( "InitDetectors" )?.Elements(),
+			};
 
-                }
-                a.Dependencies = deps;
-            }
+			// then overwrite templated values with current content
+			if( x.AppIdTuple != null ) a.AppIdTuple = new AppIdTuple( x.AppIdTuple );
+			if( x.ExeFullPath != null ) a.ExeFullPath = x.ExeFullPath;
+			if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
+			if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
+			if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
+			if( x.Disabled != null ) a.Disabled = ( int.Parse( x.Disabled ) != 0 );
+			if( x.Volatile != null ) a.Volatile = ( int.Parse( x.Volatile ) != 0 );
+			if( x.RestartOnCrash != null ) a.RestartOnCrash = ( int.Parse( x.RestartOnCrash ) != 0 );
+			if( x.AdoptIfAlreadyRunning != null ) a.AdoptIfAlreadyRunning = ( int.Parse( x.AdoptIfAlreadyRunning ) != 0 );
+			if( x.PriorityClass != null ) a.PriorityClass = x.PriorityClass;
+			if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
+			if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse( x.SeparationInterval, CultureInfo.InvariantCulture );
+			if( x.Dependecies != null )
+			{
+				var deps = new List<string>();
+				foreach( var d in x.Dependecies.Split( ';' ) )
+				{
+					var stripped = d.Trim();
+					if( stripped != "" )
+					{
+						deps.Add( d );
+					}
 
-            if (x.KillTree != null) a.KillTree = (int.Parse(x.KillTree) != 0);
+				}
+				a.Dependencies = deps;
+			}
 
-            if (!String.IsNullOrEmpty(x.KillSoftly)) a.KillSoftly = (int.Parse(x.KillSoftly) != 0);
+			if( x.KillTree != null ) a.KillTree = ( int.Parse( x.KillTree ) != 0 );
 
-            if (x.WindowStyle != null)
-            {
-                if (x.WindowStyle.ToLower() == "minimized") a.WindowStyle = EWindowStyle.Minimized;
-                else
-                if (x.WindowStyle.ToLower() == "maximized") a.WindowStyle = EWindowStyle.Maximized;
-                else
-                if (x.WindowStyle.ToLower() == "normal") a.WindowStyle = EWindowStyle.Normal;
-                else
-                if (x.WindowStyle.ToLower() == "hidden") a.WindowStyle = EWindowStyle.Hidden;
-            }
+			if( !String.IsNullOrEmpty( x.KillSoftly ) ) a.KillSoftly = ( int.Parse( x.KillSoftly ) != 0 );
 
-            if( x.WindowPos != null )
-            {
-                foreach( var elem in x.WindowPos )
-                {
-                    a.WindowPosXml.Add( elem.ToString() );
-                }
-            }
+			if( x.WindowStyle != null )
+			{
+				if( x.WindowStyle.ToLower() == "minimized" ) a.WindowStyle = EWindowStyle.Minimized;
+				else if( x.WindowStyle.ToLower() == "maximized" ) a.WindowStyle = EWindowStyle.Maximized;
+				else if( x.WindowStyle.ToLower() == "normal" ) a.WindowStyle = EWindowStyle.Normal;
+				else if( x.WindowStyle.ToLower() == "hidden" ) a.WindowStyle = EWindowStyle.Hidden;
+			}
 
-            if( x.Restarter != null )
-            {
-                a.RestarterXml = x.Restarter.ToString();
-            }
+			if( x.WindowPos != null )
+			{
+				foreach( var elem in x.WindowPos )
+				{
+					a.WindowPosXml.Add( elem.ToString() );
+				}
+			}
 
-            if( x.SoftKill != null )
-            {
-                a.SoftKillXml = x.SoftKill.ToString();
-            }
+			if( x.Restarter != null )
+			{
+				a.RestarterXml = x.Restarter.ToString();
+			}
 
-            if( x.Env != null )
-            {
-                foreach( var elem in x.Env.Descendants())
-                {
-					if (elem.Name == "Set")
+			if( x.SoftKill != null )
+			{
+				a.SoftKillXml = x.SoftKill.ToString();
+			}
+
+			if( x.Env != null )
+			{
+				foreach( var elem in x.Env.Descendants() )
+				{
+					if( elem.Name == "Set" )
 					{
 						// add/overwite variable
-						var variable = (string) elem.Attribute("Variable");
-						var value = (string) elem.Attribute("Value");
-						a.EnvVarsToSet[variable] = value;
+						var variable = elem.Attribute( "Variable" )?.Value;
+						var value = elem.Attribute( "Value" )?.Value;
+						
+						if( !string.IsNullOrEmpty(variable) && value != null )
+							a.EnvVarsToSet[variable] = value;
 					}
-				
-					if (elem.Name == "Local")
+
+					if( elem.Name == "Local" )
 					{
 						// add/overwite variable
-						var variable = (string) elem.Attribute("Variable");
-						var value = (string) elem.Attribute("Value");
-						a.LocalVarsToSet[variable] = value;
+						var variable = elem.Attribute( "Variable" )?.Value;
+						var value = elem.Attribute( "Value" )?.Value;
+
+						if( !string.IsNullOrEmpty(variable) && value != null )
+							a.LocalVarsToSet[variable] = value;
 					}
-				
-					if (elem.Name == "Path")
+
+					if( elem.Name == "Path" )
 					{
 						// extend
-						var toAppend = (string) elem.Attribute("Append");
-						if (!string.IsNullOrEmpty(toAppend))
+						var toAppend = elem.Attribute( "Append" )?.Value;
+						if( !string.IsNullOrEmpty( toAppend ) )
 						{
-							if (String.IsNullOrEmpty(a.EnvVarPathToAppend))
+							if( String.IsNullOrEmpty( a.EnvVarPathToAppend ) )
 							{
 								a.EnvVarPathToAppend = toAppend;
 							}
@@ -187,10 +187,10 @@ namespace Dirigent.Common
 							}
 						}
 
-						var toPrepend = (string) elem.Attribute("Prepend");
-						if (!string.IsNullOrEmpty(toPrepend))
+						var toPrepend = elem.Attribute( "Prepend" )?.Value;
+						if( !string.IsNullOrEmpty( toPrepend ) )
 						{
-							if (String.IsNullOrEmpty(a.EnvVarPathToPrepend))
+							if( String.IsNullOrEmpty( a.EnvVarPathToPrepend ) )
 							{
 								a.EnvVarPathToPrepend = toPrepend;
 							}
@@ -200,94 +200,110 @@ namespace Dirigent.Common
 							}
 						}
 					}
-				
-                }
-            }
 
-            if( x.InitDetectors != null )
-            {
-                foreach( var elem in x.InitDetectors )
-                {
-                    a.InitDetectors.Add( elem.ToString() );
-                }
-            }
+				}
+			}
 
-            return a;
-        }
+			if( x.InitDetectors != null )
+			{
+				foreach( var elem in x.InitDetectors )
+				{
+					a.InitDetectors.Add( elem.ToString() );
+				}
+			}
 
-        void loadPlans()
-        {
-            var plans = from e in doc.Element("Shared").Descendants("Plan")
-                         select e;
+			return a;
+		}
 
-            foreach( var p in plans )
-            {
-                var planName = (string) p.Attribute("Name");
-				var startTimeout = X.getDoubleAttr(p, "StartTimeout", -1, true);
+		void loadAppDefaults()
+		{
+			var appDefaultsElem = (from e in doc.Element( "Shared" )?.Descendants( "AppDefaults" ) select e).FirstOrDefault();
+			
+			cfg.AppDefaults = (
+				from e in appDefaultsElem?.Descendants( "App" )
+				select readAppElement( e )
+							  ).ToList();
+		}
 
-                var apps = (from e in p.Descendants("App")
-                            select readAppElement( e )).ToList();
-                
-                // check if everything is valid
-                int index = 1;
-                foreach( var a in apps )
-                {
-                    if( a.AppIdTuple == null )
-                    {
-                        throw new ConfigurationErrorException(string.Format("App #{0} in plan '{1}' not having valid AppTupleId", index, planName));
-                    }
+		void loadPlans()
+		{
+			var plans = from e in doc.Element( "Shared" )?.Descendants( "Plan" )
+						select e;
 
-                    if( a.ExeFullPath == null )
-                    {
-                        throw new ConfigurationErrorException(string.Format("App #{0} in plan '{1}' not having valid ExeFullPath", index, planName));
-                    }
+			int planIndex = 0;
+			foreach( var p in plans )
+			{
+				planIndex++;
+				var planName = p.Attribute( "Name" )?.Value;
+				var startTimeout = X.getDoubleAttr( p, "StartTimeout", -1, true );
 
-                    index ++;
-                }
-                
-                cfg.Plans.Add(
-                    new LaunchPlan(
-                        planName,
-                        apps,
-						startTimeout
-                    )
-                );
-            }
+				var apps = ( from e in p.Descendants( "App" )
+							 select readAppElement( e ) ).ToList();
 
-        }
+				if( string.IsNullOrEmpty(planName) )
+					throw new ConfigurationErrorException( $"Missing plan name in plan #{planIndex}");
 
-        //MachineDef readMachineElement( XElement e )
-        //{
-        //    MachineDef m = new MachineDef();
-        //    m.MachineId = X.getStringAttr(e, "Name");
-        //    m.IpAddress = X.getStringAttr(e, "IpAddress");
-        //    return m;
-        //}
+				// check if everything is valid
+				int index = 1;
+				foreach( var a in apps )
+				{
+					if( string.IsNullOrEmpty(a.AppIdTuple.AppId) || string.IsNullOrEmpty(a.AppIdTuple.MachineId) )
+					{
+						throw new ConfigurationErrorException( string.Format( "App #{0} in plan '{1}' not having valid AppTupleId", index, planName ) );
+					}
 
-        //void loadMachines()
-        //{
-        //    var machines = from m in doc.Element("Shared").Descendants("Machine")
-        //                 select readMachineElement(m);
-            
-        //    foreach( var ma in machines )
-        //    {
-        //        cfg.Machines.Add( ma.MachineId, ma );
-        //    }
-        //}
+					if( a.ExeFullPath == null )
+					{
+						throw new ConfigurationErrorException( string.Format( "App #{0} in plan '{1}' not having valid ExeFullPath", index, planName ) );
+					}
 
-        //void loadMaster()
-        //{
-        //    var master = doc.Element("Shared").Element("Master");
-        //    cfg.MasterPort = X.getIntAttr( master, "Port" );
-        //    cfg.MasterName = X.getStringAttr( master, "Name" );
-        //}
+					index ++;
+				}
 
-        //void loadLocalMachineId()
-        //{
-        //    var master = doc.Element("Shared").Element("Local");
-        //    cfg.MasterPort = X.getIntAttr( master, "MasterPort" );
-        //    cfg.MasterName = X.getStringAttr( master, "MasterName" );
-        //}
+				cfg.Plans.Add(
+					new PlanDef()
+				{
+					Name = planName,
+					AppDefs = apps,
+					StartTimeout = startTimeout
+				}
+				);
+			}
 
-    }
+		}
+
+		//MachineDef readMachineElement( XElement e )
+		//{
+		//    MachineDef m = new MachineDef();
+		//    m.MachineId = X.getStringAttr(e, "Name");
+		//    m.IpAddress = X.getStringAttr(e, "IpAddress");
+		//    return m;
+		//}
+
+		//void loadMachines()
+		//{
+		//    var machines = from m in doc.Element("Shared").Descendants("Machine")
+		//                 select readMachineElement(m);
+
+		//    foreach( var ma in machines )
+		//    {
+		//        cfg.Machines.Add( ma.MachineId, ma );
+		//    }
+		//}
+
+		//void loadMaster()
+		//{
+		//    var master = doc.Element("Shared").Element("Master");
+		//    cfg.MasterPort = X.getIntAttr( master, "Port" );
+		//    cfg.MasterName = X.getStringAttr( master, "Name" );
+		//}
+
+		//void loadLocalMachineId()
+		//{
+		//    var master = doc.Element("Shared").Element("Local");
+		//    cfg.MasterPort = X.getIntAttr( master, "MasterPort" );
+		//    cfg.MasterName = X.getStringAttr( master, "MasterName" );
+		//}
+
+	}
 }

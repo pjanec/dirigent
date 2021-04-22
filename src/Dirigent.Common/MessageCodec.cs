@@ -4,104 +4,104 @@ using System.Text;
 
 namespace Dirigent.Net
 {
-    public class MessageCodec
-    {
-        // keeps adding message segments until full length is there, then we copy the message out
-        // and remove it from the beginning of buffer, moving the remaining  data to the beginning
-        NetCoreServer.Buffer _awBlockBuf = new NetCoreServer.Buffer();
-        long _awBlockLen = 0; // the size of the awaited block
-        Action<byte[], long, long> _onBlockReceived;
-        Header _header; // the header recently received
+	public class MessageCodec
+	{
+		public struct Header
+		{
+			public uint MsgCode;
+			public uint DataSize;
+		}
+		public Action<Header, byte[], long, long>? MessageReceived;
+
+		// keeps adding message segments until full length is there, then we copy the message out
+		// and remove it from the beginning of buffer, moving the remaining  data to the beginning
+		NetCoreServer.Buffer _awBlockBuf = new NetCoreServer.Buffer();
+		long _awBlockLen = 0; // the size of the awaited block
+		Action<byte[], long, long>? _onBlockReceived;
+		Header _header; // the header recently received
 
 
-        public const long HeaderLen = 4+4;
+		public const long HeaderLen = 4 + 4;
 
 		public MessageCodec()
 		{
-            AwaitHeader();
+			AwaitHeader();
 		}
 
-        void GotHeader( byte[] data, long offset, long size )
-        {
-            _header = new Header();
+		void GotHeader( byte[] data, long offset, long size )
+		{
+			_header = new Header();
 
-            unsafe { fixed( byte* p = &data[offset] )
-            {
-                _header.MsgCode  = *((uint*) (p+0));
-                _header.DataSize = *((uint*) (p+4));
-            }}
+			unsafe { fixed( byte *p = &data[offset] )
+		{
+			_header.MsgCode  = *( ( uint * )( p + 0 ) );
+				_header.DataSize = *( ( uint * )( p + 4 ) );
+			}
+				   }
 
-            AwaitBody( _header.DataSize );
-        }
+			AwaitBody( _header.DataSize );
+		}
 
-        void GotBody( byte[] data, long offset, long size )
-        {
-            MessageReceived( _header, data, offset, size );
+		void GotBody( byte[] data, long offset, long size )
+		{
+			MessageReceived?.Invoke( _header, data, offset, size );
 
-            AwaitHeader();
-        }
+			AwaitHeader();
+		}
 
 
 		void AwaitHeader()
 		{
-            _awBlockLen = HeaderLen;
-            _onBlockReceived = GotHeader;
+			_awBlockLen = HeaderLen;
+			_onBlockReceived = GotHeader;
 		}
 
 		void AwaitBody( long size )
 		{
-            _awBlockLen = size;
-            _onBlockReceived = GotBody;
+			_awBlockLen = size;
+			_onBlockReceived = GotBody;
 		}
 
-        public struct Header
-        {
-            public uint MsgCode;
-            public uint DataSize;
-        }
+		public void ReceivedMessagePart( byte[] buffer, long offset, long size )
+		{
+			_awBlockBuf.Append( buffer, offset, size );
 
+			while( _awBlockBuf.Size - _awBlockBuf.Offset >= _awBlockLen )
+			{
+				long currBlockLen = _awBlockLen;
 
-        public Action<Header, byte[], long, long> MessageReceived;
+				_onBlockReceived?.Invoke( _awBlockBuf.Data, _awBlockBuf.Offset, _awBlockLen ); // note: changes the _awBlockLen
 
-        public void ReceivedMessagePart(byte[] buffer, long offset, long size)
-        {
-            _awBlockBuf.Append( buffer, offset, size );
+				_awBlockBuf.Shift( currBlockLen );
+			}
+			// remove the already used part of the buffer
+			_awBlockBuf.Remove( 0, _awBlockBuf.Offset );
+		}
 
-            while( _awBlockBuf.Size - _awBlockBuf.Offset >= _awBlockLen )
-            {
-                long currBlockLen = _awBlockLen;
+		// writes the header to the buffer at given offset
+		// returns numbers of bytes written
+		static public void ConstructHeader( in Header hdr, byte[] buf, long offs )
+		{
+			unsafe { fixed( byte *p = &buf[offs] )
+		{
+			*( ( uint * )( p + 0 ) ) = hdr.MsgCode;
+				*( ( uint * )( p + 4 ) ) = hdr.DataSize;
+			}
+				   }
+		}
 
-                _onBlockReceived( _awBlockBuf.Data, _awBlockBuf.Offset, _awBlockLen ); // note: changes the _awBlockLen
+		static public void ConstructHeader( in Header hdr, System.IO.MemoryStream stream )
+		{
+			byte[] buf = new byte[MessageCodec.HeaderLen];
+			ConstructHeader( hdr, buf, 0L );
+			stream.Write( buf, 0, ( int ) MessageCodec.HeaderLen );
+		}
 
-                _awBlockBuf.Shift( currBlockLen );
-            }
-            // remove the already used part of the buffer
-            _awBlockBuf.Remove( 0, _awBlockBuf.Offset );
-        }
+		public void ConstructMessage( System.IO.MemoryStream stream, Header hdr, byte[] data, long offset, long size )
+		{
+			ConstructHeader( hdr, stream );
+			stream.Write( data, ( int )offset, ( int )size );
+		}
 
-        // writes the header to the buffer at given offset
-        // returns numbers of bytes written
-        static public void ConstructHeader( in Header hdr, byte[] buf, long offs )
-        {
-            unsafe { fixed( byte* p = &buf[offs] )
-            {
-                *((uint*) (p+0)) = hdr.MsgCode;
-                *((uint*) (p+4)) = hdr.DataSize;
-            }}
-        }
-
-        static public void ConstructHeader( in Header hdr, System.IO.MemoryStream stream )
-        {
-            byte[] buf = new byte[MessageCodec.HeaderLen];
-            ConstructHeader( hdr, buf, 0L );
-            stream.Write( buf, 0, (int) MessageCodec.HeaderLen );
-        }
-
-        public void ConstructMessage( System.IO.MemoryStream stream, Header hdr, byte[] data, long offset, long size )
-        {
-            ConstructHeader( hdr, stream );
-            stream.Write( data, (int)offset, (int)size );
-        }
-
-    }
+	}
 }

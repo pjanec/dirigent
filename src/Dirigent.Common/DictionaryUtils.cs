@@ -8,26 +8,26 @@ namespace Dirigent.Common
 	static class DictionaryExtensions
 	{
 		public static bool DictionaryEqual<TKey, TValue>(
-			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)
+			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second )
 		{
-			return first.DictionaryEqual(second, null);
+			return first.DictionaryEqual( second, null );
 		}
 
 		public static bool DictionaryEqual<TKey, TValue>(
 			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second,
-			IEqualityComparer<TValue> valueComparer)
+			IEqualityComparer<TValue>? valueComparer )
 		{
-			if (first == second) return true;
-			if ((first == null) || (second == null)) return false;
-			if (first.Count != second.Count) return false;
+			if( first == second ) return true;
+			if( ( first == null ) || ( second == null ) ) return false;
+			if( first.Count != second.Count ) return false;
 
 			valueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 
-			foreach (var kvp in first)
+			foreach( var kvp in first )
 			{
 				TValue secondValue;
-				if (!second.TryGetValue(kvp.Key, out secondValue)) return false;
-				if (!valueComparer.Equals(kvp.Value, secondValue)) return false;
+				if( !second.TryGetValue( kvp.Key, out secondValue ) ) return false;
+				if( !valueComparer.Equals( kvp.Value, secondValue ) ) return false;
 			}
 			return true;
 		}

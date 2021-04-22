@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Dirigent.Agent": {
+      "commandName": "Project",
+      "commandLineArgs": "--mode agent --isMaster 1"
+    }
+  }
+}

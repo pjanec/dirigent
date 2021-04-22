@@ -13,38 +13,32 @@ using System.Diagnostics;
 
 namespace Dirigent.Common
 {
-    
-    public class LocalXmlConfigReader
-    {
 
-        LocalConfig cfg;
-        public XDocument doc;
+	public class LocalXmlConfigReader
+	{
 
-        public LocalConfig Load( System.IO.TextReader textReader )
-        {
-            cfg = new LocalConfig();
-            doc = XDocument.Load(textReader);
+		public LocalConfig cfg;
+		public XDocument doc;
 
-            
-            cfg.xmlDoc = doc;
+		public LocalXmlConfigReader( System.IO.TextReader textReader )
+		{
+			doc = XDocument.Load( textReader );
+			cfg = new LocalConfig( doc );
 
-            LoadFolderWatchers();
+			LoadFolderWatchers();
 
 			//loadPlans();
-            //loadMachines();
-            //loadMaster();
-
-			
-			return cfg;
-        }
+			//loadMachines();
+			//loadMaster();
+		}
 
 		void LoadFolderWatchers()
 		{
-            var fwNodes = from e in doc.Element("Local").Descendants("FolderWatcher")
-                         select e;
+			var fwNodes = from e in doc.Element( "Local" )?.Descendants( "FolderWatcher" )
+						  select e;
 
-            foreach( var fwNode in fwNodes )
-            {
+			foreach( var fwNode in fwNodes )
+			{
 				cfg.folderWatcherXmls.Add( fwNode );
 			}
 		}

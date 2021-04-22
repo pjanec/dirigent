@@ -8,7 +8,7 @@ namespace Dirigent.Common
 	public class AppMessenger
 	{
 		// singleton API
-		static AppMessenger _instance = null;
+		static AppMessenger? _instance = null;
 		static public AppMessenger Instance
 		{
 			get
@@ -27,11 +27,11 @@ namespace Dirigent.Common
 		{
 			// send to all recipients registered to this type of message
 
-			List<object> list;
-			
-			if( !listeners.TryGetValue(typeof(T), out list )	)
+			List<object>? list;
+
+			if( !listeners.TryGetValue( typeof( T ), out list )	)
 				return;
-			
+
 			foreach( var a in list )
 			{
 				var typeA = a as Action<T>;
@@ -44,12 +44,12 @@ namespace Dirigent.Common
 
 		public void Register<T>( Action<T> action )
 		{
-			List<object> list;
-			
-			if( !listeners.TryGetValue(typeof(T), out list )	)
+			List<object>? list;
+
+			if( !listeners.TryGetValue( typeof( T ), out list )	)
 			{
 				list = new List<object>();
-				listeners[typeof(T)] = list;
+				listeners[typeof( T )] = list;
 			}
 
 			list.Add( action );
@@ -57,9 +57,9 @@ namespace Dirigent.Common
 
 		public void Unregister<T>( Action<T> action )
 		{
-			List<object> list;
-			
-			if( !listeners.TryGetValue(typeof(T), out list )	)
+			List<object>? list;
+
+			if( !listeners.TryGetValue( typeof( T ), out list )	)
 			{
 				return;
 			}
