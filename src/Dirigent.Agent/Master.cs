@@ -85,6 +85,7 @@ namespace Dirigent.Agent
 					break;
 				}
 
+				// agent is sending the state of its apps
 				case AppsStateMessage m:
 				{
 					foreach( var( appId, appState ) in m.appsState )
@@ -93,6 +94,13 @@ namespace Dirigent.Agent
 					}
 					break;
 				}
+
+				case LaunchAppMessage m:
+				{
+					LaunchApp( m.Id, m.PlanName );
+					break;
+				}
+
 			}
 
 		}

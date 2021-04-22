@@ -33,7 +33,10 @@ namespace Dirigent.Common
 			{
 				case Net.AppsStateMessage m:
 				{
-					_appStates = m.appsState;
+					foreach( var (id, state) in m.appsState )
+					{
+						_appStates[id] = state;	
+					}
 					break;
 				}
 

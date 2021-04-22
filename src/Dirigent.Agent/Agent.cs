@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
@@ -52,6 +53,25 @@ namespace Dirigent.Agent
 		public void Tick()
 		{
 			_client.Tick( OnMessage );
+
+			PublishAgentState();
+		}
+
+		void PublishAgentState()
+		{
+			// send the state of all local apps
+
+			var states = new Dictionary<AppIdTuple, AppState>();
+			foreach( var li in _localApps.Apps.Values )
+			{
+				states[li.Id] = li.AppState;
+			}
+
+			if( states.Count > 0 )
+			{
+				var msg = new Net.AppsStateMessage( states );
+				_client.Send( msg );
+			}
 		}
 
 		// incoming message from master

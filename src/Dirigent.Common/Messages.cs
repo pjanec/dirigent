@@ -114,7 +114,7 @@ namespace Dirigent.Net
 
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public Dictionary<AppIdTuple, AppState> appsState = _empty;
+		public Dictionary<AppIdTuple, AppState> appsState = new(); //_empty;
 
 		public AppsStateMessage() {}
 		public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )

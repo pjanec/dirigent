@@ -28,16 +28,31 @@ namespace Dirigent.Common
 			Disabled        = 1 << 8,
 		}
 
+		[ProtoBuf.ProtoMember( 1 )]
 		FL flags;
+
+		[ProtoBuf.ProtoMember( 2 )]
 		int exitCode;
+
+		[ProtoBuf.ProtoMember( 3 )]
 		DateTime lastChange = DateTime.UtcNow;
+
+		[ProtoBuf.ProtoMember( 4 )]
 		int cpu; // percentage of CPU usage
+
+		[ProtoBuf.ProtoMember( 5 )]
 		int gpu; // percentage of GPU usage
+
+		[ProtoBuf.ProtoMember( 6 )]
 		int memory; // MBytes of memory allocated
+
+		[ProtoBuf.ProtoMember( 7 )]
 		string planName = string.Empty; // in what plan's context the app was started
 
 		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
 		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration
+
+		[ProtoBuf.ProtoMember( 8 )]
 		int restartsRemaining = RESTARTS_UNITIALIZED;
 
 		bool Is( FL value )
@@ -56,8 +71,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process was launched successfully
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public bool Started
 		{
 			get { return Is( FL.Started ); }
@@ -67,8 +80,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process was launched but failed to start
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public bool StartFailed
 		{
 			get { return Is( FL.StartFailed ); }
@@ -78,8 +89,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process is currently running
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
 		public bool Running
 		{
 			get { return Is( FL.Running ); }
@@ -89,8 +98,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// forced to terminate	by KillApp request (not by a KillPlan)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 4 )]
-		[DataMember]
 		public bool Killed
 		{
 			get { return Is( FL.Killed ); }
@@ -100,8 +107,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// Still dying (after termination request)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
 		public bool Dying
 		{
 			get { return Is( FL.Dying ); }
@@ -111,8 +116,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// Just being restarted (waiting until dies in order to be lanuched again)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 6 )]
-		[DataMember]
 		public bool Restarting
 		{
 			get { return Is( FL.Restarting ); }
@@ -125,8 +128,6 @@ namespace Dirigent.Common
 		/// By default true upon launching but can be immediately reset by a freshly instantiated AppWatcher acting like an InitDetector.
 		/// This is to avoid app to stay in unitialized if an Initdetector-class watcher is not defined
 		/// </summary>
-		[ProtoBuf.ProtoMember( 7 )]
-		[DataMember]
 		public bool Initialized
 		{
 			get { return Is( FL.Initialized ); }
@@ -136,8 +137,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process was processed by the launch plan already, won't be touched by the launch plan again (until plan is stopped)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 8 )]
-		[DataMember]
 		public bool PlanApplied
 		{
 			get { return Is( FL.PlanApplied ); }
@@ -148,8 +147,6 @@ namespace Dirigent.Common
 		/// Whether the app has been disabled from execution as part of the plan;
 		/// This is set by the owner
 		/// </summary>
-		[ProtoBuf.ProtoMember( 9 )]
-		[DataMember]
 		public bool Disabled
 		{
 			get { return Is( FL.Disabled ); }
@@ -159,8 +156,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// process exit code; valid only if is Started && !Running && !Killed
 		/// </summary>
-		[ProtoBuf.ProtoMember( 10 )]
-		[DataMember]
 		public int ExitCode
 		{
 			get { return exitCode; }
@@ -170,8 +165,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// Timne of the last change in the application state.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 11 )]
-		[DataMember]
 		public DateTime LastChange
 		{
 			get { return lastChange; }
@@ -181,8 +174,6 @@ namespace Dirigent.Common
 		/// <summary>
 		///	percentage of CPU usage
 		/// </summary>
-		[ProtoBuf.ProtoMember( 12 )]
-		[DataMember]
 		public int CPU
 		{
 			get { return cpu; }
@@ -192,8 +183,6 @@ namespace Dirigent.Common
 		/// <summary>
 		///	percentage of GPU usage
 		/// </summary>
-		[ProtoBuf.ProtoMember( 13 )]
-		[DataMember]
 		public int GPU
 		{
 			get { return gpu; }
@@ -203,8 +192,6 @@ namespace Dirigent.Common
 		/// <summary>
 		///	MBytes of memory allocated
 		/// </summary>
-		[ProtoBuf.ProtoMember( 14 )]
-		[DataMember]
 		public int Memory
 		{
 			get { return memory; }
@@ -214,8 +201,6 @@ namespace Dirigent.Common
 		/// <summary>
 		///	How many restart tries to make before giving up
 		/// </summary>
-		[ProtoBuf.ProtoMember( 15 )]
-		[DataMember]
 		public int RestartsRemaining
 		{
 			get { return restartsRemaining; }
@@ -225,8 +210,6 @@ namespace Dirigent.Common
 		/// <summary>
 		/// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 16 )]
-		[DataMember]
 		public string? PlanName
 		{
 			get { return planName; }

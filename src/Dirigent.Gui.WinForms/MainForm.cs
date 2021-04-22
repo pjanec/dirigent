@@ -72,6 +72,11 @@ namespace Dirigent.Gui.WinForms
 				return null;
 			}
 
+			public Dictionary<AppIdTuple, AppState> GetAllAppsState()
+			{
+				return _reflStates.AppStates;
+			}
+
 			public PlanState GetPlanState( string planName )
 			{
 				if( _reflStates.PlanStates.TryGetValue( planName, out var planState ) )
