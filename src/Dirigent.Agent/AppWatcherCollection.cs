@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Dirigent.Agent
 {
@@ -11,7 +12,7 @@ namespace Dirigent.Agent
 
         private List<IAppWatcher> _watchers = new List<IAppWatcher>();
 
-        private List<IAppWatcher> _watchersToRemove = new(20);
+        private List<IAppWatcher> _toRemove = new(20);
 
         private List<IAppWatcher> _toReinstall = new List<IAppWatcher>();
 
@@ -25,15 +26,34 @@ namespace Dirigent.Agent
             _toReinstall.Add( w );
         }
 
+        void RemoveAll( Func<IAppWatcher, bool> condition )
+        {
+            //_watchers.RemoveAll( condition );
+
+            // with debug print
+            _toRemove.Clear();
+            foreach( var w in _watchers )
+            {
+                if( condition(w) )
+                    _toRemove.Add(w);
+            }
+            foreach( var w in _toRemove )
+            {
+                log.Debug($"Removing watcher {w.GetType().Name} from app {w.App.Id}");
+                _watchers.Remove(w);
+            }
+        }
+
         // remove watcher of given type
         public void RemoveWatchersOfType<T>()
         {
-            _watchers.RemoveAll( (x) => x.GetType() == typeof(T) );
+            RemoveAll((x) => x.GetType() == typeof(T));
         }
 
         void Reinstall( IAppWatcher w )
         {
-            _watchers.RemoveAll( (x) => x.GetType() == w.GetType() );
+            RemoveAll( (x) => x.GetType() == w.GetType() );
+
             log.DebugFormat("Installing watcher {0}, app {1}", this.GetType().Name, w.App.Id );
             _watchers.Add( w );
         }
@@ -42,9 +62,9 @@ namespace Dirigent.Agent
         /// Removes all watcher matching given flags
         /// </summary>
         /// <param name="flags"></param>
-        public void RemoveMatching( IAppWatcher.EFlags flags )
+        public void RemoveHavingFlags( IAppWatcher.EFlags flags )
         {
-            _watchers.RemoveAll( (x) => (x.Flags & flags) != 0 );
+            RemoveAll( (x) => (x.Flags & flags) != 0 );
         }
 
         /// <summary>
@@ -52,21 +72,13 @@ namespace Dirigent.Agent
         /// </summary>
         public void Tick()
         {
-            _watchersToRemove.Clear();
-
             foreach( var w in _watchers )
             {
                 w.Tick();
-                if( w.ShallBeRemoved ) _watchersToRemove.Add(w);
             }
+
+            RemoveAll( (x) => x.ShallBeRemoved );
             
-            foreach( var w in _watchersToRemove )
-            {
-                log.DebugFormat("Removing watcher {0}, app {1}", w.ToString(), w.App.Id );
-
-                _watchers.Remove(w);
-            }
-
             foreach( var w in _toReinstall )
             {
                 Reinstall( w );    

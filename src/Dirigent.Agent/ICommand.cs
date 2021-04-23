@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Dirigent.Common
+namespace Dirigent.Agent
 {
 	public delegate void WriteResponseDeleg(string msg);
 
-	public interface ICommand
+	public interface ICommand : IDisposable
     {
 
         string Name { get; }
@@ -15,8 +15,18 @@ namespace Dirigent.Common
 		event WriteResponseDeleg? Response;
 
 		void Execute();
-		void Dispose();
 		void WriteResponse(string txt);
+    }
+
+    public class CommandNotImplementedException : Exception
+    {
+        public string cmdName;
+        
+        public CommandNotImplementedException(string cmdName)
+            : base(string.Format("Command '{0}' not implemented yet.", cmdName))
+        {
+            this.cmdName = cmdName;
+        }
     }
 
     public class UnknownCommandException : Exception

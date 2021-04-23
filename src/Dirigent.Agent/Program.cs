@@ -23,10 +23,11 @@ namespace Dirigent.Agent
 
 	public enum EAppExitCode
 	{
-		NoError = 0,
+		OK = 0,
 		AlreadyRunning = 1,
 		CmdLineError = 2,
 		ExceptionError = 3,
+		ErrorResp = 4, // CLI response failure
 	}
 
 	static class Program
@@ -46,7 +47,7 @@ namespace Dirigent.Agent
 				Console.WriteLine("Windows!");
             #endif
 
-			EAppExitCode exitCode = EAppExitCode.NoError;
+			EAppExitCode exitCode = EAppExitCode.OK;
 
 			//try
 			{

@@ -106,9 +106,9 @@ namespace Dirigent.Agent
             AppState.Killed = false;
             
             // remove watchers that might have left from previous run
-            _watchers.RemoveMatching( IAppWatcher.EFlags.ClearOnLaunch );
+            _watchers.RemoveHavingFlags( IAppWatcher.EFlags.ClearOnLaunch );
 
-            Launcher = new Launcher( new FakeCtrl(), appDef, _sharedContext );
+            Launcher = new Launcher( appDef, _sharedContext );
 
             try
             {
@@ -222,7 +222,7 @@ namespace Dirigent.Agent
 				// try to adopt before killing
 				if( RecentAppDef.AdoptIfAlreadyRunning )
 				{
-					var launcher = new Launcher( new FakeCtrl(), UpcomingAppDef, _sharedContext );
+					var launcher = new Launcher( UpcomingAppDef, _sharedContext );
 					if( launcher.AdoptAlreadyRunning() )
 					{
 						launcher.Kill();

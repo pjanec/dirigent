@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using Dirigent.Common;
 
-namespace Dirigent.Common.Commands
+namespace Dirigent.Agent.Commands
 {
-	public class DirigentControlCommand : ICommand
+	public class DirigentControlCommand : Disposable, ICommand
 	{
 		private static List<string>	_emptyArgs = new();
 		public List<string> args = _emptyArgs;
@@ -19,13 +20,13 @@ namespace Dirigent.Common.Commands
 
 		public event WriteResponseDeleg? Response; // to be set externally by command class instance creator and to be called through WriteRespose from command handler
 
-		protected IDirigentControl ctrl;
+		protected Master ctrl;
 		protected string name;
 
 
 
 
-		public DirigentControlCommand( IDirigentControl ctrl )
+		public DirigentControlCommand( Master ctrl )
 		{
 			this.name = this.GetType().Name;
 			this.ctrl = ctrl;
@@ -35,11 +36,12 @@ namespace Dirigent.Common.Commands
 
 		public virtual void Execute()
 		{
-			throw new NotImplementedException();
+			throw new System.NotImplementedException();
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
 			Response = null;
 		}
 
@@ -52,86 +54,94 @@ namespace Dirigent.Common.Commands
 			}
 		}
 
+		public static void ThrowAppIdTupleSyntax( string appIdTupleString )
+		{
+			throw new ArgumentSyntaxErrorException( "appIdTuple", appIdTupleString, "\"<machine>.<app>[@<plan>]\" expected" );
+		}
+
 	}
 
 
 	public class StartPlan : DirigentControlCommand
 	{
-		public StartPlan( IDirigentControl ctrl )
+		public StartPlan( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+			//ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class StopPlan : DirigentControlCommand
 	{
-		public StopPlan( IDirigentControl ctrl )
+		public StopPlan( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+			//ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillPlan : DirigentControlCommand
 	{
-		public KillPlan( IDirigentControl ctrl )
+		public KillPlan( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+			//ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class RestartPlan : DirigentControlCommand
 	{
-		public RestartPlan( IDirigentControl ctrl )
+		public RestartPlan( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+			//ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
+			//WriteResponse( "ACK" );
 		}
 	}
 
-
 	public class LaunchApp : DirigentControlCommand
 	{
-		public LaunchApp( IDirigentControl ctrl )
+		public LaunchApp( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var t = new AppIdTuple( args[0] );
-			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
-			ctrl.LaunchApp( t );
+			if( args.Count == 0 )  throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			ctrl.LaunchApp( id, planName );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillApp : DirigentControlCommand
 	{
-		public KillApp( IDirigentControl ctrl )
+		public KillApp( Master ctrl )
 			: base( ctrl )
 		{
 		}
@@ -139,16 +149,16 @@ namespace Dirigent.Common.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var t = new AppIdTuple( args[0] );
-			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
-			ctrl.KillApp( t );
+			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			ctrl.KillApp( id );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class RestartApp : DirigentControlCommand
 	{
-		public RestartApp( IDirigentControl ctrl )
+		public RestartApp( Master ctrl )
 			: base( ctrl )
 		{
 		}
@@ -156,16 +166,16 @@ namespace Dirigent.Common.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var t = new AppIdTuple( args[0] );
-			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
-			ctrl.RestartApp( t );
+			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			ctrl.RestartApp( id );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	//public class SelectPlan : DirigentControlCommand
 	//{
-	//    public SelectPlan(IDirigentControl ctrl)
+	//    public SelectPlan(Master ctrl)
 	//        : base(ctrl)
 	//    {
 	//    }
@@ -183,224 +193,234 @@ namespace Dirigent.Common.Commands
 
 	public class GetPlanState : DirigentControlCommand
 	{
-		public GetPlanState( IDirigentControl ctrl )
+		public GetPlanState( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "Plan name expected." );
-			var planName = args[0];
-			var planState = ctrl.GetPlanState( planName );
-			var stateStr = Tools.GetPlanStateString( planName, planState );
-			WriteResponse( stateStr );
+			throw new CommandNotImplementedException( Name );
+			//if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "Plan name expected." );
+			//var planName = args[0];
+			//var planState = ctrl.GetPlanState( planName );
+			//var stateStr = Tools.GetPlanStateString( planName, planState );
+			//WriteResponse( stateStr );
 		}
 	}
 
 	public class GetAppState : DirigentControlCommand
 	{
-		public GetAppState( IDirigentControl ctrl )
+		public GetAppState( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var t = new AppIdTuple( args[0] );
-			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
+			throw new CommandNotImplementedException( Name );
+			//if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			//var t = new AppIdTuple( args[0] );
+			//if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
 
-			var appState = ctrl.GetAppState( t );
-			var stateStr = Tools.GetAppStateString( t, appState );
+			//var appState = ctrl.GetAppState( t );
+			//var stateStr = Tools.GetAppStateString( t, appState );
 
-			WriteResponse( stateStr );
+			//WriteResponse( stateStr );
 		}
 	}
 
 
 	public class GetAllPlansState : DirigentControlCommand
 	{
-		public GetAllPlansState( IDirigentControl ctrl )
+		public GetAllPlansState( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			foreach( var p in ctrl.GetPlanRepo() )
-			{
-				var planState = ctrl.GetPlanState( p.Name );
-				var stateStr = Tools.GetPlanStateString( p.Name, planState );
-				WriteResponse( stateStr );
-			}
-			WriteResponse( "END" );
+			throw new CommandNotImplementedException( Name );
+			//foreach( var p in ctrl.GetPlanRepo() )
+			//{
+			//	var planState = ctrl.GetPlanState( p.Name );
+			//	var stateStr = Tools.GetPlanStateString( p.Name, planState );
+			//	WriteResponse( stateStr );
+			//}
+			//WriteResponse( "END" );
 		}
 	}
 
 
 	public class GetAllAppsState : DirigentControlCommand
 	{
-		public GetAllAppsState( IDirigentControl ctrl )
+		public GetAllAppsState( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
+			throw new CommandNotImplementedException( Name );
 
-			foreach( var pair in ctrl.GetAllAppsState() )
-			{
-				var stateStr = Tools.GetAppStateString( pair.Key, pair.Value );
-				WriteResponse( stateStr );
-			}
-			WriteResponse( "END" );
+			//foreach( var pair in ctrl.GetAllAppsState() )
+			//{
+			//	var stateStr = Tools.GetAppStateString( pair.Key, pair.Value );
+			//	WriteResponse( stateStr );
+			//}
+			//WriteResponse( "END" );
 		}
 	}
 
 	public class SetVars : DirigentControlCommand
 	{
-		public SetVars( IDirigentControl ctrl )
+		public SetVars( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-            if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
-            ctrl.SetVars( args[0] );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+   //         if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
+   //         ctrl.SetVars( args[0] );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillAll : DirigentControlCommand
 	{
-		public KillAll( IDirigentControl ctrl )
+		public KillAll( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			var argsStruct = new KillAllArgs() {}; 
-            if( args.Count > 0 )
-            {
-                argsStruct.MachineId = args[0];
-            }
-            ctrl.KillAll( argsStruct );
-			WriteResponse( "ACK" );
+			throw new CommandNotImplementedException( Name );
+			//var argsStruct = new KillAllArgs() {}; 
+   //         if( args.Count > 0 )
+   //         {
+   //             argsStruct.MachineId = args[0];
+   //         }
+   //         ctrl.KillAll( argsStruct );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 
 	public class Shutdown : DirigentControlCommand
 	{
-		public Shutdown( IDirigentControl ctrl )
+		public Shutdown( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			var argsStruct = new ShutdownArgs() {}; 
+			throw new CommandNotImplementedException( Name );
+			//var argsStruct = new ShutdownArgs() {}; 
 
-			var argsDict = Tools.ParseKeyValList( args );
+			//var argsDict = Tools.ParseKeyValList( args );
 
-			string modeStr;
-			if( Tools.TryGetValueIgnoreKeyCase( argsDict, "mode", out modeStr ) )
-			{
-				if( !Tools.GetEnumValueByNameIgnoreCase<EShutdownMode>( modeStr, out argsStruct.Mode ) )
-				{
-					throw new ArgumentException( String.Format("invalid mode '{0}'", modeStr), "mode" );
-				}
-			}
+			//string modeStr;
+			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "mode", out modeStr ) )
+			//{
+			//	if( !Tools.GetEnumValueByNameIgnoreCase<EShutdownMode>( modeStr, out argsStruct.Mode ) )
+			//	{
+			//		throw new ArgumentException( String.Format("invalid mode '{0}'", modeStr), "mode" );
+			//	}
+			//}
 
-            ctrl.Shutdown( argsStruct );
-			WriteResponse( "ACK" );
+   //         ctrl.Shutdown( argsStruct );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class  Terminate : DirigentControlCommand
 	{
-		public Terminate( IDirigentControl ctrl )
+		public Terminate( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			var argsStruct = new TerminateArgs() { KillApps=true }; 
+			throw new CommandNotImplementedException( Name );
+			//var argsStruct = new TerminateArgs() { KillApps=true }; 
 
-			var argsDict = Tools.ParseKeyValList( args );
-			string valStr;
-			if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
-			{
-				if( valStr=="1" ) argsStruct.KillApps = true;
-			}
+			//var argsDict = Tools.ParseKeyValList( args );
+			//string valStr;
+			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			//{
+			//	if( valStr=="1" ) argsStruct.KillApps = true;
+			//}
 
-			if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
-			{
-				argsStruct.MachineId = valStr;
-			}
+			//if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
+			//{
+			//	argsStruct.MachineId = valStr;
+			//}
 
-            ctrl.Terminate( argsStruct );
-			WriteResponse( "ACK" );
+   //         ctrl.Terminate( argsStruct );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class Reinstall : DirigentControlCommand
 	{
-		public Reinstall( IDirigentControl ctrl )
+		public Reinstall( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			var argsStruct = new ReinstallArgs() {}; 
+			throw new CommandNotImplementedException( Name );
+			//var argsStruct = new ReinstallArgs() {}; 
 
-			var argsDict = Tools.ParseKeyValList( args );
+			//var argsDict = Tools.ParseKeyValList( args );
 
-			string modeStr;
-			if( Tools.TryGetValueIgnoreKeyCase( argsDict, "downloadMode", out modeStr ) )
-			{
-				if( !Tools.GetEnumValueByNameIgnoreCase<EDownloadMode>( modeStr, out argsStruct.DownloadMode ) )
-				{
-					throw new ArgumentException( String.Format("invalid download mode '{0}'", modeStr), "downloadMode" );
-				}
-			}
+			//string modeStr;
+			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "downloadMode", out modeStr ) )
+			//{
+			//	if( !Tools.GetEnumValueByNameIgnoreCase<EDownloadMode>( modeStr, out argsStruct.DownloadMode ) )
+			//	{
+			//		throw new ArgumentException( String.Format("invalid download mode '{0}'", modeStr), "downloadMode" );
+			//	}
+			//}
 
-			string urlStr;
-			if( Tools.TryGetValueIgnoreKeyCase( argsDict, "url", out urlStr ) )
-			{
-				argsStruct.Url = urlStr;
-			}
+			//string urlStr;
+			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "url", out urlStr ) )
+			//{
+			//	argsStruct.Url = urlStr;
+			//}
 
-            ctrl.Reinstall( argsStruct );
-			WriteResponse( "ACK" );
+   //         ctrl.Reinstall( argsStruct );
+			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class ReloadSharedConfig : DirigentControlCommand
 	{
-		public ReloadSharedConfig( IDirigentControl ctrl )
+		public ReloadSharedConfig( Master ctrl )
 			: base( ctrl )
 		{
 		}
 
 		public override void Execute()
 		{
-			var argsStruct = new ReloadSharedConfigArgs() {}; 
+			throw new CommandNotImplementedException( Name );
+			//var argsStruct = new ReloadSharedConfigArgs() {}; 
 
-			var argsDict = Tools.ParseKeyValList( args );
-			string valStr;
-			if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
-			{
-				if( valStr=="1" ) argsStruct.KillApps = true;
-			}
+			//var argsDict = Tools.ParseKeyValList( args );
+			//string valStr;
+			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			//{
+			//	if( valStr=="1" ) argsStruct.KillApps = true;
+			//}
 
-            ctrl.ReloadSharedConfig( argsStruct );
-			WriteResponse( "ACK" );
+   //         ctrl.ReloadSharedConfig( argsStruct );
+			//WriteResponse( "ACK" );
 		}
 	}
 

@@ -34,7 +34,7 @@ namespace Dirigent.Net
 	/// Buffers message received from master. Within Poll() method calls MessageReceived delegate for each received message.
 	/// Allows sending a message to master.
 	/// </summary>
-	public class Client
+	public class Client	: Common.Disposable
 	{
 		public Action<Net.Message>? MessageReceived;
 
@@ -114,21 +114,18 @@ namespace Dirigent.Net
 		/// </summary>
 		public void Send( Message msg )
 		{
+			if( IsDisposed ) return;
+
 			msg.Sender = _ident.Sender;
 			_protoClient.SendMessage( msg );
 		}
 
 		public bool IsConnected => _protoClient.IsConnected;
 
-		protected virtual void Dispose( bool disposing )
+		protected override void Dispose( bool disposing )
 		{
 			if( !disposing ) return;
 			_protoClient.Dispose();
-		}
-
-		public void Dispose()
-		{
-			Dispose( true );
 		}
 	}
 }

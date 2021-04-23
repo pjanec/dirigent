@@ -19,7 +19,7 @@ namespace Dirigent.Agent
 	/// When a new restarter is added, it can either continue the counting down
 	/// the number of restarts or reset the number of restarts to the AppDef-configured value.
 	/// </summary>
-	public class AppRestarter : IAppWatcher
+	public class AppRestarter : Disposable, IAppWatcher
 	{
 		/// <summary>
 		/// Done restating, can be removed from the system.
@@ -217,8 +217,9 @@ namespace Dirigent.Agent
 			}
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
 			// Make sure we don't leave the restarting flag on the app if we are removed in the middle
 			// of operation
 			_appState.Restarting = false;

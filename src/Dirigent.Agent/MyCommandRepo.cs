@@ -5,7 +5,7 @@ using System.Text;
 using System.Reflection;
 using Dirigent.Common;
 
-namespace Dirigent.Common
+namespace Dirigent.Agent
 {
     public static class DirigentCommandRegistrator
     {

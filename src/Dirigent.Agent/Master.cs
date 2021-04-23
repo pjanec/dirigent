@@ -9,7 +9,7 @@ using Dirigent.Net;
 
 namespace Dirigent.Agent
 {
-	public class Master : IDisposable
+	public class Master : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -18,6 +18,8 @@ namespace Dirigent.Agent
 		private string _localIpAddr;
 		private int _port;
 		private Net.Server _server;
+		private CLIProcessor _cliProc;
+		static TelnetServer _telnetServer;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
@@ -46,15 +48,30 @@ namespace Dirigent.Agent
 			InitFromSharedConfig( sharedConfig );
 
 			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
+
+			// start a telnet client server
+			_cliProc = new CLIProcessor( this );
+
+            log.InfoFormat("Command Line Interface running on port {0}", cliPort);
+			_telnetServer = new TelnetServer( "0.0.0.0", cliPort, _cliProc );
+			_telnetServer.Start();
+
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
+			_telnetServer?.Dispose();
+			_cliProc.Dispose();
 			_server.Dispose();
 		}
 
 		public void Tick()
 		{
+			_cliProc.Tick();
+
+			_telnetServer?.Tick();
+
 			// process all messages received since last tick from all clients
 			_server.Tick( ( msg ) =>
 			{
@@ -124,9 +141,39 @@ namespace Dirigent.Agent
 					break;
 				}
 
+				case CLIRequestMessage m:
+				{
+					var cliClient = new CLIClient( _server, m.Sender );
+					_cliProc.AddRequest( cliClient, m.Text );
+					break;
+				}
+
 			}
 
 		}
+
+		/// <summary>
+		/// Sends the response over Dirigent's network back to the request sender 
+		/// Created specifically for each single request.
+		/// </summary>
+		private class CLIClient : ICLIClient
+		{
+			Server _server;
+			string _requestor;
+			public string Name => "<master>";
+
+			public CLIClient( Server server, string requestor )
+			{
+				_server = server;
+				_requestor = requestor;
+			}
+			public void WriteResponse(string text)
+			{
+				if( _server.IsDisposed ) return;
+				_server.SendToSingle( new Net.CLIResponseMessage( text ), _requestor );
+			}
+		}
+
 
 		// Called once when client connects and sends ClientIdent
 		void OnClientIdentified( ClientIdent ident )

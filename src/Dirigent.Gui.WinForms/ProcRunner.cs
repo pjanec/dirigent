@@ -17,7 +17,7 @@ namespace Dirigent.Gui.WinForms
     /// The --mode and --parentPid are added to command line, remaining parameters are copied from then current process ones
     /// Hides the main window.
     /// </summary>
-    public class ProcRunner : IDisposable
+    public class ProcRunner : Disposable
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         Process _proc = null;
@@ -194,8 +194,10 @@ namespace Dirigent.Gui.WinForms
             }
         }
 
-        public void Dispose()
-        {
+		protected override void Dispose(bool disposing)
+		{
+			base.Dispose(disposing);
+            if(!disposing) return;
             StopKeepAlive();
             Kill();
         }

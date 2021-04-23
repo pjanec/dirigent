@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Dirigent.Common;
 
-namespace Dirigent.Common
+namespace Dirigent.Agent
 {
     public class CommandRepository
     {
-        IDirigentControl ctrl;
-        public delegate ICommand CmdCreatorDeleg(IDirigentControl ctrl);
+        Master ctrl;
+        public delegate ICommand CmdCreatorDeleg(Master ctrl);
         Dictionary<string, CmdCreatorDeleg> commands = new Dictionary<string, CmdCreatorDeleg>();
 
-        public CommandRepository( IDirigentControl ctrl )
+        public CommandRepository( Master ctrl )
         {
             this.ctrl = ctrl;
         }

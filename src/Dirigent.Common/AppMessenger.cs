@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Dirigent.Common
 {
-	public class AppMessenger
+	public class AppMessenger : Disposable
 	{
 		// singleton API
 		static AppMessenger? _instance = null;
@@ -66,8 +66,9 @@ namespace Dirigent.Common
 			list.Remove( action );
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
 			listeners.Clear();
 		}
 

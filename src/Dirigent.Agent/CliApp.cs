@@ -20,6 +20,8 @@ namespace Dirigent.Agent
 		//private Agent _agent;
 		private bool _interactive = false;
 
+        Dirigent.CLI.CommandLineClient? _client;
+
 		public CliApp( AppConfig ac, bool interactive )
 		{
 			this._ac = ac;
@@ -28,28 +30,120 @@ namespace Dirigent.Agent
 
 		public EAppExitCode run()
 		{
+			EAppExitCode errorCode = EAppExitCode.OK;
 			if( _interactive )
 			{
 				log.Debug( "Running in interactive CLI mode" );
+                _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
+				errorCode = Interactive();
 			}
 			else
 			{
 				log.Debug( "Running in non-interactive CLI mode" );
 
+                _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
+
 				if( _ac.NonOptionArgs.Count > 0 ) // non-interactive cmd line; retruns error code 0 if command reply is not error
 				{
-					//var input = string.Join( " ", ac.nonOptionArgs );
-					//errorCode = NonInteractive( client, input );
+					var input = string.Join( " ", _ac.NonOptionArgs );
+					errorCode = NonInteractive( input );
 				}
 				else // non-interactive but no params
 				{
 					log.Error( "No commands passed on the command line!" );
-					return EAppExitCode.CmdLineError;
+					errorCode = EAppExitCode.CmdLineError;
 				}
+
+				_client.Dispose();
 			}
 
-			return EAppExitCode.NoError;
+			return errorCode;
 		}
+
+
+        EAppExitCode Interactive()
+        {
+			bool wantExit = false;
+			_client.StartAsynResponseReading(
+					
+				// on response
+				(string line) =>
+				{
+					Console.WriteLine(line);
+				},
+
+				// on disconnected
+				() =>
+				{
+					Console.WriteLine("[ERROR]: Disconnected from server!");
+					wantExit = true;
+				}
+
+			);
+
+			while(!wantExit)
+			{
+				Console.Write(">");
+				var input = Console.ReadLine();
+				if(string.IsNullOrEmpty(input) ) break;
+				_client.SendReq( input );
+			}
+            return EAppExitCode.OK;
+        }
+
+        EAppExitCode NonInteractiveSubCmd( string subcmd )
+        {
+            var reqId = _client.NewReqId();
+			_client.SendReq( subcmd, reqId );
+            // wait for response
+            while(true)
+            {
+                var resp = _client.ReadResp(5000);
+                if( string.IsNullOrEmpty(resp) )
+                    return EAppExitCode.ErrorResp; // error
+                            
+                string respId;
+                string rest;
+                if( _client.ParseReqIdAndTheRest( resp, out respId, out rest ) )
+                {
+                    if( string.IsNullOrEmpty(rest))
+                        return EAppExitCode.ErrorResp; // error
+
+    				Console.WriteLine( rest );
+
+                            
+                    if( rest.StartsWith("ERROR") )
+                        return EAppExitCode.ErrorResp; // error
+
+                    if( rest.StartsWith("ACK") )
+                        return EAppExitCode.OK;
+
+                    if( rest.StartsWith("END") )
+                        return EAppExitCode.OK;
+                }
+                else
+                    return EAppExitCode.ErrorResp; // error
+            }
+        }
+
+        // returns error code of the last failed command (or OK if all ok)
+        EAppExitCode NonInteractive( string input )
+        {
+            var split = input.Split( ';' );
+            EAppExitCode err = EAppExitCode.OK;
+            foreach( var subcmd in split )
+            {
+                if( string.IsNullOrEmpty(subcmd) )
+                    continue;
+                var subErr = NonInteractiveSubCmd( subcmd );
+                if( subErr != EAppExitCode.OK )
+                {
+                    err = subErr;
+                }
+            }
+            return err;
+        }
+
 	}
 
 

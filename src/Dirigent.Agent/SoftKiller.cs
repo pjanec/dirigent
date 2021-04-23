@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 
 namespace Dirigent.Agent
 {
-    public class SoftKiller
+    public class SoftKiller : Disposable
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
@@ -43,8 +43,9 @@ namespace Dirigent.Agent
         public bool IsDefined => _softKillSeq.Count > 0;
         public bool IsRunning => _softKillSeqIndex >= 0;
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
             Stop();
 		}
 

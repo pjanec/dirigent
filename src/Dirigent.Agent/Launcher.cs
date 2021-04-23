@@ -15,11 +15,11 @@ using System.Runtime.InteropServices;
 
 namespace Dirigent.Agent
 {
-	public class Launcher
+	public class Launcher : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-		IDirigentControl ctrl;
+		Net.Client ctrl;
 		Process? _proc;
 		AppDef _appDef;
 		string _relativePathsRoot;
@@ -33,7 +33,6 @@ namespace Dirigent.Agent
 
 		SoftKiller _softKiller;
 
-		CommandRepository _cmdRepo;
 
 		// Mechanism for hard kill if multiple kills are sent while the process is being killed
 		// (likely using a kill sequnce) but still not dead (kill actions not effective and user is impatient,
@@ -43,9 +42,9 @@ namespace Dirigent.Agent
 
 		SharedContext _sharedContext;
 
-		public Launcher( IDirigentControl ctrl, AppDef appDef, SharedContext sharedContext )
+		public Launcher( AppDef appDef, SharedContext sharedContext )
 		{
-			this.ctrl = ctrl;
+			this.ctrl = sharedContext.Client;
 			if( ctrl == null ) throw new ArgumentNullException( "ctrl", "Valid network-bound Dirigent Control required" );
 			this._appDef = appDef;
 			_sharedContext = sharedContext;
@@ -64,8 +63,8 @@ namespace Dirigent.Agent
 
 			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars );
 
-			_cmdRepo = new CommandRepository( ctrl );
-			DirigentCommandRegistrator.Register( _cmdRepo );
+			//_cmdRepo = new CommandRepository( ctrl );
+			//DirigentCommandRegistrator.Register( _cmdRepo );
 
 			_softKiller = new SoftKiller( appDef );
 
@@ -84,8 +83,9 @@ namespace Dirigent.Agent
 
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
 			_softKiller.Dispose();
 		}
 
@@ -380,11 +380,7 @@ namespace Dirigent.Agent
 
 		bool LaunchDirigentCmd( ParsedExe pe )
 		{
-			var commands = _cmdRepo.ParseCmdLine( pe.CmdLine, null );
-			foreach( var cmd in commands )
-			{
-				cmd.Execute();
-			}
+			ctrl.Send( new Net.CLIRequestMessage( pe.CmdLine ) );
 			return true;
 		}
 

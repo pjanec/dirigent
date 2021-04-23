@@ -321,6 +321,27 @@ namespace Dirigent.Common
             return res.ToArray();
         }
 
+		/// <summary>
+		/// m1.a1, m1.a1@plan1
+		/// on error returns empty strings
+		/// </summary>
+		public static (AppIdTuple, string?) ParseAppIdWithPlan( string input )
+		{
+			int amperIndex = input.IndexOf('@');
+			if( amperIndex >= 0 )
+			{
+				var appIdTuple = new AppIdTuple( input.Substring(0, amperIndex) );
+				var planName = input.Substring(amperIndex+1).Trim();
+				return (appIdTuple, planName);
+			}
+			else
+			{
+				var appIdTuple = new AppIdTuple( input );
+				return (appIdTuple, null);
+			}
+		}
+
+
 	}
 
 }

@@ -100,7 +100,7 @@ namespace Dirigent.Agent
 			_agent?.Dispose();
 			_master?.Dispose();
 
-			return EAppExitCode.NoError;
+			return EAppExitCode.OK;
 		}
 
 		private Mutex? _singleInstanceMutexMaster;

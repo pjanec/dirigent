@@ -35,6 +35,8 @@ namespace Dirigent.Net
 			{ 120, typeof( ReloadSharedConfigMessage ) },
 			{ 121, typeof( ClientIdent ) },
 			{ 122, typeof( AppDefsMessage ) },
+			{ 123, typeof( CLIRequestMessage ) },
+			{ 124, typeof( CLIResponseMessage ) },
 		};
 	}
 
@@ -65,6 +67,8 @@ namespace Dirigent.Net
 	[KnownType( typeof( ReloadSharedConfigMessage ) ), ProtoBuf.ProtoInclude( 120, typeof( ReloadSharedConfigMessage ) )]
 	[KnownType( typeof( ClientIdent ) ), ProtoBuf.ProtoInclude( 121, typeof( ClientIdent ) )]
 	[KnownType( typeof( AppDefsMessage ) ), ProtoBuf.ProtoInclude( 122, typeof( AppDefsMessage ) )]
+	[KnownType( typeof( CLIRequestMessage ) ), ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
+	[KnownType( typeof( CLIResponseMessage ) ), ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
 	public class Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
@@ -570,5 +574,37 @@ namespace Dirigent.Net
 			AppDefs = appDefs;
 			Incremental = incremental;
 		}
+	}
+
+	[ProtoBuf.ProtoContract]
+	public class CLIRequestMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 2 )]
+		public string Text = string.Empty;
+
+		public CLIRequestMessage()
+		{}
+
+		public CLIRequestMessage( string text )
+		{
+			Text = text;
+		}
+
+	}
+
+	[ProtoBuf.ProtoContract]
+	public class CLIResponseMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 2 )]
+		public string Text = string.Empty;
+
+		public CLIResponseMessage()
+		{}
+
+		public CLIResponseMessage( string text )
+		{
+			Text = text;
+		}
+
 	}
 }

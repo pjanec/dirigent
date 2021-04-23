@@ -7,7 +7,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
-	public class Agent : IDisposable
+	public class Agent : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -45,8 +45,9 @@ namespace Dirigent.Agent
 
 		}
 
-		public void Dispose()
+		protected override void Dispose(bool disposing)
 		{
+			base.Dispose(disposing);
 			_client.Dispose();
 		}
 
