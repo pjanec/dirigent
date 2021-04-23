@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,51 +17,6 @@ namespace Dirigent.Agent
 	{
 	}
 
-
-	/// <summary>
-	/// Description of plan's current state
-	/// </summary>
-	public class Plan
-	{
-		public string Name => this.Def.Name;
-
-		public PlanState State = new();
-
-		public List<AppDef> AppDefs => Def.AppDefs;
-
-		public PlanScript? Script;
-
-		public double StartTimeout { get; set; }
-
-		public System.Collections.Generic.IEnumerable<AppDef> getAppDefs() { return Def.AppDefs; }
-
-		public PlanDef Def;
-
-		public Plan( PlanDef def )
-		{
-			Def = def;
-		}
-
-		/// <summary>
-		/// Finds app def by Id. Throws on failure.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public AppDef FindApp( AppIdTuple id )
-		{
-			var appDef = AppDefs.Find( (ad) => ad.Id == id );
-			if( appDef is not null )
-			{
-				return appDef;
-			}
-			else
-			{
-				throw new UnknownAppInPlanException( id, Name );
-			}
-		}
-
-	}
-
 	/// <summary>
 	/// List of currently known plans including their current status
 	/// </summary>
@@ -72,6 +26,12 @@ namespace Dirigent.Agent
 		public Dictionary<string, Plan> Plans => _plans;
 
 		public Dictionary<string, PlanState> PlanStates => Plans.Values.ToDictionary( p => p.Name, p => p.State );
+
+		Master _master;
+		public PlanRegistry( Master master )
+		{
+			_master = master;
+		}
 		
 		public void SetAll( IEnumerable<PlanDef> allDefs )
 		{
@@ -79,7 +39,7 @@ namespace Dirigent.Agent
 
 			foreach( var pd in allDefs )
 			{
-				var plan = new Plan( pd );
+				var plan = new Plan( pd, _master );
 
 				_plans[plan.Name] = plan;
 			}
@@ -110,6 +70,15 @@ namespace Dirigent.Agent
 			return FindPlan( planName ).FindApp( id );
 #pragma warning restore CS8603 // Possible null reference return.
 		}
+
+		public void Tick()
+		{
+			foreach( var p in _plans.Values )
+			{
+				p.Tick();
+			}
+		}
+
 
 
 	}

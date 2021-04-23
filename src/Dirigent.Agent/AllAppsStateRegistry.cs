@@ -34,5 +34,13 @@ namespace Dirigent.Agent
 		{
 			_appStates[id] = appState;
 		}
+
+		public void SetDefault( IEnumerable<AppDef> appDefs )
+		{
+			foreach( var ad in appDefs )
+			{
+				_appStates[ad.Id] = AppState.GetDefault( ad );
+			}
+		}
 	}
 }

@@ -15,6 +15,8 @@ namespace Dirigent.Agent
 
 		public bool WantsQuit { get; private set; }
 
+		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
+
 		private string _localIpAddr;
 		private int _port;
 		private Net.Server _server;
@@ -39,13 +41,13 @@ namespace Dirigent.Agent
 
 			_defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
 
-			_plans = new PlanRegistry();
+			_plans = new PlanRegistry( this );
 			_server = new Server( port );
 			//_sharedConfig = sharedConfig;
 			_swClientRefresh = new Stopwatch();
 			_swClientRefresh.Restart();
 
-			InitFromSharedConfig( sharedConfig );
+			InitFromConfig( sharedConfig );
 
 			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
 
@@ -68,6 +70,8 @@ namespace Dirigent.Agent
 
 		public void Tick()
 		{
+			_plans.Tick();
+
 			_cliProc.Tick();
 
 			_telnetServer?.Tick();
@@ -145,6 +149,30 @@ namespace Dirigent.Agent
 				{
 					var cliClient = new CLIClient( _server, m.Sender );
 					_cliProc.AddRequest( cliClient, m.Text );
+					break;
+				}
+
+				case StartPlanMessage m:
+				{
+					StartPlan( m.PlanName );
+					break;
+				}
+
+				case StopPlanMessage m:
+				{
+					StopPlan( m.PlanName );
+					break;
+				}
+
+				case KillPlanMessage m:
+				{
+					KillPlan( m.PlanName );
+					break;
+				}
+
+				case RestartPlanMessage m:
+				{
+					RestartPlan( m.PlanName );
 					break;
 				}
 
@@ -241,7 +269,8 @@ namespace Dirigent.Agent
 			}
 		}
 
-		void InitFromSharedConfig( SharedConfig sharedConfig )
+
+		void InitFromConfig( SharedConfig sharedConfig )
 		{
 			// import plans
 			_plans.SetAll( sharedConfig.Plans );
@@ -264,6 +293,7 @@ namespace Dirigent.Agent
 			}
 
 			_allAppDefs.SetAll( allAppDefs.Values );
+			_allAppStates.SetDefault( allAppDefs.Values );
 		}
 
 		/// <summary>
@@ -346,6 +376,30 @@ namespace Dirigent.Agent
 		{
 			var msg = new Net.RestartAppMessage( id );
 			_server.SendToSingle( msg, id.MachineId );
+		}
+
+		public void StartPlan( string planName )
+		{
+			var plan = _plans.FindPlan( planName ); // throws on error
+			plan.Start();
+		}
+
+		public void StopPlan( string planName )
+		{
+			var plan = _plans.FindPlan( planName ); // throws on error
+			plan.Stop();
+		}
+
+		public void KillPlan( string planName )
+		{
+			var plan = _plans.FindPlan( planName ); // throws on error
+			plan.Kill();
+		}
+
+		public void RestartPlan( string planName )
+		{
+			var plan = _plans.FindPlan( planName ); // throws on error
+			plan.Restart();
 		}
 
 	}

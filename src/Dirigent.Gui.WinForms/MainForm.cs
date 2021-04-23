@@ -91,6 +91,30 @@ namespace Dirigent.Gui.WinForms
 				return _reflStates.PlanDefs;
 			}
 
+			public void StartPlan( string planName )
+			{
+				var m = new Net.StartPlanMessage( planName );
+				_client.Send( m );
+			}
+
+			public void StopPlan( string planName )
+			{
+				var m = new Net.StopPlanMessage( planName );
+				_client.Send( m );
+			}
+
+			public void KillPlan( string planName )
+			{
+				var m = new Net.KillPlanMessage( planName );
+				_client.Send( m );
+			}
+
+			public void RestartPlan( string planName )
+			{
+				var m = new Net.RestartPlanMessage( planName );
+				_client.Send( m );
+			}
+
 			public void LaunchApp( AppIdTuple id )
 			{
 				// run specific app using the most recent app def

@@ -71,9 +71,8 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//ctrl.StartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			//WriteResponse( "ACK" );
+			ctrl.StartPlan( args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -86,9 +85,8 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//ctrl.StopPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			//WriteResponse( "ACK" );
+			ctrl.StopPlan( args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -101,9 +99,8 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//ctrl.KillPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			//WriteResponse( "ACK" );
+			ctrl.KillPlan( args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -116,9 +113,8 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//ctrl.RestartPlan( Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0] ).Name );
-			//WriteResponse( "ACK" );
+			ctrl.RestartPlan( args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 

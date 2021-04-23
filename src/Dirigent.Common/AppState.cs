@@ -220,6 +220,21 @@ namespace Dirigent.Common
 		{
 			lastChange = DateTime.UtcNow;
 		}
+
+		public bool IsOffline => DateTime.UtcNow - lastChange  > TimeSpan.FromSeconds(3); 
+
+		public static AppState GetDefault( AppDef ad )
+		{
+			return new AppState()
+			{
+				Initialized = false,
+				Running = false,
+				Started = false,
+				Dying = false,
+				Disabled = ad.Disabled
+			};
+		}
+
 	}
 
 
