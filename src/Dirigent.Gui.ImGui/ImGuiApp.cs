@@ -1,0 +1,116 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
+using System.Text;
+using System.Drawing;
+using Dirigent.Common;
+using ImGuiNET;
+using System.Threading;
+
+namespace Dirigent.Gui
+{
+	public class ImGuiApp : Disposable
+	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
+		private AppConfig _ac;
+		private ImGuiWindow _wnd;
+		private string _uniqueUiId = Guid.NewGuid().ToString();
+		private MasterWindow? _masterWin;
+		private GuiWindow? _guiWin;
+		private AgentWindow? _agentWin1;
+		private AgentWindow? _agentWin2;
+
+		public ImGuiApp( AppConfig ac )
+		{
+			_ac = ac;
+			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
+			_masterWin = new MasterWindow( _ac );
+			_guiWin = new GuiWindow( _ac );
+			_agentWin1 = new AgentWindow( _ac, "m1" );
+			_agentWin2 = new AgentWindow( _ac, "m2" );
+
+
+			_wnd = new ImGuiWindow("Dirigent Debug All-In-One", width:1000, height:700);
+			_wnd.OnDrawUI += DrawUI;
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			base.Dispose(disposing);
+			if( !disposing ) return;
+
+			_masterWin?.Dispose();
+			_guiWin?.Dispose();
+			_agentWin1?.Dispose();
+			_agentWin1?.Dispose();
+		}
+
+		public EAppExitCode run()
+		{
+			var exitCode = EAppExitCode.NoError;
+			while( _wnd.Exists )
+			{
+				_wnd.Tick();
+
+				_masterWin?.Tick();
+				_guiWin?.Tick();
+				_agentWin1?.Tick();
+				_agentWin1?.Tick();
+
+				Thread.Sleep(20);
+			}
+
+			return exitCode;
+		}
+
+		void DrawUI()
+		{
+			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, 0 ) );
+			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			if( _masterWin != null )
+			{
+				if ( ImGui.Begin( "Master" ) )
+				{
+					_masterWin.DrawUI();
+					ImGui.End();
+				}
+			}
+
+			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, 0 ) );
+			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			if( _guiWin != null )
+			{
+				if ( ImGui.Begin( "Gui" ) )
+				{
+					_guiWin?.DrawUI();
+					ImGui.End();
+				}
+			}
+
+			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, _wnd.Size.Y/2 ) );
+			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			if( _agentWin1 != null )
+			{
+				if ( ImGui.Begin( $"Agent-{_agentWin1.MachineId}" ) )
+				{
+					_agentWin1?.DrawUI();
+				}
+			}
+
+			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ) );
+			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			if( _agentWin2 != null )
+			{
+				if ( ImGui.Begin( $"Agent-{_agentWin2.MachineId}" ) )
+				{
+					_agentWin2?.DrawUI();
+				}
+			}
+		}
+		
+
+	}
+}

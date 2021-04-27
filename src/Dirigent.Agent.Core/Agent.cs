@@ -91,10 +91,10 @@ namespace Dirigent.Agent
 					break;
 				}
 
-				case Net.LaunchAppMessage m:
+				case Net.StartAppMessage m:
 				{
 					var la = _localApps.FindApp( m.Id );
-					la.LaunchApp();
+					la.StartApp();
 					break;
 				}
 

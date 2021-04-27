@@ -46,7 +46,7 @@ namespace Dirigent.Agent
         /// </summary>
         /// <param name="currentTimeStamp"></param>
         /// <returns>null if no app to be lanched, otherwise the AppDef</returns>
-        public AppDef GetNext( double currentTime )
+        public AppDef? GetNext( double currentTime )
         {
             AppDef? res = null;
             if( !IsEmpty() )

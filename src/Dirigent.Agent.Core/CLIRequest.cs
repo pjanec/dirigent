@@ -10,7 +10,7 @@ namespace Dirigent.Agent
 	public class CLIRequest	: Disposable
 	{
 		public ICLIClient Client;
-		public string Uid; // unique request id (if provided by client, will become part of response)
+		public string? Uid; // unique request id (if provided by client, will become part of response)
 		public bool Finished; // is processing of this request finished? If so, will be discarded.
 
 		Queue<ICommand> Commands; // commands to be performed as part of the request
@@ -28,8 +28,13 @@ namespace Dirigent.Agent
 			DirigentCommandRegistrator.Register( cmdRepo );
 
 			// parse commands and fill cmd queue
-			string restAfterUid;
+			string? restAfterUid;
 			SplitToUuidAndRest( cmdLine, out Uid, out restAfterUid );
+			if( string.IsNullOrEmpty( restAfterUid ) )
+			{
+				Finished = true;
+				return;
+			}
 
 			try
 			{
@@ -73,7 +78,7 @@ namespace Dirigent.Agent
 			Client.WriteResponse( sb.ToString() );
 		}
 
-		void SplitToUuidAndRest( string s, out string uuid, out string rest )
+		void SplitToUuidAndRest( string s, out string? uuid, out string? rest )
 		{
 			uuid = null;
 			rest = null;

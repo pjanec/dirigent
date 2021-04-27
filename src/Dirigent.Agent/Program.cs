@@ -13,7 +13,7 @@ using log4net;
 namespace Dirigent.Agent
 {
 
-	public interface App
+	public interface App : IDisposable
 	{
 		/// <summary>
 		///  returns exit code
@@ -106,6 +106,7 @@ namespace Dirigent.Agent
 					if( app != null )
 					{
 						exitCode = app.run();
+						app.Dispose();
 					}
 
 					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );

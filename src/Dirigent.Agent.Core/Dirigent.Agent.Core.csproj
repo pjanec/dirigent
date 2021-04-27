@@ -3,7 +3,6 @@
   <PropertyGroup>
     <!-- use net5.0 for linux build... -->
     <TargetFrameworks>net5.0-windows</TargetFrameworks>
-    <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
     <Version>2.0.0</Version>
@@ -30,25 +29,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Dirigent.Common\AppConfig.cs" Link="AppConfig.cs" />
-    <Compile Include="..\Dirigent.Common\Properties\Settings.Designer.cs" Link="Properties\Settings.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\..\config\LocalConfig.xml" Link="LocalConfig.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\config\SharedConfig.xml" Link="SharedConfig.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\Dirigent.Common\Properties\Settings.settings" Link="Properties\Settings.settings" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
     <PackageReference Include="log4net" Version="2.0.12" />
   </ItemGroup>
 
@@ -57,7 +37,9 @@
   </ItemGroup>  
 
   <ItemGroup>
-    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
+    <ProjectReference Include="..\Dirigent.CLI\Dirigent.CLI.csproj" />
+    <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
+    <ProjectReference Include="..\SyncableDict\SyncableDict.csproj" />
   </ItemGroup>
 
 </Project>

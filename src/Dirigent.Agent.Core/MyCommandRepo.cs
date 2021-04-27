@@ -15,7 +15,8 @@ namespace Dirigent.Agent
             repo.Register( "StopPlan",              (ctrl) => new Commands.StopPlan(ctrl));
             repo.Register( "KillPlan",              (ctrl) => new Commands.KillPlan(ctrl));
             repo.Register( "RestartPlan",           (ctrl) => new Commands.RestartPlan(ctrl));
-            repo.Register( "LaunchApp",             (ctrl) => new Commands.LaunchApp(ctrl));
+            repo.Register( "LaunchApp",             (ctrl) => new Commands.StartApp(ctrl));
+            repo.Register( "StartApp",              (ctrl) => new Commands.StartApp(ctrl));
             repo.Register( "KillApp",               (ctrl) => new Commands.KillApp(ctrl));
             repo.Register( "RestartApp",            (ctrl) => new Commands.RestartApp(ctrl));
             //Register(new Commands.SelectPlan(ctrl));

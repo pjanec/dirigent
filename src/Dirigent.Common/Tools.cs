@@ -31,6 +31,68 @@ namespace Dirigent.Common
 
 		}
 
+		public static string GetAppStateText( AppState st, PlanState? planState )
+		{
+			string stCode = "Not running";
+
+			if( planState != null )
+			{
+				var planRunning = planState.Running;
+				if( planState.Running && !st.PlanApplied && !st.Disabled )
+				{
+					stCode = "Planned";
+				}
+			}
+
+			if( st.Started )
+			{
+				if( st.Running )
+				{
+					if( st.Dying )
+					{
+						stCode = "Dying";
+					}
+					else if( !st.Initialized )
+					{
+						stCode = "Initializing";
+					}
+					else
+					{
+						stCode = "Running";
+					}
+				}
+				else
+					// !st.Running
+				{
+					if( st.Restarting )
+					{
+						stCode = "Restarting";
+						if( st.RestartsRemaining >= 0 ) stCode += String.Format( " ({0} remaining)", st.RestartsRemaining );
+					}
+					else if( st.Killed )
+					{
+						stCode = "Killed";
+					}
+					else
+					{
+						stCode = string.Format( "Terminated ({0})", st.ExitCode );
+					}
+				}
+			}
+			else if( st.StartFailed )
+			{
+				stCode = "Failed to start";
+			}
+
+			var statusInfoAge = DateTime.UtcNow - st.LastChange;
+			if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+			{
+				stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
+			}
+
+			return stCode;
+		}
+
 		public static string GetAppStateString( AppIdTuple t, AppState? appState )
 		{
 			if( appState is null )
@@ -62,6 +124,11 @@ namespace Dirigent.Common
 						   );
 
 			return stateStr;
+		}
+
+		public static string GetPlanStateText( PlanState st )
+		{
+			return st.OpStatus.ToString();
 		}
 
 		public static string GetPlanStateString( string planName, PlanState? planState )

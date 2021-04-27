@@ -16,7 +16,7 @@ namespace Dirigent.Net
 			{ 101, typeof( RemoteOperationErrorMessage ) },
 			{ 102, typeof( AppsStateMessage ) },
 			{ 103, typeof( PlansStateMessage ) },
-			{ 104, typeof( LaunchAppMessage ) },
+			{ 104, typeof( StartAppMessage ) },
 			{ 105, typeof( KillAppMessage ) },
 			{ 106, typeof( RestartAppMessage ) },
 			{ 107, typeof( SetAppEnabledMessage ) },
@@ -48,7 +48,7 @@ namespace Dirigent.Net
 	[KnownType( typeof( RemoteOperationErrorMessage ) ), ProtoBuf.ProtoInclude( 101, typeof( RemoteOperationErrorMessage ) )]
 	[KnownType( typeof( AppsStateMessage ) ), ProtoBuf.ProtoInclude( 102, typeof( AppsStateMessage ) )]
 	[KnownType( typeof( PlansStateMessage ) ), ProtoBuf.ProtoInclude( 103, typeof( PlansStateMessage ) )]
-	[KnownType( typeof( LaunchAppMessage ) ), ProtoBuf.ProtoInclude( 104, typeof( LaunchAppMessage ) )]
+	[KnownType( typeof( StartAppMessage ) ), ProtoBuf.ProtoInclude( 104, typeof( StartAppMessage ) )]
 	[KnownType( typeof( KillAppMessage ) ), ProtoBuf.ProtoInclude( 105, typeof( KillAppMessage ) )]
 	[KnownType( typeof( RestartAppMessage ) ), ProtoBuf.ProtoInclude( 106, typeof( RestartAppMessage ) )]
 	[KnownType( typeof( SetAppEnabledMessage ) ), ProtoBuf.ProtoInclude( 107, typeof( SetAppEnabledMessage ) )]
@@ -149,7 +149,7 @@ namespace Dirigent.Net
 
 	[ProtoBuf.ProtoContract]
 	[DataContract]
-	public class LaunchAppMessage : Message
+	public class StartAppMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
@@ -168,8 +168,8 @@ namespace Dirigent.Net
 		public string? PlanName;
 
 
-		public LaunchAppMessage() {}
-		public LaunchAppMessage( AppIdTuple id, string? planName )
+		public StartAppMessage() {}
+		public StartAppMessage( AppIdTuple id, string? planName )
 		{
 			this.Id = id;
 			this.PlanName = planName;
@@ -543,10 +543,19 @@ namespace Dirigent.Net
 
 		public ClientIdent() {}
 
+		public ClientIdent( string name, EMsgRecipCateg subscription )
+		{
+			Name = name;
+			SubscribedTo = subscription;
+		}
+
 		public override string ToString()
 		{
 			return $"ClientInfo Name {Sender}, Type {(int)SubscribedTo}";
 		}
+
+		public bool IsGui => (SubscribedTo & EMsgRecipCateg.Gui) != 0;
+		public bool IsAgent => (SubscribedTo & EMsgRecipCateg.Agent) != 0;
 
 	}
 

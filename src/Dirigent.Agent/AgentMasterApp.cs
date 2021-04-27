@@ -11,7 +11,7 @@ namespace Dirigent.Agent
 {
 
 	///<summary>Console app with Agent and/or Master</summary>
-	public class AgentMasterApp : App
+	public class AgentMasterApp : Disposable, App
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -32,6 +32,15 @@ namespace Dirigent.Agent
 			_ac = ac;
 		}
 
+		protected override void Dispose(bool disposing)
+		{
+			base.Dispose(disposing);
+			if( !disposing ) return;
+
+			_master?.Dispose();
+			_agent?.Dispose();
+		}
+
 		public EAppExitCode run()
 		{
 			if( _isMaster )
@@ -49,9 +58,7 @@ namespace Dirigent.Agent
 			{
 				if( !IsAgentAlreadyRunning() )
 				{
-		            string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath( _ac.SharedCfgFileName ) ) ?? string.Empty;
-
-					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, rootForRelativePaths );
+					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
 				}
 			}
 

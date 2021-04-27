@@ -158,7 +158,7 @@ namespace Dirigent.Agent
 					if( launch )
 					{
 						// start the app again (and leave the number of restarts as is)
-						_app.LaunchApp( false );
+						_app.StartApp( false );
 					}
 					
 					// deactivate itself

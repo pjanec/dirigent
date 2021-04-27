@@ -54,6 +54,9 @@ namespace Dirigent.Common
 		[Option( "localConfigFile", Required = false, Default = "", HelpText = "local config file name." )]
 		public string LocalConfigFile { get; set; } = string.Empty;
 
+		[Option( "rootForRelativePaths", Required = false, Default = "", HelpText = "root folder for relative paths if used in StartupDir, FullExeName etc." )]
+		public string RootForRelativePaths { get; set; } = string.Empty;
+
 		[Option( "logFile", Required = false, Default = "", HelpText = "log file name." )]
 		public string LogFile { get; set; } = string.Empty;
 
@@ -97,6 +100,7 @@ namespace Dirigent.Common
 		public string Mode = ""; // "", "agent", "master", "cli"
 		public SharedConfig? SharedConfig = null;
 		public LocalConfig? LocalConfig = null;
+		public string RootForRelativePaths = "";
 		public string IsMaster = "0"; // "1"=run the master process automatically
 		public int TickPeriod = 500; // msec
 		public string McastIP = "239.121.121.121";
@@ -129,6 +133,8 @@ namespace Dirigent.Common
 			if( Properties.Settings.Default.MasterPort != 0 ) MasterPort = Properties.Settings.Default.MasterPort;
 			if( Properties.Settings.Default.SharedConfigFile != "" ) SharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
 			if( Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Properties.Settings.Default.LocalConfigFile;
+			if( Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Properties.Settings.Default.RootForRelativePaths;
+			if( Properties.Settings.Default.Mode != "" ) Mode = Properties.Settings.Default.Mode;
 			if( Properties.Settings.Default.StartupPlan != "" ) StartupPlanName = Properties.Settings.Default.StartupPlan;
 			if( Properties.Settings.Default.StartHidden != "" ) StartHidden = Properties.Settings.Default.StartHidden;
 			if( Properties.Settings.Default.Mode != "" ) Mode = Properties.Settings.Default.Mode;
@@ -156,6 +162,7 @@ namespace Dirigent.Common
 				if( options.StartupPlan != "" ) StartupPlanName = options.StartupPlan;
 				if( options.StartHidden != "" ) StartHidden = options.StartHidden;
 				if( options.Mode != "" ) Mode = options.Mode;
+				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
@@ -184,6 +191,17 @@ namespace Dirigent.Common
 				log.DebugFormat( "Loading local config file '{0}'", LocalCfgFileName );
 				LocalConfig = new LocalXmlConfigReader( File.OpenText( LocalCfgFileName ) ).cfg;
 			}
+
+			// if root is empty and we know the shared config path, use the shared config path
+			if( string.IsNullOrEmpty( RootForRelativePaths ) )
+			{
+				if( !string.IsNullOrEmpty( SharedCfgFileName ) )
+				{
+					RootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath( SharedCfgFileName ) ) ?? string.Empty;
+				}
+			}
+
+
 		}
 
 		static void SetLogFileName( string newName )

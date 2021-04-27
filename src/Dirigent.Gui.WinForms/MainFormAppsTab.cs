@@ -295,8 +295,8 @@ namespace Dirigent.Gui.WinForms
 				var id = new AppIdTuple( focused.Cells[0].Value as string );
 				var st = _ctrl.GetAppState( id );
 				bool connected = IsConnected;
-				bool isLocalApp = id.MachineId == this._machineId;
-				bool isAccessible = isLocalApp || connected; // can we change its state?
+				//bool isLocalApp = id.MachineId == this._machineId;
+				bool isAccessible = connected; // can we change its state?
 				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 
 				if( e.Button == MouseButtons.Right )
@@ -306,7 +306,7 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.LaunchApp( id ) );
+					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.StartApp( id ) );
 					launchItem.Enabled = isAccessible && !st.Running;
 					popup.Items.Add( launchItem );
 
@@ -327,12 +327,34 @@ namespace Dirigent.Gui.WinForms
 						popup.Items.Add( setEnabledItem );
 					}
 
-					if( appDef != null && !appDef.Disabled )
+					if( appDef != null )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
 						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, false ) );
 						popup.Items.Add( setEnabledItem );
 					}
+
+					//var propsItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
+					//propsItem.Click += ( s, a ) => guardedOp( () =>
+					//{
+					//	try{
+					//	var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
+					//	var serializer = new System.Runtime.Serialization.DataContractSerializer(typeof(AppDef));
+					//	using var sw = new StringWriter();
+					//	using var writer = new System.Xml.XmlTextWriter(sw);
+					//	writer.Formatting = System.Xml.Formatting.Indented; // indent the Xml so it's human readable
+					//	serializer.WriteObject(writer, appDef);
+					//	writer.Flush();
+					//	var xmlString = sw.ToString();
+					//	MessageBox.Show(xmlString); 
+					//	} catch( Exception ex )
+					//	{
+					//		int i =1;
+					//	}
+					//});
+					//propsItem.Enabled = true;
+					//popup.Items.Add( propsItem );
+
 
 
 					popup.Show( Cursor.Position );
@@ -345,7 +367,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.LaunchApp( id ) );
+							guardedOp( () => _ctrl.StartApp( id ) );
 						}
 					}
 
@@ -397,7 +419,7 @@ namespace Dirigent.Gui.WinForms
 						var id = new AppIdTuple( focused.Cells[0].Value as string );
 						var st = _ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.LaunchApp( id ) );
+						guardedOp( () => _ctrl.StartApp( id ) );
 					}
 				}
 			}

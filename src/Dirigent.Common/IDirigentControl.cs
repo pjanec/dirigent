@@ -153,7 +153,7 @@ namespace Dirigent.Common
 		void RestartPlan( string planName ) {}
 
 		// run specific app
-		void LaunchApp( AppIdTuple id ) {}
+		void StartApp( AppIdTuple id ) {}
 
 		// kill and then start given app (must be part of some plan)
 		void RestartApp( AppIdTuple id ) {}

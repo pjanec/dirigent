@@ -37,7 +37,7 @@ namespace Dirigent.Agent
 			Def = def;
 			_master = master;
 			_appsState = _master.AppsState;
-
+			_launchSequencer = new LaunchSequencer();
 		}
 
 		public void Tick()
@@ -155,7 +155,7 @@ namespace Dirigent.Agent
         /// </summary>
 		void ProcessPlanKilling()
 		{
-			if( State.Killing ) return;
+			if( !State.Killing ) return;
 
 			bool someStillRunning = false;
 
@@ -214,7 +214,7 @@ namespace Dirigent.Agent
 
 
             // if plan is stopped, don't start contained apps
-			if (State.Running)
+			if (!State.Running)
 				return;
 
 			// SPECIAL CASE for plans with all-volatile apps
@@ -298,7 +298,7 @@ namespace Dirigent.Agent
 				var appState = _appsState[appToLaunch.Id];
 				appState.PlanApplied = true;
                 
-				_master.LaunchApp( appToLaunch.Id, Name );
+				_master.StartApp( appToLaunch.Id, Name );
 			}
 		}
 

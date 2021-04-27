@@ -148,6 +148,17 @@ namespace Dirigent.Common.Properties
 			}
 		}
 
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string RootForRelativePaths
+		{
+			get
+			{
+				return ( ( string )( this["RootForRelativePaths"] ) );
+			}
+		}
+
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "" )]

@@ -118,9 +118,9 @@ namespace Dirigent.Agent.Commands
 		}
 	}
 
-	public class LaunchApp : DirigentControlCommand
+	public class StartApp : DirigentControlCommand
 	{
-		public LaunchApp( Master ctrl )
+		public StartApp( Master ctrl )
 			: base( ctrl )
 		{
 		}
@@ -130,7 +130,7 @@ namespace Dirigent.Agent.Commands
 			if( args.Count == 0 )  throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
 			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
 			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
-			ctrl.LaunchApp( id, planName );
+			ctrl.StartApp( id, planName );
 			WriteResponse( "ACK" );
 		}
 	}

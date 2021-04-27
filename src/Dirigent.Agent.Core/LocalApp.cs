@@ -8,7 +8,7 @@ namespace Dirigent.Agent
 {
 
 	/// <summary>
-	/// Description of applications's current state
+	/// Description of applications's current state and methods to control it (launch/kill/restart..)
 	/// </summary>
 	public class LocalApp
 	{
@@ -79,12 +79,12 @@ namespace Dirigent.Agent
         /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
         /// on successful launch.
         /// </summary>
-        public void LaunchApp( bool resetRestartsToMax=true )
+        public void StartApp( bool resetRestartsToMax=true )
         {
-            LaunchApp( UpcomingAppDef, resetRestartsToMax );
+            StartApp( UpcomingAppDef, resetRestartsToMax );
         }
 
-        public void LaunchApp( AppDef appDef, bool resetRestartsToMax=true )
+        public void StartApp( AppDef appDef, bool resetRestartsToMax=true )
         {
             // don't do anything if the app is already running
             if( Launcher != null && Launcher.Running )

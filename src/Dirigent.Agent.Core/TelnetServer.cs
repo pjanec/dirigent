@@ -105,8 +105,7 @@ namespace Dirigent.Agent
 
 		private string localIPstr;
 		private int port;
-		private Master ctrl;
-		TcpListener? server = null;
+		TcpListener server;
 		CLIProcessor _cliProc;
 
 		// describes a client that connected
@@ -129,7 +128,7 @@ namespace Dirigent.Agent
 
 			public string Name
 			{
-				get { return client.Client.RemoteEndPoint.ToString(); }
+				get { return client.Client?.RemoteEndPoint?.ToString() ?? string.Empty; }
 			}
 
 			// reads input data if avalable, cadd ProcesLine if a completely line found
@@ -193,6 +192,13 @@ namespace Dirigent.Agent
 			this.localIPstr = localIPstr;
 			this.port = port;
 			_cliProc = cliProc;
+
+			IPAddress localAddr = IPAddress.Parse( localIPstr );
+
+			server = new TcpListener( localAddr, port );
+
+			// Start listening for client requests.
+			server.Start();
 		}
 
 		protected override void Dispose(bool disposing)
@@ -251,24 +257,11 @@ namespace Dirigent.Agent
 			}
 
 		}
-		/// <summary>
-		/// start the server
-		/// </summary>
-		public void Start()
-		{
-			IPAddress localAddr = IPAddress.Parse( localIPstr );
-
-			server = new TcpListener( localAddr, port );
-
-			// Start listening for client requests.
-			server.Start();
-
-		}
 
 		/// <summary>
 		/// stop the server
 		/// </summary>
-		public void Stop()
+		void Stop()
 		{
 			// Stop listening for new clients.
 			server.Stop();

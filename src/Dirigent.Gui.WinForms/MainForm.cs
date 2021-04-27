@@ -115,10 +115,10 @@ namespace Dirigent.Gui.WinForms
 				_client.Send( m );
 			}
 
-			public void LaunchApp( AppIdTuple id )
+			public void StartApp( AppIdTuple id )
 			{
 				// run specific app using the most recent app def
-				var m = new Net.LaunchAppMessage( id, string.Empty );
+				var m = new Net.StartAppMessage( id, string.Empty );
 				_client.Send( m );
 			}
 

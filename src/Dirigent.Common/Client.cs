@@ -28,9 +28,7 @@ namespace Dirigent.Net
 	//}
 
 	/// <summary>
-	/// Connects to master.
-	/// If autoConn==false, connects once and throws if failed.
-	/// If autoConn==true, try to connect until succeedes; and reconnects if connection is lost; never throws .
+	/// Dirigent client endpoint based on protbuf messaging. Connects to master.
 	/// Buffers message received from master. Within Poll() method calls MessageReceived delegate for each received message.
 	/// Allows sending a message to master.
 	/// </summary>
@@ -49,6 +47,11 @@ namespace Dirigent.Net
 		private List<object> _messagesReceived = new List<object>();
 
 
+		/// <summary>
+		/// Creates a dirigent client endpoint based on protbuf messaging.
+		/// </summary>
+		/// <param name="ident">if Name is empty, will be assigned a GUID matching the one from NetCoreServer's client instance</param>
+		/// <param name="autoConn">If autoConn==false, connects once and throws if failed. autoConn==true, try to connect until succeedes; and reconnects if connection is lost; never throws .</param>
 		public Client( Net.ClientIdent ident, string masterIP, int masterPort, bool autoConn = false )
 		{
 			_ident = ident;
@@ -59,6 +62,11 @@ namespace Dirigent.Net
 
 
 			_protoClient = new ProtoClient( _masterIP, _masterPort, autoConn );
+
+			if( string.IsNullOrEmpty( _ident.Name ) )
+			{
+				_ident.Name = _protoClient.Id.ToString();
+			}
 
 			// as the first thing when connected, tell the master who we are 
 			_protoClient.Connected = () =>

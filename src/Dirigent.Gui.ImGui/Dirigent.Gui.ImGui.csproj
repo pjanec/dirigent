@@ -1,18 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- use net5.0 for linux build... -->
-    <TargetFrameworks>net5.0-windows</TargetFrameworks>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
     <Version>2.0.0</Version>
     <Authors>pjanec</Authors>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+    <AssemblyName>Dirigent.ImGui</AssemblyName>
 
     <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 
 
     <!--compile time - only set if compiled on linux...-->
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsWindows)'=='true'">
@@ -25,13 +27,13 @@
     <DefineConstants>Linux</DefineConstants>
   </PropertyGroup>
   
-  <PropertyGroup  Condition="'$(IsWindows)'=='true'">
-     <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Dirigent.Common\AppConfig.cs" Link="AppConfig.cs" />
     <Compile Include="..\Dirigent.Common\Properties\Settings.Designer.cs" Link="Properties\Settings.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Dirigent.Common\Properties\Settings.settings" Link="Properties\Settings.settings" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,20 +46,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\Dirigent.Common\Properties\Settings.settings" Link="Properties\Settings.settings" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
+    <PackageReference Include="ImGui.NET" Version="1.78.0" />
     <PackageReference Include="log4net" Version="2.0.12" />
+    <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
+    <PackageReference Include="Veldrid.ImGui" Version="5.72.0" />
+    <PackageReference Include="Veldrid.SDL2" Version="4.8.0" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.8.0" />
+    <!--PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" /-->
   </ItemGroup>
-
-  <ItemGroup Condition="'$(IsWindows)'=='true'">
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />
-  </ItemGroup>  
-
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
+    <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
   </ItemGroup>
-
 </Project>

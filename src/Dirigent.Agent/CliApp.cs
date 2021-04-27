@@ -9,7 +9,7 @@ using Dirigent.Agent;
 
 namespace Dirigent.Agent
 {
-	public class CliApp : App
+	public class CliApp : Disposable, App
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -20,12 +20,21 @@ namespace Dirigent.Agent
 		//private Agent _agent;
 		private bool _interactive = false;
 
-        Dirigent.CLI.CommandLineClient? _client;
+        Dirigent.CLI.CommandLineClient _client;
 
 		public CliApp( AppConfig ac, bool interactive )
 		{
 			this._ac = ac;
 			_interactive = interactive;
+            _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			base.Dispose(disposing);
+			if( !disposing ) return;
+
+			_client.Dispose();
 		}
 
 		public EAppExitCode run()
@@ -34,14 +43,11 @@ namespace Dirigent.Agent
 			if( _interactive )
 			{
 				log.Debug( "Running in interactive CLI mode" );
-                _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
 				errorCode = Interactive();
 			}
 			else
 			{
 				log.Debug( "Running in non-interactive CLI mode" );
-
-                _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
 
 				if( _ac.NonOptionArgs.Count > 0 ) // non-interactive cmd line; retruns error code 0 if command reply is not error
 				{
@@ -53,8 +59,6 @@ namespace Dirigent.Agent
 					log.Error( "No commands passed on the command line!" );
 					errorCode = EAppExitCode.CmdLineError;
 				}
-
-				_client.Dispose();
 			}
 
 			return errorCode;

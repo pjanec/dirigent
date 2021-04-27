@@ -21,7 +21,7 @@ namespace Dirigent.Agent
 		private int _port;
 		private Net.Server _server;
 		private CLIProcessor _cliProc;
-		static TelnetServer _telnetServer;
+		private TelnetServer _telnetServer;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
@@ -56,7 +56,6 @@ namespace Dirigent.Agent
 
             log.InfoFormat("Command Line Interface running on port {0}", cliPort);
 			_telnetServer = new TelnetServer( "0.0.0.0", cliPort, _cliProc );
-			_telnetServer.Start();
 
 		}
 
@@ -127,9 +126,9 @@ namespace Dirigent.Agent
 					break;
 				}
 
-				case LaunchAppMessage m:
+				case StartAppMessage m:
 				{
-					LaunchApp( m.Id, m.PlanName );
+					StartApp( m.Id, m.PlanName );
 					break;
 				}
 
@@ -206,12 +205,12 @@ namespace Dirigent.Agent
 		// Called once when client connects and sends ClientIdent
 		void OnClientIdentified( ClientIdent ident )
 		{
-			if( ( ident.SubscribedTo & EMsgRecipCateg.Gui ) != 0 )
+			if( ident.IsGui )
 			{
 				FeedGui( ident );
 			}
 
-			if( ( ident.SubscribedTo & EMsgRecipCateg.Agent ) != 0 )
+			if( ident.IsAgent )
 			{
 				FeedAgent( ident );
 			}
@@ -305,7 +304,7 @@ namespace Dirigent.Agent
 		{
 			foreach( var cl in _server.Clients )
 			{
-				if( cl.Name == ad.Id.AppId )
+				if( cl.Name == ad.Id.MachineId || cl.IsGui )
 				{
 					var m = new Net.AppDefsMessage( new AppDef[1] { ad }, incremental: true );
 					_server.SendToSingle( m, cl.Name );
@@ -331,7 +330,7 @@ namespace Dirigent.Agent
 		/// </summary>
 		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		public void LaunchApp( AppIdTuple id, string? planName )
+		public void StartApp( AppIdTuple id, string? planName )
 		{
 			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
@@ -356,7 +355,7 @@ namespace Dirigent.Agent
 
 
 			// send app start command
-			var msg = new Net.LaunchAppMessage( id, null );
+			var msg = new Net.StartAppMessage( id, null );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 

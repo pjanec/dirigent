@@ -23,7 +23,7 @@ namespace Dirigent.Agent
 		/// </summary>
 		public bool ShallBeRemoved { get; protected set; }
 
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 		
 
         enum eState 
