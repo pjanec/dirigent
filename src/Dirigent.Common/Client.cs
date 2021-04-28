@@ -46,6 +46,7 @@ namespace Dirigent.Net
 		private ProtoClient _protoClient;
 		private List<object> _messagesReceived = new List<object>();
 
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		/// <summary>
 		/// Creates a dirigent client endpoint based on protbuf messaging.
@@ -111,6 +112,11 @@ namespace Dirigent.Net
 				var msg = m as Message;
 				if( msg != null )
 				{
+					if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+					{
+						log.Debug( $"[{_ident.Name}] <= [master]: {msg}" );
+					}
+
 					MessageReceived?.Invoke( msg );
 					act?.Invoke( msg );
 				}

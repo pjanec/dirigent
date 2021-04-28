@@ -53,36 +53,48 @@ namespace Dirigent.Gui
 					ImGui.EndTabItem();
 				}
 
-				if( ImGui.BeginTabItem("Plans") )
-				{
-					DrawPlans();
-					ImGui.EndTabItem();
-				}
+				//if( ImGui.BeginTabItem("Plans") )
+				//{
+				//	DrawPlans();
+				//	ImGui.EndTabItem();
+				//}
 
 				ImGui.EndTabBar();
 			}
 		}
 		
-		//Dictionary<AppIdTuple, AppRenderer> _appRenderers;
+		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 
 		void DrawApps()
 		{
-			//foreach( var (id, state) in _reflStates.AppStates )
-			//{
-				
-			//	//DrawApp( id, state );
-			//}
+			foreach( var (id, state) in _agent.GetAllAppStates() )
+			{
+				AppRenderer? r;
+				if( !_appRenderers.TryGetValue( id, out r ) )
+				{
+					r = new AppRenderer( id, _agent );
+					_appRenderers[id] = r;
+				}
+				r.DrawUI();
+			}
 		}
 
+
+		Dictionary<string, PlanRenderer> _planRenderers = new();
 
 		void DrawPlans()
 		{
-			//foreach( var pd in _reflStates.PlanDefs )
-			//{
-			//	//DrawPlan( pd );
-			//}
+			foreach( var pd in _agent.GetAllPlanDefs() )
+			{
+				PlanRenderer? r;
+				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
+				{
+					r = new PlanRenderer( pd.Name, _agent );
+					_planRenderers[pd.Name] = r;
+				}
+				r.DrawUI();
+			}
 		}
-
 
 	}
 }

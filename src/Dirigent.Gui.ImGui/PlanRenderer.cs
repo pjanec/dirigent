@@ -10,49 +10,59 @@ namespace Dirigent.Gui
 {
 	public class PlanRenderer
 	{
-		private PlanDef _pd;
-		ReflectedStateRepo _reflStates;
+		private string _id;
+		IDirig _ctrl;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 		
-		public PlanRenderer( PlanDef pd, ReflectedStateRepo reflStates )
+		public PlanRenderer( string id, IDirig ctrl )
 		{
-			_pd = pd;
-			_reflStates = reflStates;
+			_id = id;
+			_ctrl = ctrl;
 		}
 
 		public void DrawUI()
 		{
 			ImGui.PushID(_uniqueUiId);
 
-			PlanState? planState = null;
-			_reflStates.PlanStates.TryGetValue( _pd.Name, out planState );
+			PlanState? planState = _ctrl.GetPlanState( _id );
+			PlanDef? planDef = _ctrl.GetPlanDef( _id );
 
 			string statusText = planState != null ? Tools.GetPlanStateText( planState ) : string.Empty;
 
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1f,1f,0f,1f) );
-			bool opened = ImGui.TreeNodeEx( $"{_pd.Name}##{_pd.Name}", ImGuiTreeNodeFlags.FramePadding);
+			bool opened = ImGui.TreeNodeEx( $"{_id}##{_id}", ImGuiTreeNodeFlags.FramePadding);
 			ImGui.PopStyleColor();
 			if (ImGui.BeginPopupContextItem())
 			{
 				if (ImGui.MenuItem("Start"))
 				{
-					_reflStates.Client.Send( new Net.StartPlanMessage( _pd.Name ) );
+					_ctrl.Send( new Net.StartPlanMessage( _id ) );
 				}
 
 				if (ImGui.MenuItem("Kill"))
 				{
-					_reflStates.Client.Send( new Net.KillPlanMessage( _pd.Name ) );
+					_ctrl.Send( new Net.KillPlanMessage( _id ) );
 				}
 
 				if (ImGui.MenuItem("Restart"))
 				{
-					_reflStates.Client.Send( new Net.RestartPlanMessage( _pd.Name ) );
+					_ctrl.Send( new Net.RestartPlanMessage( _id ) );
 				}
 
 				ImGui.EndPopup();
 			}
+
 			ImGui.SameLine();
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4f);
+			if( ImGui.Button("S") )	_ctrl.Send( new Net.StartPlanMessage( _id ) );
+			ImGui.SameLine();
+			if( ImGui.Button("K") )	_ctrl.Send( new Net.KillPlanMessage( _id ) );
+			ImGui.SameLine();
+			if( ImGui.Button("R") )	_ctrl.Send( new Net.RestartPlanMessage( _id ) );
+
+			ImGui.SameLine();
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4*2f);
 			ImGui.TextColored( GetPlanStateColor(statusText), statusText );
 
 			//ImGui.SameLine();
@@ -63,15 +73,18 @@ namespace Dirigent.Gui
 			{
 				//DrawUIBody();
 
-				foreach( var ad in _pd.AppDefs )
+				if( planDef != null )
 				{
-					AppRenderer? r;
-					if( !_appRenderers.TryGetValue( ad.Id, out r ) )
+					foreach( var ad in planDef.AppDefs )
 					{
-						r = new AppRenderer( ad.Id, _reflStates );
-						_appRenderers[ad.Id] = r;
+						AppRenderer? r;
+						if( !_appRenderers.TryGetValue( ad.Id, out r ) )
+						{
+							r = new AppRenderer( ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
+							_appRenderers[ad.Id] = r;
+						}
+						r.DrawUI();
 					}
-					r.DrawUI();
 				}
 
 				ImGui.TreePop();

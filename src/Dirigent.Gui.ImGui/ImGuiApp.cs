@@ -45,7 +45,7 @@ namespace Dirigent.Gui
 			_masterWin?.Dispose();
 			_guiWin?.Dispose();
 			_agentWin1?.Dispose();
-			_agentWin1?.Dispose();
+			_agentWin2?.Dispose();
 		}
 
 		public EAppExitCode run()
@@ -58,7 +58,7 @@ namespace Dirigent.Gui
 				_masterWin?.Tick();
 				_guiWin?.Tick();
 				_agentWin1?.Tick();
-				_agentWin1?.Tick();
+				_agentWin2?.Tick();
 
 				Thread.Sleep(20);
 			}
@@ -68,8 +68,8 @@ namespace Dirigent.Gui
 
 		void DrawUI()
 		{
-			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, 0 ) );
-			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, 0 ) );
+			ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
 			if( _masterWin != null )
 			{
 				if ( ImGui.Begin( "Master" ) )
@@ -79,8 +79,8 @@ namespace Dirigent.Gui
 				}
 			}
 
-			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, 0 ) );
-			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, 0 ) );
+			ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
 			if( _guiWin != null )
 			{
 				if ( ImGui.Begin( "Gui" ) )
@@ -90,8 +90,8 @@ namespace Dirigent.Gui
 				}
 			}
 
-			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, _wnd.Size.Y/2 ) );
-			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			ImGui.SetNextWindowPos( new System.Numerics.Vector2( 0, _wnd.Size.Y/2 ) );
+			ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
 			if( _agentWin1 != null )
 			{
 				if ( ImGui.Begin( $"Agent-{_agentWin1.MachineId}" ) )
@@ -100,8 +100,8 @@ namespace Dirigent.Gui
 				}
 			}
 
-			//ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ) );
-			//ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
+			ImGui.SetNextWindowPos( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ) );
+			ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
 			if( _agentWin2 != null )
 			{
 				if ( ImGui.Begin( $"Agent-{_agentWin2.MachineId}" ) )

@@ -37,11 +37,6 @@ namespace Dirigent.Agent
                 if( condition(w) )
                     _toRemove.Add(w);
             }
-            foreach( var w in _toRemove )
-            {
-                log.Debug($"Removing watcher {w.GetType().Name} from app {w.App.Id}");
-                _watchers.Remove(w);
-            }
         }
 
         // remove watcher of given type
@@ -54,7 +49,7 @@ namespace Dirigent.Agent
         {
             RemoveAll( (x) => x.GetType() == w.GetType() );
 
-            log.DebugFormat("Installing watcher {0}, app {1}", this.GetType().Name, w.App.Id );
+            log.DebugFormat("Installing watcher {0}, app {1}", w.GetType().Name, w.App.Id );
             _watchers.Add( w );
         }
 
@@ -72,6 +67,7 @@ namespace Dirigent.Agent
         /// </summary>
         public void Tick()
         {
+            // tick watchers
             foreach( var w in _watchers )
             {
                 w.Tick();
@@ -79,6 +75,14 @@ namespace Dirigent.Agent
 
             RemoveAll( (x) => x.ShallBeRemoved );
             
+            // remove watchers
+            foreach( var w in _toRemove )
+            {
+                log.Debug($"Removing watcher {w.GetType().Name} from app {w.App.Id}");
+                _watchers.Remove(w);
+            }
+
+            // install watchers
             foreach( var w in _toReinstall )
             {
                 Reinstall( w );    

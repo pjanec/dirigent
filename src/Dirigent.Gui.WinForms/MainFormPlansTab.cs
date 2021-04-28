@@ -126,23 +126,23 @@ namespace Dirigent.Gui.WinForms
 					// icon clicks
 					if( currentCol == 2 ) // start
 					{
-						guardedOp( () => _ctrl.SelectPlan( plan.Name ) );
-						guardedOp( () => _ctrl.StartPlan( plan.Name ) );
+						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
+						guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( plan.Name )  ) );
 					}
 					else if( currentCol == 3 ) // stop
 					{
-						guardedOp( () => _ctrl.SelectPlan( plan.Name ) );
-						guardedOp( () => _ctrl.StopPlan( plan.Name ) );
+						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
+						guardedOp( () => _ctrl.Send( new Net.StopPlanMessage( plan.Name )  ) );
 					}
 					else if( currentCol == 4 ) // kill
 					{
-						guardedOp( () => _ctrl.SelectPlan( plan.Name ) );
-						guardedOp( () => _ctrl.KillPlan( plan.Name ) );
+						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
+						guardedOp( () => _ctrl.Send( new Net.KillPlanMessage( plan.Name )  ) );
 					}
 					else if( currentCol == 5 ) // restart
 					{
-						guardedOp( () => _ctrl.SelectPlan( plan.Name ) );
-						guardedOp( () => _ctrl.RestartPlan( plan.Name ) );
+						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
+						guardedOp( () => _ctrl.Send( new Net.RestartPlanMessage( plan.Name )  ) );
 					}
 
 
@@ -166,8 +166,8 @@ namespace Dirigent.Gui.WinForms
 				if( e.Button == MouseButtons.Left )
 				{
 					// start the selected plan
-					guardedOp( () => _ctrl.SelectPlan( planName ) );
-					guardedOp( () => _ctrl.StartPlan( planName ) );
+					guardedOp( () => _currentPlan = _ctrl.GetPlanDef( planName ) );
+					guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( planName )  ) );
 				}
 			}
 		}

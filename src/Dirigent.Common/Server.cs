@@ -270,7 +270,11 @@ namespace Dirigent.Net
 			// invoke MessageReceived delegate for each message received
 			while( _messagesReceived.TryDequeue( out var msg ) )
 			{
-				log.Debug( $"Incoming from {msg.Sender}: {msg}" );
+				if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+				{
+					log.Debug( $"[master] <= [{msg.Sender}]: {msg}" );
+				}
+
 				MessageReceived?.Invoke( msg );
 				act?.Invoke( msg );
 			}
@@ -284,7 +288,10 @@ namespace Dirigent.Net
 			var ms = new System.IO.MemoryStream();
 			_msgCodec.ConstructProtoMessage( ms, msg );
 
-			log.Debug( $"Multicast: {msg}" );
+			if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+			{
+				log.Debug( $"[master] => [*]: {msg}" );
+			}
 
 			foreach( var s in _identifiedClients.Values )
 			{
@@ -302,7 +309,7 @@ namespace Dirigent.Net
 		{
 			if( _identifiedClients.TryGetValue( clientName, out var session ) )
 			{
-				log.Debug( $"Unicast to {clientName}: {msg}" );
+				log.Debug( $"[master] => [{clientName}]: {msg}" );
 
 				var ms = new System.IO.MemoryStream();
 				_msgCodec.ConstructProtoMessage( ms, msg );

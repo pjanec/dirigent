@@ -55,42 +55,42 @@ namespace Dirigent.Gui.WinForms
 
 		private void startPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( _ctrl.GetCurrentPlan() == null )
+			if( _currentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.StartPlan( _ctrl.GetCurrentPlan().Name ) );
+			guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( _currentPlan.Name ) ) );
 		}
 
 		private void stopPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( _ctrl.GetCurrentPlan() == null )
+			if( _currentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.StopPlan( _ctrl.GetCurrentPlan().Name ) );
+			guardedOp( () => _ctrl.Send( new Net.StopPlanMessage( _currentPlan.Name ) ) );
 		}
 
 		private void killPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( _ctrl.GetCurrentPlan() == null )
+			if( _currentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.KillPlan( _ctrl.GetCurrentPlan().Name ) );
+			guardedOp( () => _ctrl.Send( new Net.KillPlanMessage( _currentPlan.Name ) ) );
 		}
 
 		private void restartPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( _ctrl.GetCurrentPlan() == null )
+			if( _currentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.RestartPlan( _ctrl.GetCurrentPlan().Name ) );
+			guardedOp( () => _ctrl.Send( new Net.RestartPlanMessage( _currentPlan.Name ) ) );
 		}
 
 		private void selectPlanMenuItem_Click( object sender, EventArgs e )
@@ -112,7 +112,7 @@ namespace Dirigent.Gui.WinForms
 				index++;
 
 				var planName = plan.Name; // independent variable to be remebered by the lambda below
-				EventHandler clickHandler = ( sender, args ) => guardedOp( () => { _ctrl.SelectPlan( planName ); } );
+				EventHandler clickHandler = ( sender, args ) => guardedOp( () => { _currentPlan = _ctrl.GetPlanDef( planName ); } );
 
 				var itemText = String.Format( "&{0}: {1}", index, plan.Name );
 				var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler );

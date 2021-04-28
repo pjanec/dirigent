@@ -28,13 +28,13 @@ namespace Dirigent.Gui.WinForms
 
 		void refreshAppList()
 		{
-			var plan = _ctrl.GetCurrentPlan();
+			var plan = _currentPlan;
 
 			gridApps.Rows.Clear();
 
 			if( plan != null )
 			{
-				foreach( AppDef a in plan.getAppDefs() )
+				foreach( AppDef a in plan.AppDefs )
 				{
 					gridApps.Rows.Add(
 						new object[]
@@ -56,7 +56,7 @@ namespace Dirigent.Gui.WinForms
 		string GetPlanForApp( AppIdTuple id )
 		{
 			var x =
-				( from p in _ctrl.GetPlanRepo()
+				( from p in _ctrl.GetAllPlanDefs()
 				  from a in p.AppDefs
 				  where a.Id == id
 				  select p.Name ).ToList();
@@ -75,19 +75,19 @@ namespace Dirigent.Gui.WinForms
 		{
 			DataGridViewRow selected = null;
 
-			var plan = _ctrl.GetCurrentPlan();
+			var plan = _currentPlan;
 
-			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
-			var planAppIdTuples = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad.Id ).ToList() : new List<AppIdTuple>();
+			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.AppDefs select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
+			var planAppIdTuples = ( plan != null ) ? ( from ad in plan.AppDefs select ad.Id ).ToList() : new List<AppIdTuple>();
 
 			Dictionary<AppIdTuple, AppState> appStates;
 			if( ShowJustAppFromCurrentPlan )
 			{
-				appStates = ( from i in _ctrl.GetAllAppsState() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
+				appStates = ( from i in _ctrl.GetAllAppStates() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
 			}
 			else // show from all plans
 			{
-				appStates = _ctrl.GetAllAppsState();
+				appStates = new Dictionary<AppIdTuple, AppState>( _ctrl.GetAllAppStates() );
 			}
 
 			// remember apps from plan
@@ -250,7 +250,7 @@ namespace Dirigent.Gui.WinForms
 				else if( txt.StartsWith( "Terminated" ) )
 				{
 					var appDef =
-						( from p in _ctrl.GetPlanRepo()
+						( from p in _ctrl.GetAllPlanDefs()
 						  from a in p.AppDefs
 						  where a.Id == id
 						  select a ).FirstOrDefault();
@@ -286,8 +286,8 @@ namespace Dirigent.Gui.WinForms
 			var hti = gridApps.HitTest( e.X, e.Y );
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
-			var plan = _ctrl.GetCurrentPlan();
-			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.getAppDefs() select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
+			var plan = _currentPlan;
+			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.AppDefs select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
@@ -306,31 +306,31 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.StartApp( id ) );
+					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
 					launchItem.Enabled = isAccessible && !st.Running;
 					popup.Items.Add( launchItem );
 
 					var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.KillApp( id ) );
+					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( id ) ) );
 					killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
 					popup.Items.Add( killItem );
 
 					var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.RestartApp( id ) );
+					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( id ) ) );
 					restartItem.Enabled = isAccessible; // && st.Running;
 					popup.Items.Add( restartItem );
 
 					if( appDef != null && appDef.Disabled )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, true ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, true ) ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
 					if( appDef != null )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, false ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, false ) ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
@@ -367,7 +367,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.StartApp( id ) );
+							guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
 						}
 					}
 
@@ -375,7 +375,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.KillApp( id ) );
+							guardedOp( () => _ctrl.Send( new Net.KillAppMessage( id ) ) );
 						}
 					}
 
@@ -383,7 +383,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.RestartApp( id ) );
+							guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( id ) ) );
 						}
 					}
 
@@ -392,7 +392,7 @@ namespace Dirigent.Gui.WinForms
 						var wasEnabled = ( bool ) focused.Cells[currentCol].Value;
 						if( plan != null )
 						{
-							guardedOp( () => _ctrl.SetAppEnabled( plan.Name, id, !wasEnabled ) );
+							guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, !wasEnabled ) ) );
 						}
 						else
 						{
@@ -419,7 +419,7 @@ namespace Dirigent.Gui.WinForms
 						var id = new AppIdTuple( focused.Cells[0].Value as string );
 						var st = _ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.StartApp( id ) );
+						guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
 					}
 				}
 			}
@@ -439,7 +439,7 @@ namespace Dirigent.Gui.WinForms
 				return stCode;
 			}
 
-			var currPlan = _ctrl.GetCurrentPlan();
+			var currPlan = _currentPlan;
 			if( currPlan != null )
 			{
 				var planState = _ctrl.GetPlanState( currPlan.Name );

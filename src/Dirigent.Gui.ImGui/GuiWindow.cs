@@ -67,12 +67,12 @@ namespace Dirigent.Gui
 
 		void DrawApps()
 		{
-			foreach( var (id, state) in _reflStates.AppStates )
+			foreach( var (id, state) in _reflStates.GetAllAppStates() )
 			{
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( id, _reflStates );
+					r = new AppRenderer( id, _reflStates );	// will render the effective ones
 					_appRenderers[id] = r;
 				}
 				r.DrawUI();
@@ -84,12 +84,12 @@ namespace Dirigent.Gui
 
 		void DrawPlans()
 		{
-			foreach( var pd in _reflStates.PlanDefs )
+			foreach( var pd in _reflStates.GetAllPlanDefs() )
 			{
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
 				{
-					r = new PlanRenderer( pd, _reflStates );
+					r = new PlanRenderer( pd.Name, _reflStates );
 					_planRenderers[pd.Name] = r;
 				}
 				r.DrawUI();

@@ -73,8 +73,6 @@ namespace Dirigent.Agent
             RefreshAppState();
         }
 
-        class FakeCtrl : IDirigentControl {}
-
         /// <summary>
         /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
         /// on successful launch.

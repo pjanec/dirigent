@@ -375,12 +375,12 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public IEnumerable<PlanDef>? PlanDefs;
+		public List<PlanDef>? PlanDefs;
 
 		public PlanDefsMessage() {}
 		public PlanDefsMessage( IEnumerable<PlanDef> planDefs )
 		{
-			this.PlanDefs = planDefs;
+			this.PlanDefs = new List<PlanDef>(planDefs);
 		}
 
 		public override string ToString()
@@ -564,11 +564,9 @@ namespace Dirigent.Net
 	public class AppDefsMessage : Message
 	{
 
-		private static List<AppDef> emptyDefs = new();
-
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public IEnumerable<AppDef> AppDefs = emptyDefs;
+		public List<AppDef> AppDefs = new List<AppDef>();
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra appdefs not contained in this message.
@@ -580,7 +578,7 @@ namespace Dirigent.Net
 		public AppDefsMessage() {}
 		public AppDefsMessage( IEnumerable<AppDef> appDefs, bool incremental )
 		{
-			AppDefs = appDefs;
+			AppDefs = new List<AppDef>(appDefs);
 			Incremental = incremental;
 		}
 	}

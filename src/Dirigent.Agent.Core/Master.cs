@@ -9,9 +9,19 @@ using Dirigent.Net;
 
 namespace Dirigent.Agent
 {
-	public class Master : Disposable
+	public class Master : Disposable, IDirig
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
+		public AppState? GetAppState( AppIdTuple Id ) { if( _allAppStates.AppStates.TryGetValue(Id, out var x)) return x; else return null; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
+		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
+		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
+		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
+		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
+		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
+		public void Send( Net.Message msg ) { ProcessIncomingMessage( msg ); }
 
 		public bool WantsQuit { get; private set; }
 
@@ -233,6 +243,12 @@ namespace Dirigent.Agent
 			// send the full list of app states
 			{
 				var m = new Net.AppsStateMessage( _allAppStates.AppStates );
+				_server.SendToSingle( m, ident.Name );
+			}
+
+			// send the full list of app defs
+			{
+				var m = new Net.AppDefsMessage( _allAppDefs.AppDefs.Values, incremental: false );
 				_server.SendToSingle( m, ident.Name );
 			}
 		}

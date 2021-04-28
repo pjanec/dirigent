@@ -10,13 +10,25 @@ namespace Dirigent.Common
 	/// Maintains the current state of AppStates and PlanStates
 	/// as received from the master
 	/// </summary>
-	public class ReflectedStateRepo
+	public class ReflectedStateRepo	: IDirig
 	{
-		public Dictionary<AppIdTuple, AppState> AppStates => _appStates;
-		public Dictionary<AppIdTuple, AppDef> AppDefs => _appDefs;
-		public Dictionary<string, PlanState> PlanStates => _planStates;
-		public List<PlanDef> PlanDefs => _planDefs;
-		public Net.Client Client => _client;
+		//public Dictionary<AppIdTuple, AppState> AppStates => _appStates;
+		//public Dictionary<AppIdTuple, AppDef> AppDefs => _appDefs;
+		//public Dictionary<string, PlanState> PlanStates => _planStates;
+		//public List<PlanDef> PlanDefs => _planDefs;
+		//public void Send( Net.Message msg ) { _client.Send( msg ); }
+
+
+		public AppState? GetAppState( AppIdTuple Id ) { if( _appStates.TryGetValue(Id, out var st)) return st; else return null; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
+		public PlanState? GetPlanState( string Id ) { if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
+		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
+		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
+		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
+		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
+		public void Send( Net.Message msg ) { _client.Send( msg ); }
+
 
 		private Net.Client _client;
 		private Dictionary<AppIdTuple, AppState> _appStates = new Dictionary<AppIdTuple, AppState>();
