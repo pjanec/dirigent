@@ -38,6 +38,8 @@ namespace Dirigent.Agent
     /// </summary>
     public static class LaunchWavePlanner
     {
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
         /// <summary>
         /// Builds the list of waves as the result of application interdependencies.
         /// 
@@ -45,7 +47,7 @@ namespace Dirigent.Agent
         /// The second wave will contain the apps that depend on those from the first wave.
         /// Etc. untill all apps are processed.
         /// </summary>
-        public static List<AppWave> build(IEnumerable<AppDef> launchPlan)
+        public static List<AppWave> build(IEnumerable<AppDef> appDefs, string planName)
         {
 
             // seznam zbyvajicich aplikaci
@@ -54,7 +56,7 @@ namespace Dirigent.Agent
             // v seznamu pouzitych aplikaci. Pokud ano, zkopiruju aplikaci do aktualni vlny. Pro projiti
             // vsech aplikaci pak vezmu aplikace z aktulne vytvorene vlny, smazu je ze zbyvajicich a vlozim do pouzitych.
             
-            List<AppDef> remaining = (from t in launchPlan where !t.Disabled select t).ToList(); // those not yet moved to any of the waves
+            List<AppDef> remaining = (from t in appDefs where !t.Disabled select t).ToList(); // those not yet moved to any of the waves
             List<AppDef> used = new List<AppDef>(); // those already moved to some of waves
             
             // allow fast lookup of appdef by its name
@@ -72,6 +74,7 @@ namespace Dirigent.Agent
             {
 
                 List<AppDef> currentWave = new List<AppDef>(); // the wave currently being built
+                bool hasDisabledApps = false;
 
                 foreach (var app in remaining)
                 {
@@ -83,19 +86,31 @@ namespace Dirigent.Agent
                         {
                             AppIdTuple depId = AppIdTuple.fromString(depName, app.Id.MachineId);
 
-                            if (!dictApps.ContainsKey(depId))
+                            if( !dictApps.TryGetValue( depId, out var dep ) )
                             {
-                                // throw exception "Unknown dependency"
-                                throw new UnknownDependencyException(depName);
-                            }
+                                if( appDefs.FirstOrDefault((x) => x.Id == depId ) is null )
+                                {
+                                    log.Error($"plan {planName}: Missing dependency {depId}");
+                                    // throw exception "Unknown dependency"
+                                    throw new UnknownDependencyException(depName);
+                                }
+                                else
+                                {
+                                    log.Warn($"plan {planName}: Dependency {depId} is disabled, will not be satified until started individually!");
+                                    hasDisabledApps = true;
+                                }
 
-                            var dep = dictApps[depId];
-                            if (!used.Contains(dep))
-                            {
                                 allDepsSatisfied = false;
                                 break;
                             }
-
+                            else
+                            {
+                                if( !used.Contains(dep) )
+                                {
+                                    allDepsSatisfied = false;
+                                    break;
+                                }
+                            }
                         }
                     }
                     if (allDepsSatisfied)
@@ -106,21 +121,30 @@ namespace Dirigent.Agent
 
                 // if there are no app in current wave, there must be some circular dependency
                 // as there is no app that does not depend on 
-                if (currentWave.Count == 0)
+                if( currentWave.Count == 0  )
                 {
-                    // throw exception "Circular dependency somewhere"
-                    throw new CircularDependencyException();
+                    if( !hasDisabledApps )
+                    {
+                        // throw exception "Circular dependency somewhere"
+                        throw new CircularDependencyException();
+                    }
+                    else
+                    {
+                        break; // will never satisfy the dependencies
+                    }
                 }
-                
-                // move apps that were added to the current wave from remaining to used
-                foreach (var app in currentWave)
+                else
                 {
-                    remaining.Remove(app);
-                    used.Add(app);
-                }
+                    // move apps that were added to the current wave from remaining to used
+                    foreach (var app in currentWave)
+                    {
+                        remaining.Remove(app);
+                        used.Add(app);
+                    }
 
-                // add current wave to the resulting list of wawes
-                waves.Add(new AppWave(currentWave));
+                    // add current wave to the resulting list of wawes
+                    waves.Add(new AppWave(currentWave));
+                }
             }
 
             return waves;

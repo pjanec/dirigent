@@ -34,13 +34,13 @@ namespace Dirigent.Gui.WinForms
 
 			if( plan != null )
 			{
-				foreach( AppDef a in plan.AppDefs )
+				foreach( AppDef ad in plan.AppDefs )
 				{
 					gridApps.Rows.Add(
 						new object[]
 					{
-						a.Id.ToString(),
-						getAppStatusCode( a.Id, _ctrl.GetAppState( a.Id ), true )
+						ad.Id.ToString(),
+						Tools.GetAppStateText( _ctrl.GetAppState( ad.Id ), _ctrl.GetPlanState(plan.Name), ad )
 					}
 					);
 				}
@@ -137,7 +137,8 @@ namespace Dirigent.Gui.WinForms
 					var appState = x.Value;
 					var item = new object[appTabNumCols];
 					item[appTabColName] = idStr;
-					item[appTabColStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
+					//item[appTabColStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
+					item[appTabColStatus] = Tools.GetAppStateText( appState, _ctrl.GetPlanState(appState.PlanName), _ctrl.GetAppDef(id) );
 					item[appTabColIconStart] = ResizeImage( new Bitmap( Resource1.play ), new Size( 20, 20 ) );
 					item[appTabColIconKill] = ResizeImage( new Bitmap( Resource1.delete ), new Size( 20, 20 ) );
 					item[appTabColIconRestart] = ResizeImage( new Bitmap( Resource1.refresh ), new Size( 20, 20 ) );
@@ -166,7 +167,8 @@ namespace Dirigent.Gui.WinForms
 					var appState = _ctrl.GetAppState( id );
 					var upd = new UPD()
 					{
-						Status = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) ),
+						//Status = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) ),
+						Status = Tools.GetAppStateText( appState, _ctrl.GetPlanState( appState.PlanName ), _ctrl.GetAppDef( id ) ),
 						PlanName = null
 					};
 					if( appState.PlanName != null )
@@ -425,80 +427,81 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
-		string getAppStatusCode( AppIdTuple id, AppState st, bool isPartOfPlan )
-		{
-			string stCode = "Not running";
+		//string getAppStatusCode( AppIdTuple id, AppState st, AppDef ad )
+		//{
+		//	string stCode = "Not running";
 
-			bool connected = IsConnected;
-			var currTime = DateTime.UtcNow;
-			bool isRemoteApp = id.MachineId != this._machineId;
+		//	bool connected = IsConnected;
+		//	var currTime = DateTime.UtcNow;
+		//	bool isRemoteApp = id.MachineId != this._machineId;
 
-			if( isRemoteApp && !connected )
-			{
-				stCode = "??? (discon.)";
-				return stCode;
-			}
+		//	if( isRemoteApp && !connected )
+		//	{
+		//		stCode = "??? (discon.)";
+		//		return stCode;
+		//	}
 
-			var currPlan = _currentPlan;
-			if( currPlan != null )
-			{
-				var planState = _ctrl.GetPlanState( currPlan.Name );
-				bool planRunning = ( currPlan != null ) && planState.Running && isPartOfPlan;
-				if( planRunning && !st.PlanApplied && !st.Disabled )
-				{
-					stCode = "Planned";
-				}
-			}
+		//	var currPlan = _currentPlan;
+		//	if( currPlan != null )
+		//	{
+		//		var planState = _ctrl.GetPlanState( currPlan.Name );
+		//		bool isPartOfPlan = !string.IsNullOrEmpty(st.PlanName) && (currPlan.Name == st.PlanName);
+		//		bool planRunning = ( currPlan != null ) && planState.Running && isPartOfPlan;
+		//		if( planRunning && !st.PlanApplied && !ad.Disabled )
+		//		{
+		//			stCode = "Planned";
+		//		}
+		//	}
 
-			if( st.Started )
-			{
-				if( st.Running )
-				{
-					if( st.Dying )
-					{
-						stCode = "Dying";
-					}
-					else if( !st.Initialized )
-					{
-						stCode = "Initializing";
-					}
-					else
-					{
-						stCode = "Running";
-					}
-				}
-				else
-					// !st.Running
-				{
-					if( st.Restarting )
-					{
-						stCode = "Restarting";
-						if( st.RestartsRemaining >= 0 ) stCode += String.Format( " ({0} remaining)", st.RestartsRemaining );
-					}
-					else if( st.Killed )
-					{
-						stCode = "Killed";
-					}
-					else
-					{
-						stCode = string.Format( "Terminated ({0})", st.ExitCode );
-					}
-				}
-			}
-			else if( st.StartFailed )
-			{
-				stCode = "Failed to start";
-			}
+		//	if( st.Started )
+		//	{
+		//		if( st.Running )
+		//		{
+		//			if( st.Dying )
+		//			{
+		//				stCode = "Dying";
+		//			}
+		//			else if( !st.Initialized )
+		//			{
+		//				stCode = "Initializing";
+		//			}
+		//			else
+		//			{
+		//				stCode = "Running";
+		//			}
+		//		}
+		//		else
+		//			// !st.Running
+		//		{
+		//			if( st.Restarting )
+		//			{
+		//				stCode = "Restarting";
+		//				if( st.RestartsRemaining >= 0 ) stCode += String.Format( " ({0} remaining)", st.RestartsRemaining );
+		//			}
+		//			else if( st.Killed )
+		//			{
+		//				stCode = "Killed";
+		//			}
+		//			else
+		//			{
+		//				stCode = string.Format( "Terminated ({0})", st.ExitCode );
+		//			}
+		//		}
+		//	}
+		//	else if( st.StartFailed )
+		//	{
+		//		stCode = "Failed to start";
+		//	}
 
-			var statusInfoAge = currTime - st.LastChange;
-			if( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds( 3 ) )
-			{
-				stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
-			}
+		//	var statusInfoAge = currTime - st.LastChange;
+		//	if( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+		//	{
+		//		stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
+		//	}
 
 
-			return stCode;
-		}
+		//	return stCode;
+		//}
 
 		private void gridApps_CellToolTipTextNeeded( object sender, DataGridViewCellToolTipTextNeededEventArgs e )
 		{

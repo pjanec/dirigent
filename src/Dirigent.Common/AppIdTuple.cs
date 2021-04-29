@@ -61,6 +61,12 @@ namespace Dirigent.Common
 			return MachineId + "." + AppId;
 		}
 
+		public string ToString( string? planName )
+		{
+			if( planName is null ) return ToString();
+			else return ToString()+"@"+planName;
+		}
+
 		public override bool Equals( System.Object? obj )
 		{
 			// If parameter is null return false.

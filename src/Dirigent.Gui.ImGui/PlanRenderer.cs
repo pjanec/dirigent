@@ -54,7 +54,7 @@ namespace Dirigent.Gui
 			}
 
 			ImGui.SameLine();
-			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4f);
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4.5f);
 			if( ImGui.Button("S") )	_ctrl.Send( new Net.StartPlanMessage( _id ) );
 			ImGui.SameLine();
 			if( ImGui.Button("K") )	_ctrl.Send( new Net.KillPlanMessage( _id ) );
@@ -62,7 +62,7 @@ namespace Dirigent.Gui
 			if( ImGui.Button("R") )	_ctrl.Send( new Net.RestartPlanMessage( _id ) );
 
 			ImGui.SameLine();
-			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4*2f);
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4.5f*2f);
 			ImGui.TextColored( GetPlanStateColor(statusText), statusText );
 
 			//ImGui.SameLine();
@@ -83,6 +83,7 @@ namespace Dirigent.Gui
 							r = new AppRenderer( ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
 							_appRenderers[ad.Id] = r;
 						}
+						else r.AppDef = ad;	// app def may change so better to update it every time
 						r.DrawUI();
 					}
 				}
@@ -97,21 +98,21 @@ namespace Dirigent.Gui
 
 		System.Numerics.Vector4 GetPlanStateColor( string txt )
 		{
-			var col = new System.Numerics.Vector4(192, 192, 192, 255);
+			var col = new System.Numerics.Vector4(192, 192, 192, 255)/255f;
 
 			if( txt.StartsWith( "Success" ) )
 			{
-				col = new System.Numerics.Vector4(39, 135, 65, 255);
+				col = new System.Numerics.Vector4(39, 135, 65, 255)/255f;
 
-				col = new System.Numerics.Vector4(39, 135, 65, 255);
+				col = new System.Numerics.Vector4(39, 135, 65, 255)/255f;
 			}
 			else if( txt.StartsWith( "Failure" ) )
 			{
-						col = new System.Numerics.Vector4(212, 0, 4, 255);
+				col = new System.Numerics.Vector4(212, 0, 4, 255)/255f;
 			}
 			else if( txt.StartsWith( "InProgress" ) || txt.StartsWith( "Killing" ) )
 			{
-				col = new System.Numerics.Vector4(8, 0, 252, 255);
+				col = new System.Numerics.Vector4(8, 0, 252, 255)/255f;
 			}
 
 			return col;

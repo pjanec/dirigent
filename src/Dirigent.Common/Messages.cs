@@ -25,7 +25,7 @@ namespace Dirigent.Net
 			{ 110, typeof( StopPlanMessage ) },
 			{ 111, typeof( KillPlanMessage ) },
 			{ 112, typeof( RestartPlanMessage ) },
-			{ 113, typeof( CurrentPlanMessage ) },
+			//{ 113, typeof( CurrentPlanMessage ) },
 			{ 114, typeof( PlanDefsMessage ) },
 			{ 115, typeof( SetVarsMessage ) },
 			{ 116, typeof( KillAllMessage ) },
@@ -57,7 +57,7 @@ namespace Dirigent.Net
 	[KnownType( typeof( StopPlanMessage ) ), ProtoBuf.ProtoInclude( 110, typeof( StopPlanMessage ) )]
 	[KnownType( typeof( KillPlanMessage ) ), ProtoBuf.ProtoInclude( 111, typeof( KillPlanMessage ) )]
 	[KnownType( typeof( RestartPlanMessage ) ), ProtoBuf.ProtoInclude( 112, typeof( RestartPlanMessage ) )]
-	[KnownType( typeof( CurrentPlanMessage ) ), ProtoBuf.ProtoInclude( 113, typeof( CurrentPlanMessage ) )]
+	//[KnownType( typeof( CurrentPlanMessage ) ), ProtoBuf.ProtoInclude( 113, typeof( CurrentPlanMessage ) )]
 	[KnownType( typeof( PlanDefsMessage ) ), ProtoBuf.ProtoInclude( 114, typeof( PlanDefsMessage ) )]
 	[KnownType( typeof( SetVarsMessage ) ), ProtoBuf.ProtoInclude( 115, typeof( SetVarsMessage ) )]
 	[KnownType( typeof( KillAllMessage ) ), ProtoBuf.ProtoInclude( 116, typeof( KillAllMessage ) )]
@@ -147,6 +147,12 @@ namespace Dirigent.Net
 	}
 
 
+	[Flags]
+	public enum StartAppFlags
+	{
+		SetPlanApplied = 1 << 1,	 // Sets the AppState.PlanApplied flag
+	}
+
 	[ProtoBuf.ProtoContract]
 	[DataContract]
 	public class StartAppMessage : Message
@@ -167,19 +173,30 @@ namespace Dirigent.Net
 		[DataMember]
 		public string? PlanName;
 
+		[ProtoBuf.ProtoMember( 3 )]
+		[DataMember]
+		public StartAppFlags Flags;
+
 
 		public StartAppMessage() {}
-		public StartAppMessage( AppIdTuple id, string? planName )
+		public StartAppMessage( AppIdTuple id, string? planName, StartAppFlags flags=0 )
 		{
 			this.Id = id;
 			this.PlanName = planName;
+			this.Flags = flags;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StartApp {0} plan {1}", Id.ToString(), PlanName );
+			return string.Format( "StartApp {0} plan {1}, flags={2}", Id.ToString(), PlanName, Flags.ToString() );
 		}
 
+	}
+
+	[Flags]
+	public enum KillAppFlags
+	{
+		ResetAppState = 1 << 1, // should we reset app state flags like if the app was never attempted to start
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -190,15 +207,22 @@ namespace Dirigent.Net
 		[DataMember]
 		public AppIdTuple Id;
 
+		[ProtoBuf.ProtoMember( 2 )]
+		[DataMember]
+		public KillAppFlags Flags;
+
+
+
 		public KillAppMessage() {}
-		public KillAppMessage( AppIdTuple id )
+		public KillAppMessage( AppIdTuple id, KillAppFlags flags=0 )
 		{
 			this.Id = id;
+			this.Flags = flags;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StopApp {0}", Id.ToString() );
+			return string.Format( "KillApp {0} {1}", Id.ToString(), Flags.ToString() );
 		}
 
 	}
@@ -249,7 +273,7 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
-			return string.Format( "SetAppEnabled [{0}] {1} {2}", PlanName, Id.ToString(), Enabled );
+			return string.Format( $"SetAppEnabled {Id.ToString(PlanName)}, {Enabled}"  );
 		}
 
 	}
@@ -343,28 +367,28 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format( "RestartPlan {0}", PlanName ); }
 	}
 
-	/// <summary>
-	/// Master tells new client about the current launch plan
-	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
-	public class CurrentPlanMessage : Message
-	{
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
-		public string PlanName = string.Empty;
+	///// <summary>
+	///// Master tells new client about the current launch plan
+	///// </summary>
+	//[ProtoBuf.ProtoContract]
+	//[DataContract]
+	//public class CurrentPlanMessage : Message
+	//{
+	//	[ProtoBuf.ProtoMember( 1 )]
+	//	[DataMember]
+	//	public string PlanName = string.Empty;
 
-		public CurrentPlanMessage() {}
-		public CurrentPlanMessage( String planName )
-		{
-			this.PlanName = planName;
-		}
+	//	public CurrentPlanMessage() {}
+	//	public CurrentPlanMessage( String planName )
+	//	{
+	//		this.PlanName = planName;
+	//	}
 
-		public override string ToString()
-		{
-			return string.Format( "CurrentPlan {0}", PlanName );
-		}
-	}
+	//	public override string ToString()
+	//	{
+	//		return string.Format( "CurrentPlan {0}", PlanName );
+	//	}
+	//}
 
 	/// <summary>
 	/// Master tells new client about existing plans
@@ -377,15 +401,23 @@ namespace Dirigent.Net
 		[DataMember]
 		public List<PlanDef>? PlanDefs;
 
+		/// <summary>
+		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		[DataMember]
+		public bool Incremental;
+
 		public PlanDefsMessage() {}
-		public PlanDefsMessage( IEnumerable<PlanDef> planDefs )
+		public PlanDefsMessage( IEnumerable<PlanDef> planDefs, bool incremental )
 		{
 			this.PlanDefs = new List<PlanDef>(planDefs);
+			this.Incremental = incremental;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "PlanDefs ({0} plans)", PlanDefs?.Count() );
+			return $"PlanDefs [{string.Join(", ", from x in PlanDefs select x.Name)}], increm={Incremental}";
 		}
 	}
 
@@ -427,7 +459,7 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
-			return string.Format( "KillAll" );
+			return $"KillAll {Args.MachineId}";
 		}
 
 	}
@@ -569,7 +601,7 @@ namespace Dirigent.Net
 		public List<AppDef> AppDefs = new List<AppDef>();
 
 		/// <summary>
-		/// Whether the recipient shall descard any extra appdefs not contained in this message.
+		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
@@ -581,6 +613,12 @@ namespace Dirigent.Net
 			AppDefs = new List<AppDef>(appDefs);
 			Incremental = incremental;
 		}
+
+		public override string ToString()
+		{
+			return $"AppDefs [{string.Join(", ", from x in AppDefs select x.Id.ToString(x.PlanName))}], increm={Incremental}";
+		}
+
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -597,6 +635,10 @@ namespace Dirigent.Net
 			Text = text;
 		}
 
+		public override string ToString()
+		{
+			return $"CLI Request: {Text}";
+		}
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -613,5 +655,9 @@ namespace Dirigent.Net
 			Text = text;
 		}
 
+		public override string ToString()
+		{
+			return $"CLI Response: {Text}";
+		}
 	}
 }

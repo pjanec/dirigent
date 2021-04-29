@@ -527,7 +527,7 @@ namespace Dirigent.Agent
 
 
 
-		public void Kill()
+		public void Kill( Net.KillAppFlags flags=0 )
 		{
 			//log.DebugFormat("Kill pid {0}", proc.Id );
 			// bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);

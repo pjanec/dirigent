@@ -15,6 +15,7 @@ namespace Dirigent.Gui
 		IDirig _ctrl;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private AppDef? _appDef = null; // if null, app def will be taken from IDirig interface (which is the actual one, not necessarily the same one from the plan)
+		public AppDef? AppDef { get { return _appDef; } set { _appDef = value; } }
 		
 		public AppRenderer( AppIdTuple id, IDirig ctrl, AppDef? appDef=null )
 		{
@@ -38,7 +39,7 @@ namespace Dirigent.Gui
 				planState = _ctrl.GetPlanState( appState.PlanName );
 			}
 
-			string statusText = appState != null ? Tools.GetAppStateText( appState, planState ) : string.Empty;
+			string statusText = appState != null ? Tools.GetAppStateText( appState, planState, appDef ) : string.Empty;
 			string? planName = appState?.PlanName;
 
 
@@ -71,6 +72,17 @@ namespace Dirigent.Gui
 			ImGui.SameLine();
 			if( ImGui.Button("R") )	_ctrl.Send( new Net.RestartAppMessage( _id ) );
 
+			// enabled checkbox just for apps from a plan
+			if( _appDef is not null && _appDef.PlanName is not null)
+			{
+				ImGui.SameLine();
+				bool enabled = !_appDef.Disabled;
+				if( ImGui.Checkbox("##enabled", ref enabled) )
+				{
+					_ctrl.Send( new Net.SetAppEnabledMessage( _appDef.PlanName, _id, enabled ) );
+				}
+			}
+
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4*2f);
 			ImGui.TextColored( GetAppStateColor(statusText, appDef), statusText );
@@ -83,7 +95,7 @@ namespace Dirigent.Gui
 			{
 				//DrawUIBody();
 				string jsonString = JsonSerializer.Serialize( appDef, new JsonSerializerOptions() { WriteIndented=true, IncludeFields=true } );
-				ImGui.TextWrapped(jsonString);
+				ImGui.TextWrapped(jsonString.Replace("%", "%%")); // TextWrapped doesn't like %s etc, percent signs needs to be doubled
 
 				ImGui.TreePop();
 			}
@@ -93,19 +105,19 @@ namespace Dirigent.Gui
 
 		System.Numerics.Vector4 GetAppStateColor( string txt, AppDef? appDef )
 		{
-			var col = new System.Numerics.Vector4(192, 192, 192, 255);
+			var col = new System.Numerics.Vector4(192, 192, 192, 255)/255f;
 
 			if( txt.StartsWith( "Running" ) )
 			{
-				col = new System.Numerics.Vector4(39, 135, 65, 255);
+				col = new System.Numerics.Vector4(39, 135, 65, 255)/255f;
 			}
 			else if( txt.StartsWith( "Planned" ) )
 			{
-				col = new System.Numerics.Vector4(100, 39, 135, 255);
+				col = new System.Numerics.Vector4(100, 39, 135, 255)/255f;
 			}
 			else if( txt.StartsWith( "Initializing" ) )
 			{
-				col = new System.Numerics.Vector4(184, 111, 17, 255);
+				col = new System.Numerics.Vector4(184, 111, 17, 255)/255f;
 			}
 			else if( txt.StartsWith( "Terminated" ) )
 			{
@@ -113,13 +125,13 @@ namespace Dirigent.Gui
 				{
 					if( !appDef.Volatile ) // just non-volatile apps are not supposed to terminate on their own...
 					{
-						col = new System.Numerics.Vector4(212, 0, 4, 255);
+						col = new System.Numerics.Vector4(212, 0, 4, 255)/255f;
 					}
 				}
 			}
 			else if( txt.StartsWith( "Restarting" ) || txt.StartsWith( "Dying" ) )
 			{
-				col = new System.Numerics.Vector4(8, 0, 252, 255);
+				col = new System.Numerics.Vector4(8, 0, 252, 255)/255f;
 			}
 
 			return col;

@@ -103,14 +103,14 @@ namespace Dirigent.Agent
 				case Net.StartAppMessage m:
 				{
 					var la = _localApps.FindApp( m.Id );
-					la.StartApp();
+					la.StartApp( flags: m.Flags );
 					break;
 				}
 
 				case Net.KillAppMessage m:
 				{
 					var la = _localApps.FindApp( m.Id );
-					la.KillApp();
+					la.KillApp( m.Flags );
 					break;
 				}
 

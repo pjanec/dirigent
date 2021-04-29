@@ -36,14 +36,14 @@ namespace Dirigent.Agent
             //  - all of its dependencies are satisfied (dependent apps already initialized)
             foreach( var wave in launchWaves )
             {
-                foreach( var appDef in wave.apps )
+                foreach( var ad in wave.apps )
                 {
-                    var aps = appsState[appDef.Id];
-                    if ( !aps.PlanApplied ) // not yet processed by the plan
+                    var aps = appsState[ad.Id];
+                    if ( !ad.PlanApplied ) // not yet processed by the plan
                     {
-                        if( areAllDepsSatisfied( appDef ) )
+                        if( areAllDepsSatisfied( ad ) )
                         {
-                            appsToLaunch.Add( appDef );
+                            appsToLaunch.Add( ad );
                         }    
                     }
                 }

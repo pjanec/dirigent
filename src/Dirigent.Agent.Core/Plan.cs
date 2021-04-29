@@ -19,7 +19,7 @@ namespace Dirigent.Agent
 
 		public double StartTimeout { get; set; }
 
-		public System.Collections.Generic.IEnumerable<AppDef> getAppDefs() { return Def.AppDefs; }
+		//public System.Collections.Generic.IEnumerable<AppDef> getAppDefs() { return Def.AppDefs; }
 
 		public PlanDef Def;
 
@@ -92,7 +92,12 @@ namespace Dirigent.Agent
 				State.Killing = false;
 				State.TimeStarted = DateTime.UtcNow;
 
-                List<AppWave> waves = LaunchWavePlanner.build( AppDefs );
+				foreach( var ad in AppDefs )
+				{
+					ad.PlanApplied = false;
+				}        
+
+                List<AppWave> waves = LaunchWavePlanner.build( AppDefs, Name );
                 _launchDepChecker = new LaunchDepsChecker( _appsState, waves );
             }                    
 		}
@@ -108,7 +113,7 @@ namespace Dirigent.Agent
             // if we start the plan again, re-apply the plan to all the apps again...
 			foreach( var ad in AppDefs )
             {
-                _appsState[ad.Id].PlanApplied = false;
+                ad.PlanApplied = false;
             }        
         }
 
@@ -122,16 +127,17 @@ namespace Dirigent.Agent
 			State.Killing = true;
 
             // kill all apps belonging to the current plan
-            foreach( var a in AppDefs )
+            foreach( var ad in AppDefs )
             {
 				// ignore disabled apps
-				var appState = _appsState[a.Id];
-				if( appState.Disabled )
+				var appState = _appsState[ad.Id];
+				if( ad.Disabled )
 					continue;
 
 				// attempt to kill
 				// this is non-blocking! does not wait for app to die!
-                _master.KillApp( a.Id );
+				// we would like to stop the app indicating "killed" or "start failed"; we simply want neutral "not running".. => resetAppState
+                _master.KillApp( ad.Id, Net.KillAppFlags.ResetAppState );
                 
                 // Note:
 				// the app status will get reset by processPlan()
@@ -160,13 +166,13 @@ namespace Dirigent.Agent
 			bool someStillRunning = false;
 
 			// check if some (local or remote) app is still running
-			foreach( var a in AppDefs )
+			foreach( var ad in AppDefs )
 			{
-				var appState = _appsState[a.Id];
+				var appState = _appsState[ad.Id];
 
 				if( appState.Running )
 				{
-					if( !appState.Disabled ) // ignore disabled apps
+					if( !ad.Disabled ) // ignore disabled apps
 					{
 						someStillRunning = true;
 					}
@@ -181,21 +187,14 @@ namespace Dirigent.Agent
 				State.Killing = false;
 
 				// reset app state to enable them to be plan-started again
-				foreach( var a in AppDefs )
+				foreach( var ad in AppDefs )
 				{
-					var appState = _appsState[a.Id];
+					var appState = _appsState[ad.Id];
 
-					if( appState.Disabled )	// ignore disabled apps
+					if( ad.Disabled )	// ignore disabled apps
 						continue;
 
-					appState.PlanApplied = false;
-					appState.Started = false;
-					appState.StartFailed = false;
-					appState.Killed = false;
-					appState.Initialized = false;
-					appState.Running = false;
-					appState.Dying = false;
-					appState.Restarting = false;
+					ad.PlanApplied = false;
 				}
 
 
@@ -232,9 +231,9 @@ namespace Dirigent.Agent
 				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 				bool allAppsProcessed = true;
 				bool anyStillRunning = false;
-				foreach (var appDef in AppDefs )
+				foreach (var ad in AppDefs )
 				{
-					var apst = _appsState[appDef.Id];
+					var apst = _appsState[ad.Id];
 
 					bool offline = apst.IsOffline;
 
@@ -243,7 +242,7 @@ namespace Dirigent.Agent
 					//	allLaunched = false;
 					//}
 
-					if (!offline && ! (apst.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
+					if (!offline && ! (ad.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
 					{
 						allAppsProcessed = false;
 					}
@@ -251,7 +250,7 @@ namespace Dirigent.Agent
 					if ( !offline && apst.Running)
 						anyStillRunning = true;
 
-					if (!appDef.Volatile)
+					if (!ad.Volatile)
 					{
 						anyNonVolatileApp = true;
 
@@ -295,10 +294,10 @@ namespace Dirigent.Agent
 
 				// remember that the app was already processed by the launch plan and should not be touched again
 				// note: must be called before StartApp otherwise it would be enlessly re-tried by the launch plan if it throws exception during StartUp
-				var appState = _appsState[appToLaunch.Id];
-				appState.PlanApplied = true;
+				//var appState = _appsState[appToLaunch.Id];
+				appToLaunch.PlanApplied = true;
                 
-				_master.StartApp( appToLaunch.Id, Name );
+				_master.StartApp( appToLaunch.Id, Name, Net.StartAppFlags.SetPlanApplied );
 			}
 		}
 
@@ -340,25 +339,25 @@ namespace Dirigent.Agent
 			bool allNonVolatileRunning = true;
 			bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 			bool allAppsProcessed = true;
-			foreach (var appDef in AppDefs )
+			foreach (var ad in AppDefs )
 			{
-				var apst = _appsState[appDef.Id];
+				var apst = _appsState[ad.Id];
 
-				if( apst.Disabled )	// ignore disabled apps (as if they are not part of the plan)
+				if( ad.Disabled )	// ignore disabled apps (as if they are not part of the plan)
 					continue;
 
-				if (!(apst.PlanApplied && apst.Started && apst.Initialized))
+				if (!(ad.PlanApplied && apst.Started && apst.Initialized))
 				{
 					allLaunched = false;
 				}
 
-				if (! (apst.PlanApplied && (apst.Initialized || apst.StartFailed) ))
+				if (! (ad.PlanApplied && (apst.Initialized || apst.StartFailed) ))
 				{
 					allAppsProcessed = false;
 				}
 
 
-				if (!appDef.Volatile)
+				if (!ad.Volatile)
 				{
 					anyNonVolatileApp = true;
 

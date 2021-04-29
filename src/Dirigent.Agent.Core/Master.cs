@@ -11,7 +11,8 @@ namespace Dirigent.Agent
 {
 	public class Master : Disposable, IDirig
 	{
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
+		#region IDirig interface
 
 		public AppState? GetAppState( AppIdTuple Id ) { if( _allAppStates.AppStates.TryGetValue(Id, out var x)) return x; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
@@ -23,9 +24,12 @@ namespace Dirigent.Agent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
 		public void Send( Net.Message msg ) { ProcessIncomingMessage( msg ); }
 
-		public bool WantsQuit { get; private set; }
+		#endregion
 
+		public bool WantsQuit { get; private set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
+
+		#region Private fields
 
 		private string _localIpAddr;
 		private int _port;
@@ -38,6 +42,9 @@ namespace Dirigent.Agent
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+		
+		#endregion
 
 		public Master( string localIpAddr, int port, int cliPort, SharedConfig sharedConfig )
 		{
@@ -52,6 +59,8 @@ namespace Dirigent.Agent
 			_defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
 
 			_plans = new PlanRegistry( this );
+			_plans.Updated += SendPlanDefUpdated;
+
 			_server = new Server( port );
 			//_sharedConfig = sharedConfig;
 			_swClientRefresh = new Stopwatch();
@@ -121,30 +130,23 @@ namespace Dirigent.Agent
 				// agent is sending the state of its apps
 				case AppsStateMessage m:
 				{
-					if( m.AppsState is null )
+					Debug.Assert( m.AppsState is not null );
+					foreach( var( appId, appState ) in m.AppsState )
 					{
-						// WTF?? no one is sending empty message!!!
-						int i = 1;
-					}
-					else
-					{
-						foreach( var( appId, appState ) in m.AppsState )
-						{
-							_allAppStates.AddOrUpdate( appId, appState );
-						}
+						_allAppStates.AddOrUpdate( appId, appState );
 					}
 					break;
 				}
 
 				case StartAppMessage m:
 				{
-					StartApp( m.Id, m.PlanName );
+					StartApp( m.Id, m.PlanName, m.Flags );
 					break;
 				}
 
 				case KillAppMessage m:
 				{
-					KillApp( m.Id );
+					KillApp( m.Id, m.Flags );
 					break;
 				}
 
@@ -182,6 +184,12 @@ namespace Dirigent.Agent
 				case RestartPlanMessage m:
 				{
 					RestartPlan( m.PlanName );
+					break;
+				}
+
+				case SetAppEnabledMessage m:
+				{
+					SetAppEnabled( m.PlanName, m.Id, m.Enabled );
 					break;
 				}
 
@@ -230,7 +238,7 @@ namespace Dirigent.Agent
 		{
 			// send the full list of plans
 			{
-				var m = new Net.PlanDefsMessage( from p in _plans.Plans.Values select p.Def );
+				var m = new Net.PlanDefsMessage( from p in _plans.Plans.Values select p.Def, incremental: false );
 				_server.SendToSingle( m, ident.Name );
 			}
 
@@ -312,7 +320,7 @@ namespace Dirigent.Agent
 		}
 
 		/// <summary>
-		/// Sends updated app def to their respoctive agent
+		/// Sends updated app def to their respective agent
 		/// This happens when the appdef changes because of plan switch etc.
 		/// </summary>
 		/// <param name="appDef"></param>
@@ -327,6 +335,19 @@ namespace Dirigent.Agent
 				}
 			}
 		}
+
+		void SendPlanDefUpdated( PlanDef pd )
+		{
+			foreach( var cl in _server.Clients )
+			{
+				if( cl.IsGui )
+				{
+					var m = new Net.PlanDefsMessage( new PlanDef[1] { pd }, incremental: true );
+					_server.SendToSingle( m, cl.Name );
+				}
+			}
+		}
+
 
 		/// <summary>
 		/// Updates appDefs before acting on apps within the plan
@@ -346,7 +367,7 @@ namespace Dirigent.Agent
 		/// </summary>
 		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		public void StartApp( AppIdTuple id, string? planName )
+		public void StartApp( AppIdTuple id, string? planName, Net.StartAppFlags flags=0 )
 		{
 			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
@@ -371,16 +392,16 @@ namespace Dirigent.Agent
 
 
 			// send app start command
-			var msg = new Net.StartAppMessage( id, null );
+			var msg = new Net.StartAppMessage( id, null, flags );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
 		/// <summary>
 		/// Send app kill command directly to owning agent
 		/// </summary>
-		public void KillApp( AppIdTuple id )
+		public void KillApp( AppIdTuple id, KillAppFlags flags=0 )
 		{
-			var msg = new Net.KillAppMessage( id );
+			var msg = new Net.KillAppMessage( id, flags );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
@@ -415,6 +436,27 @@ namespace Dirigent.Agent
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
 			plan.Restart();
+		}
+
+		public void SetAppEnabled( string? planName, AppIdTuple id, bool enabled )
+		{
+			if( planName is null ) return;
+
+            // find the plan
+			var plan = _plans.FindPlan( planName ); // throws on error
+            if( plan == null ) return;
+
+            // find the appdef within the plan
+            var appDef = plan.AppDefs.Find( t => t.Id == id );
+            if( appDef is null ) return;
+
+            // change the enabled flag in plan's appDef
+            appDef.Disabled = !enabled;
+
+			// we need to comunicate the appDef change to Guis so they show it
+			// agents will get the appdef as soon as the app gets next time started
+			_plans.AppDefUpdated( planName, id );
+
 		}
 
 	}

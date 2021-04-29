@@ -77,12 +77,12 @@ namespace Dirigent.Agent
         /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
         /// on successful launch.
         /// </summary>
-        public void StartApp( bool resetRestartsToMax=true )
+        public void StartApp( bool resetRestartsToMax=true, Net.StartAppFlags flags=0 )
         {
-            StartApp( UpcomingAppDef, resetRestartsToMax );
+            StartApp( UpcomingAppDef, resetRestartsToMax, flags );
         }
 
-        public void StartApp( AppDef appDef, bool resetRestartsToMax=true )
+        public void StartApp( AppDef appDef, bool resetRestartsToMax=true, Net.StartAppFlags flags=0 )
         {
             // don't do anything if the app is already running
             if( Launcher != null && Launcher.Running )
@@ -95,13 +95,14 @@ namespace Dirigent.Agent
 				AppState.RestartsRemaining = AppState.RESTARTS_UNITIALIZED;
 			}
 
-            log.DebugFormat("Launching app {0}", Id);
+            log.DebugFormat("Starting app {0} {1}", Id, flags);
 
             
             // launch the application
             AppState.Started = false;
             AppState.StartFailed = false;
             AppState.Killed = false;
+            //AppState.Disabled = appDef.Disabled;
             
             // remove watchers that might have left from previous run
             _watchers.RemoveHavingFlags( IAppWatcher.EFlags.ClearOnLaunch );
@@ -110,6 +111,12 @@ namespace Dirigent.Agent
 
             try
             {
+                // process PlanApplied requests
+                if( (flags & Net.StartAppFlags.SetPlanApplied) != 0 )
+                {
+                    AppState.PlanApplied = true;
+                }
+
                 if( Launcher.Launch() )
                 {
                     // now we know the process was launched with the most recent settings
@@ -196,9 +203,9 @@ namespace Dirigent.Agent
             _watchers.ReinstallWatcher( new AppRestarter( this, waitBeforeRestart: false ) ); // restart immediately (no waiting)
         }
 
-        public void KillApp()
+        public void KillApp( Net.KillAppFlags flags=0 )
         {
-			log.DebugFormat( "Kill app {0}", Id );
+			log.DebugFormat( "Kill app {0} {1}", Id, flags );
 
             if( Launcher != null ) // already started?
             {
@@ -210,7 +217,7 @@ namespace Dirigent.Agent
                 log.DebugFormat("Killing app {0}", Id);
 
                 // this just initiates the dying
-				Launcher.Kill();
+				Launcher.Kill( flags );
                 
 				// we maintain the launcher instance until the app actually dies
             }
@@ -223,7 +230,7 @@ namespace Dirigent.Agent
 					var launcher = new Launcher( UpcomingAppDef, _sharedContext );
 					if( launcher.AdoptAlreadyRunning() )
 					{
-						launcher.Kill();
+						launcher.Kill( flags );
 					}
 				}
 				
@@ -233,6 +240,18 @@ namespace Dirigent.Agent
 			// to avoid the app being restarted automatically
 			// after this explicit Kill (the user wants the app to stop until said otherwie)
             _watchers.RemoveWatchersOfType<AppRestarter>();
+
+            if( (flags & Net.KillAppFlags.ResetAppState) != 0 )
+            {
+				AppState.PlanApplied = false;
+				AppState.Started = false;
+				AppState.StartFailed = false;
+				AppState.Killed = false;
+				AppState.Initialized = false;
+				AppState.Running = false;
+				AppState.Dying = false;
+				AppState.Restarting = false;
+			}
         }
 
         /// <summary>

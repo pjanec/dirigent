@@ -2,7 +2,9 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 using Dirigent.Common;
+using System;
 
 namespace Dirigent.Agent
 {
@@ -26,6 +28,9 @@ namespace Dirigent.Agent
 		public Dictionary<string, Plan> Plans => _plans;
 
 		public Dictionary<string, PlanState> PlanStates => Plans.Values.ToDictionary( p => p.Name, p => p.State );
+
+		public Action<PlanDef>? Updated;
+
 
 		Master _master;
 		public PlanRegistry( Master master )
@@ -64,11 +69,10 @@ namespace Dirigent.Agent
 		/// <summary>
 		/// Finds app def in a plan. Throws if failed.
 		/// </summary>
+		//[return: MaybeNull]
 		public AppDef FindAppInPlan( string planName, AppIdTuple id )
 		{
-#pragma warning disable CS8603 // Possible null reference return.
 			return FindPlan( planName ).FindApp( id );
-#pragma warning restore CS8603 // Possible null reference return.
 		}
 
 		public void Tick()
@@ -77,6 +81,14 @@ namespace Dirigent.Agent
 			{
 				p.Tick();
 			}
+		}
+
+		// send updated appdef to everybody interested
+		public void AppDefUpdated( string planName, AppIdTuple id )
+		{
+			var plan = FindPlan( planName ); // throws if failed
+			var appDef = plan.FindApp( id ); // throws if failed
+			Updated?.Invoke( plan.Def );
 		}
 
 

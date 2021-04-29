@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,17 +54,10 @@ namespace Dirigent.Common
 			{
 				case Net.AppsStateMessage m:
 				{
-					if( m.AppsState != null )
+					Debug.Assert( m.AppsState != null );
+					foreach( var (id, state) in m.AppsState )
 					{
-						foreach( var (id, state) in m.AppsState )
-						{
-							_appStates[id] = state;	
-						}
-					}
-					else
-					{
-						// WTF?? no one is sending empty message!!!
-						int i =1;
+						_appStates[id] = state;	
 					}
 					break;
 				}
@@ -81,7 +75,25 @@ namespace Dirigent.Common
 				{
 					if( m.PlanDefs != null )
 					{
-						_planDefs = new List<PlanDef>( m.PlanDefs );
+						if( !m.Incremental ) // replace
+						{
+							_planDefs = new List<PlanDef>( m.PlanDefs );
+						}
+						else // add/update
+						{
+							foreach( var pd in m.PlanDefs )
+							{
+								int idx = _planDefs.FindIndex( (x) => x.Name == pd.Name );
+								if( idx < 0 )
+								{
+									_planDefs.Add( pd );
+								}
+								else
+								{
+									_planDefs[idx] = pd;
+								}
+							}
+						}
 					}
 					break;
 				}

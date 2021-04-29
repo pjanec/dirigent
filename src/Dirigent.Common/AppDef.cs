@@ -172,6 +172,10 @@ namespace Dirigent.Common
 		[DataMember]
 		public List<string> InitDetectors = new List<string>();
 
+		/// <summary>
+		/// Indicated that the plan has already been applied. For internal use by the master only!
+		/// </summary>
+		public bool PlanApplied;
 
 		public bool Equals( AppDef? other )
 		{

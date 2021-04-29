@@ -25,7 +25,7 @@ namespace Dirigent.Common
 			Restarting      = 1 << 5,
 			Initialized     = 1 << 6,
 			PlanApplied     = 1 << 7,
-			Disabled        = 1 << 8,
+			//Disabled        = 1 << 8,
 		}
 
 		[ProtoBuf.ProtoMember( 1 )]
@@ -135,7 +135,13 @@ namespace Dirigent.Common
 		}
 
 		/// <summary>
-		/// process was processed by the launch plan already, won't be touched by the launch plan again (until plan is stopped)
+		/// Indicates that the app has been attempted to start a part of some plan.
+		/// Just an indication for being able to show the "Planned" state, not affecting any logic.
+		/// Availale to any endpoint receiving app states. NOT USED BY MASTER!
+        /// WARNING: This is trying to mimic the value of Master's AppDef.PlanApplied variable.
+		///          As master does not publish its internal PlanApplied, this is just an approximation.
+        ///          BUT (theoretically) might be set also on different occasion when
+        ///          starting the app with non-empty planName from some reason! 
 		/// </summary>
 		public bool PlanApplied
 		{
@@ -143,15 +149,15 @@ namespace Dirigent.Common
 			set { Set( FL.PlanApplied, value ); changed(); }
 		}
 
-		/// <summary>
-		/// Whether the app has been disabled from execution as part of the plan;
-		/// This is set by the owner
-		/// </summary>
-		public bool Disabled
-		{
-			get { return Is( FL.Disabled ); }
-			set { Set( FL.Disabled, value ); }
-		}
+		///// <summary>
+		///// Whether the app has been disabled from execution as part of the plan;
+		///// This is set by the owner
+		///// </summary>
+		//public bool Disabled
+		//{
+		//	get { return Is( FL.Disabled ); }
+		//	set { Set( FL.Disabled, value ); }
+		//}
 
 		/// <summary>
 		/// process exit code; valid only if is Started && !Running && !Killed
@@ -231,7 +237,7 @@ namespace Dirigent.Common
 				Running = false,
 				Started = false,
 				Dying = false,
-				Disabled = ad.Disabled
+				//Disabled = ad.Disabled
 			};
 		}
 

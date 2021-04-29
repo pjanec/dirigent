@@ -31,20 +31,22 @@ namespace Dirigent.Common
 
 		}
 
-		public static string GetAppStateText( AppState st, PlanState? planState )
+		public static string GetAppStateText( AppState st, PlanState? planState, AppDef? appDef )
 		{
 			string stCode = "Not running";
 
-			if( planState != null )
+			bool isPartOfPlan = !string.IsNullOrEmpty(st.PlanName) && (appDef is not null);
+
+			if (planState != null)
 			{
 				var planRunning = planState.Running;
-				if( planState.Running && !st.PlanApplied && !st.Disabled )
+				if (planState.Running && !st.PlanApplied && isPartOfPlan && (!appDef?.Disabled ?? true))
 				{
 					stCode = "Planned";
 				}
 			}
 
-			if( st.Started )
+			if ( st.Started )
 			{
 				if( st.Running )
 				{
