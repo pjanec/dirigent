@@ -72,12 +72,40 @@ namespace Dirigent.Common
 	/// </summary>
 	public interface IDirig
 	{
+		/// <summary>
+		/// Returns the current execution state of an application as provided by apps' respective agent
+		/// </summary>
+		/// <param name="Id"></param>
+		/// <returns>null if no state for such application not known</returns>
 		AppState? GetAppState( AppIdTuple Id ) { return null; }
 		IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return new List<KeyValuePair<AppIdTuple, AppState>>(); }
 
+		enum EAppDefType
+		{
+			/// <summary>
+			/// the appDef applied when recently starting the app
+			/// </summary>
+			Effective,
+
+			/// <summary>
+			/// The appDef to be applied
+			/// </summary>
+			Upcoming,
+		}
+
+		/// <summary>
+		/// Gets the effective AppDef applied when last time starting the application.
+		/// </summary>
+		/// <param name="Id"></param>
+		/// <returns></returns>
 		AppDef? GetAppDef( AppIdTuple Id ) { return null; }
 		IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return new List<KeyValuePair<AppIdTuple, AppDef>>(); }
 
+		/// <summary>
+		/// Gets the current plan execution state
+		/// </summary>
+		/// <param name="Id"></param>
+		/// <returns></returns>
 		PlanState? GetPlanState( string Id ) { return null; }
 		IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return new List<KeyValuePair<string, PlanState>>(); }
 

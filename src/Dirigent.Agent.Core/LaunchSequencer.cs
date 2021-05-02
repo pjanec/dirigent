@@ -14,16 +14,16 @@ namespace Dirigent.Agent
     /// </summary>
     public class LaunchSequencer
     {
-        List<AppDef> appQueue; // queue of apps to be launched sequentially with given time separation
+        List<AppDef> _appQueue; // queue of apps to be launched sequentially with given time separation
 
-        double timeOfLastLaunch; // time stamp (in seconds)
-        double lastAppSeparationInterval; // in seconds
+        double _timeOfLastLaunch; // time stamp (in seconds)
+        double _lastAppSeparationInterval; // in seconds
 
         public LaunchSequencer()
         {
-            timeOfLastLaunch = 0;
-            lastAppSeparationInterval = 0.0;
-            appQueue = new List<AppDef>();
+            _timeOfLastLaunch = 0;
+            _lastAppSeparationInterval = 0.0;
+            _appQueue = new List<AppDef>();
         }
 
         public void AddApps( IEnumerable<AppDef> appDefs )
@@ -31,13 +31,13 @@ namespace Dirigent.Agent
             // add new apps at the end of queue
             foreach( var ad in appDefs )
             {
-                appQueue.Add( ad );
+                _appQueue.Add( ad );
             }
         }
         
         public bool IsEmpty()
         {
-            return ( appQueue.Count == 0 );
+            return ( _appQueue.Count == 0 );
         }
         
         /// <summary>
@@ -51,18 +51,18 @@ namespace Dirigent.Agent
             AppDef? res = null;
             if( !IsEmpty() )
             {
-                double deltaSeconds = currentTime - timeOfLastLaunch;
+                double deltaSeconds = currentTime - _timeOfLastLaunch;
 
-                if( deltaSeconds >= lastAppSeparationInterval )
+                if( deltaSeconds >= _lastAppSeparationInterval )
                 {
-                    res = appQueue[0];
+                    res = _appQueue[0];
                     
                     // remember constraints for the next one
-                    timeOfLastLaunch = currentTime;
-                    lastAppSeparationInterval = res.SeparationInterval;
+                    _timeOfLastLaunch = currentTime;
+                    _lastAppSeparationInterval = res.SeparationInterval;
 
                     // remove the app returned
-                    appQueue.RemoveAt(0);
+                    _appQueue.RemoveAt(0);
                 }
             
             }

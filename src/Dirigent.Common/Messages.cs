@@ -5,6 +5,7 @@ using System.Text;
 using Dirigent.Common;
 
 using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Dirigent.Net
 {
@@ -114,7 +115,8 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public Dictionary<AppIdTuple, AppState>? AppsState;
+		[MaybeNull]
+		public Dictionary<AppIdTuple, AppState> AppsState;
 
 		public AppsStateMessage() {}
 		public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
@@ -129,7 +131,8 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public Dictionary<string, PlanState>? PlansState;
+		[MaybeNull]
+		public Dictionary<string, PlanState> PlansState;
 
 		public PlansStateMessage() {}
 		public PlansStateMessage( Dictionary<string, PlanState> plansState )
@@ -138,12 +141,37 @@ namespace Dirigent.Net
 		}
 	}
 
+	/// <summary>
+	/// Master's internal state of applications in the plan.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	[DataContract]
+	public class PlanAppsStateMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		[DataMember]
+		[MaybeNull]
+		public string PlanName;
+
+		[ProtoBuf.ProtoMember( 2 )]
+		[DataMember]
+		[MaybeNull]
+		public Dictionary<AppIdTuple, PlanAppState> AppsState;
+
+		public PlanAppsStateMessage() {}
+		public PlanAppsStateMessage( string planName, Dictionary<AppIdTuple, PlanAppState> appsState )
+		{
+			this.PlanName = planName;
+			this.AppsState = new Dictionary<AppIdTuple, PlanAppState>( appsState );
+		}
+	}
+
 	[Flags]
 	public enum EMsgRecipCateg
 	{
-		Agent       = 1 << 1,
-		Gui         = 1 << 2,
-		All         = Agent & Gui,
+		Agent       = 1 << 0,
+		Gui         = 1 << 1,
+		All         = Agent + Gui,
 	}
 
 
@@ -196,7 +224,7 @@ namespace Dirigent.Net
 	[Flags]
 	public enum KillAppFlags
 	{
-		ResetAppState = 1 << 1, // should we reset app state flags like if the app was never attempted to start
+		ResetAppState = 1 << 0, // should we reset app state flags like if the app was never attempted to start
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -399,7 +427,8 @@ namespace Dirigent.Net
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public List<PlanDef>? PlanDefs;
+		[MaybeNull]
+		public List<PlanDef> PlanDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
@@ -598,7 +627,8 @@ namespace Dirigent.Net
 
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public List<AppDef> AppDefs = new List<AppDef>();
+		[MaybeNull] // when constructed without arguments by protobuf
+		public List<AppDef> AppDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
@@ -660,4 +690,5 @@ namespace Dirigent.Net
 			return $"CLI Response: {Text}";
 		}
 	}
+
 }

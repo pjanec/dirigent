@@ -59,7 +59,7 @@ namespace Dirigent.Agent
 			_defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
 
 			_plans = new PlanRegistry( this );
-			_plans.Updated += SendPlanDefUpdated;
+			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
 			_server = new Server( port );
 			//_sharedConfig = sharedConfig;
@@ -390,9 +390,16 @@ namespace Dirigent.Agent
 				// nothing to do, app defs are already loaded, no change
 			}
 
+			// if starting an app from plan, it is actually applying the plan to the app, so set the flag accordingly
+			// (if the plan is already running and this app is set "disabled" and is later started manually, it might help to satisfy the plan)
+			if( !string.IsNullOrEmpty(planName) )
+			{
+				var plan = _plans.FindPlan( planName );
+				plan.SetPlanApplied( id );
+			}
 
 			// send app start command
-			var msg = new Net.StartAppMessage( id, null, flags );
+			var msg = new Net.StartAppMessage( id, planName, flags );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 

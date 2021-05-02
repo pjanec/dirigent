@@ -29,7 +29,7 @@ namespace Dirigent.Agent
 
 		public Dictionary<string, PlanState> PlanStates => Plans.Values.ToDictionary( p => p.Name, p => p.State );
 
-		public Action<PlanDef>? Updated;
+		public Action<PlanDef>? PlanDefUpdated;
 
 
 		Master _master;
@@ -88,7 +88,7 @@ namespace Dirigent.Agent
 		{
 			var plan = FindPlan( planName ); // throws if failed
 			var appDef = plan.FindApp( id ); // throws if failed
-			Updated?.Invoke( plan.Def );
+			PlanDefUpdated?.Invoke( plan.Def );
 		}
 
 

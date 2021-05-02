@@ -64,34 +64,30 @@ namespace Dirigent.Common
 
 				case Net.PlansStateMessage m:
 				{
-					if( m.PlansState != null )
-					{
-						_planStates = m.PlansState;
-					}
+					Debug.Assert( m.PlansState != null );
+					_planStates = m.PlansState;
 					break;
 				}
 
 				case Net.PlanDefsMessage m:
 				{
-					if( m.PlanDefs != null )
+					Debug.Assert( m.PlanDefs != null );
+					if( !m.Incremental ) // replace
 					{
-						if( !m.Incremental ) // replace
+						_planDefs = new List<PlanDef>( m.PlanDefs );
+					}
+					else // add/update
+					{
+						foreach( var pd in m.PlanDefs )
 						{
-							_planDefs = new List<PlanDef>( m.PlanDefs );
-						}
-						else // add/update
-						{
-							foreach( var pd in m.PlanDefs )
+							int idx = _planDefs.FindIndex( (x) => x.Name == pd.Name );
+							if( idx < 0 )
 							{
-								int idx = _planDefs.FindIndex( (x) => x.Name == pd.Name );
-								if( idx < 0 )
-								{
-									_planDefs.Add( pd );
-								}
-								else
-								{
-									_planDefs[idx] = pd;
-								}
+								_planDefs.Add( pd );
+							}
+							else
+							{
+								_planDefs[idx] = pd;
 							}
 						}
 					}
@@ -100,13 +96,13 @@ namespace Dirigent.Common
 
 				case Net.AppDefsMessage m:
 				{
-					if( m.AppDefs != null )
+					Debug.Assert( m.AppDefs != null );
+
+					foreach( var ad in m.AppDefs )
 					{
-						foreach( var ad in m.AppDefs )
-						{
-							_appDefs[ad.Id] = ad;
-						}
+						_appDefs[ad.Id] = ad;
 					}
+
 					break;
 				}
 			}

@@ -4,6 +4,12 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
+	//class PlanApp
+	//{
+	//	public AppDef Def;
+	//	PlanAppState State;
+	//}
+
 	/// <summary>
 	/// Description of plan's current state
 	/// </summary>
@@ -26,8 +32,7 @@ namespace Dirigent.Agent
 		Dictionary<AppIdTuple, AppState> _appsState;
 		Master _master;
 
-        LaunchDepsChecker? _launchDepChecker;
-        LaunchSequencer _launchSequencer; // non-null only when plan is running
+        AppLaunchPlanner? _appLaunchPlanner;
 		PlanRestarter? _restarter;
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -37,7 +42,6 @@ namespace Dirigent.Agent
 			Def = def;
 			_master = master;
 			_appsState = _master.AppsState;
-			_launchSequencer = new LaunchSequencer();
 		}
 
 		public void Tick()
@@ -92,13 +96,7 @@ namespace Dirigent.Agent
 				State.Killing = false;
 				State.TimeStarted = DateTime.UtcNow;
 
-				foreach( var ad in AppDefs )
-				{
-					ad.PlanApplied = false;
-				}        
-
-                List<AppWave> waves = LaunchWavePlanner.build( AppDefs, Name );
-                _launchDepChecker = new LaunchDepsChecker( _appsState, waves );
+                _appLaunchPlanner = new AppLaunchPlanner( _appsState, this );
             }                    
 		}
 
@@ -108,13 +106,7 @@ namespace Dirigent.Agent
 
             State.Running = false;
 			State.Killing = false;
-            _launchDepChecker = null;
-
-            // if we start the plan again, re-apply the plan to all the apps again...
-			foreach( var ad in AppDefs )
-            {
-                ad.PlanApplied = false;
-            }        
+            _appLaunchPlanner = null;
         }
 
         public void Kill()
@@ -145,7 +137,7 @@ namespace Dirigent.Agent
             }
             
             // stop the launch sequencer
-            _launchDepChecker = null;
+            _appLaunchPlanner = null;
         }
 
         public void Restart()
@@ -185,19 +177,6 @@ namespace Dirigent.Agent
 			{
 				// leave the killing mode
 				State.Killing = false;
-
-				// reset app state to enable them to be plan-started again
-				foreach( var ad in AppDefs )
-				{
-					var appState = _appsState[ad.Id];
-
-					if( ad.Disabled )	// ignore disabled apps
-						continue;
-
-					ad.PlanApplied = false;
-				}
-
-
 			}
 
 		}
@@ -273,30 +252,17 @@ namespace Dirigent.Agent
 
             // if no plan exists
 			// or client re-connected and re-set the plan repo (then we loose the previous RTI)
-            if (_launchDepChecker == null)
+            if (_appLaunchPlanner == null)
                 return;
-
-            // feed the sequencer with apps whose dependencies and constraints have already been satisfied
-            if( _launchSequencer.IsEmpty() )
-            {
-                _launchSequencer.AddApps( 
-                    _launchDepChecker.getAppsToLaunch()
-                );
-            }
-
 
             // launch all apps planned for current time
             while(true)
 			{
 	            // try to get an app to launch and launch it immediately
-				AppDef? appToLaunch = _launchSequencer.GetNext( currentTime );
+				AppDef? appToLaunch = _appLaunchPlanner.GetNextAppToLaunch( currentTime );
 				if( appToLaunch is null ) break;
 
-				// remember that the app was already processed by the launch plan and should not be touched again
-				// note: must be called before StartApp otherwise it would be enlessly re-tried by the launch plan if it throws exception during StartUp
-				//var appState = _appsState[appToLaunch.Id];
-				appToLaunch.PlanApplied = true;
-                
+				// note: this will set also the Master's PlanApplied flag (the important one), not just the AppState flag from agent (just informative one)
 				_master.StartApp( appToLaunch.Id, Name, Net.StartAppFlags.SetPlanApplied );
 			}
 		}
@@ -416,5 +382,28 @@ namespace Dirigent.Agent
 			//	}
 			//}
 		}
+
+		/// <summary>
+		/// Forces setting the PlanApplied flag so that the app launch planner does not
+		/// provides the app to be started again (the app might already have been started manually)
+		/// </summary>
+		/// <param name="id"></param>
+		public void SetPlanApplied( AppIdTuple id )
+		{
+            var ad = FindApp( id );
+            if( ad is not null )
+            {
+                ad.PlanApplied = true;
+            }
+		}
+
+        public void ClearPlanApplied()
+        {
+            foreach( var ad in AppDefs )
+			{
+				ad.PlanApplied = false;
+			}        
+		}
+
 	}
 }

@@ -3,9 +3,51 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Dirigent.Common
 {
+
+	/// <summary>
+	/// State of an app within a plan; Master's part of app status.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	[DataContract]
+	public class PlanAppState
+	{
+		[Flags]
+		enum FL
+		{
+			PlanApplied     = 1 << 0,
+		}
+
+		[ProtoBuf.ProtoMember( 1 )]
+		FL flags;
+
+		bool Is( FL value )
+		{
+			return ( flags & value ) == value;
+		}
+
+		void Set( FL value, bool toSet )
+		{
+			if( toSet ) flags |= value;
+			else flags &= ~value;
+
+			changed();
+		}
+
+		void changed()
+		{
+		}
+
+		public bool PlanApplied
+		{
+			get { return Is( FL.PlanApplied ); }
+			set { Set( FL.PlanApplied, value ); changed(); }
+		}
+	}
+
 
 	/// <summary>
 	/// Plan execution status
@@ -40,6 +82,11 @@ namespace Dirigent.Common
 		[DataMember]
 		public DateTime TimeStarted; // to calculate app-start timeout causing plan failure
 
+
+		[ProtoBuf.ProtoMember( 5 )]
+		[DataMember]
+		[MaybeNull] // when constructed without arguments by protobuf
+		public Dictionary<AppIdTuple, PlanAppState> PlanAppStates;
 	}
 
 
