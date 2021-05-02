@@ -32,6 +32,11 @@ namespace Dirigent.Gui
 		public delegate void DrawUIDelegate();
 		public event DrawUIDelegate? OnDrawUI;
 
+		///// <summary>
+		///// Just a handy flag not used by the window
+		///// </summary>
+		//public bool WantClose { get; set; }
+
 		public ImGuiWindow(string title, int x = -1, int y = -1, int width = -1, int height = -1, bool borderless = false, bool fullScreen = false)
 		{
 			// window position
@@ -101,6 +106,11 @@ namespace Dirigent.Gui
 		public bool Exists
 		{
 			get { return _window.Exists; }
+		}
+
+		public void Close()
+		{
+			_window.Close();
 		}
 
 		public Vector2 Size

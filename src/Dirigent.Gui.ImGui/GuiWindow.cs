@@ -21,6 +21,7 @@ namespace Dirigent.Gui
 		private ReflectedStateRepo _reflStates;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 
+
 		public GuiWindow( AppConfig ac )
 		{
 			_ac = ac;

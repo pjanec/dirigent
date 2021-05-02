@@ -48,9 +48,25 @@ namespace Dirigent.Gui
 				}
 				else
 				{
-					var app = new ImGuiApp( ac );
-					exitCode = app.run();
-					app.Dispose();
+					switch( ac.Mode )
+					{
+						default:	
+						case "Gui":
+						{
+							var app = new GuiApp( ac );
+							exitCode = app.run();
+							app.Dispose();
+							break;
+						}
+
+						case "AllInOneDebug":
+						{
+							var app = new AllInOneDebugApp( ac );
+							exitCode = app.run();
+							app.Dispose();
+							break;
+						}
+					}
 					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}

@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace Dirigent.Gui
 {
-	public class ImGuiApp : Disposable
+	public class AllInOneDebugApp : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -23,7 +23,7 @@ namespace Dirigent.Gui
 		private AgentWindow? _agentWin1;
 		private AgentWindow? _agentWin2;
 
-		public ImGuiApp( AppConfig ac )
+		public AllInOneDebugApp( AppConfig ac )
 		{
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );

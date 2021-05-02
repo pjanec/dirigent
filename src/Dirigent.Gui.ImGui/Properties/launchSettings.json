@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Dirigent.Gui.ImGui": {
+      "commandName": "Project",
+      "commandLineArgs": "--mode AllInOneDebug"
+    }
+  }
+}
