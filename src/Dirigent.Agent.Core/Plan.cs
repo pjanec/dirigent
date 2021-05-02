@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
-	//class PlanApp
-	//{
-	//	public AppDef Def;
-	//	PlanAppState State;
-	//}
+	public record PlanApp
+	(
+		AppDef Def,
+		PlanAppState State
+	);
 
 	/// <summary>
 	/// Description of plan's current state
@@ -19,7 +20,10 @@ namespace Dirigent.Agent
 
 		public PlanState State = new();
 
-		public List<AppDef> AppDefs => Def.AppDefs;
+		public IEnumerable<PlanApp> Apps => _apps.Values;
+
+		public IEnumerable<AppDef> AppDefs => Def.AppDefs; // same order as in the plan definiton
+
 
 		public PlanScript? Script;
 
@@ -29,6 +33,7 @@ namespace Dirigent.Agent
 
 		public PlanDef Def;
 
+		Dictionary<AppIdTuple, PlanApp> _apps;
 		Dictionary<AppIdTuple, AppState> _appsState;
 		Master _master;
 
@@ -42,6 +47,7 @@ namespace Dirigent.Agent
 			Def = def;
 			_master = master;
 			_appsState = _master.AppsState;
+			_apps = (from ad in def.AppDefs select ad).ToDictionary( ad => ad.Id, ad => new PlanApp( ad, new PlanAppState() ) );  
 		}
 
 		public void Tick()
@@ -67,17 +73,11 @@ namespace Dirigent.Agent
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public AppDef FindApp( AppIdTuple id )
+		public PlanApp FindApp( AppIdTuple id )
 		{				
-			var appDef = AppDefs.Find( (ad) => ad.Id == id );
-			if( appDef is not null )
-			{
-				return appDef;
-			}
-			else
-			{
-				throw new UnknownAppInPlanException( id, Name );
-			}
+			if( _apps.TryGetValue( id, out var pa ) )
+				return pa;
+			throw new UnknownAppInPlanException( id, Name );
 		}
 
 		public void Start()
@@ -119,17 +119,19 @@ namespace Dirigent.Agent
 			State.Killing = true;
 
             // kill all apps belonging to the current plan
-            foreach( var ad in AppDefs )
+            foreach( var (id, pa) in _apps )
             {
+				var ad = pa.Def;
+
 				// ignore disabled apps
-				var appState = _appsState[ad.Id];
+				var appState = _appsState[id];
 				if( ad.Disabled )
 					continue;
 
 				// attempt to kill
 				// this is non-blocking! does not wait for app to die!
 				// we would like to stop the app indicating "killed" or "start failed"; we simply want neutral "not running".. => resetAppState
-                _master.KillApp( ad.Id, Net.KillAppFlags.ResetAppState );
+                _master.KillApp( id, Net.KillAppFlags.ResetAppState );
                 
                 // Note:
 				// the app status will get reset by processPlan()
@@ -158,8 +160,9 @@ namespace Dirigent.Agent
 			bool someStillRunning = false;
 
 			// check if some (local or remote) app is still running
-			foreach( var ad in AppDefs )
+			foreach( var pa in _apps.Values )
 			{
+				var ad = pa.Def;
 				var appState = _appsState[ad.Id];
 
 				if( appState.Running )
@@ -210,8 +213,9 @@ namespace Dirigent.Agent
 				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 				bool allAppsProcessed = true;
 				bool anyStillRunning = false;
-				foreach (var ad in AppDefs )
+				foreach (var app in _apps.Values )
 				{
+					var ad = app.Def;
 					var apst = _appsState[ad.Id];
 
 					bool offline = apst.IsOffline;
@@ -221,7 +225,7 @@ namespace Dirigent.Agent
 					//	allLaunched = false;
 					//}
 
-					if (!offline && ! (ad.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
+					if (!offline && ! (app.State.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
 					{
 						allAppsProcessed = false;
 					}
@@ -259,11 +263,11 @@ namespace Dirigent.Agent
             while(true)
 			{
 	            // try to get an app to launch and launch it immediately
-				AppDef? appToLaunch = _appLaunchPlanner.GetNextAppToLaunch( currentTime );
+				PlanApp? appToLaunch = _appLaunchPlanner.GetNextAppToLaunch( currentTime );
 				if( appToLaunch is null ) break;
 
 				// note: this will set also the Master's PlanApplied flag (the important one), not just the AppState flag from agent (just informative one)
-				_master.StartApp( appToLaunch.Id, Name, Net.StartAppFlags.SetPlanApplied );
+				_master.StartApp( appToLaunch.Def.Id, Name, Net.StartAppFlags.SetPlanApplied );
 			}
 		}
 
@@ -305,19 +309,20 @@ namespace Dirigent.Agent
 			bool allNonVolatileRunning = true;
 			bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 			bool allAppsProcessed = true;
-			foreach (var ad in AppDefs )
+			foreach (var app in _apps.Values )
 			{
+				var ad = app.Def;
 				var apst = _appsState[ad.Id];
 
 				if( ad.Disabled )	// ignore disabled apps (as if they are not part of the plan)
 					continue;
 
-				if (!(ad.PlanApplied && apst.Started && apst.Initialized))
+				if (!(app.State.PlanApplied && apst.Started && apst.Initialized))
 				{
 					allLaunched = false;
 				}
 
-				if (! (ad.PlanApplied && (apst.Initialized || apst.StartFailed) ))
+				if (! (app.State.PlanApplied && (apst.Initialized || apst.StartFailed) ))
 				{
 					allAppsProcessed = false;
 				}
@@ -390,18 +395,15 @@ namespace Dirigent.Agent
 		/// <param name="id"></param>
 		public void SetPlanApplied( AppIdTuple id )
 		{
-            var ad = FindApp( id );
-            if( ad is not null )
-            {
-                ad.PlanApplied = true;
-            }
+            var app = FindApp( id );
+            app.State.PlanApplied = true;
 		}
 
         public void ClearPlanApplied()
         {
-            foreach( var ad in AppDefs )
+            foreach( var app in _apps.Values )
 			{
-				ad.PlanApplied = false;
+				app.State.PlanApplied = false;
 			}        
 		}
 

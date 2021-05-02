@@ -64,6 +64,7 @@
     		StartupDir = "c:\"
     		CmdLineArgs = "bbb.txt"
     		InitCondition = "exitcode 0"
+    		Dependencies = "m1.a"
     	/>
     </Plan>
 

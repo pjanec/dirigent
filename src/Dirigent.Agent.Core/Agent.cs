@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
@@ -93,6 +94,8 @@ namespace Dirigent.Agent
 			{
 				case Net.AppDefsMessage m:
 				{
+					Debug.Assert( m.AppDefs is not null );
+
 					foreach( var ad in m.AppDefs )
 					{
 						_localApps.AddOrUpdate( ad );

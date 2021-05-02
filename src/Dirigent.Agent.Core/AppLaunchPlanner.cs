@@ -7,18 +7,6 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
-    public class CircularDependencyException : Exception
-    {
-    }
-
-    public class UnknownDependencyException : Exception
-    {
-        public UnknownDependencyException(string message)
-                : base(message)
-        {
-        }
-    }
-    
     /// <summary>
     /// Builds a dependency graph of the applications in the plan.
     /// Sequences the application launch based on the dependencies and the time separation between apps.
@@ -42,9 +30,9 @@ namespace Dirigent.Agent
         /// </summary>
         class AppWave
         {
-            public List<AppDef> Apps;
+            public List<PlanApp> Apps;
 
-            public AppWave( List<AppDef> apps )
+            public AppWave( List<PlanApp> apps )
             {
                 this.Apps = apps;
             }
@@ -79,7 +67,7 @@ namespace Dirigent.Agent
         /// </summary>
         /// <param name="currentTime">real time in seconds, must be always ascending</param>
         /// <returns>null if no more app ready for the time</returns>
-        public AppDef? GetNextAppToLaunch( double currentTime )
+        public PlanApp? GetNextAppToLaunch( double currentTime )
         {
             FetchApps();
 
@@ -111,9 +99,9 @@ namespace Dirigent.Agent
         /// Get apps from the plan that have not yet been launched (within this plan) and also have oll their dependencies satisfied.
         /// </summary>
         /// <returns></returns>
-        List<AppDef> GetAppsToLaunch()
+        List<PlanApp> GetAppsToLaunch()
         {
-            List<AppDef> appsToLaunch = new List<AppDef>();
+            List<PlanApp> appsToLaunch = new();
 
             // find each app that
             //  - is local
@@ -121,13 +109,13 @@ namespace Dirigent.Agent
             //  - all of its dependencies are satisfied (dependent apps already initialized)
             foreach( var wave in _launchWaves )
             {
-                foreach( var ad in wave.Apps )
+                foreach( var app in wave.Apps )
                 {
-                    if ( !ad.PlanApplied ) // not yet processed by the plan
+                    if ( !app.State.PlanApplied ) // not yet processed by the plan
                     {
-                        if( AreAllDepsSatisfied( ad ) )
+                        if( AreAllDepsSatisfied( app.Def ) )
                         {
-                            appsToLaunch.Add( ad );
+                            appsToLaunch.Add( app );
                         }    
                     }
                 }
@@ -181,14 +169,14 @@ namespace Dirigent.Agent
             // v seznamu pouzitych aplikaci. Pokud ano, zkopiruju aplikaci do aktualni vlny. Pro projiti
             // vsech aplikaci pak vezmu aplikace z aktulne vytvorene vlny, smazu je ze zbyvajicich a vlozim do pouzitych.
             
-            List<AppDef> remaining = (from t in _plan.AppDefs where !t.Disabled select t).ToList(); // those not yet moved to any of the waves
-            List<AppDef> used = new List<AppDef>(); // those already moved to some of waves
+            List<PlanApp> remaining = (from t in _plan.Apps where !t.Def.Disabled select t).ToList(); // those not yet moved to any of the waves
+            List<PlanApp> used = new(); // those already moved to some of waves
             
             // allow fast lookup of appdef by its name
-            Dictionary<AppIdTuple, AppDef> dictApps = new Dictionary<AppIdTuple, AppDef>();
+            Dictionary<AppIdTuple, PlanApp> dictApps = new();
             foreach (var app in remaining)
             {
-                dictApps[app.Id] = app;
+                dictApps[app.Def.Id] = app;
             }
 
             var waves = new List<AppWave>(); // the resulting list of waves
@@ -198,41 +186,24 @@ namespace Dirigent.Agent
             while (remaining.Count > 0)
             {
 
-                List<AppDef> currentWave = new List<AppDef>(); // the wave currently being built
-                bool hasDisabledApps = false;
+                List<PlanApp> currentWave = new(); // the wave currently being built
 
                 foreach (var app in remaining)
                 {
+                    var ad = app.Def;
                     bool allDepsSatisfied = true;
 
-                    if (app.Dependencies != null)
+                    if (ad.Dependencies != null)
                     {
-                        foreach (var depName in app.Dependencies)
+                        foreach (var depName in ad.Dependencies)
                         {
-                            AppIdTuple depId = AppIdTuple.fromString(depName, app.Id.MachineId);
+                            AppIdTuple depId = AppIdTuple.fromString(depName, ad.Id.MachineId);
 
-                            if( !dictApps.TryGetValue( depId, out var dep ) )
+                            if( dictApps.TryGetValue( depId, out var dep ) )  // dependency found in the plan
                             {
-                                if( _plan.AppDefs.FirstOrDefault((x) => x.Id == depId ) is null )
+                                if( !used.Contains(dep) )  // but not yet placed to any previous wave
                                 {
-                                    log.Error($"plan {_plan.Name}: Missing dependency {depId}");
-                                    // throw exception "Unknown dependency"
-                                    throw new UnknownDependencyException(depName);
-                                }
-                                else
-                                {
-                                    log.Warn($"plan {_plan.Name}: Dependency {depId} is disabled, will not be satified until started individually!");
-                                    hasDisabledApps = true;
-                                }
-
-                                allDepsSatisfied = false;
-                                break;
-                            }
-                            else
-                            {
-                                if( !used.Contains(dep) )
-                                {
-                                    allDepsSatisfied = false;
+                                    allDepsSatisfied = false;  // meaning it can't be satisfied and we shall NOT try to run it in this wave
                                     break;
                                 }
                             }
@@ -244,21 +215,7 @@ namespace Dirigent.Agent
                     }
                 }
 
-                // if there are no app in current wave, there must be some circular dependency
-                // as there is no app that does not depend on 
-                if( currentWave.Count == 0  )
-                {
-                    if( !hasDisabledApps )
-                    {
-                        // throw exception "Circular dependency somewhere"
-                        throw new CircularDependencyException();
-                    }
-                    else
-                    {
-                        break; // will never satisfy the dependencies
-                    }
-                }
-                else
+                if( currentWave.Count > 0  )
                 {
                     // move apps that were added to the current wave from remaining to used
                     foreach (var app in currentWave)
@@ -270,6 +227,19 @@ namespace Dirigent.Agent
                     // add current wave to the resulting list of wawes
                     waves.Add(new AppWave( currentWave ) );
                 }
+                else
+                {
+                    // circular dependency???
+                    log.Warn($" {_plan.Name}: Can't build launch wave, perhaps circular dependency?");
+                    break;
+                }
+            }
+
+            
+            for( int i=0; i < waves.Count; i++ )
+            {
+                var w = waves[i];
+                log.Debug($"Launch wave #{i}: {string.Join(", ", from app in w.Apps select app.Def.Id)}");
             }
 
             return waves;

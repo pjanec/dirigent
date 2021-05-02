@@ -29,6 +29,7 @@ namespace Dirigent.Common
 
 			loadAppDefaults();
 			loadPlans();
+			CheckDependencies();
 			//loadMachines();
 			//loadMaster();
 		}
@@ -273,6 +274,94 @@ namespace Dirigent.Common
 			}
 
 		}
+
+		bool AppExists( AppIdTuple id )
+		{
+			foreach( var pd in cfg.Plans )
+			{
+				foreach( var ad in pd.AppDefs )
+				{
+					if( ad.Id == id )
+						return true;
+				}
+			}
+
+			foreach( var ad in cfg.AppDefaults )
+			{
+				if( ad.Id == id )
+					return true;
+			}
+
+			return false;
+		}
+
+		void CheckDependenciesExist( string source, IEnumerable<AppDef> appDefs )
+		{
+			foreach( var ad in appDefs )
+			{
+				if( ad.Dependencies is not null )
+				{
+					foreach( var depName in ad.Dependencies )
+					{
+						var depId = new AppIdTuple( depName );
+						if( !AppExists( depId ) )
+						{
+		                    throw new UnknownDependencyException( $"{source}: {ad.Id}: Dependency {depName} not found." );
+						}
+					}
+				}
+			}
+		}
+
+		// Checks within a single plan only
+		// Does not find cross-plan circular dependencies...
+		void CheckDependenciesCircular( PlanDef planDef, AppDef ad, Dictionary<AppIdTuple, bool> depsUsed )
+		{
+			if( ad.Dependencies is not null )
+			{
+				foreach( var depName in ad.Dependencies )
+				{
+					var depId = new AppIdTuple( depName );
+					if( depsUsed.ContainsKey( depId ) )
+					{
+		                throw new CircularDependencyException( $"{planDef.Name}: {ad.Id}: Circular dependency {depName} found." );
+					}
+					// remember this dep
+					depsUsed[depId] = true;
+					
+					// check it recursively
+					var depAppDef = planDef.AppDefs.FirstOrDefault( x => x.Id == depId );
+					if( depAppDef is not null )
+					{
+						CheckDependenciesCircular( planDef, depAppDef, depsUsed );
+					}
+				}
+			}
+		}
+
+		void CheckDependencies()
+		{
+			CheckDependenciesExist( $"AppDefaults", cfg.AppDefaults );
+
+			// check if all dependencies mentioned exists either in a plan or in app defaults
+			foreach( var pd in cfg.Plans )
+			{
+				CheckDependenciesExist( $"Plan {pd.Name}", pd.AppDefs );
+			}
+
+			// check circular dependency within a plan
+			// WARNING: does not find cross-plan circular dependencies.. not possible to tell if such dep is a real problem or not
+			foreach( var pd in cfg.Plans )
+			{
+				foreach( var ad in pd.AppDefs )
+				{
+					Dictionary<AppIdTuple, bool> depsUsed = new ();
+					CheckDependenciesCircular( pd, ad, depsUsed );
+				}
+			}
+
+		}
+
 
 		//MachineDef readMachineElement( XElement e )
 		//{

@@ -149,4 +149,21 @@ namespace Dirigent.Common
 			this.Attributes = attribs;
 		}
 	}
+
+    public class UnknownDependencyException : Exception
+    {
+        public UnknownDependencyException(string message)
+                : base(message)
+        {
+        }
+    }
+    
+    public class CircularDependencyException : Exception
+    {
+        public CircularDependencyException(string message)
+                : base(message)
+        {
+        }
+    }
+
 }

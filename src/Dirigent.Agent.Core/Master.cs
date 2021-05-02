@@ -372,10 +372,10 @@ namespace Dirigent.Agent
 			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
 			{
-				var appDef = _plans.FindAppInPlan( planName, id );
+				var app = _plans.FindAppInPlan( planName, id );
 
 				// this sends app def to agent if different from the previous
-				_allAppDefs.AddOrUpdate( appDef );
+				_allAppDefs.AddOrUpdate( app.Def );
 			}
 			else// load from defaults 
 			if( planName is null )
@@ -449,16 +449,13 @@ namespace Dirigent.Agent
 		{
 			if( planName is null ) return;
 
-            // find the plan
-			var plan = _plans.FindPlan( planName ); // throws on error
-            if( plan == null ) return;
+			var app = _plans.FindAppInPlan( planName, id ); // throws on error
 
             // find the appdef within the plan
-            var appDef = plan.AppDefs.Find( t => t.Id == id );
-            if( appDef is null ) return;
+            var ad = app.Def;
 
             // change the enabled flag in plan's appDef
-            appDef.Disabled = !enabled;
+            ad.Disabled = !enabled;
 
 			// we need to comunicate the appDef change to Guis so they show it
 			// agents will get the appdef as soon as the app gets next time started

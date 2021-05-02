@@ -70,7 +70,7 @@ namespace Dirigent.Agent
 		/// Finds app def in a plan. Throws if failed.
 		/// </summary>
 		//[return: MaybeNull]
-		public AppDef FindAppInPlan( string planName, AppIdTuple id )
+		public PlanApp FindAppInPlan( string planName, AppIdTuple id )
 		{
 			return FindPlan( planName ).FindApp( id );
 		}
@@ -87,7 +87,7 @@ namespace Dirigent.Agent
 		public void AppDefUpdated( string planName, AppIdTuple id )
 		{
 			var plan = FindPlan( planName ); // throws if failed
-			var appDef = plan.FindApp( id ); // throws if failed
+			var app = plan.FindApp( id ); // throws if failed
 			PlanDefUpdated?.Invoke( plan.Def );
 		}
 

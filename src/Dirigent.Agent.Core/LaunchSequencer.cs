@@ -14,7 +14,7 @@ namespace Dirigent.Agent
     /// </summary>
     public class LaunchSequencer
     {
-        List<AppDef> _appQueue; // queue of apps to be launched sequentially with given time separation
+        List<PlanApp> _appQueue; // queue of apps to be launched sequentially with given time separation
 
         double _timeOfLastLaunch; // time stamp (in seconds)
         double _lastAppSeparationInterval; // in seconds
@@ -23,15 +23,15 @@ namespace Dirigent.Agent
         {
             _timeOfLastLaunch = 0;
             _lastAppSeparationInterval = 0.0;
-            _appQueue = new List<AppDef>();
+            _appQueue = new();
         }
 
-        public void AddApps( IEnumerable<AppDef> appDefs )
+        public void AddApps( IEnumerable<PlanApp> apps )
         {
             // add new apps at the end of queue
-            foreach( var ad in appDefs )
+            foreach( var app in apps )
             {
-                _appQueue.Add( ad );
+                _appQueue.Add( app );
             }
         }
         
@@ -46,9 +46,9 @@ namespace Dirigent.Agent
         /// </summary>
         /// <param name="currentTimeStamp"></param>
         /// <returns>null if no app to be lanched, otherwise the AppDef</returns>
-        public AppDef? GetNext( double currentTime )
+        public PlanApp? GetNext( double currentTime )
         {
-            AppDef? res = null;
+            PlanApp? res = null;
             if( !IsEmpty() )
             {
                 double deltaSeconds = currentTime - _timeOfLastLaunch;
@@ -59,7 +59,7 @@ namespace Dirigent.Agent
                     
                     // remember constraints for the next one
                     _timeOfLastLaunch = currentTime;
-                    _lastAppSeparationInterval = res.SeparationInterval;
+                    _lastAppSeparationInterval = res.Def.SeparationInterval;
 
                     // remove the app returned
                     _appQueue.RemoveAt(0);
