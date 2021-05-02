@@ -34,4 +34,8 @@ Maybe add some flags to KillApp command indicating we want to reset the app stat
 [IDEA] Assign each plan a small unique integer number and use it for identifying the app def in network messages and possibly everywhere. Keep a global registry of AppDefs indexed by this number. Number assigned by master (simple counter).
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
-[BUG] we started plan2 with app m1.b (app went Planned), then we launched app m1.b from plan1 - agent still having appDef from plan2... Starting app from certain plan should use that plan name!
+[FIXED] we started plan2 with app m1.b (app went Planned), then we launched app m1.b from plan1 - agent still having appDef from plan2... Starting app from certain plan should use that plan name!
+[FIXED] Should All-volatile plan report success if all volatile apps have been planApplied, started and initialized (does not need to run), none failed?
+On the other hand, we want such an all-volatile plans to be startable again without killing it?
+I.e. when StartPlan comes again when already reporting success, shall we start it again?
+Was set to require explicit kill!

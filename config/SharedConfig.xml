@@ -63,6 +63,8 @@
     		ExeFullPath = "c:\windows\notepad.exe"
     		StartupDir = "c:\"
     		CmdLineArgs = "bbb.txt"
+    		RestartOnCrash = "0"
+    		Volatile = "1"
     		InitCondition = "exitcode 0"
     		Dependencies = "m1.a"
     	/>

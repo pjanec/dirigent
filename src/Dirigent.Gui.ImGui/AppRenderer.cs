@@ -40,7 +40,8 @@ namespace Dirigent.Gui
 			}
 
 			string statusText = appState != null ? Tools.GetAppStateText( appState, planState, appDef ) : string.Empty;
-			string? planName = appState?.PlanName;
+
+			string? planName = _appDef?.PlanName ?? appState?.PlanName;	// prefer plan from appdef
 
 
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0f,1f,1f,1f) );

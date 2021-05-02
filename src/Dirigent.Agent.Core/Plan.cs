@@ -205,11 +205,14 @@ namespace Dirigent.Agent
 			// where the tools terminate automatically after they are done with their job.
 			// Note: this won't kill any app as the Kill is initiated when no app is running any more.
 			// (Usual non-volatile plans would not allow next start before prior KillPlan)
+			if(false) // DISABLED 
+			// - Explicit kill needed before being able to start again
+			// The reason is that we can reliably detect that the plan has succeeded
+			// With autokill the plan state goes None - InProgress - None and it's not clear if it was run at all
+			// if not asking quickly enough...
 			{
 			    var currTime = DateTime.UtcNow;
 
-				//bool allLaunched = true;
-				//bool allNonVolatileRunning = true;
 				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
 				bool allAppsProcessed = true;
 				bool anyStillRunning = false;
@@ -219,11 +222,6 @@ namespace Dirigent.Agent
 					var apst = _appsState[ad.Id];
 
 					bool offline = apst.IsOffline;
-
-					//if ( !offline & !(apst.PlanApplied && apst.Started && apst.Initialized))
-					//{
-					//	allLaunched = false;
-					//}
 
 					if (!offline && ! (app.State.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
 					{
@@ -236,15 +234,10 @@ namespace Dirigent.Agent
 					if (!ad.Volatile)
 					{
 						anyNonVolatileApp = true;
-
-						//if (!apst.Running || offline)
-						//{
-						//	allNonVolatileRunning = false;
-						//}
 					}
 				}
 
-				if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning)	// all apps volatile, all launched and none is running  any longer
+				if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning) // all apps volatile, all launched and none is running  any longer
 				{
 					// Note: this won't kill any app as no apps are running any more.
 					//       It just make the plan startable again.
