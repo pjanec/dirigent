@@ -22,7 +22,7 @@ namespace Dirigent.Common
 
 		public AppState? GetAppState( AppIdTuple Id ) { if( _appStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
-		public PlanState? GetPlanState( string Id ) { if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
+		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }

@@ -460,6 +460,7 @@
 			// btnSelectPlan
 			// 
 			this.btnSelectPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnSelectPlan.Image = global::Dirigent.Gui.WinForms.Resource1.open;
 			this.btnSelectPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnSelectPlan.Name = "btnSelectPlan";
 			this.btnSelectPlan.Size = new System.Drawing.Size(40, 19);
@@ -469,6 +470,7 @@
 			// btnStartPlan
 			// 
 			this.btnStartPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnStartPlan.Image = global::Dirigent.Gui.WinForms.Resource1.play;
 			this.btnStartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnStartPlan.Name = "btnStartPlan";
 			this.btnStartPlan.Size = new System.Drawing.Size(40, 19);
@@ -478,6 +480,7 @@
 			// btnStopPlan
 			// 
 			this.btnStopPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.stop;
 			this.btnStopPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnStopPlan.Name = "btnStopPlan";
 			this.btnStopPlan.Size = new System.Drawing.Size(40, 19);
@@ -487,6 +490,7 @@
 			// btnKillPlan
 			// 
 			this.btnKillPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.delete;
 			this.btnKillPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnKillPlan.Name = "btnKillPlan";
 			this.btnKillPlan.Size = new System.Drawing.Size(40, 19);
@@ -496,6 +500,7 @@
 			// btnRestartPlan
 			// 
 			this.btnRestartPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.refresh;
 			this.btnRestartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnRestartPlan.Name = "btnRestartPlan";
 			this.btnRestartPlan.Size = new System.Drawing.Size(40, 19);
@@ -505,6 +510,7 @@
 			// bntKillAll2
 			// 
 			this.bntKillAll2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
 			this.bntKillAll2.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.bntKillAll2.Name = "bntKillAll2";
 			this.bntKillAll2.Size = new System.Drawing.Size(40, 19);
@@ -514,6 +520,7 @@
 			// btnShowJustAppsFromCurrentPlan
 			// 
 			this.btnShowJustAppsFromCurrentPlan.CheckOnClick = true;
+			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.items_few;
 			this.btnShowJustAppsFromCurrentPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.btnShowJustAppsFromCurrentPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnShowJustAppsFromCurrentPlan.Name = "btnShowJustAppsFromCurrentPlan";
@@ -624,6 +631,7 @@
 			// btnKillAll
 			// 
 			this.btnKillAll.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnKillAll.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
 			this.btnKillAll.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnKillAll.Name = "btnKillAll";
 			this.btnKillAll.Size = new System.Drawing.Size(40, 19);
