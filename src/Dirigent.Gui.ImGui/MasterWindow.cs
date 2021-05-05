@@ -18,9 +18,12 @@ namespace Dirigent.Gui
 		private AppConfig _ac;
 		private Agent.Master _master;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
+		private ImGuiWindow _wnd;
 
-		public MasterWindow( AppConfig ac )
+		public MasterWindow( ImGuiWindow wnd, AppConfig ac )
 		{
+			_wnd = wnd;
+
 			_ac = ac;
 
 			if( _ac.SharedConfig is null ) throw new Exception("Shared Config not define.");
@@ -72,7 +75,7 @@ namespace Dirigent.Gui
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( id, _master );
+					r = new AppRenderer( _wnd, id, _master );
 					_appRenderers[id] = r;
 				}
 				r.DrawUI();
@@ -89,7 +92,7 @@ namespace Dirigent.Gui
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
 				{
-					r = new PlanRenderer( pd.Name, _master );
+					r = new PlanRenderer( _wnd, pd.Name, _master );
 					_planRenderers[pd.Name] = r;
 				}
 				r.DrawUI();

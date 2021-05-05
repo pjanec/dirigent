@@ -14,9 +14,11 @@ namespace Dirigent.Gui
 		IDirig _ctrl;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
+		private ImGuiWindow _wnd;
 		
-		public PlanRenderer( string id, IDirig ctrl )
+		public PlanRenderer( ImGuiWindow wnd, string id, IDirig ctrl )
 		{
+			_wnd = wnd;
 			_id = id;
 			_ctrl = ctrl;
 		}
@@ -80,7 +82,7 @@ namespace Dirigent.Gui
 						AppRenderer? r;
 						if( !_appRenderers.TryGetValue( ad.Id, out r ) )
 						{
-							r = new AppRenderer( ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
+							r = new AppRenderer( _wnd, ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
 							_appRenderers[ad.Id] = r;
 						}
 						else r.AppDef = ad;	// app def may change so better to update it every time

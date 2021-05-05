@@ -20,10 +20,12 @@ namespace Dirigent.Gui
 		private Net.Client _client;
 		private ReflectedStateRepo _reflStates;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
+		private ImGuiWindow _wnd;
 
 
-		public GuiWindow( AppConfig ac )
+		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
 		{
+			_wnd = wnd;
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_clientIdent = new Net.ClientIdent(	string.Empty, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
@@ -73,7 +75,7 @@ namespace Dirigent.Gui
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( id, _reflStates );	// will render the effective ones
+					r = new AppRenderer( _wnd, id, _reflStates );	// will render the effective ones
 					_appRenderers[id] = r;
 				}
 				r.DrawUI();
@@ -90,7 +92,7 @@ namespace Dirigent.Gui
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
 				{
-					r = new PlanRenderer( pd.Name, _reflStates );
+					r = new PlanRenderer( _wnd, pd.Name, _reflStates );
 					_planRenderers[pd.Name] = r;
 				}
 				r.DrawUI();

@@ -16,12 +16,37 @@ namespace Dirigent.Gui
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private AppDef? _appDef = null; // if null, app def will be taken from IDirig interface (which is the actual one, not necessarily the same one from the plan)
 		public AppDef? AppDef { get { return _appDef; } set { _appDef = value; } }
+		private ImGuiWindow _wnd;
 		
-		public AppRenderer( AppIdTuple id, IDirig ctrl, AppDef? appDef=null )
+		public ImageInfo _txStart;
+		public ImageInfo _txKill;
+		public ImageInfo _txRestart;
+		//private System.Numerics.Vector2 _btnSize;
+		
+		public AppRenderer( ImGuiWindow wnd, AppIdTuple id, IDirig ctrl, AppDef? appDef=null )
 		{
+			_wnd = wnd;
 			_id = id;
 			_ctrl = ctrl;
 			_appDef = appDef;
+
+			//_btnSize = ImGui.CalcTextSize("XX")*1.4f;
+			_txStart = _wnd.GetImage("Resources/play.gif");
+			_txKill = _wnd.GetImage("Resources/delete.bmp");
+			_txRestart = _wnd.GetImage("Resources/refresh.png");
+		}
+
+		// uses original texture size and black background, 
+		private bool ImgBtn( ImageInfo img )
+		{
+			return ImGui.ImageButton(
+				img.TextureUserId,
+				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
+				System.Numerics.Vector2.Zero,
+				new System.Numerics.Vector2(1,1),
+				0, // no padding
+				new System.Numerics.Vector4(0,0,0,1) // black background
+			); 
 		}
 
 		static System.Numerics.Vector4 _redColor = new System.Numerics.Vector4(1f,0,0,1f);
@@ -67,11 +92,12 @@ namespace Dirigent.Gui
 			}
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4f);
-			if( ImGui.Button("S") )	_ctrl.Send( new Net.StartAppMessage( _id, planName ) );
+			//if( ImGui.Button("S") )	_ctrl.Send( new Net.StartAppMessage( _id, planName ) );
+			if( ImgBtn( _txStart ) ) _ctrl.Send( new Net.StartAppMessage( _id, planName ) );
 			ImGui.SameLine();
-			if( ImGui.Button("K") )	_ctrl.Send( new Net.KillAppMessage( _id ) );
+			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillAppMessage( _id ) );
 			ImGui.SameLine();
-			if( ImGui.Button("R") )	_ctrl.Send( new Net.RestartAppMessage( _id ) );
+			if( ImgBtn( _txRestart ) ) _ctrl.Send( new Net.RestartAppMessage( _id ) );
 
 			// enabled checkbox just for apps from a plan
 			if( _appDef is not null && _appDef.PlanName is not null)

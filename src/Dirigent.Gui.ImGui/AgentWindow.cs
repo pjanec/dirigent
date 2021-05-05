@@ -21,9 +21,11 @@ namespace Dirigent.Gui
 		private Agent.Agent _agent;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private string _machineId;
+		private ImGuiWindow _wnd;
 
-		public AgentWindow( AppConfig ac, string machineId )
+		public AgentWindow( ImGuiWindow wnd, AppConfig ac, string machineId )
 		{
+			_wnd = wnd;
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_machineId = machineId;
@@ -72,7 +74,7 @@ namespace Dirigent.Gui
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( id, _agent );
+					r = new AppRenderer( _wnd, id, _agent );
 					_appRenderers[id] = r;
 				}
 				r.DrawUI();
@@ -89,7 +91,7 @@ namespace Dirigent.Gui
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
 				{
-					r = new PlanRenderer( pd.Name, _agent );
+					r = new PlanRenderer( _wnd, pd.Name, _agent );
 					_planRenderers[pd.Name] = r;
 				}
 				r.DrawUI();

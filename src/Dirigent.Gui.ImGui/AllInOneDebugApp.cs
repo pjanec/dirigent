@@ -27,14 +27,14 @@ namespace Dirigent.Gui
 		{
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-			_masterWin = new MasterWindow( _ac );
-			_guiWin = new GuiWindow( _ac );
-			_agentWin1 = new AgentWindow( _ac, "m1" );
-			_agentWin2 = new AgentWindow( _ac, "m2" );
-
 
 			_wnd = new ImGuiWindow("Dirigent Debug All-In-One", width:1000, height:700);
 			_wnd.OnDrawUI += DrawUI;
+
+			_masterWin = new MasterWindow( _wnd, _ac );
+			_guiWin = new GuiWindow( _wnd, _ac );
+			_agentWin1 = new AgentWindow( _wnd, _ac, "m1" );
+			_agentWin2 = new AgentWindow( _wnd, _ac, "m2" );
 		}
 
 		protected override void Dispose(bool disposing)
@@ -46,6 +46,8 @@ namespace Dirigent.Gui
 			_guiWin?.Dispose();
 			_agentWin1?.Dispose();
 			_agentWin2?.Dispose();
+
+			_wnd.Dispose();
 		}
 
 		public EAppExitCode run()

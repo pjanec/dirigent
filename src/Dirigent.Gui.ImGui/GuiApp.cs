@@ -25,11 +25,13 @@ namespace Dirigent.Gui
 		{
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-			_guiWin = new GuiWindow( _ac );
-
 
 			_wnd = new ImGuiWindow("Dirigent Gui", width:250, height:300);
 			_wnd.OnDrawUI += DrawUI;
+
+			_guiWin = new GuiWindow( _wnd, _ac );
+
+
 		}
 
 		protected override void Dispose(bool disposing)
@@ -38,6 +40,7 @@ namespace Dirigent.Gui
 			if( !disposing ) return;
 
 			_guiWin?.Dispose();
+			_wnd.Dispose();
 		}
 
 		public EAppExitCode run()

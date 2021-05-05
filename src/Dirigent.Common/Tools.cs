@@ -358,9 +358,9 @@ namespace Dirigent.Common
 			return assemblyExe;
 		}
 
-		public static string? GetExeDir()
+		public static string GetExeDir()
 		{
-			return System.IO.Path.GetDirectoryName( GetExePath() );
+			return System.IO.Path.GetDirectoryName( GetExePath() ) ?? string.Empty;
 		}
 
         /// <summary>

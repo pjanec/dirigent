@@ -7,9 +7,21 @@ using Veldrid.Sdl2;
 using Veldrid.StartupUtilities;
 
 using static ImGuiNET.ImGuiNative;
+using System.Collections.Generic;
 
 namespace Dirigent.Gui
 {
+	public struct ImageInfo
+	{
+		public readonly Texture Texture;
+		public readonly IntPtr TextureUserId;
+		public ImageInfo( Texture texture, IntPtr textureUserId )
+		{
+			Texture = texture;
+			TextureUserId = textureUserId;
+		}
+	};
+
 	public class ImGuiWindow : IDisposable
 	{
 		private Sdl2Window _window;
@@ -24,6 +36,8 @@ namespace Dirigent.Gui
 		private void SetThing(out float i, float val) { i = val; }
 		private Stopwatch _stopWatch = new Stopwatch();
 		private double _lastTime = -1;
+
+		private Dictionary<string, Texture> _textureAtlas = new Dictionary<string, Texture>(); 
 
 
 		/// <summary>
@@ -101,6 +115,19 @@ namespace Dirigent.Gui
 			_controller.Dispose();
 			_cl.Dispose();
 			_gd.Dispose();
+		}
+
+		public ImageInfo GetImage( string path )
+		{
+			Texture? tx = null;
+			if( !_textureAtlas.TryGetValue( path, out tx ) )
+			{
+				var fullPath = System.IO.Path.IsPathFullyQualified( path ) ? path : System.IO.Path.Combine( Dirigent.Common.Tools.GetExeDir(), path );
+				var imgSharpTx = new Veldrid.ImageSharp.ImageSharpTexture( fullPath );
+				tx = imgSharpTx.CreateDeviceTexture( _gd, _gd.ResourceFactory );
+				_textureAtlas[path] = tx;
+			}
+			return new ImageInfo(tx, _controller.GetOrCreateImGuiBinding( _gd.ResourceFactory, tx ) );
 		}
 
 		public bool Exists
