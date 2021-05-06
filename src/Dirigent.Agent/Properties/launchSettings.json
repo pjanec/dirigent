@@ -2,7 +2,7 @@
   "profiles": {
     "Dirigent.Agent": {
       "commandName": "Project",
-      "commandLineArgs": "--mode agent --isMaster 1"
+      "commandLineArgs": "--mode trayApp --isMaster 1 --masterIp 10.0.0.66"
     }
   }
 }

@@ -34,7 +34,7 @@ namespace Dirigent.Gui.WinForms
 		private AppConfig _ac;
 
 		private IDirig _ctrl;
-		private string _machineId;
+		private string _machineId; // empty if GUI not running as part of local agent
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private List<PlanDef> _planRepo; // current plan repo
 		private Net.Client _client;
@@ -54,14 +54,17 @@ namespace Dirigent.Gui.WinForms
 
 		public frmMain(
 			AppConfig ac,
-			NotifyIcon notifyIcon
+			NotifyIcon notifyIcon,
+			string machineId // empty if no local agent was started with the GUI
 		)
 		{
 			_ac = ac;
-			_machineId = "m1";
+			_machineId = machineId; // FIXME: this is only valid if we are running a local agent! How do we know??
 			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
 			_notifyIcon = notifyIcon;
 			_allowLocalIfDisconnected = true;
+
+			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
 
 			InitializeComponent();
@@ -433,11 +436,7 @@ namespace Dirigent.Gui.WinForms
 
 		private void exitToolStripMenuItem1_Click( object sender, EventArgs e )
 		{
-			if( MessageBox.Show( "Exit Dirigent and kill apps on this computer?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
-			{
-				var args = new TerminateArgs() { KillApps = true, MachineId = this._machineId };
-				_ctrl.Send( new Net.TerminateMessage( args ) );
-			}
+			AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() );	 // handled in GuiApp
 		}
 
 		private void btnKillAll_Click( object sender, EventArgs e )

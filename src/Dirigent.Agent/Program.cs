@@ -13,7 +13,7 @@ using log4net;
 namespace Dirigent.Agent
 {
 
-	public interface App : IDisposable
+	public interface IApp : IDisposable
 	{
 		/// <summary>
 		///  returns exit code
@@ -60,24 +60,37 @@ namespace Dirigent.Agent
 				}
 				else
 				{
-					App? app = null;
+					IApp? app = null;
 
 					switch( ac.Mode.ToLower() )
 					{
-						// agent with optionl master?
-						case "traygui":  // for compatibility with Dirigent 1.x
-						case "trayapp":  // for compatibility with Dirigent 1.x
-						case "daemon":
-						case "agent":
+						case "gui":  // just gui, no agent
 						{
-							app = new AgentMasterApp( ac, isAgent: true, isMaster: Tools.BoolFromString( ac.IsMaster ) );
+							app = new AgentMasterApp( ac, isAgent: false, isMaster: Tools.BoolFromString( ac.IsMaster ), runGui:true );
 							break;
 						}
 
-						// master only?
+						// agent + gui
+						case "traygui":  // for compatibility with Dirigent 1.x
+						case "trayapp":  // for compatibility with Dirigent 1.x
+						case "trayagentgui":
+						{
+							app = new AgentMasterApp( ac, isAgent: true, isMaster: Tools.BoolFromString( ac.IsMaster ), runGui:true );
+							break;
+						}
+
+						// just agent (no gui)
+						case "daemon":
+						case "agent":
+						{
+							app = new AgentMasterApp( ac, isAgent: true, isMaster: Tools.BoolFromString( ac.IsMaster ), runGui:false );
+							break;
+						}
+
+						// master only
 						case "master":
 						{
-							app = new AgentMasterApp( ac, isAgent: false, isMaster: true );
+							app = new AgentMasterApp( ac, isAgent: false, isMaster: true, runGui:false );
 							break;
 						}
 

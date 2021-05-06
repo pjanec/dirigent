@@ -13,7 +13,7 @@ using log4net;
 namespace Dirigent.Gui.WinForms
 {
 
-	public interface App
+	public interface IApp : IDisposable
 	{
 		/// <summary>
 		///  returns exit code
@@ -59,23 +59,47 @@ namespace Dirigent.Gui.WinForms
 					bool runAgent = false;
 					bool runGui = true;
 
-					if( string.Equals( ac.Mode, "TrayAgent", StringComparison.OrdinalIgnoreCase )
-						||
-						string.Equals( ac.Mode, "TrayApp", StringComparison.OrdinalIgnoreCase )
-					)
+					switch( ac.Mode.ToLower() )
 					{
-						runAgent = true;
-						runGui = false;
-					}
-					else
-					if( string.Equals( ac.Mode, "TrayAgentGui", StringComparison.OrdinalIgnoreCase ) )
-					{
-						runAgent = true;
-						runGui = true;
+						default:
+						case "gui":  // just gui, no agent
+						{
+							runAgent = false;
+							runGui = true;
+							break;
+						}
+
+						// agent + gui
+						case "traygui":  // for compatibility with Dirigent 1.x
+						case "trayapp":  // for compatibility with Dirigent 1.x
+						case "trayagentgui":
+						{
+							runAgent = true;
+							runGui = true;
+							break;
+						}
+
+						// just agent (no gui)
+						case "daemon":
+						case "agent":
+						{
+							runAgent = true;
+							runGui = false;
+							break;
+						}
+
+						// master only
+						case "master":
+						{
+							runAgent = true;  // master is part of agent executable; if run with "--mode master", just master will run
+							runGui = false;
+							break;
+						}
 					}
 
-					App app = new GuiTrayApp( ac, runAgent, runGui );
+					IApp app = new GuiTrayApp( ac, runAgent, runGui );
 					exitCode = app.run();
+					app.Dispose();
 					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}

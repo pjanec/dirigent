@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Dirigent.Common;
 
-namespace Dirigent.Gui.WinForms
+namespace Dirigent.Common
 {
     /// <summary>
     /// Launches and keeps running the Dirigent process
@@ -19,23 +18,26 @@ namespace Dirigent.Gui.WinForms
     /// </summary>
     public class ProcRunner : Disposable
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        Process _proc = null;
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
+        Process? _proc = null;
         private string _procNameNoExt;
         private string _procPath;
         private string _modeOptionValue;
+        private bool _killOnDispose;
 
+        #if Windows
         [DllImport("user32.dll",EntryPoint = "ShowWindow",SetLastError = true)]
         static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
         private const int SW_RESTORE = 9;
         private const int SW_SHOW = 5;
         private const int SW_HIDE = 0;
+        #endif
 
         private bool _consoleShown = false; // last known state
-        private Thread _keepAliveThread = null;
+        private Thread? _keepAliveThread = null;
         private bool _quitKeepAliveThread = false;
 
-        public ProcRunner( string processPath, string modeOptionValue )
+        public ProcRunner( string processPath, string modeOptionValue, bool killOnDispose )
         {
             _modeOptionValue = modeOptionValue;
             _procNameNoExt = System.IO.Path.GetFileNameWithoutExtension( processPath );
@@ -45,7 +47,7 @@ namespace Dirigent.Gui.WinForms
                 // get path next to the current process
                 _procPath = System.IO.Path.Combine( Tools.GetExeDir(), System.IO.Path.GetFileName(processPath) );
             }
-
+            _killOnDispose = killOnDispose;
         }
 
         /// <summary>
@@ -98,6 +100,16 @@ namespace Dirigent.Gui.WinForms
                 log.DebugFormat("StartProc FAILED except {0}", ex.Message );
                 throw new Exception( $"Failed to run process {psi.FileName} from {psi.WorkingDirectory}");
             }
+        }
+
+        /// <summary>
+        /// Use instead of launch when the process to be launched is already existing but we still
+        /// want to use the KeepAlive mechanism.
+        /// </summary>
+        /// <param name="pid"></param>
+        public void Adopt( int pid )
+        {
+            _proc = Process.GetProcessById( pid );
         }
 
         public void Kill()
@@ -181,13 +193,17 @@ namespace Dirigent.Gui.WinForms
                 if( value ) // show
                 {
                     if( _proc == null ) return;
+                    #if Windows
                     ShowWindow( _proc.MainWindowHandle, SW_RESTORE );
+                    #endif
                     _consoleShown = true;
                 }
                 else
                 {
                     if( _proc == null ) return;
+                    #if Windows
                     ShowWindow( _proc.MainWindowHandle, SW_HIDE );
+                    #endif
                     _consoleShown = false;
                 }
 

@@ -107,6 +107,7 @@ namespace Dirigent.Common
 		public string LocalIP = "0.0.0.0";
 		public string McastAppStates = "0";
 		public IList<string> NonOptionArgs = new List<string>();
+		public int ParentPid = -1;
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -166,6 +167,7 @@ namespace Dirigent.Common
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
+				ParentPid = options.parentPid;
 			} )
 			.WithNotParsed<Options>( ( errList ) =>
 			{

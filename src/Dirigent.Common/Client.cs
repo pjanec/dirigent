@@ -90,9 +90,9 @@ namespace Dirigent.Net
 			}
 		}
 
-		public void Connect()
+		public bool Connect()
 		{
-			_protoClient.Connect();
+			return _protoClient.Connect();
 		}
 
 		public void Disconnect()

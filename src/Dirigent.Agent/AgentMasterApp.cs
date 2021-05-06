@@ -11,7 +11,7 @@ namespace Dirigent.Agent
 {
 
 	///<summary>Console app with Agent and/or Master</summary>
-	public class AgentMasterApp : Disposable, App
+	public class AgentMasterApp : Disposable, IApp
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -23,12 +23,17 @@ namespace Dirigent.Agent
 
 		private bool _isMaster;
 		private bool _isAgent;
+		private bool _runGui;
+
+        private ProcRunner? _guiRunner;
 
 
-		public AgentMasterApp( AppConfig ac, bool isAgent, bool isMaster )
+
+		public AgentMasterApp( AppConfig ac, bool isAgent, bool isMaster, bool runGui )
 		{
 			_isMaster = isMaster;
 			_isAgent = isAgent;
+			_runGui = runGui;
 			_ac = ac;
 		}
 
@@ -39,10 +44,16 @@ namespace Dirigent.Agent
 
 			_master?.Dispose();
 			_agent?.Dispose();
+
+			_guiRunner?.Dispose();
+			_guiRunner = null;
+
 		}
 
 		public EAppExitCode run()
 		{
+			bool stayRunning = _isMaster || _isAgent;
+
 			if( _isMaster )
 			{
 				if( !IsMasterAlreadyRunning() )
@@ -59,6 +70,40 @@ namespace Dirigent.Agent
 				if( !IsAgentAlreadyRunning() )
 				{
 					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+				}
+			}
+
+			if( _runGui 
+			   && _ac.ParentPid == -1 )	// just if we are NOT launched from GUI
+			{
+				_guiRunner = new Common.ProcRunner(
+					"Dirigent.Gui.exe",
+					"trayGui",
+					killOnDispose:stayRunning  // if we are just the GUI launcher, do not kill the gui when we exit
+					);
+				try
+				{
+					{
+						if( _ac.ParentPid == -1 )
+						{
+							_guiRunner.Launch();
+						}
+						else
+						{
+							_guiRunner.Adopt( _ac.ParentPid );
+						}
+
+						if( stayRunning ) // re-launch crashed gui just if we are staying
+						{
+							_guiRunner.StartKeepAlive();
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					log.Error(ex);
+					_guiRunner.Dispose();
+					_guiRunner = null;
 				}
 			}
 
@@ -86,26 +131,26 @@ namespace Dirigent.Agent
 
 			//}
 
-			while( true )
+			if( stayRunning )
 			{
-				if( _master is not null )
+				while( true )
 				{
-					_master.Tick();
-					if( _master.WantsQuit ) break;
+					if( _master is not null )
+					{
+						_master.Tick();
+						if( _master.WantsQuit ) break;
+					}
+
+					if( _agent is not null )
+					{
+						_agent.Tick();
+						if( _agent.WantsQuit ) break;
+					}
+
+
+					Thread.Sleep( _ac.TickPeriod );
 				}
-
-				if( _agent is not null )
-				{
-					_agent.Tick();
-					if( _agent.WantsQuit ) break;
-				}
-
-
-				Thread.Sleep( _ac.TickPeriod );
 			}
-
-			_agent?.Dispose();
-			_master?.Dispose();
 
 			return EAppExitCode.OK;
 		}

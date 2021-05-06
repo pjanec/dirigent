@@ -9,7 +9,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Gui.WinForms
 {
-	public class GuiTrayApp : App
+	public class GuiTrayApp : Disposable, IApp
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
@@ -20,6 +20,7 @@ namespace Dirigent.Gui.WinForms
         private ProcRunner _agentRunner;
 		private bool _runGui;
 		private bool _runAgent;
+		private string _machineId; // empty if GUI not running as part of local agent
 
 		class MyApplicationContext : ApplicationContext
 		{
@@ -30,20 +31,25 @@ namespace Dirigent.Gui.WinForms
 			_ac = ac;
 			_runAgent = runAgent;
 			_runGui = runGui;
+
+			_machineId = _runAgent ? _ac.MachineId : string.Empty;
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			base.Dispose(disposing);
+
+			if( !disposing ) return;
+
+			DeinitializeMainForm();
+			DeinitializeTrayIcon();
+			DeinitializeAgent();
+
+			AppMessenger.Instance.Dispose();
 		}
 
 		public EAppExitCode run()
 		{
-			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-
-			// listen to AppExit messages
-			AppMessenger.Instance.Register<Common.AppMessages.ExitApp>( ( x ) => Application.Exit() );
-			//AppMessenger.Instance.Register<Common.AppMessages.CheckSharedConfigAndRestartMaster>( (x) => CheckSharedConfigAndRestartMaster() );
-
-
-			Application.EnableVisualStyles();
-			Application.SetCompatibleTextRenderingDefault( false );
-
 			var exitCode = EAppExitCode.NoError;
 
 			if( _runAgent )
@@ -51,13 +57,18 @@ namespace Dirigent.Gui.WinForms
 				InitializeAgent();
 			}
 
-
-			InitializeTrayIcon();
-
 			try
 			{
 				if( _runGui )
 				{
+					// listen to AppExit messages
+					AppMessenger.Instance.Register<Common.AppMessages.ExitApp>( ( x ) => ExitApp() );
+					//AppMessenger.Instance.Register<Common.AppMessages.CheckSharedConfigAndRestartMaster>( (x) => CheckSharedConfigAndRestartMaster() );
+
+					Application.EnableVisualStyles();
+					Application.SetCompatibleTextRenderingDefault( false );
+
+					InitializeTrayIcon();
 					InitializeMainForm();
 				}
 				Application.Run( new MyApplicationContext() );
@@ -68,11 +79,6 @@ namespace Dirigent.Gui.WinForms
 				ExceptionDialog.showException( ex, "Dirigent Exception", "" );
 				exitCode = EAppExitCode.ExceptionError;
 			}
-			DeinitializeMainForm();
-			DeinitializeTrayIcon();
-			DeinitializeAgent();
-
-			AppMessenger.Instance.Dispose();
 
 			return exitCode;
 		}
@@ -123,7 +129,7 @@ namespace Dirigent.Gui.WinForms
 			menuItems.Add( new ToolStripMenuItem( "Exit", null, new EventHandler( ( s, e ) =>
 			{
 				//agent.LocalOps.Terminate( new TerminateArgs() { KillApps=true, MachineId=ac.machineId }  );
-				Application.Exit();
+				AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() ); // handled in GuiApp
 			} ) ) );
 
 			//menuItems
@@ -174,7 +180,7 @@ namespace Dirigent.Gui.WinForms
 
 		void CreateMainForm()
 		{
-			_mainForm = new frmMain( _ac, _notifyIcon );
+			_mainForm = new frmMain( _ac, _notifyIcon, _machineId );
 
 			// restore saved location if SHIFT not held
 			if( ( Control.ModifierKeys & Keys.Shift ) == 0 )
@@ -216,10 +222,15 @@ namespace Dirigent.Gui.WinForms
 
         private void InitializeAgent()
         {
-			_agentRunner = new ProcRunner( "Dirigent.Agent.exe", "agent" );
+			_agentRunner = new ProcRunner( "Dirigent.Agent.exe", "agent",
+				killOnDispose:_runGui ); // kill agent on GUi app dispose only if the gui will keep runnin (otherwise we are just the launcher of an agent and terminate immediately)
 			try
 			{
-				_agentRunner.Launch();
+				if( _ac.ParentPid == -1 )
+					_agentRunner.Launch();
+				else
+					_agentRunner.Adopt( _ac.ParentPid );
+
 				_agentRunner.StartKeepAlive();
 			}
 			catch (Exception ex)
@@ -234,6 +245,28 @@ namespace Dirigent.Gui.WinForms
         {
 			_agentRunner?.Dispose();
 			_agentRunner = null;
+		}
+
+		private void ExitApp()
+		{
+			if( !string.IsNullOrEmpty( _machineId ) ) // if we were started together with a local agent
+			{
+				if( MessageBox.Show( "Exit Dirigent and kill apps on this computer?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+				{
+					// send Terminate message via a temporary client
+					var clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
+					using var client = new Net.Client( clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: false );
+					if( client.Connect() )
+					{
+						var args = new TerminateArgs() { KillApps = true, MachineId = _machineId };
+						client.Send( new Net.TerminateMessage( args ) );
+					}
+				}
+			}
+			else // not tied to any agent - simply quit the gui
+			{
+				Application.Exit();
+			}
 		}
 
 	}

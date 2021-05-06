@@ -369,8 +369,14 @@ Dirigent.Gui provides the following features:
 
 The following modes are supported (via the --mode parameter):
  * "Gui" or default = Tray Icon + App/Plan control GUI
- * "TrayAgent" = Tray icon + Agent
+ * "TrayAgent" = Tray icon + Agent (GUI window can be open initially depending on --startHidden argument)
  * "TrayAgentGui" = Tray Icon + Agent + App/Plan control GUI
+
+ Gui = just gui but no agent. If run from agent executable, just launches the gui and terminates
+ TrayGui = agent + traygui (for compatibility with Dirigent 1.x)
+ Agent = just agent, no gui (if used with GUI executable, the GUI will run the agent)
+
+
  
 ## Start apps after agent's late join
 If plan is running and agent starts late or disconnects for a while and misses some LaunchApp commands.. Could master detect that and resend the LaunchApp commands? Master might check if agent is connected before sending commands to specific agent. And warn if it isn't. And remember it should send those later when agent is connected..

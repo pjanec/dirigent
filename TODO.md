@@ -6,6 +6,9 @@
 
 [TODO] SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
 
+[BUG] Exit in GUI does not kill the agent... 
+If Gui started from agent, Exit kills the GUI but agent re-launches it
+
 [DONE] If an app is disabled, it will never be started so its appdef is never sent to an agent that will never change the Disabled flag in AppState.
 We need to tell the agent about disabling the app for concrete plan.. Do we?? Why the agent should know? Agent does not need to know if app is disabled
 because it affects just the master who process plans...
