@@ -490,7 +490,7 @@
 			// btnKillPlan
 			// 
 			this.btnKillPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.delete;
+			this.btnKillPlan.Image = global::Dirigent.Gui.WinForms.Resource1.delete;
 			this.btnKillPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnKillPlan.Name = "btnKillPlan";
 			this.btnKillPlan.Size = new System.Drawing.Size(40, 19);
@@ -500,7 +500,7 @@
 			// btnRestartPlan
 			// 
 			this.btnRestartPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.refresh;
+			this.btnRestartPlan.Image = global::Dirigent.Gui.WinForms.Resource1.refresh;
 			this.btnRestartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnRestartPlan.Name = "btnRestartPlan";
 			this.btnRestartPlan.Size = new System.Drawing.Size(40, 19);
@@ -510,7 +510,7 @@
 			// bntKillAll2
 			// 
 			this.bntKillAll2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
+			this.bntKillAll2.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
 			this.bntKillAll2.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.bntKillAll2.Name = "bntKillAll2";
 			this.bntKillAll2.Size = new System.Drawing.Size(40, 19);
@@ -520,7 +520,7 @@
 			// btnShowJustAppsFromCurrentPlan
 			// 
 			this.btnShowJustAppsFromCurrentPlan.CheckOnClick = true;
-			this.btnStopPlan.Image = global::Dirigent.Gui.WinForms.Resource1.items_few;
+			this.btnShowJustAppsFromCurrentPlan.Image = global::Dirigent.Gui.WinForms.Resource1.items_few;
 			this.btnShowJustAppsFromCurrentPlan.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
 			this.btnShowJustAppsFromCurrentPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnShowJustAppsFromCurrentPlan.Name = "btnShowJustAppsFromCurrentPlan";
@@ -691,7 +691,7 @@
 		private System.Windows.Forms.ToolStripMenuItem stopPlanToolStripMenuItem;
 		private System.Windows.Forms.TabControl tabControl1;
 		private System.Windows.Forms.TabPage tabPageApps;
-		private MyToolStrip toolStripApps;
+		private Dirigent.Gui.WinForms.MyToolStrip toolStripApps;
 		private System.Windows.Forms.ToolStripButton btnSelectPlan;
 		private System.Windows.Forms.ToolStripButton btnStartPlan;
 		private System.Windows.Forms.ToolStripButton btnStopPlan;

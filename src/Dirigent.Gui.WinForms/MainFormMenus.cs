@@ -96,7 +96,10 @@ namespace Dirigent.Gui.WinForms
 		private void selectPlanMenuItem_Click( object sender, EventArgs e )
 		{
 			//selectPlanToolStripMenuItem.ShowDropDown();
-			mnuPlanList.Show( this, this.PointToClient( Cursor.Position ) );
+			if( mnuPlanList is not null )
+			{
+				mnuPlanList.Show( this, this.PointToClient( Cursor.Position ) );
+			}
 		}
 
 		void populatePlanSelectionMenu()
