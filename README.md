@@ -6,11 +6,33 @@ It runs on Windows platform with .net 5.0
 
 ![dirigent-agent](dirigent-agent.png)
 
-#### Launch plans
+### Launch plans
 
 The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
 
 The dependencies are checked among both local and remote applications. 
+
+The plans in Dirigent can be used in several different ways
+
+ 1. App-keeping
+    - To keep the contained apps up and running
+    - All the apps contained in the plan are supposed to stay running for the whole life time of the plan (not Volatile)
+    - Plan is successful if all apps are up and running.
+    - Plan is failing if some of the apps failed to run, crashed, was killed using KillApp etc.
+
+ 2. Utility plan
+    - To run some one-shot utility commands
+    - The plan just run the apps (commands) and terminates. Often it sends a few commands to dirigent without caring whether the comamnds executed succesfully or not.
+    - All the apps needs to be marked Volatile
+    - The plan Status does not indicate anything useful (no relation to the consequences of running those commands)
+
+ 3. A combination of the two options above
+    - Non-volatile apps are kept running
+    - Volatile apps are started and then forgotten
+    - Plan status is valid for the non-volatile apps
+    - Failed volatile app (if returning an error as its exit status - depends on InitConditons) may cause the plan to fail
+
+### Plan Status
 
 The plan status indicates whether everything went successfully or if there was a failure.
 
@@ -24,13 +46,13 @@ The plan status indicates whether everything went successfully or if there was a
 
 
 
-#### Individual applications control
+### Individual applications control
 
 Applications can be launched, terminated or restarted, either individually or all-at-once.
 
 An application that is supposed to run continuously can be automatically restarted after unexpected termination or crash.
 
-#### Application status sharing
+### Application status sharing
 
 The applications are continuously monitored whether they are already initialized and still running. Their status is distributed to all agents on all machines.
 
@@ -49,13 +71,13 @@ Status is encoded in several flags
 
 
 
-#### Launching apps at startup
+### Launching apps at startup
 
 A launch plan can be executed automatically on computer startup.
 
 To speedup the boot process of a system comprising multiple interdependent computers, certain applications (independent on those on other computers) can be launched even before the connection among computers is established.
 
-#### Ways of control
+### Ways of control
 
 All operations can be controlled
 
@@ -309,18 +331,45 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 ##### Request commands
 
   `StartPlan <planName>` .... starts given plan, i.e. start launching apps
+  
   `StopPlan <planName>` ..... stops starting next applications from the plan
+  
   `KillPlan <planName>` ..... kills given plans (kills all its apps)
+  
   `RestartPlan <planName>` .. stops all apps and starts the plan again
+  
+
+Remarks:
+
+ - Killing a plan usualy makes sense just for the app-keeping plans. It makes sure that all the apps get killed. This is indicated by the status switching from Success (all apps running) to Killing (apps getting killed) to None (all apps killed).
+
+ - Started plan shall be killed first in order to be started again.
+
+ - Apps can be started/killed inidividually, without using a plan.
+
+ - Plan-driven app control approach can be combined with individual app control approach.
+
+
+
+
 
   `LaunchApp <appId>` ....... starts given app
+  
   `KillApp <appId>` ......... kills given app
+  
   `RestartApp <appId>` ...... restarts given app
+ 
+ 
+ 
+  
 
   `GetPlanState <planName>`  returns the status of given plan
-  `GetAppState <planName>`   returns the status of given app
+  
+  `GetAppState <appName>`   returns the status of given app
+
 
   `GetAllPlansState` ..... returns one line per plan; last line will be "END\n"
+  
   `GetAllAppsState` ...... returns one line per application; last line will be "END\n"
 
   `SetVars VAR=VALUE::VAR=VALUE` ...... sets environment variable(s) to be inherited by the processes launched afterwards (note that you can set multiple variables at once, separated by '::')
@@ -344,26 +393,41 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 ##### Response text for GetPlanState
 
   `PLAN:<planName>:None`
+  
   `PLAN:<planName>:InProgress`
+  
   `PLAN:<planName>:Failure`
+  
   `PLAN:<planName>:Success`
+  
   `PLAN:<planName>:Killing`
+  
 
 ##### Response text for GetAppState
 
   `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>:<PlanName>`
 
+
 ###### Flags
 
    Each letter represents one status flag. If letter is missing, flag is cleared.
+   
   `S` = started
+  
   `F` = start failed
+  
   `R` = running
+  
   `K` = killed
+  
   `D` = dying
+  
   `I` = initialized
+  
   `P` = plan applied
+  
   `X` = restarting
+  
 
 ###### ExitCode
 
@@ -385,82 +449,111 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 [NOT IMPLEMENTED]    Integer number of MBytes used
 
+
 ###### PlanName
 
   The name of plan in whose context the app was most recently launched.
 
+
 ##### Response text for other commands
 
   `ACK\n` ... command reception was acknowledged, command was issued
+  
   `ERROR: error text here\n`
+  
   `END\n` ..... ends the list in case the command is expected to produce multiple line response
+
 
 ###### Using request id
 
   Request:   `[001] StartPlan plan1`
+  
   Response:     `[001] ACK`
+
 
 ###### Leaving out the request id
 
   Request:   `KillPlan plan2`
+  
   Response:     `ACK`
+
 
 ###### Wrong identifier
 
   Request:   `KillPlan invalidPlan1`
+  
   Response:     `ERROR: Plan 'invalidPlan1' does not exist`
+
 
 ###### Starting an application
 
   Request:   `[002] StartApp m1.a`
+  
   Response:     `[002] ACK`
+
 
 ###### Getting plan status
 
   Request:   `[003] GetPlanStatus plan1`
+  
   Response:     `[003] PLAN:plan1:InProgress`
+
 
 ###### Getting app status
 
   Request:   `GetAppStatus m1.a1`
+  
   Response:     `APP:m1.a:SIP:255:10:34:0:7623`
 
 ###### Setting environment variable
 
   Request:   `[002] SetVars VAR1=VALUE1::VAR2=VALUE2`
+  
   Response:     `[002] ACK`
+
 
 ###### Killing all apps
 
   Request:   `KillApps`
+  
   Response:     `ACK`
+
 
 ###### Terminating Dirigent
 
   Request:   `Terminate`
+  
   Response:     `ACK`
+
 
 ###### Reinstalling Dirigent
 
   Request:   `Reinstall`
+  
   Response:     `ACK`
+
 
 ###### Rebooting all computers
 
   Request:   `Reboot`
+  
   Response:     `ACK`
+
 
 ###### Shutting down all computers
 
   Request:   `Shutdown`
+  
   Response:     `ACK`
+
 
 ###### Reloading SharedConfig
 
   Request:   `ReloadSharedConfig killApps=1`
+  
   Response:     `ACK`
 
-### 
+
 
 ### Agent Console Command Line Utility
 
@@ -473,22 +566,37 @@ Zero exit code is returned on success, positive error code on failure.
 The commands just simply follow the available agent actions, please see chapter *Available Actions* for more details.
 
     StartPlan <planId>
+    
     StopPlan <planId>
+    
     KillPlan <planId>
+    
     RestartPlan <planId>
     
+    
     LaunchApp <appId>
+    
     KillApp <appId>
+    
     RestartApp <appId>
+    
+    
     
     SetVars VAR1=VALUE1::VAR2=VALUE2::VAR3=VALUE3
     
+    
     KillApps
+    
     Terminate
+    
     Reinstall
+    
     Reboot
+    
     Shutdown
+    
     ReloadSharedConfig killApps=1
+    
 
 Multiple commands on a single line can be separated by semicolon
     `Dirigent.CLI.Telnet LaunchApp m1.a;StartPlan plan1`
