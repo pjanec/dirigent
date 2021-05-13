@@ -193,6 +193,12 @@ namespace Dirigent.Agent
 					break;
 				}
 
+				case KillAllMessage m:
+				{
+					KillAll( m.Args );
+					break;
+				}
+
 			}
 
 		}
@@ -460,6 +466,25 @@ namespace Dirigent.Agent
 			// we need to comunicate the appDef change to Guis so they show it
 			// agents will get the appdef as soon as the app gets next time started
 			_plans.AppDefUpdated( planName, id );
+
+		}
+
+		public void KillAll( KillAllArgs args )
+		{
+			// stop all plans
+			foreach( var p in _plans.Plans.Values )
+			{
+				p.Stop();
+			}
+
+			// kill all apps
+			foreach( var ad in _allAppDefs.AppDefs.Values )
+			{
+				if( string.IsNullOrEmpty(args.MachineId) || ad.Id.MachineId == args.MachineId )
+				{
+					KillApp( ad.Id );
+				}
+			}
 
 		}
 

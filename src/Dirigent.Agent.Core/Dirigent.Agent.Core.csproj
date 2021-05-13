@@ -5,7 +5,7 @@
     <TargetFrameworks>net5.0-windows</TargetFrameworks>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
-    <Version>2.0.0</Version>
+    <Version>3.0.0</Version>
     <Authors>pjanec</Authors>
 
     <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 
