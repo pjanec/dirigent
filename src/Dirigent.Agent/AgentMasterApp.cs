@@ -23,18 +23,22 @@ namespace Dirigent.Agent
 
 		private bool _isMaster;
 		private bool _isAgent;
-		private bool _runGui;
+		//private bool _runGui;
 
-        private ProcRunner? _guiRunner;
+		private AlreadyRunningTester _alreadyRunningTester;
+
+        //private ProcRunner? _guiRunner;
 
 
 
-		public AgentMasterApp( AppConfig ac, bool isAgent, bool isMaster, bool runGui )
+		public AgentMasterApp( AppConfig ac, bool isAgent, bool isMaster )
 		{
 			_isMaster = isMaster;
 			_isAgent = isAgent;
-			_runGui = runGui;
+			//_runGui = runGui;
 			_ac = ac;
+			_alreadyRunningTester = new AlreadyRunningTester( ac.MasterIP, ac.MasterPort, ac.MachineId );
+
 		}
 
 		protected override void Dispose(bool disposing)
@@ -45,8 +49,8 @@ namespace Dirigent.Agent
 			_master?.Dispose();
 			_agent?.Dispose();
 
-			_guiRunner?.Dispose();
-			_guiRunner = null;
+			//_guiRunner?.Dispose();
+			//_guiRunner = null;
 
 		}
 
@@ -56,56 +60,56 @@ namespace Dirigent.Agent
 
 			if( _isMaster )
 			{
-				if( !IsMasterAlreadyRunning() )
+				if( !_alreadyRunningTester.IsMasterAlreadyRunning() )
 				{
-					if( _ac.SharedConfig is null )
+					if( string.IsNullOrEmpty( _ac.SharedCfgFileName ) )
 						throw new ConfigurationErrorException("SharedConfig not defined");
 
-					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedConfig );
+					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
 				}
 			}
 
 			if( _isAgent )
 			{
-				if( !IsAgentAlreadyRunning() )
+				if( !_alreadyRunningTester.IsAgentAlreadyRunning() )
 				{
 					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
 				}
 			}
 
-			if( _runGui 
-			   && _ac.ParentPid == -1 )	// just if we are NOT launched from GUI
-			{
-				_guiRunner = new Common.ProcRunner(
-					"Dirigent.Gui.exe",
-					"trayGui",
-					killOnDispose:stayRunning  // if we are just the GUI launcher, do not kill the gui when we exit
-					);
-				try
-				{
-					{
-						if( _ac.ParentPid == -1 )
-						{
-							_guiRunner.Launch();
-						}
-						else
-						{
-							_guiRunner.Adopt( _ac.ParentPid );
-						}
+			//if( _runGui 
+			//   && _ac.ParentPid == -1 )	// just if we are NOT launched from GUI
+			//{
+			//	_guiRunner = new Common.ProcRunner(
+			//		"Dirigent.Gui.exe",
+			//		"trayGui",
+			//		killOnDispose:stayRunning  // if we are just the GUI launcher, do not kill the gui when we exit
+			//		);
+			//	try
+			//	{
+			//		{
+			//			if( _ac.ParentPid == -1 )
+			//			{
+			//				_guiRunner.Launch();
+			//			}
+			//			else
+			//			{
+			//				_guiRunner.Adopt( _ac.ParentPid );
+			//			}
 
-						if( stayRunning ) // re-launch crashed gui just if we are staying
-						{
-							_guiRunner.StartKeepAlive();
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-					log.Error(ex);
-					_guiRunner.Dispose();
-					_guiRunner = null;
-				}
-			}
+			//			if( stayRunning ) // re-launch crashed gui just if we are staying
+			//			{
+			//				_guiRunner.StartKeepAlive();
+			//			}
+			//		}
+			//	}
+			//	catch (Exception ex)
+			//	{
+			//		log.Error(ex);
+			//		_guiRunner.Dispose();
+			//		_guiRunner = null;
+			//	}
+			//}
 
 
 			//using (var client = new Dirigent.Net.Client(ac.machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP, autoConn:true ))
@@ -133,59 +137,33 @@ namespace Dirigent.Agent
 
 			if( stayRunning )
 			{
-				while( true )
+				try
 				{
-					if( _master is not null )
+					while( true )
 					{
-						_master.Tick();
-						if( _master.WantsQuit ) break;
+						if( _master is not null )
+						{
+							_master.Tick();
+							if( _master.WantsQuit ) break;
+						}
+
+						if( _agent is not null )
+						{
+							_agent.Tick();
+							if( _agent.WantsQuit ) break;
+						}
+
+
+						Thread.Sleep( _ac.TickPeriod );
 					}
-
-					if( _agent is not null )
-					{
-						_agent.Tick();
-						if( _agent.WantsQuit ) break;
-					}
-
-
-					Thread.Sleep( _ac.TickPeriod );
+				}
+				catch( Exception ex )
+				{
+					log.Error("Exception", ex);
 				}
 			}
 
 			return EAppExitCode.OK;
-		}
-
-		private Mutex? _singleInstanceMutexMaster;
-		private Mutex? _singleInstanceMutexAgent;
-
-		bool IsAgentAlreadyRunning()
-		{
-			bool createdNew;
-
-			_singleInstanceMutexAgent = new Mutex( true, String.Format( "DirigentAgent_{0}_{1}_{2}", _ac.MasterIP, _ac.MasterPort, _ac.MachineId ), out createdNew );
-
-			if( !createdNew )
-			{
-				// myApp is already running...
-				log.Error( "Another instance of Dirigent Agent is already running!" );
-				return true;
-			}
-			return false;
-		}
-
-		bool IsMasterAlreadyRunning()
-		{
-			bool createdNew;
-
-			_singleInstanceMutexMaster = new Mutex( true, String.Format( "DirigentMaster_{0}_{1}_{2}", _ac.MasterIP, _ac.MasterPort, _ac.MachineId ), out createdNew );
-
-			if( !createdNew )
-			{
-				// myApp is already running...
-				log.Error( "Another instance of Dirigent Master is already running!" );
-				return true;
-			}
-			return false;
 		}
 	}
 

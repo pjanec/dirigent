@@ -6,7 +6,7 @@ using Dirigent.Common;
 
 namespace Dirigent.Agent
 {
-	// requiest being processes
+	// request being processes
 	public class CLIRequest	: Disposable
 	{
 		public ICLIClient Client;
@@ -38,7 +38,7 @@ namespace Dirigent.Agent
 
 			try
 			{
-				var cmdList = cmdRepo.ParseCmdLine( restAfterUid, WriteResponseLine );
+				var cmdList = cmdRepo.ParseCmdLine( client.Name, restAfterUid, WriteResponseLine );
 				Commands = new Queue<ICommand>( cmdList );
 			}
 			catch( Exception e )

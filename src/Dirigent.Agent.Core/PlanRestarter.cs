@@ -24,6 +24,7 @@ namespace Dirigent.Agent
 		public bool ShallBeRemoved { get; protected set; }
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
+        private string _requestorId;
 		
 
         enum eState 
@@ -42,8 +43,9 @@ namespace Dirigent.Agent
         DateTime waitingStartTime;
         Plan _plan;
 		
-		public PlanRestarter( Plan plan )
+		public PlanRestarter( string requestorId, Plan plan )
 		{
+            _requestorId = requestorId;
             _plan = plan;    
 
 			Reset();
@@ -60,7 +62,7 @@ namespace Dirigent.Agent
                 {
                     if( planState.Running )
                     {
-                        _plan.Kill();
+                        _plan.Kill( _requestorId );
 
                         log.DebugFormat("PlanRestarter: Waiting for plan to die; plan= {0}", _plan.Name );
 						state = eState.WaitingForDeath;
@@ -98,7 +100,7 @@ namespace Dirigent.Agent
 
                 case eState.Starting:
                 {
-					_plan.Start();
+					_plan.Start( _requestorId );
 
                     state = eState.Finished;
 					break;

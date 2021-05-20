@@ -22,7 +22,8 @@ namespace Dirigent.Agent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 
-		public bool WantsQuit { get; private set; }
+		public bool WantsQuit { get; set; }
+		public string Name => _clientIdent.Name;
 
 		private LocalAppsRegistry _localApps;
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
@@ -87,18 +88,19 @@ namespace Dirigent.Agent
 			}
 		}
 
-		// incoming message from master
-		void OnMessage( Net.Message msg )
+		void ProcessIncomingMessage( Net.Message msg )
 		{
 			switch( msg )
 			{
 				case Net.AppDefsMessage m:
 				{
-					Debug.Assert( m.AppDefs is not null );
-
-					foreach( var ad in m.AppDefs )
+					//Debug.Assert( m.AppDefs is not null );
+					if( m.AppDefs is not null )
 					{
-						_localApps.AddOrUpdate( ad );
+						foreach( var ad in m.AppDefs )
+						{
+							_localApps.AddOrUpdate( ad );
+						}
 					}
 					break;
 				}
@@ -123,7 +125,43 @@ namespace Dirigent.Agent
 					la.RestartApp();
 					break;
 				}
+
+				case Net.ResetMessage m:
+				{
+					_localApps.Clear();
+					break;
+				}
 			}
+		}
+
+
+		// incoming message from master
+		void OnMessage( Net.Message msg )
+		{
+            try
+            {
+                ProcessIncomingMessage(msg);
+            }
+            catch (RemoteOperationErrorException) // an error from another agent received
+            {
+                throw; // just forward up the stack, DO NOT broadcast an error msg (would cause an endless loop & network flooding)
+            }
+            catch (Exception ex) // some local operation error as a result of remote request from another agent
+            {
+                log.ErrorFormat("Exception: "+ex.ToString());
+
+                // send an error message to agents
+                // the requestor is supposed to present an error message to the user
+				var errmsg = new Net.RemoteOperationErrorMessage(
+                            msg.Sender, // agent that requested the local operation here
+                            ex.Message, // description of the problem
+                            new Dictionary<string, string>() // additional info to the problem
+                            {
+                                { "Exception", ex.ToString() }
+                            }
+                    );
+				_client.Send( errmsg );
+            }
 		}
 	}
 }

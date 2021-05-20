@@ -54,6 +54,23 @@
     		</Env>
     	</App>
 
+    	<App
+    	    AppIdTuple = "m3.bash"
+    		ExeFullPath = "/usr/bin/bash"
+    		StartupDir = "%HOME%"
+    		CmdLineArgs = "a.sh"
+    		Volatile = "1"
+    		>
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m3.id"
+    		ExeFullPath = "/usr/bin/id"
+    		CmdLineArgs = ""
+    		StartupDir = "%HOME%"
+    		Volatile = "1"
+    		>
+    	</App>
     </Plan>
 
     <Plan Name="plan2">
@@ -119,4 +136,10 @@
     		WindowStyle = "normal"
     />
 
+    <AppTemplate Name="apps.bash"
+    		Template = ""
+    		ExeFullPath = "/usr/bin/bash"
+    		StartupDir = ""
+    		CmdLineArgs = ""
+    />
 </Shared>

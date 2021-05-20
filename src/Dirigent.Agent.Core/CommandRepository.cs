@@ -9,7 +9,7 @@ namespace Dirigent.Agent
     public class CommandRepository
     {
         Master ctrl;
-        public delegate ICommand CmdCreatorDeleg(Master ctrl);
+        public delegate ICommand CmdCreatorDeleg(Master ctrl, string requestorId);
         Dictionary<string, CmdCreatorDeleg> commands = new Dictionary<string, CmdCreatorDeleg>();
 
         public CommandRepository( Master ctrl )
@@ -22,21 +22,21 @@ namespace Dirigent.Agent
             commands[name] = creator;
         }
 
-        public ICommand? Create( string name )
+        public ICommand? Create( string name, string requestorId )
         {
             if (commands.ContainsKey(name))
             {
-                return commands[name](ctrl);
+                return commands[name](ctrl, requestorId);
             }
 
             return null;
         }
 
-        ICommand ParseSingleCommand( IList<string> cmdLineTokens )
+        ICommand ParseSingleCommand( string requestorId, IList<string> cmdLineTokens )
         {
             string cmdName = cmdLineTokens[0];
 
-            ICommand? cmd = Create(cmdName);
+            ICommand? cmd = Create(cmdName, requestorId);
             if (cmd == null)
             {
                 throw new UnknownCommandException(cmdName);
@@ -110,7 +110,7 @@ namespace Dirigent.Agent
             return commands;
         }
 
-        public List<ICommand> ParseCmdLineTokens(IList<string> cmdLineTokens, WriteResponseDeleg? writeRespDeleg)
+        public List<ICommand> ParseCmdLineTokens( string requestorId, IList<string> cmdLineTokens, WriteResponseDeleg? writeRespDeleg)
         {
             var cnt = cmdLineTokens.Count();
             if (cnt == 0)
@@ -124,7 +124,7 @@ namespace Dirigent.Agent
             var commands = ParseSubcommands( cmdLineTokens );
             foreach( var c in commands )
             {
-                var cmd = ParseSingleCommand( c );
+                var cmd = ParseSingleCommand( requestorId, c );
                 
                 if( writeRespDeleg != null )
                 {
@@ -137,7 +137,7 @@ namespace Dirigent.Agent
 			return result;
         }
 
-        public List<ICommand> ParseCmdLine( string cmdLine, WriteResponseDeleg? writeRespDeleg )
+        public List<ICommand> ParseCmdLine( string requestorId, string cmdLine, WriteResponseDeleg? writeRespDeleg )
         {
 			List<string>? tokens = null;
 			if( !string.IsNullOrEmpty( cmdLine ) )
@@ -146,7 +146,7 @@ namespace Dirigent.Agent
 			}
 			if( tokens is { Count: > 0 } )
 			{
-				var cmdList = ParseCmdLineTokens( tokens, writeRespDeleg );
+				var cmdList = ParseCmdLineTokens( requestorId, tokens, writeRespDeleg );
 				return cmdList;
 			}
             return new List<ICommand>();

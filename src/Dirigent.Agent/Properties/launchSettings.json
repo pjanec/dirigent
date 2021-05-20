@@ -2,7 +2,11 @@
   "profiles": {
     "Dirigent.Agent": {
       "commandName": "Project",
-      "commandLineArgs": "--mode trayApp --isMaster 1 --masterIp 10.0.0.66"
+      "commandLineArgs": "--isMaster 1"
+    },
+    "WSL 2": {
+      "commandName": "WSL2",
+      "distributionName": ""
     }
   }
 }

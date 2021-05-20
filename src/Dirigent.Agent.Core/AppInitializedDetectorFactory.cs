@@ -21,7 +21,7 @@ namespace Dirigent.Agent
             creators[TimeOutInitDetector.Name] = TimeOutInitDetector.create;
             creators[ExitCodeInitDetector.Name] = ExitCodeInitDetector.create;
             #if Windows
-            //creators[WindowPoppedUpInitDetector.Name] = WindowPoppedUpInitDetector.create;
+            creators[WindowPoppedUpInitDetector.Name] = WindowPoppedUpInitDetector.create;
             #endif
         }
 

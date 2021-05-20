@@ -31,8 +31,8 @@ namespace Dirigent.Gui
 			_appDef = appDef;
 
 			//_btnSize = ImGui.CalcTextSize("XX")*1.4f;
-			_txStart = _wnd.GetImage("Resources/play.gif");
-			_txKill = _wnd.GetImage("Resources/delete.bmp");
+			_txStart = _wnd.GetImage("Resources/play.png");
+			_txKill = _wnd.GetImage("Resources/delete.png");
 			_txRestart = _wnd.GetImage("Resources/refresh.png");
 		}
 
@@ -76,28 +76,28 @@ namespace Dirigent.Gui
 			{
 				if (ImGui.MenuItem("Start"))
 				{
-					_ctrl.Send( new Net.StartAppMessage( _id, planName ) );
+					_ctrl.Send( new Net.StartAppMessage( _ctrl.Name, _id, planName ) );
 				}
 
 				if (ImGui.MenuItem("Kill"))
 				{
-					_ctrl.Send( new Net.KillAppMessage( _id ) );
+					_ctrl.Send( new Net.KillAppMessage( _ctrl.Name, _id ) );
 				}
 
 				if (ImGui.MenuItem("Restart"))
 				{
-					_ctrl.Send( new Net.RestartAppMessage( _id ) );
+					_ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, _id ) );
 				}
 				ImGui.EndPopup();
 			}
 			ImGui.SameLine();
-			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4f);
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()*3/4f);
 			//if( ImGui.Button("S") )	_ctrl.Send( new Net.StartAppMessage( _id, planName ) );
-			if( ImgBtn( _txStart ) ) _ctrl.Send( new Net.StartAppMessage( _id, planName ) );
+			if( ImgBtn( _txStart ) ) _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, _id, planName ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillAppMessage( _id ) );
+			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillAppMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txRestart ) ) _ctrl.Send( new Net.RestartAppMessage( _id ) );
+			if( ImgBtn( _txRestart ) ) _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, _id ) );
 
 			// enabled checkbox just for apps from a plan
 			if( _appDef is not null && _appDef.PlanName is not null)
@@ -106,7 +106,7 @@ namespace Dirigent.Gui
 				bool enabled = !_appDef.Disabled;
 				if( ImGui.Checkbox("##enabled", ref enabled) )
 				{
-					_ctrl.Send( new Net.SetAppEnabledMessage( _appDef.PlanName, _id, enabled ) );
+					_ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, _appDef.PlanName, _id, enabled ) );
 				}
 			}
 

@@ -9,6 +9,7 @@ namespace Dirigent.Agent.Commands
 {
 	public class DirigentControlCommand : Disposable, ICommand
 	{
+		protected string _requestorId = string.Empty; // ident of the one sending the request (error will be delivered back to him)
 		private static List<string>	_emptyArgs = new();
 		public List<string> args = _emptyArgs;
 
@@ -26,10 +27,11 @@ namespace Dirigent.Agent.Commands
 
 
 
-		public DirigentControlCommand( Master ctrl )
+		public DirigentControlCommand( Master ctrl, string requestorId )
 		{
 			this.name = this.GetType().Name;
 			this.ctrl = ctrl;
+			this._requestorId = requestorId;
 		}
 
 		public string Name { get { return name; } }
@@ -64,64 +66,64 @@ namespace Dirigent.Agent.Commands
 
 	public class StartPlan : DirigentControlCommand
 	{
-		public StartPlan( Master ctrl )
-			: base( ctrl )
+		public StartPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.StartPlan( args[0] );
+			ctrl.StartPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class StopPlan : DirigentControlCommand
 	{
-		public StopPlan( Master ctrl )
-			: base( ctrl )
+		public StopPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.StopPlan( args[0] );
+			ctrl.StopPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillPlan : DirigentControlCommand
 	{
-		public KillPlan( Master ctrl )
-			: base( ctrl )
+		public KillPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.KillPlan( args[0] );
+			ctrl.KillPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class RestartPlan : DirigentControlCommand
 	{
-		public RestartPlan( Master ctrl )
-			: base( ctrl )
+		public RestartPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
 		public override void Execute()
 		{
-			ctrl.RestartPlan( args[0] );
+			ctrl.RestartPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class StartApp : DirigentControlCommand
 	{
-		public StartApp( Master ctrl )
-			: base( ctrl )
+		public StartApp( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -130,15 +132,15 @@ namespace Dirigent.Agent.Commands
 			if( args.Count == 0 )  throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
 			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
 			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
-			ctrl.StartApp( id, planName );
+			ctrl.StartApp( _requestorId, id, planName );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillApp : DirigentControlCommand
 	{
-		public KillApp( Master ctrl )
-			: base( ctrl )
+		public KillApp( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -147,15 +149,15 @@ namespace Dirigent.Agent.Commands
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
 			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
 			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
-			ctrl.KillApp( id );
+			ctrl.KillApp( _requestorId, id );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	public class RestartApp : DirigentControlCommand
 	{
-		public RestartApp( Master ctrl )
-			: base( ctrl )
+		public RestartApp( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -164,14 +166,14 @@ namespace Dirigent.Agent.Commands
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
 			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
 			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
-			ctrl.RestartApp( id );
+			ctrl.RestartApp( _requestorId, id );
 			WriteResponse( "ACK" );
 		}
 	}
 
 	//public class SelectPlan : DirigentControlCommand
 	//{
-	//    public SelectPlan(Master ctrl)
+	//    public SelectPlan(Master ctrl, string requestorId)
 	//        : base(ctrl)
 	//    {
 	//    }
@@ -183,14 +185,14 @@ namespace Dirigent.Agent.Commands
 	//        // find plan in the repository
 	//        ILaunchPlan plan = Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) ;
 
-	//        ctrl.SelectPlan(plan);
+	//        ctrl.SelectPlan(_requestorId, plan);
 	//    }
 	//}
 
 	public class GetPlanState : DirigentControlCommand
 	{
-		public GetPlanState( Master ctrl )
-			: base( ctrl )
+		public GetPlanState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -207,8 +209,8 @@ namespace Dirigent.Agent.Commands
 
 	public class GetAppState : DirigentControlCommand
 	{
-		public GetAppState( Master ctrl )
-			: base( ctrl )
+		public GetAppState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -229,8 +231,8 @@ namespace Dirigent.Agent.Commands
 
 	public class GetAllPlansState : DirigentControlCommand
 	{
-		public GetAllPlansState( Master ctrl )
-			: base( ctrl )
+		public GetAllPlansState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -250,8 +252,8 @@ namespace Dirigent.Agent.Commands
 
 	public class GetAllAppsState : DirigentControlCommand
 	{
-		public GetAllAppsState( Master ctrl )
-			: base( ctrl )
+		public GetAllAppsState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -270,8 +272,8 @@ namespace Dirigent.Agent.Commands
 
 	public class SetVars : DirigentControlCommand
 	{
-		public SetVars( Master ctrl )
-			: base( ctrl )
+		public SetVars( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -279,15 +281,15 @@ namespace Dirigent.Agent.Commands
 		{
 			throw new CommandNotImplementedException( Name );
    //         if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
-   //         ctrl.SetVars( args[0] );
+   //         ctrl.SetVars( _requestorId, args[0] );
 			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class KillAll : DirigentControlCommand
 	{
-		public KillAll( Master ctrl )
-			: base( ctrl )
+		public KillAll( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -299,7 +301,7 @@ namespace Dirigent.Agent.Commands
    //         {
    //             argsStruct.MachineId = args[0];
    //         }
-   //         ctrl.KillAll( argsStruct );
+	//         ctrl.KillAll( _requestorId, argsStruct );
 			//WriteResponse( "ACK" );
 		}
 	}
@@ -307,8 +309,8 @@ namespace Dirigent.Agent.Commands
 
 	public class Shutdown : DirigentControlCommand
 	{
-		public Shutdown( Master ctrl )
-			: base( ctrl )
+		public Shutdown( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -328,15 +330,15 @@ namespace Dirigent.Agent.Commands
 			//	}
 			//}
 
-   //         ctrl.Shutdown( argsStruct );
+//         ctrl.Shutdown( _requestorId, argsStruct );
 			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class  Terminate : DirigentControlCommand
 	{
-		public Terminate( Master ctrl )
-			: base( ctrl )
+		public Terminate( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -357,15 +359,15 @@ namespace Dirigent.Agent.Commands
 			//	argsStruct.MachineId = valStr;
 			//}
 
-   //         ctrl.Terminate( argsStruct );
+   //         ctrl.Terminate( _requestorId, argsStruct );
 			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class Reinstall : DirigentControlCommand
 	{
-		public Reinstall( Master ctrl )
-			: base( ctrl )
+		public Reinstall( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -391,15 +393,15 @@ namespace Dirigent.Agent.Commands
 			//	argsStruct.Url = urlStr;
 			//}
 
-   //         ctrl.Reinstall( argsStruct );
+//         ctrl.Reinstall( _requestorId, argsStruct );
 			//WriteResponse( "ACK" );
 		}
 	}
 
 	public class ReloadSharedConfig : DirigentControlCommand
 	{
-		public ReloadSharedConfig( Master ctrl )
-			: base( ctrl )
+		public ReloadSharedConfig( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
 		{
 		}
 
@@ -415,7 +417,7 @@ namespace Dirigent.Agent.Commands
 			//	if( valStr=="1" ) argsStruct.KillApps = true;
 			//}
 
-   //         ctrl.ReloadSharedConfig( argsStruct );
+   //         ctrl.ReloadSharedConfig( _requestorId, argsStruct );
 			//WriteResponse( "ACK" );
 		}
 	}

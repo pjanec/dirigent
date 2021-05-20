@@ -45,7 +45,7 @@ namespace Dirigent.Gui.WinForms
 			{
 				if( object.ReferenceEquals( resourceMan, null ) )
 				{
-					global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager( "Dirigent.Gui.WinForms.Resource1", typeof( Resource1 ).Assembly );
+					global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager( "Dirigent.Agent.WinForms.Resource1", typeof( Resource1 ).Assembly );
 					resourceMan = temp;
 				}
 				return resourceMan;

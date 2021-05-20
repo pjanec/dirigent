@@ -219,11 +219,13 @@ namespace Dirigent.Common
 		void loadAppDefaults()
 		{
 			var appDefaultsElem = (from e in doc.Element( "Shared" )?.Descendants( "AppDefaults" ) select e).FirstOrDefault();
-			
-			cfg.AppDefaults = (
-				from e in appDefaultsElem?.Descendants( "App" )
-				select readAppElement( e )
-							  ).ToList();
+			if( appDefaultsElem != null )
+			{
+				cfg.AppDefaults = (
+					from e in appDefaultsElem?.Descendants( "App" )
+					select readAppElement( e )
+								  ).ToList();
+			}
 		}
 
 		void loadPlans()

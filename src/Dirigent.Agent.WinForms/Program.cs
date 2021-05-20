@@ -58,10 +58,10 @@ namespace Dirigent.Gui.WinForms
 				{
 					bool runAgent = false;
 					bool runGui = true;
+					bool isMaster = Tools.BoolFromString( ac.IsMaster );
 
 					switch( ac.Mode.ToLower() )
 					{
-						default:
 						case "gui":  // just gui, no agent
 						{
 							runAgent = false;
@@ -70,6 +70,7 @@ namespace Dirigent.Gui.WinForms
 						}
 
 						// agent + gui
+						default:
 						case "traygui":  // for compatibility with Dirigent 1.x
 						case "trayapp":  // for compatibility with Dirigent 1.x
 						case "trayagentgui":
@@ -91,13 +92,14 @@ namespace Dirigent.Gui.WinForms
 						// master only
 						case "master":
 						{
-							runAgent = true;  // master is part of agent executable; if run with "--mode master", just master will run
+							runAgent = false;  // master is part of agent executable; if run with "--mode master", just master will run
 							runGui = false;
+							isMaster = true;
 							break;
 						}
 					}
 
-					IApp app = new GuiTrayApp( ac, runAgent, runGui );
+					IApp app = new GuiTrayApp( ac, runAgent, runGui, isMaster );
 					exitCode = app.run();
 					app.Dispose();
 					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );

@@ -16,11 +16,32 @@ namespace Dirigent.Gui
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 		private ImGuiWindow _wnd;
 		
+		public ImageInfo _txStart;
+		public ImageInfo _txKill;
+		public ImageInfo _txRestart;
+
 		public PlanRenderer( ImGuiWindow wnd, string id, IDirig ctrl )
 		{
 			_wnd = wnd;
 			_id = id;
 			_ctrl = ctrl;
+
+			_txStart = _wnd.GetImage("Resources/play.png");
+			_txKill = _wnd.GetImage("Resources/delete.png");
+			_txRestart = _wnd.GetImage("Resources/refresh.png");
+		}
+
+		// uses original texture size and black background, 
+		private bool ImgBtn( ImageInfo img )
+		{
+			return ImGui.ImageButton(
+				img.TextureUserId,
+				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
+				System.Numerics.Vector2.Zero,
+				new System.Numerics.Vector2(1,1),
+				0, // no padding
+				new System.Numerics.Vector4(0,0,0,1) // black background
+			); 
 		}
 
 		public void DrawUI()
@@ -39,29 +60,29 @@ namespace Dirigent.Gui
 			{
 				if (ImGui.MenuItem("Start"))
 				{
-					_ctrl.Send( new Net.StartPlanMessage( _id ) );
+					_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, _id ) );
 				}
 
 				if (ImGui.MenuItem("Kill"))
 				{
-					_ctrl.Send( new Net.KillPlanMessage( _id ) );
+					_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, _id ) );
 				}
 
 				if (ImGui.MenuItem("Restart"))
 				{
-					_ctrl.Send( new Net.RestartPlanMessage( _id ) );
+					_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, _id ) );
 				}
 
 				ImGui.EndPopup();
 			}
 
 			ImGui.SameLine();
-			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4.5f);
-			if( ImGui.Button("S") )	_ctrl.Send( new Net.StartPlanMessage( _id ) );
+			ImGui.SetCursorPosX( ImGui.GetWindowWidth()*3/4.5f);
+			if( ImgBtn( _txStart ) )	_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImGui.Button("K") )	_ctrl.Send( new Net.KillPlanMessage( _id ) );
+			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImGui.Button("R") )	_ctrl.Send( new Net.RestartPlanMessage( _id ) );
+			if( ImgBtn( _txRestart ) )	_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, _id ) );
 
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4.5f*2f);

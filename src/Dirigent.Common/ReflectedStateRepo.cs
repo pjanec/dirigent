@@ -29,6 +29,10 @@ namespace Dirigent.Common
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
+		public string Name => _client.Ident.Name;
+
+		// Fired awhen plan defs received/updated
+		public Action PlansReceived;
 
 
 		private Net.Client _client;
@@ -54,55 +58,76 @@ namespace Dirigent.Common
 			{
 				case Net.AppsStateMessage m:
 				{
-					Debug.Assert( m.AppsState != null );
-					foreach( var (id, state) in m.AppsState )
+					//Debug.Assert( m.AppsState != null );
+					if( m.AppsState is not null )
 					{
-						_appStates[id] = state;	
+						foreach( var (id, state) in m.AppsState )
+						{
+							_appStates[id] = state;	
+						}
 					}
 					break;
 				}
 
 				case Net.PlansStateMessage m:
 				{
-					Debug.Assert( m.PlansState != null );
-					_planStates = m.PlansState;
+					//Debug.Assert( m.PlansState != null );
+					_planStates = m.PlansState ?? new Dictionary<string, PlanState>();
 					break;
 				}
 
 				case Net.PlanDefsMessage m:
 				{
-					Debug.Assert( m.PlanDefs != null );
+					//Debug.Assert( m.PlanDefs != null );
 					if( !m.Incremental ) // replace
 					{
-						_planDefs = new List<PlanDef>( m.PlanDefs );
+						if( m.PlanDefs is not null )
+							_planDefs = new List<PlanDef>( m.PlanDefs );
+						else
+							_planDefs = new List<PlanDef>();
 					}
 					else // add/update
 					{
-						foreach( var pd in m.PlanDefs )
+						if( m.PlanDefs is not null )
 						{
-							int idx = _planDefs.FindIndex( (x) => x.Name == pd.Name );
-							if( idx < 0 )
+							foreach( var pd in m.PlanDefs )
 							{
-								_planDefs.Add( pd );
-							}
-							else
-							{
-								_planDefs[idx] = pd;
+								int idx = _planDefs.FindIndex( (x) => x.Name == pd.Name );
+								if( idx < 0 )
+								{
+									_planDefs.Add( pd );
+								}
+								else
+								{
+									_planDefs[idx] = pd;
+								}
 							}
 						}
 					}
+					PlansReceived?.Invoke();
 					break;
 				}
 
 				case Net.AppDefsMessage m:
 				{
-					Debug.Assert( m.AppDefs != null );
-
-					foreach( var ad in m.AppDefs )
+					//Debug.Assert( m.AppDefs != null );
+					if( m.AppDefs is not null )
 					{
-						_appDefs[ad.Id] = ad;
+						foreach( var ad in m.AppDefs )
+						{
+							_appDefs[ad.Id] = ad;
+						}
 					}
 
+					break;
+				}
+
+				case Net.ResetMessage m:
+				{
+					_appDefs.Clear(); 
+					_planDefs.Clear();
+					_appStates.Clear();
+					_planStates.Clear();
 					break;
 				}
 			}

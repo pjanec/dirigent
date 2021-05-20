@@ -186,10 +186,10 @@ namespace Dirigent.Agent
 
                 string keys = X.getStringAttr( xel, "Keys", "", ignoreCase:true );
 
+                #if Windows
                 IntPtr h = proc.MainWindowHandle;
                 SetForegroundWindow(h);
-                #if Windows
-                System.Windows.Forms.SendKeys.Send( keys );
+                System.Windows.Forms.SendKeys.SendWait( keys );
                 #endif
 			}
         }

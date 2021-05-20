@@ -308,31 +308,31 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
+					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
 					launchItem.Enabled = isAccessible && !st.Running;
 					popup.Items.Add( launchItem );
 
 					var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( id ) ) );
+					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
 					killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
 					popup.Items.Add( killItem );
 
 					var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( id ) ) );
+					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
 					restartItem.Enabled = isAccessible; // && st.Running;
 					popup.Items.Add( restartItem );
 
 					if( appDef != null && appDef.Disabled )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, true ) ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, true ) ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
 					if( appDef != null )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, false ) ) );
+						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, false ) ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
@@ -369,7 +369,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
+							guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
 						}
 					}
 
@@ -377,7 +377,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.KillAppMessage( id ) ) );
+							guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
 						}
 					}
 
@@ -385,7 +385,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( id ) ) );
+							guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
 						}
 					}
 
@@ -394,7 +394,7 @@ namespace Dirigent.Gui.WinForms
 						var wasEnabled = ( bool ) focused.Cells[currentCol].Value;
 						if( plan != null )
 						{
-							guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage(  plan.Name, id, !wasEnabled ) ) );
+							guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, !wasEnabled ) ) );
 						}
 						else
 						{
@@ -421,7 +421,7 @@ namespace Dirigent.Gui.WinForms
 						var id = new AppIdTuple( focused.Cells[0].Value as string );
 						var st = _ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.Send( new Net.StartAppMessage( id, null ) ) );
+						guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
 					}
 				}
 			}

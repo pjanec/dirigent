@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Common", "Dirigent
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Agent", "Dirigent.Agent\Dirigent.Agent.csproj", "{6E19D033-5A97-4F2F-82E9-661275CC4F40}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Gui.WinForms", "Dirigent.Gui.WinForms\Dirigent.Gui.WinForms.csproj", "{A57B0569-EF7C-4202-A0F0-0F5895D64869}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.Agent.WinForms", "Dirigent.Agent.WinForms\Dirigent.Agent.WinForms.csproj", "{A57B0569-EF7C-4202-A0F0-0F5895D64869}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dirigent.CLI", "Dirigent.CLI\Dirigent.CLI.csproj", "{A69B681B-C713-4CD8-B3F9-61B3EC476272}"
 EndProject

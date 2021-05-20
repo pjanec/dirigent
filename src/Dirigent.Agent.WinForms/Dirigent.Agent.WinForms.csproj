@@ -1,14 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
     <Product>Dirigent</Product>
-    <Version>3.0.0</Version>
+    <Version>3.0.0.2</Version>
     <Authors>pjanec</Authors>
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
-    <AssemblyName>Dirigent.Gui</AssemblyName>
+    <AssemblyName>Dirigent.Agent</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,11 +21,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\config\LocalConfig.xml" Link="LocalConfig.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\config\SharedConfig.xml" Link="SharedConfig.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.12" />
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
   </ItemGroup>
 </Project>

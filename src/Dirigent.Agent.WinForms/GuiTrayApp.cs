@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
 using Dirigent.Common;
+using System.Threading;
 
 namespace Dirigent.Gui.WinForms
 {
@@ -17,22 +18,31 @@ namespace Dirigent.Gui.WinForms
 		private AppConfig _ac;
 		private frmMain _mainForm;
 		private NotifyIcon _notifyIcon;
-        private ProcRunner _agentRunner;
+        //private ProcRunner _agentRunner;
+		private Agent.Agent _agent;
+		private Thread _agentThread;
+		private Agent.Master _master;
+		private Thread _masterThread;
 		private bool _runGui;
 		private bool _runAgent;
+		private bool _isMaster;
 		private string _machineId; // empty if GUI not running as part of local agent
+		private AlreadyRunningTester _alreadyRunningTester;
 
 		class MyApplicationContext : ApplicationContext
 		{
 		}
 
-		public GuiTrayApp( AppConfig ac, bool runAgent, bool runGui )
+		public GuiTrayApp( AppConfig ac, bool runAgent, bool runGui, bool isMaster )
 		{
 			_ac = ac;
 			_runAgent = runAgent;
 			_runGui = runGui;
+			_isMaster = isMaster;
 
 			_machineId = _runAgent ? _ac.MachineId : string.Empty;
+
+			_alreadyRunningTester = new AlreadyRunningTester( ac.MasterIP, ac.MasterPort, ac.MachineId );
 		}
 
 		protected override void Dispose(bool disposing)
@@ -44,6 +54,7 @@ namespace Dirigent.Gui.WinForms
 			DeinitializeMainForm();
 			DeinitializeTrayIcon();
 			DeinitializeAgent();
+			DeinitializeMaster();
 
 			AppMessenger.Instance.Dispose();
 		}
@@ -57,7 +68,12 @@ namespace Dirigent.Gui.WinForms
 				InitializeAgent();
 			}
 
-			try
+			if( _isMaster )
+			{
+				InitializeMaster();
+			}
+
+			//try
 			{
 				if( _runGui )
 				{
@@ -73,12 +89,12 @@ namespace Dirigent.Gui.WinForms
 				}
 				Application.Run( new MyApplicationContext() );
 			}
-			catch( Exception ex )
-			{
-				log.Error( ex );
-				ExceptionDialog.showException( ex, "Dirigent Exception", "" );
-				exitCode = EAppExitCode.ExceptionError;
-			}
+			//catch( Exception ex )
+			//{
+			//	log.Error( ex );
+			//	ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+			//	exitCode = EAppExitCode.ExceptionError;
+			//}
 
 			return exitCode;
 		}
@@ -96,36 +112,36 @@ namespace Dirigent.Gui.WinForms
 			{
 				menuItems.Add( new ToolStripMenuItem( "Show", null, new EventHandler( ( s, e ) => ShowMainForm() ) ) );
 			}
-            if( _runAgent )
-            {
-				const string BaseText = "Agent's Console";
-                menuItems.Add( new ToolStripMenuItem(BaseText, null, new EventHandler( (s,e) =>
-                {
-                    ToolStripMenuItem mi = s as ToolStripMenuItem;
+    //        if( _runAgent )
+    //        {
+				//const string BaseText = "Agent's Console";
+    //            menuItems.Add( new ToolStripMenuItem(BaseText, null, new EventHandler( (s,e) =>
+    //            {
+    //                ToolStripMenuItem mi = s as ToolStripMenuItem;
 					
-					// try to re-run the agent if not running from whatever reson
-					if( _agentRunner == null )
-					{
-						InitializeAgent();
-					}
-                    if( _agentRunner is { IsRunning: false } )
-					{
-						DeinitializeAgent();
-						InitializeAgent();
-					}
+				//	// try to re-run the agent if not running from whatever reson
+				//	if( _agentRunner == null )
+				//	{
+				//		InitializeAgent();
+				//	}
+    //                if( _agentRunner is { IsRunning: false } )
+				//	{
+				//		DeinitializeAgent();
+				//		InitializeAgent();
+				//	}
 
-					// 
-					//bool isRunning = _agentRunner != null && _agentRunner.IsRunning;
-					//mi.Text = isRunning ? BaseText : BaseText + " (not running)";
+				//	// 
+				//	//bool isRunning = _agentRunner != null && _agentRunner.IsRunning;
+				//	//mi.Text = isRunning ? BaseText : BaseText + " (not running)";
 
-                    if( _agentRunner != null )
-                    {
-                        _agentRunner.IsConsoleShown = !mi.Checked;
-                        mi.Checked = _agentRunner.IsConsoleShown;
-                    }
-                }
-                )) );
-            }
+    //                if( _agentRunner != null )
+    //                {
+    //                    _agentRunner.IsConsoleShown = !mi.Checked;
+    //                    mi.Checked = _agentRunner.IsConsoleShown;
+    //                }
+    //            }
+    //            )) );
+    //        }
 			menuItems.Add( new ToolStripMenuItem( "Exit", null, new EventHandler( ( s, e ) =>
 			{
 				//agent.LocalOps.Terminate( new TerminateArgs() { KillApps=true, MachineId=ac.machineId }  );
@@ -222,51 +238,134 @@ namespace Dirigent.Gui.WinForms
 
         private void InitializeAgent()
         {
-			_agentRunner = new ProcRunner( "Dirigent.Agent.exe", "agent",
-				killOnDispose:_runGui ); // kill agent on GUi app dispose only if the gui will keep runnin (otherwise we are just the launcher of an agent and terminate immediately)
-			try
-			{
-				if( _ac.ParentPid == -1 )
-					_agentRunner.Launch();
-				else
-					_agentRunner.Adopt( _ac.ParentPid );
+			//_agentRunner = new ProcRunner( "Dirigent.Agent.exe", "agent",
+			//	killOnDispose:_runGui ); // kill agent on GUi app dispose only if the gui will keep runnin (otherwise we are just the launcher of an agent and terminate immediately)
+			//try
+			//{
+			//	if( _ac.ParentPid == -1 )
+			//		_agentRunner.Launch();
+			//	else
+			//		_agentRunner.Adopt( _ac.ParentPid );
 
-				_agentRunner.StartKeepAlive();
-			}
-			catch (Exception ex)
+			//	_agentRunner.StartKeepAlive();
+			//}
+			//catch (Exception ex)
+			//{
+			//	log.Error(ex);
+			//	ExceptionDialog.showException(ex, "Dirigent Exception", "");
+			//	_agentRunner = null;
+			//}
+
+			if( !_alreadyRunningTester.IsAgentAlreadyRunning() )
 			{
-				log.Error(ex);
-				ExceptionDialog.showException(ex, "Dirigent Exception", "");
-				_agentRunner = null;
+				// istantiate the agent and tick it in its own thread
+				try
+				{
+					_agent = new Agent.Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+					_agentThread = new Thread(() =>
+					{
+						while( !_agent.WantsQuit )
+						{
+							_agent.Tick();
+							Thread.Sleep( _ac.TickPeriod );
+						}
+						_agent.Dispose();
+						_agent = null;
+					});
+					_agentThread.Start();
+				}
+				catch (Exception ex)
+				{
+					log.Error(ex);
+					ExceptionDialog.showException(ex, "Dirigent Exception", "");
+					_agent = null;
+				}
 			}
         }
 
         private void DeinitializeAgent()
         {
-			_agentRunner?.Dispose();
-			_agentRunner = null;
+			if( _agentThread != null )
+			{
+				_agent.WantsQuit = true;
+				_masterThread.Join( 4*_ac.TickPeriod );
+			}
+
+			_agent?.Dispose();
+			_agent = null;
 		}
+
+		private void InitializeMaster()
+		{
+			if( _isMaster )
+			{
+				if( !_alreadyRunningTester.IsMasterAlreadyRunning() )
+				{
+					if( string.IsNullOrEmpty( _ac.SharedCfgFileName ) )
+					{
+						var ex = new ConfigurationErrorException("SharedConfig not defined");
+						log.Error(ex);
+						ExceptionDialog.showException(ex, "Dirigent Exception", "");
+					}
+
+					// instantiate the master and tick it in its own thread
+					_master = new Agent.Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+					_masterThread = new Thread(() =>
+					{
+						while( !_master.WantsQuit )
+						{
+							_master.Tick();
+							Thread.Sleep( _ac.TickPeriod );
+						}
+						_master.Dispose();
+						_master = null;
+					});
+					_masterThread.Start();
+				}
+			}
+		}
+
+        private void DeinitializeMaster()
+        {
+			if( _masterThread != null )
+			{
+				_master.WantsQuit = true;
+				_masterThread.Join( 4*_ac.TickPeriod );
+			}
+
+			_master?.Dispose();
+			_master = null;
+		}
+
 
 		private void ExitApp()
 		{
-			if( !string.IsNullOrEmpty( _machineId ) ) // if we were started together with a local agent
-			{
-				if( MessageBox.Show( "Exit Dirigent and kill apps on this computer?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
-				{
-					// send Terminate message via a temporary client
-					var clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
-					using var client = new Net.Client( clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: false );
-					if( client.Connect() )
-					{
-						var args = new TerminateArgs() { KillApps = true, MachineId = _machineId };
-						client.Send( new Net.TerminateMessage( args ) );
-					}
-				}
-			}
-			else // not tied to any agent - simply quit the gui
-			{
-				Application.Exit();
-			}
+			//if( !string.IsNullOrEmpty( _machineId ) ) // if we were started together with a local agent
+			//{
+			//	if( MessageBox.Show( "Exit Dirigent and kill apps on this computer?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			//	{
+			//		// send Terminate message to the agent on this machine via a temporary client
+			//		var clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
+			//		using var client = new Net.Client( clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: false );
+			//		if( client.Connect() )
+			//		{
+			//			var args = new TerminateArgs() { KillApps = true, MachineId = _machineId };
+			//			client.Send( new Net.TerminateMessage( client.Ident.Name, args ) );
+			//		}
+			//		client.Disconnect();
+			//		client.Dispose();
+			//	}
+			//	Thread.Sleep( 2 * _ac.TickPeriod );
+			//	Application.Exit();
+			//}
+			//else // not tied to any agent - simply quit the gui
+			//{
+			//	Application.Exit();
+			//}
+
+			// both agent and master are integrated in this app so we can simply exit
+			// no talking to external agent/master apps necessary unless we want to kill all apps managed by the dirigent
+			Application.Exit();
 		}
 
 	}

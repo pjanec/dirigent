@@ -26,11 +26,11 @@ namespace Dirigent.Gui
 
 			_ac = ac;
 
-			if( _ac.SharedConfig is null ) throw new Exception("Shared Config not define.");
+			if( string.IsNullOrEmpty(_ac.SharedCfgFileName) ) throw new Exception("Shared Config not define.");
 
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
-			_master = new Agent.Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedConfig );
+			_master = new Agent.Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
 		}
 
 		protected override void Dispose(bool disposing)

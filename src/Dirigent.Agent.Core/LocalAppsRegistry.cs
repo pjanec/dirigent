@@ -31,6 +31,11 @@ namespace Dirigent.Agent
 			}
 		}
 
+		public void Clear()
+		{
+			_apps.Clear();
+		}
+
 		//public bool TryGet( AppIdTuple appId, out AppState appState )
 		//{
 		//	appState = default(AppState);

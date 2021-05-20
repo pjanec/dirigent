@@ -62,7 +62,7 @@ namespace Dirigent.Common
 	public struct ReloadSharedConfigArgs
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		public bool KillApps;  // kill all local apps before terminating
+		public bool KillApps;  // kill all local apps before reloading
 	}
 
 
@@ -111,6 +111,9 @@ namespace Dirigent.Common
 
 		PlanDef? GetPlanDef( string Id ) { return null; }
 		IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
+
+		/// <summary> ident of the network client used as RequestorId </summary>
+		string Name { get; } 
 
 		void Send( Net.Message msg ) {}
 	}

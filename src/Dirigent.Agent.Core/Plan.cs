@@ -39,6 +39,7 @@ namespace Dirigent.Agent
 
         AppLaunchPlanner? _appLaunchPlanner;
 		PlanRestarter? _restarter;
+		string _requestorId; // last one who asked for some plan operation
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -48,6 +49,7 @@ namespace Dirigent.Agent
 			_master = master;
 			_appsState = _master.AppsState;
 			_apps = (from ad in def.AppDefs select ad).ToDictionary( ad => ad.Id, ad => new PlanApp( ad, new PlanAppState() ) );  
+			_requestorId = string.Empty;
 		}
 
 		public void Tick()
@@ -80,8 +82,10 @@ namespace Dirigent.Agent
 			throw new UnknownAppInPlanException( id, Name );
 		}
 
-		public void Start()
+		public void Start( string requestorId )
 		{
+			_requestorId = requestorId;
+
 			AdoptPlan();
 
 			// if the plan is idle
@@ -100,8 +104,10 @@ namespace Dirigent.Agent
             }                    
 		}
 
-        public void Stop()
+        public void Stop( string requestorId )
         {
+			_requestorId = requestorId;
+
 			log.DebugFormat( "Stop plan {0}", Name );
 
             State.Running = false;
@@ -109,8 +115,9 @@ namespace Dirigent.Agent
             _appLaunchPlanner = null;
         }
 
-        public void Kill()
+        public void Kill( string requestorId )
         {
+			_requestorId = requestorId;
 			log.DebugFormat( "Kill plan {0}", Name );
 
 			AdoptPlan();
@@ -131,7 +138,7 @@ namespace Dirigent.Agent
 				// attempt to kill
 				// this is non-blocking! does not wait for app to die!
 				// we would like to stop the app indicating "killed" or "start failed"; we simply want neutral "not running".. => resetAppState
-                _master.KillApp( id, Net.KillAppFlags.ResetAppState );
+                _master.KillApp( requestorId, id, Net.KillAppFlags.ResetAppState );
                 
                 // Note:
 				// the app status will get reset by processPlan()
@@ -142,10 +149,11 @@ namespace Dirigent.Agent
             _appLaunchPlanner = null;
         }
 
-        public void Restart()
+        public void Restart( string requestorId )
         {
+			_requestorId = requestorId;
 			log.DebugFormat( "Restart plan {0}", Name );
-			_restarter = new PlanRestarter( this );
+			_restarter = new PlanRestarter( requestorId, this );
         }
 
         /// <summary>
@@ -241,7 +249,7 @@ namespace Dirigent.Agent
 				{
 					// Note: this won't kill any app as no apps are running any more.
 					//       It just make the plan startable again.
-					Kill();
+					Kill( _requestorId );
 				}
 
 			}
@@ -260,7 +268,7 @@ namespace Dirigent.Agent
 				if( appToLaunch is null ) break;
 
 				// note: this will set also the Master's PlanApplied flag (the important one), not just the AppState flag from agent (just informative one)
-				_master.StartApp( appToLaunch.Def.Id, Name, Net.StartAppFlags.SetPlanApplied );
+				_master.StartApp( _requestorId, appToLaunch.Def.Id, Name, Net.StartAppFlags.SetPlanApplied );
 			}
 		}
 

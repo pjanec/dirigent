@@ -11,25 +11,25 @@ namespace Dirigent.Agent
     {
         public static void Register( CommandRepository repo )
         {
-            repo.Register( "StartPlan",             (ctrl) => new Commands.StartPlan(ctrl));
-            repo.Register( "StopPlan",              (ctrl) => new Commands.StopPlan(ctrl));
-            repo.Register( "KillPlan",              (ctrl) => new Commands.KillPlan(ctrl));
-            repo.Register( "RestartPlan",           (ctrl) => new Commands.RestartPlan(ctrl));
-            repo.Register( "LaunchApp",             (ctrl) => new Commands.StartApp(ctrl));
-            repo.Register( "StartApp",              (ctrl) => new Commands.StartApp(ctrl));
-            repo.Register( "KillApp",               (ctrl) => new Commands.KillApp(ctrl));
-            repo.Register( "RestartApp",            (ctrl) => new Commands.RestartApp(ctrl));
+            repo.Register( "StartPlan",             (ctrl, requestorId) => new Commands.StartPlan(ctrl, requestorId));
+            repo.Register( "StopPlan",              (ctrl, requestorId) => new Commands.StopPlan(ctrl, requestorId));
+            repo.Register( "KillPlan",              (ctrl, requestorId) => new Commands.KillPlan(ctrl, requestorId));
+            repo.Register( "RestartPlan",           (ctrl, requestorId) => new Commands.RestartPlan(ctrl, requestorId));
+            repo.Register( "LaunchApp",             (ctrl, requestorId) => new Commands.StartApp(ctrl, requestorId));
+            repo.Register( "StartApp",              (ctrl, requestorId) => new Commands.StartApp(ctrl, requestorId));
+            repo.Register( "KillApp",               (ctrl, requestorId) => new Commands.KillApp(ctrl, requestorId));
+            repo.Register( "RestartApp",            (ctrl, requestorId) => new Commands.RestartApp(ctrl, requestorId));
             //Register(new Commands.SelectPlan(ctrl));
-            repo.Register( "GetPlanState",          (ctrl) => new Commands.GetPlanState(ctrl));
-            repo.Register( "GetAppState",           (ctrl) => new Commands.GetAppState(ctrl));
-            repo.Register( "GetAllPlansState",      (ctrl) => new Commands.GetAllPlansState(ctrl));
-            repo.Register( "GetAllAppsState",       (ctrl) => new Commands.GetAllAppsState(ctrl));
-            repo.Register( "SetVars",               (ctrl) => new Commands.SetVars(ctrl));
-            repo.Register( "KillAll",               (ctrl) => new Commands.KillAll(ctrl));
-            repo.Register( "Shutdown",              (ctrl) => new Commands.Shutdown(ctrl));
-            repo.Register( "Terminate",             (ctrl) => new Commands.Terminate(ctrl));
-            repo.Register( "Reinstall",             (ctrl) => new Commands.Reinstall(ctrl));
-            repo.Register( "ReloadSharedConfig",    (ctrl) => new Commands.ReloadSharedConfig(ctrl));
+            repo.Register( "GetPlanState",          (ctrl, requestorId) => new Commands.GetPlanState(ctrl, requestorId));
+            repo.Register( "GetAppState",           (ctrl, requestorId) => new Commands.GetAppState(ctrl, requestorId));
+            repo.Register( "GetAllPlansState",      (ctrl, requestorId) => new Commands.GetAllPlansState(ctrl, requestorId));
+            repo.Register( "GetAllAppsState",       (ctrl, requestorId) => new Commands.GetAllAppsState(ctrl, requestorId));
+            repo.Register( "SetVars",               (ctrl, requestorId) => new Commands.SetVars(ctrl, requestorId));
+            repo.Register( "KillAll",               (ctrl, requestorId) => new Commands.KillAll(ctrl, requestorId));
+            repo.Register( "Shutdown",              (ctrl, requestorId) => new Commands.Shutdown(ctrl, requestorId));
+            repo.Register( "Terminate",             (ctrl, requestorId) => new Commands.Terminate(ctrl, requestorId));
+            repo.Register( "Reinstall",             (ctrl, requestorId) => new Commands.Reinstall(ctrl, requestorId));
+            repo.Register( "ReloadSharedConfig",    (ctrl, requestorId) => new Commands.ReloadSharedConfig(ctrl, requestorId));
         }
 
     }

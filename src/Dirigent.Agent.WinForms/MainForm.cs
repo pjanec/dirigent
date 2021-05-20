@@ -76,7 +76,19 @@ namespace Dirigent.Gui.WinForms
 			_planRepo = new List<PlanDef>();
 
 			_client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
+			_client.MessageReceived += OnMessage;
 			_reflStates = new ReflectedStateRepo( _client );
+			
+			bool firstGotPlans = true;
+			_reflStates.PlansReceived += () =>
+			{
+				if( firstGotPlans )
+				{
+					_currentPlan = _reflStates.GetPlanDef( ac.StartupPlanName );
+				}
+				firstGotPlans = false;
+			};
+
 			_ctrl = _reflStates;
 
 			// start ticking
@@ -89,9 +101,26 @@ namespace Dirigent.Gui.WinForms
 		void myDispose()
 		{
 			tmrTick.Enabled = false;
-			_client?.Dispose();
-			_client = null;
+			if( _client is not null )
+			{
+				_client.MessageReceived -= OnMessage;
+				_client.Dispose();
+				_client = null;
+			}
 		}
+
+		void OnMessage( Net.Message msg )
+		{
+			switch( msg )
+			{
+				case Net.RemoteOperationErrorMessage m:
+				{
+					MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+					break;
+				}
+			}
+		}
+
 
 		const int HOTKEY_ID_START_CURRENT_PLAN = 1;
 		const int HOTKEY_ID_KILL_CURRENT_PLAN = 2;
@@ -319,7 +348,7 @@ namespace Dirigent.Gui.WinForms
 						var currPlan = _currentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.StartPlanMessage( currPlan.Name ) );
+							_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
@@ -329,7 +358,7 @@ namespace Dirigent.Gui.WinForms
 						var currPlan = _currentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.KillPlanMessage( currPlan.Name ) );
+							_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
@@ -339,7 +368,7 @@ namespace Dirigent.Gui.WinForms
 						var currPlan = _currentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.RestartPlanMessage( currPlan.Name ) );
+							_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
@@ -378,7 +407,7 @@ namespace Dirigent.Gui.WinForms
 		private void reloadSharedConfigToolStripMenuItem_Click( object sender, EventArgs e )
 		{
 			var args = new ReloadSharedConfigArgs() { KillApps = false };
-			_ctrl.Send( new Net.ReloadSharedConfigMessage( args ) );
+			_ctrl.Send( new Net.ReloadSharedConfigMessage( _ctrl.Name, args ) );
 		}
 
 		private void terminateAndKillAppsToolStripMenuItem_Click( object sender, EventArgs e )
@@ -386,7 +415,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Terminate Dirigent on all computers?\n\nThis will also kill all apps!", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new TerminateArgs() { KillApps = true };
-				_ctrl.Send( new Net.TerminateMessage( args ) );
+				_ctrl.Send( new Net.TerminateMessage( _ctrl.Name, args ) );
 			}
 		}
 
@@ -396,14 +425,14 @@ namespace Dirigent.Gui.WinForms
 								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new TerminateArgs() { KillApps = false };
-				_ctrl.Send( new Net.TerminateMessage( args ) );
+				_ctrl.Send( new Net.TerminateMessage( _ctrl.Name, args ) );
 			}
 		}
 
 		private void killAllRunningAppsToolStripMenuItem_Click( object sender, EventArgs e )
 		{
 			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( args ) );
+			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
 		}
 
 		private void rebootAllToolStripMenuItem1_Click( object sender, EventArgs e )
@@ -411,7 +440,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Reboot all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
-				_ctrl.Send( new Net.ShutdownMessage( args ) );
+				_ctrl.Send( new Net.ShutdownMessage( _ctrl.Name, args ) );
 			}
 		}
 
@@ -420,7 +449,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Shut down all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
-				_ctrl.Send( new Net.ShutdownMessage( args ) );
+				_ctrl.Send( new Net.ShutdownMessage( _ctrl.Name, args ) );
 			}
 		}
 
@@ -430,7 +459,7 @@ namespace Dirigent.Gui.WinForms
 								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ReinstallArgs() { DownloadMode = EDownloadMode.Manual };
-				_ctrl.Send( new Net.ReinstallMessage( args ) );
+				_ctrl.Send( new Net.ReinstallMessage( _ctrl.Name, args ) );
 			}
 		}
 
@@ -442,13 +471,13 @@ namespace Dirigent.Gui.WinForms
 		private void btnKillAll_Click( object sender, EventArgs e )
 		{
 			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( args ) );
+			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
 		}
 
 		private void bntKillAll2_Click( object sender, EventArgs e )
 		{
 			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( args ) );
+			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
 		}
 
 	}

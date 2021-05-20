@@ -98,8 +98,8 @@ namespace Dirigent.Common
 		public string StartupPlanName = "";
 		public string StartHidden = "0"; // "0" or "1"
 		public string Mode = ""; // "", "agent", "master", "cli"
-		public SharedConfig? SharedConfig = null;
-		public LocalConfig? LocalConfig = null;
+		//public SharedConfig? SharedConfig = null;
+		//public LocalConfig? LocalConfig = null;
 		public string RootForRelativePaths = "";
 		public string IsMaster = "0"; // "1"=run the master process automatically
 		public int TickPeriod = 500; // msec
@@ -183,16 +183,19 @@ namespace Dirigent.Common
 			if( SharedCfgFileName != "" )
 			{
 				SharedCfgFileName = Path.GetFullPath( SharedCfgFileName );
-				log.DebugFormat( "Loading shared config file '{0}'", SharedCfgFileName );
-				SharedConfig = new SharedXmlConfigReader( File.OpenText( SharedCfgFileName ) ).cfg;
 			}
 
 			if( LocalCfgFileName != "" )
 			{
 				LocalCfgFileName = Path.GetFullPath( LocalCfgFileName );
-				log.DebugFormat( "Loading local config file '{0}'", LocalCfgFileName );
-				LocalConfig = new LocalXmlConfigReader( File.OpenText( LocalCfgFileName ) ).cfg;
 			}
+
+			//if( LocalCfgFileName != "" )
+			//{
+			//	LocalCfgFileName = Path.GetFullPath( LocalCfgFileName );
+			//	log.DebugFormat( "Loading local config file '{0}'", LocalCfgFileName );
+			//	LocalConfig = new LocalXmlConfigReader( File.OpenText( LocalCfgFileName ) ).cfg;
+			//}
 
 			// if root is empty and we know the shared config path, use the shared config path
 			if( string.IsNullOrEmpty( RootForRelativePaths ) )

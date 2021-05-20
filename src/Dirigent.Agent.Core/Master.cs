@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Dirigent.Common;
 using Dirigent.Net;
@@ -22,15 +23,17 @@ namespace Dirigent.Agent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
+		public string Name => string.Empty;
 		public void Send( Net.Message msg ) { ProcessIncomingMessage( msg ); }
 
 		#endregion
 
-		public bool WantsQuit { get; private set; }
+		public bool WantsQuit { get; set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 
 		#region Private fields
 
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		private string _localIpAddr;
 		private int _port;
 		private Net.Server _server;
@@ -42,14 +45,18 @@ namespace Dirigent.Agent
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+		private TickableCollection _tickers;
+		private string _sharedConfigFileName = string.Empty;
 		
 		#endregion
 
-		public Master( string localIpAddr, int port, int cliPort, SharedConfig sharedConfig )
+		public Master( string localIpAddr, int port, int cliPort, string sharedConfigFileName )
 		{
+			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
+
 			_localIpAddr = localIpAddr;
 			_port = port;
+
 			_allAppStates = new AllAppsStateRegistry();
 
 			_allAppDefs = new AllAppsDefRegistry();
@@ -62,13 +69,8 @@ namespace Dirigent.Agent
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
 			_server = new Server( port );
-			//_sharedConfig = sharedConfig;
 			_swClientRefresh = new Stopwatch();
 			_swClientRefresh.Restart();
-
-			InitFromConfig( sharedConfig );
-
-			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
 
 			// start a telnet client server
 			_cliProc = new CLIProcessor( this );
@@ -76,6 +78,10 @@ namespace Dirigent.Agent
             log.InfoFormat("Command Line Interface running on port {0}", cliPort);
 			_telnetServer = new TelnetServer( "0.0.0.0", cliPort, _cliProc );
 
+			var sharedConfig = LoadSharedConfig( sharedConfigFileName );
+			InitFromConfig( sharedConfig );
+
+			_tickers = new TickableCollection();
 		}
 
 		protected override void Dispose(bool disposing)
@@ -88,6 +94,8 @@ namespace Dirigent.Agent
 
 		public void Tick()
 		{
+			_tickers.Tick();
+
 			_plans.Tick();
 
 			_cliProc.Tick();
@@ -130,29 +138,32 @@ namespace Dirigent.Agent
 				// agent is sending the state of its apps
 				case AppsStateMessage m:
 				{
-					Debug.Assert( m.AppsState is not null );
-					foreach( var( appId, appState ) in m.AppsState )
+					//Debug.Assert( m.AppsState is not null );
+					if( m.AppsState is not null )
 					{
-						_allAppStates.AddOrUpdate( appId, appState );
+						foreach( var( appId, appState ) in m.AppsState )
+						{
+							_allAppStates.AddOrUpdate( appId, appState );
+						}
 					}
 					break;
 				}
 
 				case StartAppMessage m:
 				{
-					StartApp( m.Id, m.PlanName, m.Flags );
+					StartApp( m.Sender, m.Id, m.PlanName, m.Flags );
 					break;
 				}
 
 				case KillAppMessage m:
 				{
-					KillApp( m.Id, m.Flags );
+					KillApp( m.Sender, m.Id, m.Flags );
 					break;
 				}
 
 				case RestartAppMessage m:
 				{
-					RestartApp( m.Id );
+					RestartApp( m.Sender, m.Id );
 					break;
 				}
 
@@ -165,37 +176,53 @@ namespace Dirigent.Agent
 
 				case StartPlanMessage m:
 				{
-					StartPlan( m.PlanName );
+					StartPlan( m.Sender, m.PlanName );
 					break;
 				}
 
 				case StopPlanMessage m:
 				{
-					StopPlan( m.PlanName );
+					StopPlan( m.Sender, m.PlanName );
 					break;
 				}
 
 				case KillPlanMessage m:
 				{
-					KillPlan( m.PlanName );
+					KillPlan( m.Sender, m.PlanName );
 					break;
 				}
 
 				case RestartPlanMessage m:
 				{
-					RestartPlan( m.PlanName );
+					RestartPlan( m.Sender, m.PlanName );
 					break;
 				}
 
 				case SetAppEnabledMessage m:
 				{
-					SetAppEnabled( m.PlanName, m.Id, m.Enabled );
+					SetAppEnabled( m.Sender, m.PlanName, m.Id, m.Enabled );
 					break;
 				}
 
 				case KillAllMessage m:
 				{
-					KillAll( m.Args );
+					KillAll( m.Sender, m.Args );
+					break;
+				}
+
+				case ReloadSharedConfigMessage m:
+				{
+					ReloadSharedConfig( m.Sender, m.Args );
+					break;
+				}
+
+				case RemoteOperationErrorMessage m:
+				{
+					// agent is sending an error - forward to the requestor
+					if( !string.IsNullOrEmpty( m.Requestor ) )
+					{
+						_server.SendToSingle( m, m.Requestor );
+					}
 					break;
 				}
 
@@ -225,9 +252,16 @@ namespace Dirigent.Agent
 			}
 		}
 
+		// send all initial data do all connected clients
+		void FeedAllClients()
+		{
+			foreach( var cl in _server.Clients )
+			{
+				FeedSingleClient( cl );
+			}
+		}
 
-		// Called once when client connects and sends ClientIdent
-		void OnClientIdentified( ClientIdent ident )
+		void FeedSingleClient( ClientIdent ident )
 		{
 			if( ident.IsGui )
 			{
@@ -238,6 +272,13 @@ namespace Dirigent.Agent
 			{
 				FeedAgent( ident );
 			}
+		}
+		
+
+		// Called once when client connects and sends ClientIdent
+		void OnClientIdentified( ClientIdent ident )
+		{
+			FeedSingleClient( ident );
 		}
 
 		void FeedGui( ClientIdent ident )
@@ -281,7 +322,7 @@ namespace Dirigent.Agent
 
 
 		/// <summary>
-		/// Sends current full state to subcribed clients
+		/// Sends current runtime status of apps and plans to subcribed clients
 		/// </summary>
 		void RefreshClients()
 		{
@@ -298,6 +339,14 @@ namespace Dirigent.Agent
 			}
 		}
 
+		SharedConfig LoadSharedConfig( string fileName )
+		{
+			SharedConfig sharedConfig;
+			log.DebugFormat( "Loading shared config file '{0}'", fileName );
+			sharedConfig = new SharedXmlConfigReader( System.IO.File.OpenText( fileName ) ).cfg;
+			_sharedConfigFileName = fileName;
+			return sharedConfig;
+		}
 
 		void InitFromConfig( SharedConfig sharedConfig )
 		{
@@ -323,6 +372,13 @@ namespace Dirigent.Agent
 
 			_allAppDefs.SetAll( allAppDefs.Values );
 			_allAppStates.SetDefault( allAppDefs.Values );
+
+			// reset
+			var m = new Net.ResetMessage();
+			_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+
+			// send the new info to all connected clients
+			FeedAllClients();
 		}
 
 		/// <summary>
@@ -373,7 +429,7 @@ namespace Dirigent.Agent
 		/// </summary>
 		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		public void StartApp( AppIdTuple id, string? planName, Net.StartAppFlags flags=0 )
+		public void StartApp( string requestorId, AppIdTuple id, string? planName, Net.StartAppFlags flags=0 )
 		{
 			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
@@ -405,53 +461,53 @@ namespace Dirigent.Agent
 			}
 
 			// send app start command
-			var msg = new Net.StartAppMessage( id, planName, flags );
+			var msg = new Net.StartAppMessage( requestorId, id, planName, flags );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
 		/// <summary>
 		/// Send app kill command directly to owning agent
 		/// </summary>
-		public void KillApp( AppIdTuple id, KillAppFlags flags=0 )
+		public void KillApp( string requestorId, AppIdTuple id, KillAppFlags flags=0 )
 		{
-			var msg = new Net.KillAppMessage( id, flags );
+			var msg = new Net.KillAppMessage( requestorId, id, flags );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
 		/// <summary>
 		/// Sends app restart command directly to owning agent.
 		/// </summary>
-		public void RestartApp( AppIdTuple id )
+		public void RestartApp( string requestorId, AppIdTuple id )
 		{
-			var msg = new Net.RestartAppMessage( id );
+			var msg = new Net.RestartAppMessage( requestorId, id );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
-		public void StartPlan( string planName )
+		public void StartPlan( string requestorId, string planName )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Start();
+			plan.Start( requestorId );
 		}
 
-		public void StopPlan( string planName )
+		public void StopPlan( string requestorId, string planName )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Stop();
+			plan.Stop( requestorId );
 		}
 
-		public void KillPlan( string planName )
+		public void KillPlan( string requestorId, string planName )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Kill();
+			plan.Kill( requestorId );
 		}
 
-		public void RestartPlan( string planName )
+		public void RestartPlan( string requestorId, string planName )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Restart();
+			plan.Restart( requestorId );
 		}
 
-		public void SetAppEnabled( string? planName, AppIdTuple id, bool enabled )
+		public void SetAppEnabled( string requestorId, string? planName, AppIdTuple id, bool enabled )
 		{
 			if( planName is null ) return;
 
@@ -469,12 +525,12 @@ namespace Dirigent.Agent
 
 		}
 
-		public void KillAll( KillAllArgs args )
+		public void KillAll( string requestorId, KillAllArgs args )
 		{
 			// stop all plans
 			foreach( var p in _plans.Plans.Values )
 			{
-				p.Stop();
+				p.Stop( requestorId );
 			}
 
 			// kill all apps
@@ -482,10 +538,24 @@ namespace Dirigent.Agent
 			{
 				if( string.IsNullOrEmpty(args.MachineId) || ad.Id.MachineId == args.MachineId )
 				{
-					KillApp( ad.Id );
+					KillApp( requestorId, ad.Id );
 				}
 			}
+		}
 
+		public void ReloadSharedConfig( string requestorId, ReloadSharedConfigArgs args )
+		{
+			// load (may throw an exception on error)
+			var sharedConfig = LoadSharedConfig( _sharedConfigFileName );
+
+			// send kill to all
+			KillAll( requestorId, new KillAllArgs() );
+
+			// wait a while to give the apps the time to die
+			Thread.Sleep(3000);
+
+			// reinit from shared config
+			InitFromConfig( sharedConfig );
 		}
 
 	}

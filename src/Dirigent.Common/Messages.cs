@@ -38,6 +38,7 @@ namespace Dirigent.Net
 			{ 122, typeof( AppDefsMessage ) },
 			{ 123, typeof( CLIRequestMessage ) },
 			{ 124, typeof( CLIResponseMessage ) },
+			{ 125, typeof( ResetMessage ) },
 		};
 	}
 
@@ -70,6 +71,7 @@ namespace Dirigent.Net
 	[KnownType( typeof( AppDefsMessage ) ), ProtoBuf.ProtoInclude( 122, typeof( AppDefsMessage ) )]
 	[KnownType( typeof( CLIRequestMessage ) ), ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
 	[KnownType( typeof( CLIResponseMessage ) ), ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
+	[KnownType( typeof( ResetMessage ) ), ProtoBuf.ProtoInclude( 125, typeof( ResetMessage ) )]
 	public class Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
@@ -207,8 +209,9 @@ namespace Dirigent.Net
 
 
 		public StartAppMessage() {}
-		public StartAppMessage( AppIdTuple id, string? planName, StartAppFlags flags=0 )
+		public StartAppMessage( string requestorId, AppIdTuple id, string? planName, StartAppFlags flags=0 )
 		{
+			this.Sender = requestorId;
 			this.Id = id;
 			this.PlanName = planName;
 			this.Flags = flags;
@@ -225,6 +228,7 @@ namespace Dirigent.Net
 	public enum KillAppFlags
 	{
 		ResetAppState = 1 << 0, // should we reset app state flags like if the app was never attempted to start
+		//ForgetAppDef = 1 << 1, // agent should forget the definition of the app to stop sending its status as the appdefs are going to be replaced
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -242,8 +246,9 @@ namespace Dirigent.Net
 
 
 		public KillAppMessage() {}
-		public KillAppMessage( AppIdTuple id, KillAppFlags flags=0 )
+		public KillAppMessage( string requestorId, AppIdTuple id, KillAppFlags flags=0 )
 		{
+			this.Sender = requestorId;
 			this.Id = id;
 			this.Flags = flags;
 		}
@@ -264,8 +269,9 @@ namespace Dirigent.Net
 		public AppIdTuple Id;
 
 		public RestartAppMessage() {}
-		public RestartAppMessage( AppIdTuple id )
+		public RestartAppMessage( string requestorId, AppIdTuple id )
 		{
+			this.Sender = requestorId;
 			this.Id = id;
 		}
 		public override string ToString()
@@ -292,8 +298,9 @@ namespace Dirigent.Net
 		public bool Enabled;
 
 		public SetAppEnabledMessage() {}
-		public SetAppEnabledMessage( string planName, AppIdTuple id, bool enabled )
+		public SetAppEnabledMessage( string requestorId, string planName, AppIdTuple id, bool enabled )
 		{
+			this.Sender = requestorId;
 			this.PlanName = planName;
 			this.Id = id;
 			this.Enabled = enabled;
@@ -336,8 +343,9 @@ namespace Dirigent.Net
 		public String PlanName = string.Empty;
 
 		public StartPlanMessage() {}
-		public StartPlanMessage( String planName )
+		public StartPlanMessage( string requestorId, String planName )
 		{
+			this.Sender = requestorId;
 			this.PlanName = planName;
 		}
 
@@ -353,8 +361,9 @@ namespace Dirigent.Net
 		public string PlanName = string.Empty;
 
 		public StopPlanMessage() {}
-		public StopPlanMessage( String planName )
+		public StopPlanMessage( string requestorId, String planName )
 		{
+			this.Sender = requestorId;
 			this.PlanName = planName;
 		}
 
@@ -370,8 +379,9 @@ namespace Dirigent.Net
 		public string PlanName = string.Empty;
 
 		public KillPlanMessage() {}
-		public KillPlanMessage( String planName )
+		public KillPlanMessage( string requestorId, String planName )
 		{
+			this.Sender = requestorId;
 			this.PlanName = planName;
 		}
 
@@ -387,8 +397,9 @@ namespace Dirigent.Net
 		public string PlanName = string.Empty;
 
 		public RestartPlanMessage() {}
-		public RestartPlanMessage( String planName )
+		public RestartPlanMessage( string requestorId, String planName )
 		{
+			this.Sender = requestorId;
 			this.PlanName = planName;
 		}
 
@@ -459,8 +470,9 @@ namespace Dirigent.Net
 		public string Vars = string.Empty;
 
 		public SetVarsMessage() {}
-		public SetVarsMessage( string vars )
+		public SetVarsMessage( string requestorId, string vars )
 		{
+			this.Sender = requestorId;
 			this.Vars = vars;
 		}
 
@@ -481,8 +493,9 @@ namespace Dirigent.Net
 		public KillAllArgs Args;
 
 		public KillAllMessage() {}
-		public KillAllMessage( KillAllArgs args )
+		public KillAllMessage( string requestorId, KillAllArgs args )
 		{
+			this.Sender = requestorId;
 			this.Args = args;
 		}
 
@@ -502,8 +515,9 @@ namespace Dirigent.Net
 		public TerminateArgs Args;
 
 		public TerminateMessage() {}
-		public TerminateMessage( TerminateArgs args )
+		public TerminateMessage( string requestorId, TerminateArgs args )
 		{
+			this.Sender = requestorId;
 			this.Args = args;
 		}
 
@@ -523,8 +537,9 @@ namespace Dirigent.Net
 		public ShutdownArgs Args;
 
 		public ShutdownMessage() {}
-		public ShutdownMessage( ShutdownArgs args )
+		public ShutdownMessage( string requestorId, ShutdownArgs args )
 		{
+			this.Sender = requestorId;
 			this.Args = args;
 		}
 
@@ -544,8 +559,9 @@ namespace Dirigent.Net
 		public ReinstallArgs Args;
 
 		public ReinstallMessage() {}
-		public ReinstallMessage( ReinstallArgs args )
+		public ReinstallMessage( string requestorId, ReinstallArgs args )
 		{
+			this.Sender = requestorId;
 			this.Args = args;
 		}
 
@@ -565,8 +581,9 @@ namespace Dirigent.Net
 		public ReloadSharedConfigArgs Args;
 
 		public ReloadSharedConfigMessage() {}
-		public ReloadSharedConfigMessage( ReloadSharedConfigArgs args )
+		public ReloadSharedConfigMessage( string requestorId, ReloadSharedConfigArgs args )
 		{
+			this.Sender = requestorId;
 			this.Args = args;
 		}
 
@@ -646,6 +663,7 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
+			if( AppDefs is null ) return "AppDefs = null";
 			return $"AppDefs [{string.Join(", ", from x in AppDefs select x.Id.ToString(x.PlanName))}], increm={Incremental}";
 		}
 
@@ -688,6 +706,21 @@ namespace Dirigent.Net
 		public override string ToString()
 		{
 			return $"CLI Response: {Text}";
+		}
+	}
+
+	/// <summary>
+	/// Master tells the client to forget every info (will be resent())
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	[DataContract]
+	public class ResetMessage : Message
+	{
+		public ResetMessage() {}
+
+		public override string ToString()
+		{
+			return $"Reset";
 		}
 	}
 

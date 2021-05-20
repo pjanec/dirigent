@@ -60,7 +60,7 @@ namespace Dirigent.Gui.WinForms
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( _currentPlan.Name ) ) );
+			guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, _currentPlan.Name ) ) );
 		}
 
 		private void stopPlanMenuItem_Click( object sender, EventArgs e )
@@ -70,7 +70,7 @@ namespace Dirigent.Gui.WinForms
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.Send( new Net.StopPlanMessage( _currentPlan.Name ) ) );
+			guardedOp( () => _ctrl.Send( new Net.StopPlanMessage( _ctrl.Name, _currentPlan.Name ) ) );
 		}
 
 		private void killPlanMenuItem_Click( object sender, EventArgs e )
@@ -80,7 +80,7 @@ namespace Dirigent.Gui.WinForms
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.Send( new Net.KillPlanMessage( _currentPlan.Name ) ) );
+			guardedOp( () => _ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, _currentPlan.Name ) ) );
 		}
 
 		private void restartPlanMenuItem_Click( object sender, EventArgs e )
@@ -90,7 +90,7 @@ namespace Dirigent.Gui.WinForms
 				ShowNoPlanSelectedError();
 				return;
 			}
-			guardedOp( () => _ctrl.Send( new Net.RestartPlanMessage( _currentPlan.Name ) ) );
+			guardedOp( () => _ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, _currentPlan.Name ) ) );
 		}
 
 		private void selectPlanMenuItem_Click( object sender, EventArgs e )
