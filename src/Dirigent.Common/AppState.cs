@@ -34,6 +34,10 @@ namespace Dirigent.Common
 		[ProtoBuf.ProtoMember( 2 )]
 		int exitCode;
 
+		// UTC time of last update, recalculated to local time (as the clock migh differ on different computers)
+		// On Agent, the agent's UTC time of last update
+		// On Master, the UTC time of last update recalculated to master's local time
+		// On Gui, the UTC time of last update recalculated to gui's local time
 		[ProtoBuf.ProtoMember( 3 )]
 		DateTime lastChange = DateTime.UtcNow;
 

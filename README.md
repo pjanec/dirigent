@@ -381,3 +381,13 @@ The following modes are supported (via the --mode parameter):
 ## Start apps after agent's late join
 If plan is running and agent starts late or disconnects for a while and misses some LaunchApp commands.. Could master detect that and resend the LaunchApp commands? Master might check if agent is connected before sending commands to specific agent. And warn if it isn't. And remember it should send those later when agent is connected..
 
+
+## Scripts on master
+Scripts on master, running indepedently on apps and plans.
+Scripts are shows in separate tab on the GUI.
+A script can be started/killed/restarted via a separate set of dirigent commands.
+Script provides text string status.
+Script is ticked once each master's tick.
+Script has access to control interfaces, being able to run apps, plans...
+Script can watch for some specific constellation of apps states and trigger some actions...
+Script can take text string messages??? Not right now, maybe later, if found useful..

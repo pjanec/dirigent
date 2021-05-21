@@ -1,8 +1,8 @@
+[IDEA] Scripts on master, running indepedently on apps and plans. A script can be started/killed/restarted (separate set of dirigent commands). Script provides text string status.
+
 [BUG] Single instance checking not working, multiple instances can be opened
 
 [BUG] Windows agent not showing machine name in tray icon until the GUI is first time opened
-
-[TODO] Detect "offline" by time delat from last received update (don't rely on time sync across computers)
 
 [TODO] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
 
@@ -27,3 +27,5 @@
 [IDEA] Send all info as full state/changes. Including AppState, PlanState. Reduces unnecessary traffic if no changes.
 [IDEA] Assign each unique AppDefs a small unique integer number and use it for identifying the app def in network messages and possibly everywhere. Keep a global registry of AppDefs indexed by this number. Number assigned by master (simple counter).
 [IDEA] Assign each plan a small unique integer number and use it for identifying the app def in network messages and possibly everywhere. Keep a global registry of AppDefs indexed by this number. Number assigned by master (simple counter).
+
+

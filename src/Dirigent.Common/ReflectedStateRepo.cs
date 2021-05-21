@@ -61,8 +61,12 @@ namespace Dirigent.Common
 					//Debug.Assert( m.AppsState != null );
 					if( m.AppsState is not null )
 					{
+						var localTimeDelta = DateTime.UtcNow - m.TimeStamp;
+
 						foreach( var (id, state) in m.AppsState )
 						{
+							state.LastChange += localTimeDelta; // recalc to local time
+
 							_appStates[id] = state;	
 						}
 					}

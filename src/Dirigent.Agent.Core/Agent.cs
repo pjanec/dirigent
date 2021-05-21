@@ -83,7 +83,7 @@ namespace Dirigent.Agent
 
 			if( states.Count > 0 )
 			{
-				var msg = new Net.AppsStateMessage( states );
+				var msg = new Net.AppsStateMessage( states, DateTime.UtcNow );
 				_client.Send( msg );
 			}
 		}

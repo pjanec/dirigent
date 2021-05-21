@@ -120,11 +120,18 @@ namespace Dirigent.Net
 		[MaybeNull]
 		public Dictionary<AppIdTuple, AppState> AppsState;
 
+		// time on sender when sending this message
+		[ProtoBuf.ProtoMember( 2 )]
+		[DataMember]
+		public DateTime TimeStamp;
+
 		public AppsStateMessage() {}
-		public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState )
+		public AppsStateMessage( Dictionary<AppIdTuple, AppState> appsState, DateTime timeStamp )
 		{
 			this.AppsState = new Dictionary<AppIdTuple, AppState>( appsState );
+			this.TimeStamp = timeStamp;
 		}
+
 	}
 
 	[ProtoBuf.ProtoContract]

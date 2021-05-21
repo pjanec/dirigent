@@ -141,8 +141,12 @@ namespace Dirigent.Agent
 					//Debug.Assert( m.AppsState is not null );
 					if( m.AppsState is not null )
 					{
+						var localTimeDelta = DateTime.UtcNow - m.TimeStamp;
+
 						foreach( var( appId, appState ) in m.AppsState )
 						{
+							appState.LastChange += localTimeDelta; // recalc to master's time
+							
 							_allAppStates.AddOrUpdate( appId, appState );
 						}
 					}
@@ -297,7 +301,7 @@ namespace Dirigent.Agent
 
 			// send the full list of app states
 			{
-				var m = new Net.AppsStateMessage( _allAppStates.AppStates );
+				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
 				_server.SendToSingle( m, ident.Name );
 			}
 
@@ -328,7 +332,7 @@ namespace Dirigent.Agent
 		{
 			// apps
 			{
-				var m = new Net.AppsStateMessage( _allAppStates.AppStates );
+				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
 				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
 			}
 
