@@ -4,7 +4,7 @@
     <TargetFramework>net5.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
-    <Version>3.0.0.2</Version>
+    <Version>3.0.0.11</Version>
     <Authors>pjanec</Authors>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

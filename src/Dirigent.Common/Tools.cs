@@ -335,7 +335,7 @@ namespace Dirigent.Common
 					// strange way how to get enum value :-(
 					var enumValues = Enum.GetValues( typeof( T ) ).Cast<T>();
 					int j = 0;
-					T y = default( T );
+					T? y = default( T );
 					foreach( T x in enumValues )
 					{
 						y = x;

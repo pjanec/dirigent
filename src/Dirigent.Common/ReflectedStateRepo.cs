@@ -32,7 +32,7 @@ namespace Dirigent.Common
 		public string Name => _client.Ident.Name;
 
 		// Fired awhen plan defs received/updated
-		public Action PlansReceived;
+		public Action? PlansReceived;
 
 
 		private Net.Client _client;

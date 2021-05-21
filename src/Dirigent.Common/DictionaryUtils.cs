@@ -25,7 +25,7 @@ namespace Dirigent.Common
 
 			foreach( var kvp in first )
 			{
-				TValue secondValue;
+				TValue? secondValue;
 				if( !second.TryGetValue( kvp.Key, out secondValue ) ) return false;
 				if( !valueComparer.Equals( kvp.Value, secondValue ) ) return false;
 			}

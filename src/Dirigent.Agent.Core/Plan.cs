@@ -213,46 +213,46 @@ namespace Dirigent.Agent
 			// where the tools terminate automatically after they are done with their job.
 			// Note: this won't kill any app as the Kill is initiated when no app is running any more.
 			// (Usual non-volatile plans would not allow next start before prior KillPlan)
-			if(false) // DISABLED 
-			// - Explicit kill needed before being able to start again
-			// The reason is that we can reliably detect that the plan has succeeded
-			// With autokill the plan state goes None - InProgress - None and it's not clear if it was run at all
-			// if not asking quickly enough...
-			{
-			    var currTime = DateTime.UtcNow;
-
-				bool anyNonVolatileApp = false;	// is there at least one non-volatile?
-				bool allAppsProcessed = true;
-				bool anyStillRunning = false;
-				foreach (var app in _apps.Values )
-				{
-					var ad = app.Def;
-					var apst = _appsState[ad.Id];
-
-					bool offline = apst.IsOffline;
-
-					if (!offline && ! (app.State.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
-					{
-						allAppsProcessed = false;
-					}
-
-					if ( !offline && apst.Running)
-						anyStillRunning = true;
-
-					if (!ad.Volatile)
-					{
-						anyNonVolatileApp = true;
-					}
-				}
-
-				if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning) // all apps volatile, all launched and none is running  any longer
-				{
-					// Note: this won't kill any app as no apps are running any more.
-					//       It just make the plan startable again.
-					Kill( _requestorId );
-				}
-
-			}
+			//if(false) // DISABLED 
+			//// - Explicit kill needed before being able to start again
+			//// The reason is that we can reliably detect that the plan has succeeded
+			//// With autokill the plan state goes None - InProgress - None and it's not clear if it was run at all
+			//// if not asking quickly enough...
+			//{
+			//    var currTime = DateTime.UtcNow;
+			//
+			//	bool anyNonVolatileApp = false;	// is there at least one non-volatile?
+			//	bool allAppsProcessed = true;
+			//	bool anyStillRunning = false;
+			//	foreach (var app in _apps.Values )
+			//	{
+			//		var ad = app.Def;
+			//		var apst = _appsState[ad.Id];
+			//
+			//		bool offline = apst.IsOffline;
+			//
+			//		if (!offline && ! (app.State.PlanApplied && (apst.Initialized || apst.StartFailed ) ))
+			//		{
+			//			allAppsProcessed = false;
+			//		}
+			//
+			//		if ( !offline && apst.Running)
+			//			anyStillRunning = true;
+			//
+			//		if (!ad.Volatile)
+			//		{
+			//			anyNonVolatileApp = true;
+			//		}
+			//	}
+			//
+			//	if (allAppsProcessed && !anyNonVolatileApp && !anyStillRunning) // all apps volatile, all launched and none is running  any longer
+			//	{
+			//		// Note: this won't kill any app as no apps are running any more.
+			//		//       It just make the plan startable again.
+			//		Kill( _requestorId );
+			//	}
+			//
+			//}
 
 
             // if no plan exists

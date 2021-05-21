@@ -5,7 +5,7 @@
     <TargetFramework>net5.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
-    <Version>3.0.0.2</Version>
+    <Version>3.0.0.11</Version>
     <Authors>pjanec</Authors>
 
     <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 
@@ -37,7 +37,7 @@
   </ItemGroup>  
 
   <ItemGroup>
-    <ProjectReference Include="..\Dirigent.CLI\Dirigent.CLI.csproj" />
+    <ProjectReference Include="..\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
     <ProjectReference Include="..\SyncableDict\SyncableDict.csproj" />
   </ItemGroup>

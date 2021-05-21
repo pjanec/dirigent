@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Dirigent.Agent": {
+      "commandName": "Project",
+      "commandLineArgs": "--isMaster 1"
+    },
+    "WSL 2": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    }
+  }
+}

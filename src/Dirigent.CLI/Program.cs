@@ -64,38 +64,7 @@ namespace Dirigent.Agent
 
 					switch( ac.Mode.ToLower() )
 					{
-						//case "gui":  // just gui, no agent
-						//{
-						//	app = new AgentMasterApp( ac, isAgent: false, isMaster: Tools.BoolFromString( ac.IsMaster ), runGui:true );
-						//	break;
-						//}
-
-						//// agent + gui
-						//case "traygui":  // for compatibility with Dirigent 1.x
-						//case "trayapp":  // for compatibility with Dirigent 1.x
-						//case "trayagentgui":
-						//{
-						//	app = new AgentMasterApp( ac, isAgent: true, isMaster: Tools.BoolFromString( ac.IsMaster ), runGui:true );
-						//	break;
-						//}
-
-						// just agent (no gui)
-						case "":
-						case "daemon":
-						case "agent":
-						{
-							app = new AgentMasterApp( ac, isAgent: true, isMaster: Tools.BoolFromString( ac.IsMaster ) );
-							break;
-						}
-
-						// master only
-						case "master":
-						{
-							app = new AgentMasterApp( ac, isAgent: false, isMaster: true );
-							break;
-						}
-
-
+						default:
 						case "cli":
 						{
 							app = new CliApp( ac, interactive: false );
@@ -107,13 +76,6 @@ namespace Dirigent.Agent
 							app = new CliApp( ac, interactive: true );
 							break;
 						}
-
-						default:
-						{
-							log.Error( $"Invalid app mode '{ac.Mode}'" );
-							break;
-						}
-
 					}
 
 					if( app != null )

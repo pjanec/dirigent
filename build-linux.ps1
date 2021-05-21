@@ -1,5 +1,7 @@
 Param( $buildconf="Release" )
 
+$framework = "net5.0"
+
 function ReplaceTargetPlatform
 {
     Param( [string]$csprojFileName, [string]$newPlatform )
@@ -10,14 +12,29 @@ function ReplaceTargetPlatform
      Out-File -encoding utf8 $csprojFileName
 }
 
+$projects = @(
+  "src\Dirigent.Common\Dirigent.Common.csproj"
+  "src\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj"
+  "src\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj"
+  "src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj"
+  "src\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj"
+  "src\Dirigent.CLI\Dirigent.CLI.csproj"
+)
 
-ReplaceTargetPlatform "src\Dirigent.Agent\Dirigent.Agent.csproj"             "net5.0"
-ReplaceTargetPlatform "src\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj"   "net5.0"
-ReplaceTargetPlatform "src\Dirigent.Common\Dirigent.Common.csproj"           "net5.0"
-ReplaceTargetPlatform "src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj"     "net5.0"
+Foreach ($proj in $projects)
+{
+    "Retargetting $proj => $framework"
+    ReplaceTargetPlatform $proj $framework
+}
 
-dotnet build -c $buildconf --no-incremental src\Dirigent.Common\Dirigent.Common.csproj
-dotnet build -c $buildconf --no-incremental src\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj
-dotnet build -c $buildconf --no-incremental src\Dirigent.Agent\Dirigent.Agent.csproj
+Foreach ($proj in $projects)
+{
+    "Cleaning $proj"
+    dotnet clean --nologo -c $buildconf -f $framework -v m $proj
+}
 
-
+Foreach ($proj in $projects)
+{
+    "Building $proj"
+    dotnet build --nologo -c $buildconf -f $framework $proj
+}

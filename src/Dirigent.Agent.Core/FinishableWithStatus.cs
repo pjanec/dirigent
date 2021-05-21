@@ -24,7 +24,7 @@ namespace Dirigent.Agent
 
 
 
-        private EFlags _flags;
+        private EFlags _flags = 0;
         private string _name = String.Empty;
         private string _status = String.Empty;
         private bool _shallBeRemoved = false;

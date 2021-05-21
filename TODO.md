@@ -1,3 +1,9 @@
+[BUG] Single instance checking not working, multiple instances can be opened
+
+[BUG] Windows agent not showing machine name in tray icon until the GUI is first time opened
+
+[TODO] Detect "offline" by time delat from last received update (don't rely on time sync across computers)
+
 [TODO] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
