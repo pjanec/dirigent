@@ -131,6 +131,12 @@ namespace Dirigent.Agent
 					_localApps.Clear();
 					break;
 				}
+
+				case Net.SetVarsMessage m:
+				{
+					SetVars( m.Vars );
+					break;
+				}
 			}
 		}
 
@@ -163,5 +169,59 @@ namespace Dirigent.Agent
 				_client.Send( errmsg );
             }
 		}
+
+		// format of string: VAR1=VALUE1::VAR2=VALUE2
+		void SetVars( string vars )
+		{
+			// split & parse
+			var varList = new List<Tuple<string, string>>();
+			foreach( var kv in vars.Split(new string[] { "::" }, StringSplitOptions.None))
+			{
+				if( string.IsNullOrWhiteSpace(kv) ) // nothing present
+				{
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
+				}
+
+				int equalSignIdx = kv.IndexOf("=");
+
+				if( equalSignIdx < 0 ) // equal sign not present
+				{
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
+				}
+
+				string name = kv.Substring(0, equalSignIdx).Trim();
+				string value = kv.Substring(equalSignIdx+1).TrimStart();
+				
+				if( string.IsNullOrEmpty(name) )
+				{
+					log.ErrorFormat("Invalid SetVars format: {0}", kv);
+					continue;
+				}
+
+				varList.Add( new Tuple<string, string>(name, value) );
+			}
+
+			// apply
+			foreach( var kv in varList )
+			{
+				var name = kv.Item1;
+				var value = kv.Item2;
+                log.Debug(string.Format("Setting env var: {0}={1}", name, value));
+
+				try{
+					System.Environment.SetEnvironmentVariable( name, value );
+				}
+				catch( Exception ex )
+				{
+	                log.ErrorFormat("Exception: SetVars {0}={1} failure: {2}", name, value, ex);
+					throw new Exception(String.Format("SetVars {0}={1} failure: {2}", name, value, ex));
+				}
+			}
+
+		}
+
+
 	}
 }

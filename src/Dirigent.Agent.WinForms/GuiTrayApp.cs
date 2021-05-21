@@ -104,7 +104,16 @@ namespace Dirigent.Gui.WinForms
 			var components = new System.ComponentModel.Container();
 
 			_notifyIcon = new NotifyIcon( components );
-			_notifyIcon.Text = "Dirigent";
+			
+			if( !string.IsNullOrEmpty(_machineId) )
+			{
+				_notifyIcon.Text = $"Dirigent [{_machineId}]";
+			}
+			else
+			{
+				_notifyIcon.Text = $"Dirigent";
+			}
+
 			_notifyIcon.Icon = Properties.Resources.AppIcon;
 
 			var menuItems = new List<ToolStripMenuItem>();

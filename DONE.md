@@ -49,3 +49,11 @@ Was set to require explicit kill!
 
 [BUG] Single instance checking not working, multiple instances can be opened
 
+[BUG] Windows agent not showing machine name in tray icon until the GUI is first time opened
+
+
+[BUG] CLI app not outputting anything to stdout
+
+[TODO] CLI commands implementation: GetAllPlansState, GetAllAppsState etc...
+
+

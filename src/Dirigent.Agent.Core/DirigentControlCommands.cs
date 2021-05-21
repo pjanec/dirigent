@@ -198,12 +198,11 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "Plan name expected." );
-			//var planName = args[0];
-			//var planState = ctrl.GetPlanState( planName );
-			//var stateStr = Tools.GetPlanStateString( planName, planState );
-			//WriteResponse( stateStr );
+			if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "Plan name expected." );
+			var planName = args[0];
+			var planState = ctrl.GetPlanState( planName );
+			var stateStr = Tools.GetPlanStateString( planName, planState );
+			WriteResponse( stateStr );
 		}
 	}
 
@@ -216,15 +215,14 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			//var t = new AppIdTuple( args[0] );
-			//if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
+			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			var t = new AppIdTuple( args[0] );
+			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
 
-			//var appState = ctrl.GetAppState( t );
-			//var stateStr = Tools.GetAppStateString( t, appState );
+			var appState = ctrl.GetAppState( t );
+			var stateStr = Tools.GetAppStateString( t, appState );
 
-			//WriteResponse( stateStr );
+			WriteResponse( stateStr );
 		}
 	}
 
@@ -238,14 +236,12 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//foreach( var p in ctrl.GetPlanRepo() )
-			//{
-			//	var planState = ctrl.GetPlanState( p.Name );
-			//	var stateStr = Tools.GetPlanStateString( p.Name, planState );
-			//	WriteResponse( stateStr );
-			//}
-			//WriteResponse( "END" );
+			foreach( (var planName, var planState) in ctrl.GetAllPlanStates() )
+			{
+				var stateStr = Tools.GetPlanStateString( planName, planState );
+				WriteResponse( stateStr );
+			}
+			WriteResponse( "END" );
 		}
 	}
 
@@ -259,14 +255,12 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-
-			//foreach( var pair in ctrl.GetAllAppsState() )
-			//{
-			//	var stateStr = Tools.GetAppStateString( pair.Key, pair.Value );
-			//	WriteResponse( stateStr );
-			//}
-			//WriteResponse( "END" );
+			foreach( var pair in ctrl.GetAllAppStates() )
+			{
+				var stateStr = Tools.GetAppStateString( pair.Key, pair.Value );
+				WriteResponse( stateStr );
+			}
+			WriteResponse( "END" );
 		}
 	}
 
@@ -279,10 +273,9 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-   //         if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
-   //         ctrl.SetVars( _requestorId, args[0] );
-			//WriteResponse( "ACK" );
+            if (args.Count == 0) throw new MissingArgumentException("vars", "variable=value expected.");
+            ctrl.SetVars( _requestorId, args[0] );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -295,14 +288,13 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//var argsStruct = new KillAllArgs() {}; 
-   //         if( args.Count > 0 )
-   //         {
-   //             argsStruct.MachineId = args[0];
-   //         }
-	//         ctrl.KillAll( _requestorId, argsStruct );
-			//WriteResponse( "ACK" );
+			var argsStruct = new KillAllArgs() { };
+			if ( args.Count > 0 )
+			{
+				argsStruct.MachineId = args[0];
+			}
+			ctrl.KillAll( _requestorId, argsStruct );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -317,21 +309,21 @@ namespace Dirigent.Agent.Commands
 		public override void Execute()
 		{
 			throw new CommandNotImplementedException( Name );
-			//var argsStruct = new ShutdownArgs() {}; 
+			var argsStruct = new ShutdownArgs() { };
 
-			//var argsDict = Tools.ParseKeyValList( args );
+			var argsDict = Tools.ParseKeyValList( args );
 
-			//string modeStr;
-			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "mode", out modeStr ) )
-			//{
-			//	if( !Tools.GetEnumValueByNameIgnoreCase<EShutdownMode>( modeStr, out argsStruct.Mode ) )
-			//	{
-			//		throw new ArgumentException( String.Format("invalid mode '{0}'", modeStr), "mode" );
-			//	}
-			//}
+			string modeStr;
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "mode", out modeStr ) )
+			{
+				if ( !Tools.GetEnumValueByNameIgnoreCase<EShutdownMode>( modeStr, out argsStruct.Mode ) )
+				{
+					throw new ArgumentException( String.Format( "invalid mode '{0}'", modeStr ), "mode" );
+				}
+			}
 
-//         ctrl.Shutdown( _requestorId, argsStruct );
-			//WriteResponse( "ACK" );
+			ctrl.Shutdown( _requestorId, argsStruct );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -344,23 +336,22 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//var argsStruct = new TerminateArgs() { KillApps=true }; 
+			var argsStruct = new TerminateArgs() { KillApps = true };
 
-			//var argsDict = Tools.ParseKeyValList( args );
-			//string valStr;
-			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
-			//{
-			//	if( valStr=="1" ) argsStruct.KillApps = true;
-			//}
+			var argsDict = Tools.ParseKeyValList( args );
+			string valStr;
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			{
+				if ( valStr == "1" ) argsStruct.KillApps = true;
+			}
 
-			//if( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
-			//{
-			//	argsStruct.MachineId = valStr;
-			//}
+			if ( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
+			{
+				argsStruct.MachineId = valStr;
+			}
 
-   //         ctrl.Terminate( _requestorId, argsStruct );
-			//WriteResponse( "ACK" );
+			ctrl.Terminate( _requestorId, argsStruct );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -373,28 +364,27 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//var argsStruct = new ReinstallArgs() {}; 
+			var argsStruct = new ReinstallArgs() { };
 
-			//var argsDict = Tools.ParseKeyValList( args );
+			var argsDict = Tools.ParseKeyValList( args );
 
-			//string modeStr;
-			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "downloadMode", out modeStr ) )
-			//{
-			//	if( !Tools.GetEnumValueByNameIgnoreCase<EDownloadMode>( modeStr, out argsStruct.DownloadMode ) )
-			//	{
-			//		throw new ArgumentException( String.Format("invalid download mode '{0}'", modeStr), "downloadMode" );
-			//	}
-			//}
+			string modeStr;
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "downloadMode", out modeStr ) )
+			{
+				if ( !Tools.GetEnumValueByNameIgnoreCase<EDownloadMode>( modeStr, out argsStruct.DownloadMode ) )
+				{
+					throw new ArgumentException( String.Format( "invalid download mode '{0}'", modeStr ), "downloadMode" );
+				}
+			}
 
-			//string urlStr;
-			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "url", out urlStr ) )
-			//{
-			//	argsStruct.Url = urlStr;
-			//}
+			string urlStr;
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "url", out urlStr ) )
+			{
+				argsStruct.Url = urlStr;
+			}
 
-//         ctrl.Reinstall( _requestorId, argsStruct );
-			//WriteResponse( "ACK" );
+			ctrl.Reinstall( _requestorId, argsStruct );
+			WriteResponse( "ACK" );
 		}
 	}
 
@@ -407,18 +397,17 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
-			//var argsStruct = new ReloadSharedConfigArgs() {}; 
+			var argsStruct = new ReloadSharedConfigArgs() { };
 
-			//var argsDict = Tools.ParseKeyValList( args );
-			//string valStr;
-			//if( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
-			//{
-			//	if( valStr=="1" ) argsStruct.KillApps = true;
-			//}
+			var argsDict = Tools.ParseKeyValList( args );
+			string valStr;
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
+			{
+				if ( valStr == "1" ) argsStruct.KillApps = true;
+			}
 
-   //         ctrl.ReloadSharedConfig( _requestorId, argsStruct );
-			//WriteResponse( "ACK" );
+			ctrl.ReloadSharedConfig( _requestorId, argsStruct );
+			WriteResponse( "ACK" );
 		}
 	}
 

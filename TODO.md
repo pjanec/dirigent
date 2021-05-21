@@ -1,7 +1,5 @@
 [IDEA] Scripts on master, running indepedently on apps and plans. A script can be started/killed/restarted (separate set of dirigent commands). Script provides text string status.
 
-[BUG] Windows agent not showing machine name in tray icon until the GUI is first time opened
-
 [TODO] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
@@ -10,8 +8,6 @@
 
 [BUG] Agent is now using SendKeysWait, run it in a thread to avoid endless waiting for app that is stuck!
 
-[TODO] CLI commands implementation: GetAllPlansState, GetAllAppsState etc...
-
 [TODO] FolderWatcher from trayapp to Agent
 
 [BUG] ReloadSharedConfig does not change the appdef (changed cmdLineArgs, tested in linux version)
@@ -19,6 +15,8 @@
 [TODO] Unselect app from plan also as CLI operation. Unselected app not affected by start/kill/restart plan. Starting unselected app uses it's default configuration.
 
 [TODO] SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
+
+[TODO] Terminate, Shutdown, Reinstall
 
 [BUG] When RemoteOperError Message box appears and gets closed, exception hapens (iteration variable changed)
 

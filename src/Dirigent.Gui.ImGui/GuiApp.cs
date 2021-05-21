@@ -26,7 +26,7 @@ namespace Dirigent.Gui
 			_ac = ac;
 			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
-			_wnd = new ImGuiWindow("Dirigent Gui", width:250, height:300);
+			_wnd = new ImGuiWindow("Dirigent Gui", width:400, height:650);
 			_wnd.OnDrawUI += DrawUI;
 
 			_guiWin = new GuiWindow( _wnd, _ac );

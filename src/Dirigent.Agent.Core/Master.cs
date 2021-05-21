@@ -529,6 +529,13 @@ namespace Dirigent.Agent
 
 		}
 
+		// format of string: VAR1=VALUE1::VAR2=VALUE2
+		public void SetVars( string requestorId, string vars )
+		{
+			var msg = new Net.SetVarsMessage( requestorId, vars );
+			_server.SendToAllSubscribed( msg, EMsgRecipCateg.Agent );
+		}
+
 		public void KillAll( string requestorId, KillAllArgs args )
 		{
 			// stop all plans
@@ -562,5 +569,22 @@ namespace Dirigent.Agent
 			InitFromConfig( sharedConfig );
 		}
 
+		public void Terminate( string requestorId, TerminateArgs args )
+		{
+			var msg = new Net.TerminateMessage( requestorId, args );
+			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+		}
+
+		public void Shutdown( string requestorId, ShutdownArgs args )
+		{
+			var msg = new Net.ShutdownMessage( requestorId, args );
+			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+		}
+
+		public void Reinstall( string requestorId, ReinstallArgs args )
+		{
+			var msg = new Net.ReinstallMessage( requestorId, args );
+			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+		}
 	}
 }
