@@ -44,14 +44,14 @@ namespace Dirigent.Agent
 		{
 
             #if Windows
-				Console.WriteLine("Windows!");
+				//Console.WriteLine("Windows!");
             #endif
 
 			EAppExitCode exitCode = EAppExitCode.OK;
 
 			try
 			{
-				log.Info( $"Started with cmdLine: {Environment.CommandLine}" );
+				log.Debug( $"Started with cmdLine: {Environment.CommandLine}" );
 				var ac = new AppConfig();
 				if( ac.HadErrors )
 				{
@@ -84,7 +84,7 @@ namespace Dirigent.Agent
 						app.Dispose();
 					}
 
-					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
+					log.Debug( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}
 			catch( Exception ex )

@@ -27,7 +27,7 @@ namespace Dirigent.Gui
 		{
 			_wnd = wnd;
 			_ac = ac;
-			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
+			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_machineId = machineId;
 			_agent = new Agent.Agent( machineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
 		}

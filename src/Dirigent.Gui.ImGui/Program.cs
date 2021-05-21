@@ -67,7 +67,7 @@ namespace Dirigent.Gui
 							break;
 						}
 					}
-					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
+					log.Debug( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}
 			//catch( Exception ex )

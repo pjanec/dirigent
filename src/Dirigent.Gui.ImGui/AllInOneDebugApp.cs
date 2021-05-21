@@ -26,7 +26,7 @@ namespace Dirigent.Gui
 		public AllInOneDebugApp( AppConfig ac )
 		{
 			_ac = ac;
-			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
+			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
 			_wnd = new ImGuiWindow("Dirigent Debug All-In-One", width:1000, height:700);
 			_wnd.OnDrawUI += DrawUI;

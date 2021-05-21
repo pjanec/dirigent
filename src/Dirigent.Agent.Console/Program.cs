@@ -44,7 +44,7 @@ namespace Dirigent.Agent
 		{
 
             #if Windows
-				Console.WriteLine("Windows!");
+				//Console.WriteLine("Windows!");
             #endif
 
 			EAppExitCode exitCode = EAppExitCode.OK;
@@ -122,7 +122,7 @@ namespace Dirigent.Agent
 						app.Dispose();
 					}
 
-					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
+					log.Debug( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}
 			catch( Exception ex )

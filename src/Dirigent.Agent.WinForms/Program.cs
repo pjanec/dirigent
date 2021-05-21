@@ -102,7 +102,7 @@ namespace Dirigent.Gui.WinForms
 					IApp app = new GuiTrayApp( ac, runAgent, runGui, isMaster );
 					exitCode = app.run();
 					app.Dispose();
-					log.Info( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
+					log.Debug( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
 				}
 			}
 			catch( Exception ex )

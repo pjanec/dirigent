@@ -64,7 +64,7 @@ namespace Dirigent.Gui.WinForms
 			_notifyIcon = notifyIcon;
 			_allowLocalIfDisconnected = true;
 
-			log.Info( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
+			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
 
 			InitializeComponent();
