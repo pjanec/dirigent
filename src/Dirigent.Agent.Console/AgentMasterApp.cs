@@ -67,6 +67,10 @@ namespace Dirigent.Agent
 
 					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
 				}
+				else
+				{
+					log.Error( "Another instance of Dirigent Master is already running!" );
+				}
 			}
 
 			if( _isAgent )
@@ -74,6 +78,10 @@ namespace Dirigent.Agent
 				if( !_alreadyRunningTester.IsAgentAlreadyRunning() )
 				{
 					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+				}
+				else
+				{
+					log.Error( "Another instance of Dirigent Agent is already running!" );
 				}
 			}
 

@@ -46,3 +46,6 @@ Was set to require explicit kill!
 [FIXED] StartupPlan not applied in Gui.WinForms, always starts without a plan selected
 
 [BUG] Detect "offline" by time delat from last received update (don't rely on time sync across computers)
+
+[BUG] Single instance checking not working, multiple instances can be opened
+

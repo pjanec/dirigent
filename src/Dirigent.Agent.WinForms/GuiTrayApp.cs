@@ -281,6 +281,11 @@ namespace Dirigent.Gui.WinForms
 					_agent = null;
 				}
 			}
+			else
+			{
+				log.Error( "Another instance of Dirigent Agent is already running!" );
+				MessageBox.Show("Another instance of Dirigent Agent is already running on this machine!", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			}
         }
 
         private void DeinitializeAgent()
@@ -321,6 +326,11 @@ namespace Dirigent.Gui.WinForms
 						_master = null;
 					});
 					_masterThread.Start();
+				}
+				else
+				{
+					log.Error( "Another instance of Dirigent Master is already running!" );
+					MessageBox.Show("Another instance of Dirigent Master is already running on this machine!", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 				}
 			}
 		}

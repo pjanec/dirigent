@@ -36,7 +36,6 @@ namespace Dirigent.Common
 			if( !createdNew )
 			{
 				// myApp is already running...
-				log.Error( "Another instance of Dirigent Agent is already running!" );
 				return true;
 			}
 			return false;
@@ -51,7 +50,6 @@ namespace Dirigent.Common
 			if( !createdNew )
 			{
 				// myApp is already running...
-				log.Error( "Another instance of Dirigent Master is already running!" );
 				return true;
 			}
 			return false;
