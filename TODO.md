@@ -1,10 +1,6 @@
 [IDEA] Scripts on master, running indepedently on apps and plans. A script can be started/killed/restarted (separate set of dirigent commands). Script provides text string status.
 
-[TODO] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
-
 [BUG] batch file app started within agent's console - shall be run in its own window!
-
-[TODO] ImGui: Main menu - Reload SharedConfig, Kill All
 
 [BUG] Agent is now using SendKeysWait, run it in a thread to avoid endless waiting for app that is stuck!
 
@@ -25,3 +21,4 @@
 [IDEA] Assign each plan a small unique integer number and use it for identifying the app def in network messages and possibly everywhere. Keep a global registry of AppDefs indexed by this number. Number assigned by master (simple counter).
 
 
+[IDEA] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.

@@ -20,6 +20,8 @@ namespace Dirigent.Gui
 		private ImGuiWindow _wnd;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private GuiWindow? _guiWin;
+		private IDirig _ctrl;
+
 
 		public GuiApp( AppConfig ac )
 		{
@@ -30,6 +32,7 @@ namespace Dirigent.Gui
 			_wnd.OnDrawUI += DrawUI;
 
 			_guiWin = new GuiWindow( _wnd, _ac );
+			_ctrl = _guiWin.Ctrl;
 
 
 		}
@@ -72,6 +75,22 @@ namespace Dirigent.Gui
 					}
 					ImGui.EndMenu();
 				}
+
+				if( ImGui.BeginMenu("Tools") )
+				{
+					if( ImGui.MenuItem("Reload Shared Config") )
+					{
+						_ctrl.Send( new Net.ReloadSharedConfigMessage() );
+					}
+
+					if( ImGui.MenuItem("Kill All") )
+					{
+						_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, new KillAllArgs() ) );
+					}
+
+					ImGui.EndMenu();
+				}
+
 				var mainMenuSize = ImGui.GetWindowSize();
 				clientTop = mainMenuSize.Y;
 				ImGui.EndMainMenuBar();
@@ -90,6 +109,5 @@ namespace Dirigent.Gui
 			}
 		}
 		
-
 	}
 }

@@ -18,9 +18,9 @@ namespace Dirigent.Gui
 		public AppDef? AppDef { get { return _appDef; } set { _appDef = value; } }
 		private ImGuiWindow _wnd;
 		
-		public ImageInfo _txStart;
-		public ImageInfo _txKill;
-		public ImageInfo _txRestart;
+		private ImageInfo _txStart;
+		private ImageInfo _txKill;
+		private ImageInfo _txRestart;
 		//private System.Numerics.Vector2 _btnSize;
 		
 		public AppRenderer( ImGuiWindow wnd, AppIdTuple id, IDirig ctrl, AppDef? appDef=null )

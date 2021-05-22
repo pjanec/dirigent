@@ -308,7 +308,6 @@ namespace Dirigent.Agent.Commands
 
 		public override void Execute()
 		{
-			throw new CommandNotImplementedException( Name );
 			var argsStruct = new ShutdownArgs() { };
 
 			var argsDict = Tools.ParseKeyValList( args );

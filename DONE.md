@@ -56,4 +56,6 @@ Was set to require explicit kill!
 
 [TODO] CLI commands implementation: GetAllPlansState, GetAllAppsState etc...
 
+[TODO] ImGui: Main menu - Reload SharedConfig, Kill All
+
 

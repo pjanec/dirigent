@@ -12,6 +12,8 @@ namespace Dirigent.Gui
 {
 	public class GuiWindow : Disposable
 	{
+		public 	IDirig Ctrl => _reflStates;
+
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -21,6 +23,7 @@ namespace Dirigent.Gui
 		private ReflectedStateRepo _reflStates;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private ImGuiWindow _wnd;
+		private ImageInfo _txKillAll;
 
 
 		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
@@ -31,6 +34,7 @@ namespace Dirigent.Gui
 			_clientIdent = new Net.ClientIdent(	string.Empty, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_reflStates = new ReflectedStateRepo( _client );
+			_txKillAll = _wnd.GetImage("Resources/skull.png");
 		}
 
 		protected override void Dispose(bool disposing)
@@ -56,11 +60,19 @@ namespace Dirigent.Gui
 					ImGui.EndTabItem();
 				}
 
-				if( ImGui.BeginTabItem("Plans") )
+				var plansOpen = ImGui.BeginTabItem("Plans");
+				ImGui.SameLine();
+				if( ImgBtn( _txKillAll ) )
+				{
+					_reflStates.Send( new Net.KillAllMessage( _reflStates.Name, new KillAllArgs() ) );
+				}
+
+				if( plansOpen )
 				{
 					DrawPlans();
 					ImGui.EndTabItem();
 				}
+
 
 				ImGui.EndTabBar();
 			}
@@ -97,6 +109,19 @@ namespace Dirigent.Gui
 				}
 				r.DrawUI();
 			}
+		}
+
+		// uses original texture size and black background, 
+		private bool ImgBtn( ImageInfo img )
+		{
+			return ImGui.ImageButton(
+				img.TextureUserId,
+				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
+				System.Numerics.Vector2.Zero,
+				new System.Numerics.Vector2(1,1),
+				0, // no padding
+				new System.Numerics.Vector4(0,0,0,1) // black background
+			); 
 		}
 
 

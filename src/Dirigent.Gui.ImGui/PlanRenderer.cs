@@ -16,9 +16,9 @@ namespace Dirigent.Gui
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 		private ImGuiWindow _wnd;
 		
-		public ImageInfo _txStart;
-		public ImageInfo _txKill;
-		public ImageInfo _txRestart;
+		private ImageInfo _txStart;
+		private ImageInfo _txKill;
+		private ImageInfo _txRestart;
 
 		public PlanRenderer( ImGuiWindow wnd, string id, IDirig ctrl )
 		{
