@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dirigent.Common;
 using System.Xml.Linq;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	
 	/// <summary>

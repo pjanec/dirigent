@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Management;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	static public class WinApi
 	{

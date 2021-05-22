@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	public static class XmlConfigReaderUtils
 	{

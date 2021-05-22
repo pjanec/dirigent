@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using Dirigent.Common;
-
-namespace Dirigent.Agent
+namespace Dirigent
 {
     /// <summary>
     /// Builds a dependency graph of the applications in the plan.

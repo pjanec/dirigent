@@ -10,8 +10,6 @@ using System.Reflection;
 
 using System.IO;
 
-using Dirigent.Common;
-
 namespace Dirigent.Gui.WinForms
 {
 	public partial class frmMain : Form

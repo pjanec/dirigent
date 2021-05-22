@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 
 	// https://stackoverflow.com/questions/3928822/comparing-2-dictionarystring-string-instances

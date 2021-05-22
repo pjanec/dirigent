@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
     public class Disposable : IDisposable
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     /// <summary>
     /// A set IAppWatchers currently installed for a local app

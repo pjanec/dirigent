@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dirigent.Common;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Xml.Linq;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     public class ExitCodeInitDetector : IAppInitializedDetector
     {

@@ -3,10 +3,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
-using Dirigent.Common;
 using System;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	/// <summary>
 	/// Script associated with the plan (optional)

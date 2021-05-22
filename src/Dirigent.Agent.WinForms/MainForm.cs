@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Configuration;
-using Dirigent.Common;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
@@ -465,7 +464,7 @@ namespace Dirigent.Gui.WinForms
 
 		private void exitToolStripMenuItem1_Click( object sender, EventArgs e )
 		{
-			AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() );	 // handled in GuiApp
+			AppMessenger.Instance.Send( new Dirigent.AppMessages.ExitApp() );	 // handled in GuiApp
 		}
 
 		private void btnKillAll_Click( object sender, EventArgs e )

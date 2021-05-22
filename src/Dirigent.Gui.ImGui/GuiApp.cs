@@ -4,7 +4,6 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Text;
 using System.Drawing;
-using Dirigent.Common;
 using ImGuiNET;
 using System.Threading;
 using ImVec2 = System.Numerics.Vector2;

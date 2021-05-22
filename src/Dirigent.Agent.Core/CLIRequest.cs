@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using Dirigent.Common;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	// request being processes
 	public class CLIRequest	: Disposable

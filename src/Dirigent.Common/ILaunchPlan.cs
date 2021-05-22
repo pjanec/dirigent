@@ -1,9 +1,9 @@
 ﻿using System;
-namespace Dirigent.Common
+namespace Dirigent
 {
 	public interface ILaunchPlan : IEquatable<ILaunchPlan>
 	{
-		System.Collections.Generic.IEnumerable<Dirigent.Common.AppDef> getAppDefs();
+		System.Collections.Generic.IEnumerable<AppDef> getAppDefs();
 		string Name { get; }
 
 		/// <summary>

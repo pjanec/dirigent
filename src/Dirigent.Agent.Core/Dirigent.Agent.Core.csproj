@@ -24,11 +24,18 @@
     <DefineConstants>Linux</DefineConstants>
   </PropertyGroup>
   
-  <PropertyGroup  Condition="'$(IsWindows)'=='true'">
+  <PropertyGroup Condition="'$(IsWindows)'=='true'">
      <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <None Include="..\..\config\scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CS-Script.Core" Version="2.0.0" />
     <PackageReference Include="log4net" Version="2.0.12" />
   </ItemGroup>
 
@@ -40,6 +47,10 @@
     <ProjectReference Include="..\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
     <ProjectReference Include="..\SyncableDict\SyncableDict.csproj" />
+  </ItemGroup>  
+
+  <ItemGroup>
+    <Folder Include="Scripts\" />
   </ItemGroup>
 
 </Project>

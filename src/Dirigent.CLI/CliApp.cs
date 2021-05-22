@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-using Dirigent.Common;
-using Dirigent.Agent;
+using Dirigent;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public class CliApp : Disposable, IApp
 	{

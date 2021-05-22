@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     // something to be ticked each frame
-    public abstract class FinishableWithStatus : ITickable
+    public abstract class FinishableWithStatus : Disposable, ITickable
     {
-        public string Id => _name;
+        public string Id { get { return _name; } set { _name = value; } }
         public string Status => _status; 
         public bool ShallBeRemoved => _shallBeRemoved;
 

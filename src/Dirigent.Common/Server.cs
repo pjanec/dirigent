@@ -6,7 +6,6 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Net;
 using NetCoreServer;
-using Dirigent.Common;
 using System.Collections.Concurrent;
 
 namespace Dirigent.Net
@@ -88,15 +87,6 @@ namespace Dirigent.Net
 		}
 
 
-
-
-		//public void SendProtoMsg<T>( T msg )
-		//{
-		//    var ms = new System.IO.MemoryStream();
-		//    _msgCodec.ConstructProtoMessage( ms, msg );
-		//    SendAsync( ms.GetBuffer(), 0, ms.Position );
-		//}
-
 		public void BroadcastMessage<T>( T msg )
 		{
 			var ms = new System.IO.MemoryStream();
@@ -104,20 +94,11 @@ namespace Dirigent.Net
 			_server.Multicast( ms.GetBuffer(), 0, ms.Position );
 		}
 
-		//public void SendText( string text )
-		//{
-		//    var msg = new Common.Messages.Message1() { someTypeMember = new Common.SomeType() { stringMember = text } };
-		//    SendProtoMsg( msg );
-		//}
-
 		// Async!
 		protected override void OnConnected()
 		{
 			Console.WriteLine( $"TCP session with Id {Id} connected!" );
 
-			//// Send invite message
-			//SendText("Hello from TCP chat! Please send a message or '!' to disconnect the client!");
-			//SendAsync(message);
 			_server.OnSessionConnected( this );
 		}
 

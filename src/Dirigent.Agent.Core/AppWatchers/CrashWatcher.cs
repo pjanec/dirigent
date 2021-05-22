@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 using System.Text;
-using Dirigent.Common;
 using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Drawing;
 
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 
     /// <summary>

@@ -4,11 +4,9 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Text;
 
-using Dirigent.Common;
+using X = Dirigent.XmlConfigReaderUtils;
 
-using X = Dirigent.Common.XmlConfigReaderUtils;
-
-namespace Dirigent.Agent
+namespace Dirigent
 {
     public class AppInitializedDetectorFactory
     {

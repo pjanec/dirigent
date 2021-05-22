@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using Dirigent.Common;
 using System.Globalization;
 using System.Diagnostics;
 
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     public class TimeOutInitDetector : IAppInitializedDetector
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Net;
 using System.Runtime.Serialization;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	[ProtoBuf.ProtoContract]
 	[DataContract]

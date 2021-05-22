@@ -18,14 +18,12 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-using Dirigent.Common;
-
 using CommandLine;
 using CommandLine.Text;
 using log4net.Appender;
 using log4net;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	// Define a class to receive parsed values
 	class Options
@@ -126,24 +124,24 @@ namespace Dirigent.Common
 		public AppConfig()
 		{
 			// overwrite with application config
-			if( Properties.Settings.Default.MachineId != "" ) MachineId = Properties.Settings.Default.MachineId;
-			if( Properties.Settings.Default.MasterIP != "" ) MasterIP = Properties.Settings.Default.MasterIP;
-			if( Properties.Settings.Default.McastIP != "" ) McastIP = Properties.Settings.Default.McastIP;
-			if( Properties.Settings.Default.LocalIP != "" ) LocalIP = Properties.Settings.Default.LocalIP;
-			if( Properties.Settings.Default.McastAppStates != "" ) McastAppStates = Properties.Settings.Default.McastAppStates;
-			if( Properties.Settings.Default.MasterPort != 0 ) MasterPort = Properties.Settings.Default.MasterPort;
-			if( Properties.Settings.Default.SharedConfigFile != "" ) SharedCfgFileName = Properties.Settings.Default.SharedConfigFile;
-			if( Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Properties.Settings.Default.LocalConfigFile;
-			if( Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Properties.Settings.Default.RootForRelativePaths;
-			if( Properties.Settings.Default.Mode != "" ) Mode = Properties.Settings.Default.Mode;
-			if( Properties.Settings.Default.StartupPlan != "" ) StartupPlanName = Properties.Settings.Default.StartupPlan;
-			if( Properties.Settings.Default.StartHidden != "" ) StartHidden = Properties.Settings.Default.StartHidden;
-			if( Properties.Settings.Default.Mode != "" ) Mode = Properties.Settings.Default.Mode;
-			if( Properties.Settings.Default.Mode != "" ) Mode = Properties.Settings.Default.Mode;
-			if( Properties.Settings.Default.IsMaster != "" ) IsMaster = Properties.Settings.Default.IsMaster;
-			if( Properties.Settings.Default.CLIPort != 0 ) CliPort = Properties.Settings.Default.CLIPort;
-			if( Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Properties.Settings.Default.TickPeriod;
-			if( Properties.Settings.Default.LogFile  != "" ) LogFileName = Properties.Settings.Default.LogFile;
+			if( Common.Properties.Settings.Default.MachineId != "" ) MachineId = Common.Properties.Settings.Default.MachineId;
+			if( Common.Properties.Settings.Default.MasterIP != "" ) MasterIP = Common.Properties.Settings.Default.MasterIP;
+			if( Common.Properties.Settings.Default.McastIP != "" ) McastIP = Common.Properties.Settings.Default.McastIP;
+			if( Common.Properties.Settings.Default.LocalIP != "" ) LocalIP = Common.Properties.Settings.Default.LocalIP;
+			if( Common.Properties.Settings.Default.McastAppStates != "" ) McastAppStates = Common.Properties.Settings.Default.McastAppStates;
+			if( Common.Properties.Settings.Default.MasterPort != 0 ) MasterPort = Common.Properties.Settings.Default.MasterPort;
+			if( Common.Properties.Settings.Default.SharedConfigFile != "" ) SharedCfgFileName = Common.Properties.Settings.Default.SharedConfigFile;
+			if( Common.Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Common.Properties.Settings.Default.LocalConfigFile;
+			if( Common.Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Common.Properties.Settings.Default.RootForRelativePaths;
+			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
+			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlanName = Common.Properties.Settings.Default.StartupPlan;
+			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
+			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
+			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
+			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
+			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
+			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
+			if( Common.Properties.Settings.Default.LogFile  != "" ) LogFileName = Common.Properties.Settings.Default.LogFile;
 
 			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>( System.Environment.GetCommandLineArgs() );
 

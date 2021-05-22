@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	public class AlreadyRunningTester
 	{

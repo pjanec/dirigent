@@ -6,12 +6,10 @@ using System.Globalization;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
 
-using Dirigent.Common;
-
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 using System.Diagnostics;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 
 	public class SharedXmlConfigReader

@@ -1,7 +1,7 @@
 ﻿/*
 using System;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	[ProtoBuf.ProtoContract]
 	public struct AppDefRec

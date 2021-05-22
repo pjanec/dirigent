@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Runtime.Serialization;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	public class AppStateChangeSet : SyncableDict.IChangeSet<AppState>
 	{

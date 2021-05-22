@@ -5,12 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-using Dirigent.Common;
 using System.Xml.Linq;
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 using System.Runtime.InteropServices;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     public class SoftKiller : Disposable
     {

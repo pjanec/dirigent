@@ -1,4 +1,4 @@
-﻿namespace Dirigent.Agent
+﻿namespace Dirigent
 {
 	/// <summary>
 	/// Script associated with the app (optional)

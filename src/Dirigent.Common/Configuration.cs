@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	[ProtoBuf.ProtoContract]
 	public class PlanScriptDef

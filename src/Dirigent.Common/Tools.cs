@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Dirigent.Common;
 using System.IO;
 using System.Reflection;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	public class Tools
 	{

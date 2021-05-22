@@ -4,8 +4,6 @@ using System.Linq;
 using System.IO;
 using System.Threading;
 
-using Dirigent.Common;
-
 using log4net;
 using ImGuiNET;
 

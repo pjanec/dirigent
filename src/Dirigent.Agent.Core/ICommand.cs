@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public delegate void WriteResponseDeleg(string msg);
 

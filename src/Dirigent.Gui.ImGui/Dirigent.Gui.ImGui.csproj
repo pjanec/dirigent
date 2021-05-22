@@ -46,15 +46,14 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Content Include="Resources\**"
-          CopyToOutputDirectory="PreserveNewest"
-          LinkBase="Resources\" />
+    <Content Include="Resources\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Resources\" />
   </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="ImGui.NET" Version="1.78.0" />
     <PackageReference Include="log4net" Version="2.0.12" />
     <PackageReference Include="CommandLineParser" Version="2.9.0-preview1" />
+    <PackageReference Include="Microsoft.DotNet.PlatformAbstractions" Version="5.0.0-preview.1.20120.5" />
     <PackageReference Include="Veldrid.ImageSharp" Version="4.8.0" />
     <PackageReference Include="Veldrid.ImGui" Version="5.72.0" />
     <PackageReference Include="Veldrid.SDL2" Version="4.8.0" />

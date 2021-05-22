@@ -6,7 +6,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public interface ICLIClient
 	{
@@ -105,7 +105,7 @@ namespace Dirigent.Agent
 	///	  Response:	 "[002] ACK"
 	///
 	/// </example>
-	public class CLIProcessor : Common.Disposable
+	public class CLIProcessor : Disposable
 	{
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 

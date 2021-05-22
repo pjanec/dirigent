@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Linq;
-using Dirigent.Common;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 
 	/// <summary>

@@ -32,7 +32,7 @@ namespace Dirigent.Net
 	/// Buffers message received from master. Within Poll() method calls MessageReceived delegate for each received message.
 	/// Allows sending a message to master.
 	/// </summary>
-	public class Client	: Common.Disposable
+	public class Client	: Disposable
 	{
 		public Action<Net.Message>? MessageReceived;
 

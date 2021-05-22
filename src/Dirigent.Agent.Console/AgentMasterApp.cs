@@ -4,10 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-using Dirigent.Common;
-using Dirigent.Agent;
-
-namespace Dirigent.Agent
+namespace Dirigent
 {
 
 	///<summary>Console app with Agent and/or Master</summary>
@@ -88,7 +85,7 @@ namespace Dirigent.Agent
 			//if( _runGui 
 			//   && _ac.ParentPid == -1 )	// just if we are NOT launched from GUI
 			//{
-			//	_guiRunner = new Common.ProcRunner(
+			//	_guiRunner = new ProcRunner(
 			//		"Dirigent.Gui.exe",
 			//		"trayGui",
 			//		killOnDispose:stayRunning  // if we are just the GUI launcher, do not kill the gui when we exit

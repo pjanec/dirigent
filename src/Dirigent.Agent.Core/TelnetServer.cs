@@ -6,7 +6,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	/// <summary>
 	/// Command line TCP server accepting multiple simultaneous clients.
@@ -99,7 +99,7 @@ namespace Dirigent.Agent
 	///	  Response:	 "[002] ACK"
 	///
 	/// </example>
-	public partial class TelnetServer : Common.Disposable
+	public partial class TelnetServer : Disposable
 	{
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
@@ -109,7 +109,7 @@ namespace Dirigent.Agent
 		CLIProcessor _cliProc;
 
 		// describes a client that connected
-		private class TClient : Common.Disposable, ICLIClient
+		private class TClient : Disposable, ICLIClient
 		{
 	        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 

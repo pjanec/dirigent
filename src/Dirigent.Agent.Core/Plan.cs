@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dirigent.Common;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public record PlanApp
 	(

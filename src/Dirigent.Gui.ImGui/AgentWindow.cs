@@ -4,7 +4,6 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Text;
 using System.Drawing;
-using Dirigent.Common;
 using ImGuiNET;
 using System.Threading;
 
@@ -18,7 +17,7 @@ namespace Dirigent.Gui
 		public string MachineId => _machineId;
 
 		private AppConfig _ac;
-		private Agent.Agent _agent;
+		private Agent _agent;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private string _machineId;
 		private ImGuiWindow _wnd;
@@ -29,7 +28,7 @@ namespace Dirigent.Gui
 			_ac = ac;
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_machineId = machineId;
-			_agent = new Agent.Agent( machineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+			_agent = new Agent( machineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
 		}
 
 		protected override void Dispose(bool disposing)

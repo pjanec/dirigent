@@ -122,7 +122,7 @@ namespace Dirigent.Gui
 			Texture? tx = null;
 			if( !_textureAtlas.TryGetValue( path, out tx ) )
 			{
-				var fullPath = System.IO.Path.IsPathFullyQualified( path ) ? path : System.IO.Path.Combine( Dirigent.Common.Tools.GetExeDir(), path );
+				var fullPath = System.IO.Path.IsPathFullyQualified( path ) ? path : System.IO.Path.Combine( Tools.GetExeDir(), path );
 				var imgSharpTx = new Veldrid.ImageSharp.ImageSharpTexture( fullPath );
 				tx = imgSharpTx.CreateDeviceTexture( _gd, _gd.ResourceFactory );
 				_textureAtlas[path] = tx;

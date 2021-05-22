@@ -5,7 +5,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 
 	/// <summary>

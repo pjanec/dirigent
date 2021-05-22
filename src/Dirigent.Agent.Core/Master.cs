@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Dirigent.Common;
 using Dirigent.Net;
+using System.Text.RegularExpressions;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public class Master : Disposable, IDirig
 	{
@@ -82,11 +82,18 @@ namespace Dirigent.Agent
 			InitFromConfig( sharedConfig );
 
 			_tickers = new TickableCollection();
+
+			//// FIXME: Just for testing the script! To be removed!
+			//var script = new DemoScript1();
+			//Script.InitScriptInstance( script, "Demo1", this );
+			//_tickers.Install( script );
+			//InstallScript("Scripts/DemoScript1.cs");
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+			_tickers.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
 			_server.Dispose();
@@ -586,5 +593,62 @@ namespace Dirigent.Agent
 			var msg = new Net.ReinstallMessage( requestorId, args );
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 		}
+
+		string? GetScriptClassName( string scriptFileName )
+		{
+			// get class name as the first class derived from Script
+			var fileLines = System.IO.File.ReadAllLines( scriptFileName );
+
+			// catches something like:
+			//    public class MyClass : Script
+			var regex = new Regex(@"\s*(?:(?:public\s+)|(?:static\s+))*class\s+([a-zA-Z_0-9]+)\s*\:\s*([a-zA-Z_0-9]+)");
+
+			foreach( var line in fileLines )
+			{
+				Match match = regex.Match(line);
+                if( match.Success )
+                {
+                    string className = match.Groups[1].Value;
+					string baseClassName = match.Groups[2].Value;
+
+					if( baseClassName == "Script" )
+					{
+						return className;
+					}
+				}
+			}
+			return null;
+
+		}
+
+
+		//public void InstallScript( IScript script, string id )
+		//{
+		//	Script.InitScriptInstance( script, id, this );
+		//	 _tickers.Install( script );
+		//}
+
+		public void InstallScript( string scriptFileName )
+		{
+			log.Debug( $"Loading script file '{scriptFileName}'" );
+
+			string? scriptClassName = GetScriptClassName( scriptFileName );
+			if( string.IsNullOrEmpty( scriptClassName ) )
+			{
+				throw new Exception($"Script does not contain a class derived from Script (class MyClass : Script). File: {scriptFileName}");
+			}
+
+			IScript script = CSScriptLib.CSScript.Evaluator
+								.ReferenceAssemblyByName("System")
+								.ReferenceAssemblyByName("Dirigent.Common")
+								.ReferenceAssemblyByName("Dirigent.Agent.Core")
+								.LoadFile<IScript>(scriptFileName)
+								;
+
+			string id = $"{scriptClassName}_{Guid.NewGuid().ToString()}";
+			Script.InitScriptInstance( script, id, this );
+			 _tickers.Install( script );
+		}
+
 	}
 }

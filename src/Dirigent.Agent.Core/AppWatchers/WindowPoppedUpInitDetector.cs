@@ -5,16 +5,15 @@ using System.Collections.Generic;
 using System.Xml.Linq;
 using System.Linq;
 using System.Text;
-using Dirigent.Common;
 using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Management;
 
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     /// <summary>
     /// Fires when a window belonging to the current process pops up, having a title matching given regular expression

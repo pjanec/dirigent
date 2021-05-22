@@ -5,7 +5,6 @@ using System.Text;
 using System.Net.Sockets;
 using System.Net;
 using NetCoreServer;
-using Dirigent.Common;
 using System.Threading;
 
 namespace Dirigent.Net
@@ -115,7 +114,7 @@ namespace Dirigent.Net
 
 		//public void SendText( string text )
 		//{
-		//    var msg = new Messages.Message1() { someTypeMember = new Common.SomeType() { stringMember = text } };
+		//    var msg = new Messages.Message1() { someTypeMember = new SomeType() { stringMember = text } };
 		//    SendProtoMsg( msg );
 		//}
 	}

@@ -8,12 +8,11 @@ using System.Diagnostics;
 using System.Management;
 #endif
 
-using Dirigent.Common;
 using System.Xml.Linq;
-using X = Dirigent.Common.XmlConfigReaderUtils;
+using X = Dirigent.XmlConfigReaderUtils;
 using System.Runtime.InteropServices;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public class Launcher : Disposable
 	{

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
-using Dirigent.Common;
 
-namespace Dirigent.Agent.Commands
+namespace Dirigent.Commands
 {
 	public class DirigentControlCommand : Disposable, ICommand
 	{
@@ -130,8 +129,8 @@ namespace Dirigent.Agent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 )  throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
-			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			var (id, planName) = Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) ThrowAppIdTupleSyntax(args[0]);
 			ctrl.StartApp( _requestorId, id, planName );
 			WriteResponse( "ACK" );
 		}
@@ -147,8 +146,8 @@ namespace Dirigent.Agent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
-			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			var (id, planName) = Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) ThrowAppIdTupleSyntax(args[0]);
 			ctrl.KillApp( _requestorId, id );
 			WriteResponse( "ACK" );
 		}
@@ -164,8 +163,8 @@ namespace Dirigent.Agent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			var (id, planName) = Common.Tools.ParseAppIdWithPlan( args[0] );
-			if( id.AppId == "" ) DirigentControlCommand.ThrowAppIdTupleSyntax(args[0]);
+			var (id, planName) = Tools.ParseAppIdWithPlan( args[0] );
+			if( id.AppId == "" ) ThrowAppIdTupleSyntax(args[0]);
 			ctrl.RestartApp( _requestorId, id );
 			WriteResponse( "ACK" );
 		}
@@ -344,7 +343,7 @@ namespace Dirigent.Agent.Commands
 				if ( valStr == "1" ) argsStruct.KillApps = true;
 			}
 
-			if ( Common.Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
 			{
 				argsStruct.MachineId = valStr;
 			}

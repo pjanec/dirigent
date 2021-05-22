@@ -5,9 +5,8 @@ using System.Text;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Dirigent.Common;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
     /// <summary>
     /// Launches and keeps running the Dirigent process

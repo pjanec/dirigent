@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 	/// <summary>
 	/// Maintains the current state of AppStates and PlanStates

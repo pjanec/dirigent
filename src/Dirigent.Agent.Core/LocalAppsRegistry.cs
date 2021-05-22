@@ -2,9 +2,8 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Dirigent.Common;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 
 

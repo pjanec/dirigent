@@ -6,7 +6,7 @@ using System.Net;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 
-namespace Dirigent.Common
+namespace Dirigent
 {
 
 	public enum EWindowStyle

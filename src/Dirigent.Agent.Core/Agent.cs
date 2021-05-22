@@ -6,9 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Dirigent.Common;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
 	public class Agent : Disposable, IDirig
 	{

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-namespace Dirigent.Agent
+namespace Dirigent
 {
     /// <summary>
     /// AppWatcher keeps watching the application and can do something to it, something like:

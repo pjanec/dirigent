@@ -5,7 +5,6 @@ using System.Xml.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
-using Dirigent.Common;
 using System.Threading;
 
 namespace Dirigent.Gui.WinForms
@@ -19,9 +18,9 @@ namespace Dirigent.Gui.WinForms
 		private frmMain _mainForm;
 		private NotifyIcon _notifyIcon;
         //private ProcRunner _agentRunner;
-		private Agent.Agent _agent;
+		private Agent _agent;
 		private Thread _agentThread;
-		private Agent.Master _master;
+		private Master _master;
 		private Thread _masterThread;
 		private bool _runGui;
 		private bool _runAgent;
@@ -78,8 +77,8 @@ namespace Dirigent.Gui.WinForms
 				if( _runGui )
 				{
 					// listen to AppExit messages
-					AppMessenger.Instance.Register<Common.AppMessages.ExitApp>( ( x ) => ExitApp() );
-					//AppMessenger.Instance.Register<Common.AppMessages.CheckSharedConfigAndRestartMaster>( (x) => CheckSharedConfigAndRestartMaster() );
+					AppMessenger.Instance.Register<Dirigent.AppMessages.ExitApp>( ( x ) => ExitApp() );
+					//AppMessenger.Instance.Register<AppMessages.CheckSharedConfigAndRestartMaster>( (x) => CheckSharedConfigAndRestartMaster() );
 
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault( false );
@@ -154,7 +153,7 @@ namespace Dirigent.Gui.WinForms
 			menuItems.Add( new ToolStripMenuItem( "Exit", null, new EventHandler( ( s, e ) =>
 			{
 				//agent.LocalOps.Terminate( new TerminateArgs() { KillApps=true, MachineId=ac.machineId }  );
-				AppMessenger.Instance.Send( new Common.AppMessages.ExitApp() ); // handled in GuiApp
+				AppMessenger.Instance.Send( new Dirigent.AppMessages.ExitApp() ); // handled in GuiApp
 			} ) ) );
 
 			//menuItems
@@ -270,7 +269,7 @@ namespace Dirigent.Gui.WinForms
 				// istantiate the agent and tick it in its own thread
 				try
 				{
-					_agent = new Agent.Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
 					_agentThread = new Thread(() =>
 					{
 						while( !_agent.WantsQuit )
@@ -323,7 +322,7 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					// instantiate the master and tick it in its own thread
-					_master = new Agent.Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
 					_masterThread = new Thread(() =>
 					{
 						while( !_master.WantsQuit )
