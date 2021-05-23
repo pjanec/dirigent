@@ -73,6 +73,14 @@ namespace Dirigent
 	public interface IDirig
 	{
 		/// <summary>
+		/// Returns the current state of an client as reported by the client at regular intervals
+		/// </summary>
+		/// <param name="Id">name of the client (machine name for agents, stringized GUID for GUIs)</param>
+		/// <returns>null if no state for such client is known (client never connected)</returns>
+		ClientState? GetClientState( string Id ) { return null; }
+		IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return new List<KeyValuePair<string, ClientState>>(); }
+
+		/// <summary>
 		/// Returns the current execution state of an application as provided by apps' respective agent
 		/// </summary>
 		/// <param name="Id"></param>

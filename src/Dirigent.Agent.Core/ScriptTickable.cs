@@ -18,9 +18,16 @@ namespace Dirigent
 			_master = master;
 		}
 
+		// apps
+
 		public void StartApp( string id, string? planName )
 		{
 			_master.Send( new Net.StartAppMessage( string.Empty, new AppIdTuple(id), planName ) );
+		}
+
+		public void RestartApp( string id )
+		{
+			_master.Send( new Net.RestartAppMessage( string.Empty, new AppIdTuple(id) ) );
 		}
 
 		public void KillApp( string id )
@@ -31,6 +38,42 @@ namespace Dirigent
 		public AppState? GetAppState( string id )
 		{
 			return _master.GetAppState( new AppIdTuple( id ) );
+		}
+
+		// plans
+
+		public void StartPlan( string id )
+		{
+			_master.Send( new Net.StartPlanMessage( string.Empty, id ) );
+		}
+
+		public void RestartPlan( string id )
+		{
+			_master.Send( new Net.RestartPlanMessage( string.Empty, id ) );
+		}
+
+		public void KillPlan( string id )
+		{
+			_master.Send( new Net.KillPlanMessage( string.Empty, id ) );
+		}
+
+		public PlanState? GetPlanState( string id )
+		{
+			return _master.GetPlanState( id );
+		}
+
+		// clients
+
+		public ClientState? GetClientState( string id )
+		{
+			return _master.GetClientState( id );
+		}
+
+		// scritps
+
+		public void RunScript( string id, string? fileName=null, string? args=null )
+		{
+			_master.RunScript( id, fileName, args );
 		}
 
 	}

@@ -242,6 +242,7 @@ namespace Dirigent
 				Started = false,
 				Dying = false,
 				//Disabled = ad.Disabled
+				lastChange = DateTime.MinValue
 			};
 		}
 

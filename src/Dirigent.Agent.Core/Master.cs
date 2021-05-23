@@ -15,6 +15,8 @@ namespace Dirigent
 
 		#region IDirig interface
 
+		public ClientState? GetClientState( string Id ) { if( _allClientStates.ClientStates.TryGetValue(Id, out var x)) return x; else return null; }
+		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return _allClientStates.ClientStates; }
 		public AppState? GetAppState( AppIdTuple Id ) { if( _allAppStates.AppStates.TryGetValue(Id, out var x)) return x; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
@@ -39,6 +41,7 @@ namespace Dirigent
 		private Net.Server _server;
 		private CLIProcessor _cliProc;
 		private TelnetServer _telnetServer;
+		private AllClientStateRegistry _allClientStates;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
@@ -58,6 +61,7 @@ namespace Dirigent
 			_port = port;
 
 			_allAppStates = new AllAppsStateRegistry();
+			_allClientStates = new AllClientStateRegistry();
 
 			_allAppDefs = new AllAppsDefRegistry();
 			_allAppDefs.Added += SendAppDefAddedOrUpdated;
@@ -87,7 +91,8 @@ namespace Dirigent
 			//var script = new DemoScript1();
 			//Script.InitScriptInstance( script, "Demo1", this );
 			//_tickers.Install( script );
-			//InstallScript("Scripts/DemoScript1.cs");
+			//RunScript("DemoScript1", "Scripts/DemoScript1.cs");
+			RunScript("DemoScript1");
 		}
 
 		protected override void Dispose(bool disposing)
@@ -115,11 +120,32 @@ namespace Dirigent
 				ProcessIncomingMessage( msg );
 			} );
 
+			HandleDisconnectedClients();
+
 			// periodically refresh intrested clients
 			if( _swClientRefresh.Elapsed.TotalSeconds > CLIENT_REFRESH_PERIOD )
 			{
 				RefreshClients();
 				_swClientRefresh.Restart();
+			}
+		}
+
+		void HandleDisconnectedClients()
+		{
+			// build a dict of all connected clients
+			var connected = new Dictionary<string, int>(200);
+			foreach( var cl in _server.Clients )
+			{
+				connected[cl.Name] = 1;
+			}
+
+			// clear connected flag for all client's states not found among the connected ones
+			foreach( (var id, var state) in _allClientStates.ClientStates )
+			{
+				if( !connected.ContainsKey( id ) )
+				{
+					state.Connected = false;
+				}
 			}
 		}
 
@@ -139,6 +165,16 @@ namespace Dirigent
 				{
 					// client connected!
 					OnClientIdentified( m );
+					break;
+				}
+
+				case ClientStateMessage m:
+				{
+					if( m.State != null && m.State.Ident != null) // sanity check
+					{
+						m.State.Connected = true;  // we just received from the client
+						_allClientStates.AddOrUpdate( m.State.Ident.Name, m.State );
+					}
 					break;
 				}
 
@@ -294,6 +330,15 @@ namespace Dirigent
 
 		void FeedGui( ClientIdent ident )
 		{
+			// send the full list of clients
+			{
+				foreach( (var id, var state) in _allClientStates.ClientStates )
+				{
+					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
+					_server.SendToSingle( m, ident.Name );
+				}
+			}
+
 			// send the full list of plans
 			{
 				var m = new Net.PlanDefsMessage( from p in _plans.Plans.Values select p.Def, incremental: false );
@@ -337,6 +382,15 @@ namespace Dirigent
 		/// </summary>
 		void RefreshClients()
 		{
+			// clients
+			{
+				foreach( (var id, var state) in _allClientStates.ClientStates )
+				{
+					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				}
+			}
+
 			// apps
 			{
 				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
@@ -622,13 +676,17 @@ namespace Dirigent
 		}
 
 
-		//public void InstallScript( IScript script, string id )
-		//{
-		//	Script.InitScriptInstance( script, id, this );
-		//	 _tickers.Install( script );
-		//}
+		public void RunScript( string id, string? fileName=null, string? args=null )
+		{
+			// FIXME: look up the script definiion in shared config
+			if( string.IsNullOrEmpty(fileName) )
+			{
+				fileName = $"scripts/{id}.cs";
+			}
+			RunScriptFile( id, fileName, args );
+		}
 
-		public void InstallScript( string scriptFileName )
+		public void RunScriptFile( string id, string scriptFileName, string? args )
 		{
 			log.Debug( $"Loading script file '{scriptFileName}'" );
 
@@ -640,12 +698,17 @@ namespace Dirigent
 
 			IScript script = CSScriptLib.CSScript.Evaluator
 								.ReferenceAssemblyByName("System")
+								.ReferenceAssemblyByName("log4net")
 								.ReferenceAssemblyByName("Dirigent.Common")
 								.ReferenceAssemblyByName("Dirigent.Agent.Core")
 								.LoadFile<IScript>(scriptFileName)
 								;
+			if( script == null )
+			{
+				throw new Exception($"Not a valid script file: {scriptFileName}");
+			}
 
-			string id = $"{scriptClassName}_{Guid.NewGuid().ToString()}";
+			//string id = $"{scriptClassName}_{Guid.NewGuid().ToString()}";
 			Script.InitScriptInstance( script, id, this );
 			 _tickers.Install( script );
 		}

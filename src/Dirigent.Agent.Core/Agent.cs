@@ -72,6 +72,18 @@ namespace Dirigent
 
 		void PublishAgentState()
 		{
+			var now = DateTime.UtcNow;
+
+			// send client's state
+			{
+				var clientState = new ClientState();
+				clientState.Ident = _clientIdent;
+				clientState.LastChange = now;
+
+				var msg = new Net.ClientStateMessage( now, clientState );
+				_client.Send( msg );
+			}
+
 			// send the state of all local apps
 
 			var states = new Dictionary<AppIdTuple, AppState>();
@@ -86,6 +98,8 @@ namespace Dirigent
 				_client.Send( msg );
 			}
 		}
+
+
 
 		void ProcessIncomingMessage( Net.Message msg )
 		{

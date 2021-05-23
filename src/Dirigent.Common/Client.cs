@@ -112,7 +112,7 @@ namespace Dirigent.Net
 				var msg = m as Message;
 				if( msg != null )
 				{
-					if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+					if( !msg.IsFrequent )
 					{
 						log.Debug( $"[{_ident.Name}] <= [master]: {msg}" );
 					}

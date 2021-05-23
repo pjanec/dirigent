@@ -251,7 +251,7 @@ namespace Dirigent.Net
 			// invoke MessageReceived delegate for each message received
 			while( _messagesReceived.TryDequeue( out var msg ) )
 			{
-				if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+				if( !msg.IsFrequent )
 				{
 					log.Debug( $"[master] <= [{msg.Sender}]: {msg}" );
 				}
@@ -264,12 +264,12 @@ namespace Dirigent.Net
 		/// <summary>
 		/// Sends message to all identified clients who are interested
 		/// </summary>
-		public void SendToAllSubscribed<T>( T msg, EMsgRecipCateg msgCategoryMask )
+		public void SendToAllSubscribed<T>( T msg, EMsgRecipCateg msgCategoryMask ) where T : Message
 		{
 			var ms = new System.IO.MemoryStream();
 			_msgCodec.ConstructProtoMessage( ms, msg );
 
-			if( !(msg is AppsStateMessage || msg is PlansStateMessage) )
+			if( !msg.IsFrequent )
 			{
 				log.Debug( $"[master] => [*]: {msg}" );
 			}

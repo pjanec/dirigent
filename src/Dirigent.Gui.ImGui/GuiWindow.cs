@@ -47,6 +47,14 @@ namespace Dirigent.Gui
 			_client.Tick();
 		}
 
+		void DrawToolBar()
+		{
+			if( ImGuiTools.ImgBtn( _txKillAll ) )
+			{
+				_reflStates.Send( new Net.KillAllMessage( _reflStates.Name, new KillAllArgs() ) );
+			}
+		}
+
 		public void DrawUI()
 		{
 			float ww = ImGui.GetWindowWidth();
@@ -59,16 +67,26 @@ namespace Dirigent.Gui
 					ImGui.EndTabItem();
 				}
 
-				var plansOpen = ImGui.BeginTabItem("Plans");
-				ImGui.SameLine();
-				if( ImgBtn( _txKillAll ) )
-				{
-					_reflStates.Send( new Net.KillAllMessage( _reflStates.Name, new KillAllArgs() ) );
-				}
-
-				if( plansOpen )
+				if( ImGui.BeginTabItem("Plans") )
 				{
 					DrawPlans();
+					ImGui.EndTabItem();
+				}
+
+				if( ImGui.BeginTabItem("Scripts") )
+				{
+					DrawScripts();
+					ImGui.EndTabItem();
+				}
+
+				var tabOpen = ImGui.BeginTabItem("Clients");
+
+				ImGui.SameLine();
+				DrawToolBar();
+
+				if( tabOpen )
+				{
+					DrawClients();
 					ImGui.EndTabItem();
 				}
 
@@ -77,17 +95,17 @@ namespace Dirigent.Gui
 			}
 		}
 		
-		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
+		Dictionary<string, ClientRenderer> _clientRenderers = new();
 
 		void DrawApps()
 		{
-			foreach( var (id, state) in _reflStates.GetAllAppStates() )
+			foreach( var (id, state) in _reflStates.GetAllClientStates() )
 			{
-				AppRenderer? r;
-				if( !_appRenderers.TryGetValue( id, out r ) )
+				ClientRenderer? r;
+				if( !_clientRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( _wnd, id, _reflStates );	// will render the effective ones
-					_appRenderers[id] = r;
+					r = new ClientRenderer( _wnd, id, _reflStates );	// will render the effective ones
+					_clientRenderers[id] = r;
 				}
 				r.DrawUI();
 			}
@@ -110,19 +128,23 @@ namespace Dirigent.Gui
 			}
 		}
 
-		// uses original texture size and black background, 
-		private bool ImgBtn( ImageInfo img )
+		void DrawScripts()
 		{
-			return ImGui.ImageButton(
-				img.TextureUserId,
-				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
-				System.Numerics.Vector2.Zero,
-				new System.Numerics.Vector2(1,1),
-				0, // no padding
-				new System.Numerics.Vector4(0,0,0,1) // black background
-			); 
 		}
 
+		void DrawClients()
+		{
+			foreach( var (id, state) in _reflStates.GetAllClientStates() )
+			{
+				ClientRenderer? r;
+				if( !_clientRenderers.TryGetValue( id, out r ) )
+				{
+					r = new ClientRenderer( _wnd, id, _reflStates );	// will render the effective ones
+					_clientRenderers[id] = r;
+				}
+				r.DrawUI();
+			}
+		}
 
 	}
 }

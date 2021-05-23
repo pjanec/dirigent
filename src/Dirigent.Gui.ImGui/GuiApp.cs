@@ -54,7 +54,7 @@ namespace Dirigent.Gui
 
 				_guiWin?.Tick();
 
-				Thread.Sleep( 100 );
+				Thread.Sleep( _ac.TickPeriod );
 			}
 
 			return exitCode;

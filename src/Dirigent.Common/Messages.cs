@@ -38,6 +38,7 @@ namespace Dirigent.Net
 			{ 123, typeof( CLIRequestMessage ) },
 			{ 124, typeof( CLIResponseMessage ) },
 			{ 125, typeof( ResetMessage ) },
+			{ 126, typeof( ClientStateMessage ) },
 		};
 	}
 
@@ -71,6 +72,7 @@ namespace Dirigent.Net
 	[KnownType( typeof( CLIRequestMessage ) ), ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
 	[KnownType( typeof( CLIResponseMessage ) ), ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
 	[KnownType( typeof( ResetMessage ) ), ProtoBuf.ProtoInclude( 125, typeof( ResetMessage ) )]
+	[KnownType( typeof( ClientStateMessage ) ), ProtoBuf.ProtoInclude( 126, typeof( ClientStateMessage ) )]
 	public class Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
@@ -81,6 +83,9 @@ namespace Dirigent.Net
 		{
 			//ProtoBuf.Meta.RuntimeTypeModel.Default.Add( typeof( ILaunchPlan ), true ).AddSubType( 50, typeof( LaunchPlan ) );
 		}
+
+		// do not dump it on console
+		public virtual bool IsFrequent { get { return false; } }
 	}
 
 	[ProtoBuf.ProtoContract]
@@ -114,6 +119,8 @@ namespace Dirigent.Net
 	[DataContract]
 	public class AppsStateMessage : Message
 	{
+		public override bool IsFrequent { get { return true; } }
+
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
 		[MaybeNull]
@@ -137,6 +144,8 @@ namespace Dirigent.Net
 	[DataContract]
 	public class PlansStateMessage : Message
 	{
+		public override bool IsFrequent { get { return true; } }
+
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
 		[MaybeNull]
@@ -611,19 +620,9 @@ namespace Dirigent.Net
 			set { Sender = value; }
 		}
 
-		//// unique name is enough?
-		//[ProtoBuf.ProtoMember(1)]
-		//[DataMember]
-		//public Guid Uuid;
-
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
 		public EMsgRecipCateg SubscribedTo;
-
-		//[ProtoBuf.ProtoMember(3)]
-		//[DataMember]
-		//public string MachineId; // just for agents
-
 
 		public ClientIdent() {}
 
@@ -728,6 +727,32 @@ namespace Dirigent.Net
 		{
 			return $"Reset";
 		}
+	}
+
+	// Client is updating its state to master (at regular intervals)
+	[ProtoBuf.ProtoContract]
+	[DataContract]
+	public class ClientStateMessage : Message
+	{
+		public override bool IsFrequent { get { return true; } }
+
+		// time on sender when sending this message
+		[ProtoBuf.ProtoMember( 1 )]
+		[DataMember]
+		public DateTime TimeStamp;
+
+		[ProtoBuf.ProtoMember( 2 )]
+		[DataMember]
+		[MaybeNull]
+		public ClientState State;
+
+		public ClientStateMessage() {}
+		public ClientStateMessage( DateTime timeStamp, ClientState state )
+		{
+		    this.TimeStamp = timeStamp;
+			this.State = state;
+		}
+
 	}
 
 }

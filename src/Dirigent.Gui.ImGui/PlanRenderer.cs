@@ -30,19 +30,6 @@ namespace Dirigent.Gui
 			_txRestart = _wnd.GetImage("Resources/refresh.png");
 		}
 
-		// uses original texture size and black background, 
-		private bool ImgBtn( ImageInfo img )
-		{
-			return ImGui.ImageButton(
-				img.TextureUserId,
-				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
-				System.Numerics.Vector2.Zero,
-				new System.Numerics.Vector2(1,1),
-				0, // no padding
-				new System.Numerics.Vector4(0,0,0,1) // black background
-			); 
-		}
-
 		public void DrawUI()
 		{
 			ImGui.PushID(_uniqueUiId);
@@ -77,11 +64,11 @@ namespace Dirigent.Gui
 
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()*3/4.5f);
-			if( ImgBtn( _txStart ) )	_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, _id ) );
+			if( ImGuiTools.ImgBtn( _txStart ) )	_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, _id ) );
+			if( ImGuiTools.ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txRestart ) )	_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, _id ) );
+			if( ImGuiTools.ImgBtn( _txRestart ) )	_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, _id ) );
 
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()/4.5f*2f);

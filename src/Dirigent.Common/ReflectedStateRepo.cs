@@ -13,13 +13,8 @@ namespace Dirigent
 	/// </summary>
 	public class ReflectedStateRepo	: IDirig
 	{
-		//public Dictionary<AppIdTuple, AppState> AppStates => _appStates;
-		//public Dictionary<AppIdTuple, AppDef> AppDefs => _appDefs;
-		//public Dictionary<string, PlanState> PlanStates => _planStates;
-		//public List<PlanDef> PlanDefs => _planDefs;
-		//public void Send( Net.Message msg ) { _client.Send( msg ); }
-
-
+		public ClientState? GetClientState( string Id ) { if( _clientStates.TryGetValue(Id, out var x)) return x; else return null; }
+		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return _clientStates; }
 		public AppState? GetAppState( AppIdTuple Id ) { if( _appStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
@@ -37,6 +32,7 @@ namespace Dirigent
 
 		private Net.Client _client;
 		private Dictionary<AppIdTuple, AppState> _appStates = new Dictionary<AppIdTuple, AppState>();
+		private Dictionary<string, ClientState> _clientStates = new Dictionary<string, ClientState>();
 		
 		/// <summary>
 		/// The most recent app defs
@@ -56,6 +52,17 @@ namespace Dirigent
 		{
 			switch( msg )
 			{
+				case Net.ClientStateMessage m:
+				{
+					if( m.State != null && m.State.Ident != null ) // sanity check
+					{
+						var localTimeDelta = DateTime.UtcNow - m.TimeStamp;
+						m.State.LastChange += localTimeDelta; // recalc to local time
+						_clientStates[m.State.Ident.Name] = m.State;	
+					}
+					break;
+				}
+
 				case Net.AppsStateMessage m:
 				{
 					//Debug.Assert( m.AppsState != null );

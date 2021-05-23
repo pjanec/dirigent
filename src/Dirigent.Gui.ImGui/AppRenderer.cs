@@ -35,20 +35,6 @@ namespace Dirigent.Gui
 			_txRestart = _wnd.GetImage("Resources/refresh.png");
 		}
 
-		// uses original texture size and black background, 
-		private bool ImgBtn( ImageInfo img )
-		{
-			return ImGui.ImageButton(
-				img.TextureUserId,
-				new System.Numerics.Vector2( img.Texture.Width, img.Texture.Height ), // original texture size
-				System.Numerics.Vector2.Zero,
-				new System.Numerics.Vector2(1,1),
-				0, // no padding
-				new System.Numerics.Vector4(0,0,0,1) // black background
-			); 
-		}
-
-		static System.Numerics.Vector4 _redColor = new System.Numerics.Vector4(1f,0,0,1f);
 		public void DrawUI()
 		{
 			ImGui.PushID(_uniqueUiId);
@@ -92,11 +78,11 @@ namespace Dirigent.Gui
 			ImGui.SameLine();
 			ImGui.SetCursorPosX( ImGui.GetWindowWidth()*3/4f);
 			//if( ImGui.Button("S") )	_ctrl.Send( new Net.StartAppMessage( _id, planName ) );
-			if( ImgBtn( _txStart ) ) _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, _id, planName ) );
+			if( ImGuiTools.ImgBtn( _txStart ) ) _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, _id, planName ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillAppMessage( _ctrl.Name, _id ) );
+			if( ImGuiTools.ImgBtn( _txKill ) )	_ctrl.Send( new Net.KillAppMessage( _ctrl.Name, _id ) );
 			ImGui.SameLine();
-			if( ImgBtn( _txRestart ) ) _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, _id ) );
+			if( ImGuiTools.ImgBtn( _txRestart ) ) _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, _id ) );
 
 			// enabled checkbox just for apps from a plan
 			if( _appDef is not null && _appDef.PlanName is not null)
