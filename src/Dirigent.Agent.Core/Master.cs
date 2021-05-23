@@ -21,10 +21,14 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
+		public ScriptState? GetScriptState( string Id ) { if( _scripts.Scripts.TryGetValue(Id, out var x)) return x.State; else return null; }
+		public IEnumerable<KeyValuePair<string, ScriptState>> GetAllScriptStates() { return from x in _scripts.Scripts.Values select new KeyValuePair<string, ScriptState>( x.Id, x.State ); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
+		public ScriptDef? GetScriptDef( string Id ) { if( _scripts.Scripts.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return from x in _scripts.Scripts.Values select x.Def; }
 		public string Name => string.Empty;
 		public void Send( Net.Message msg ) { ProcessIncomingMessage( msg ); }
 
@@ -32,6 +36,8 @@ namespace Dirigent
 
 		public bool WantsQuit { get; set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
+
+		public TickableCollection Tickers => _tickers;
 
 		#region Private fields
 
@@ -45,6 +51,7 @@ namespace Dirigent
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
+		private ScriptRegistry _scripts;
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
@@ -71,6 +78,8 @@ namespace Dirigent
 
 			_plans = new PlanRegistry( this );
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
+
+			_scripts = new ScriptRegistry( this );
 
 			_server = new Server( port );
 			_swClientRefresh = new Stopwatch();
@@ -100,6 +109,7 @@ namespace Dirigent
 		{
 			base.Dispose(disposing);
 			_tickers.Dispose();
+			//_scripts.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
 			_server.Dispose();
@@ -108,6 +118,8 @@ namespace Dirigent
 		public void Tick()
 		{
 			_tickers.Tick();
+
+			_scripts.Tick();
 
 			_plans.Tick();
 
@@ -274,6 +286,23 @@ namespace Dirigent
 					break;
 				}
 
+				case StartScriptMessage m:
+				{
+					if( !string.IsNullOrEmpty(m.Id) )
+					{
+						StartScript( m.Sender, m.Id, m.Args );
+					}
+					break;
+				}
+
+				case KillScriptMessage m:
+				{
+					if( !string.IsNullOrEmpty(m.Id) )
+					{
+						KillScript( m.Sender, m.Id );
+					}
+					break;
+				}
 			}
 
 		}
@@ -363,6 +392,19 @@ namespace Dirigent
 				var m = new Net.AppDefsMessage( _allAppDefs.AppDefs.Values, incremental: false );
 				_server.SendToSingle( m, ident.Name );
 			}
+
+			// send the full list of scripts
+			{
+				var m = new Net.ScriptDefsMessage( from p in _scripts.Scripts.Values select p.Def, incremental: false );
+				_server.SendToSingle( m, ident.Name );
+			}
+
+			// send the full list of script states
+			{
+				var m = new Net.ScriptStateMessage( _scripts.ScriptStates );
+				_server.SendToSingle( m, ident.Name );
+			}
+
 		}
 
 		void FeedAgent( ClientIdent ident )
@@ -403,6 +445,12 @@ namespace Dirigent
 				var m = new Net.PlansStateMessage( _plans.PlanStates );
 				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
 			}
+
+			// scripts
+			{
+				var m = new Net.ScriptStateMessage( _scripts.ScriptStates );
+				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+			}
 		}
 
 		SharedConfig LoadSharedConfig( string fileName )
@@ -438,6 +486,10 @@ namespace Dirigent
 
 			_allAppDefs.SetAll( allAppDefs.Values );
 			_allAppStates.SetDefault( allAppDefs.Values );
+
+
+			// import predefined scripts
+			_scripts.SetAll( sharedConfig.Scripts );
 
 			// reset
 			var m = new Net.ResetMessage();
@@ -649,79 +701,30 @@ namespace Dirigent
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 		}
 
-		string? GetScriptClassName( string scriptFileName )
+
+		public void StartScript( string requestorId, string id, string? args )
 		{
-			// get class name as the first class derived from Script
-			var fileLines = System.IO.File.ReadAllLines( scriptFileName );
-
-			// catches something like:
-			//    public class MyClass : Script
-			var regex = new Regex(@"\s*(?:(?:public\s+)|(?:static\s+))*class\s+([a-zA-Z_0-9]+)\s*\:\s*([a-zA-Z_0-9]+)");
-
-			foreach( var line in fileLines )
-			{
-				Match match = regex.Match(line);
-                if( match.Success )
-                {
-                    string className = match.Groups[1].Value;
-					string baseClassName = match.Groups[2].Value;
-
-					if( baseClassName == "Script" )
-					{
-						return className;
-					}
-				}
-			}
-			return null;
-
+			_scripts.StartScript( requestorId, id, args );
 		}
 
-
-		public void RunScriptFile( string id, string scriptFileName, string? args )
+		public void StartScript( string requestorId, string scriptIdWithArgs )
 		{
-			log.Debug( $"Loading script file '{scriptFileName}'" );
+			if ( string.IsNullOrEmpty( scriptIdWithArgs ) ) return;
 
-			string? scriptClassName = GetScriptClassName( scriptFileName );
-			if( string.IsNullOrEmpty( scriptClassName ) )
-			{
-				throw new Exception($"Script does not contain a class derived from Script (class MyClass : Script). File: {scriptFileName}");
-			}
+			var (id, args) = Tools.ParseScriptIdArgs( scriptIdWithArgs );
+			if ( string.IsNullOrEmpty( id ) ) return;
 
-			IScript script = CSScriptLib.CSScript.Evaluator
-								.ReferenceAssemblyByName("System")
-								.ReferenceAssemblyByName("log4net")
-								.ReferenceAssemblyByName("Dirigent.Common")
-								.ReferenceAssemblyByName("Dirigent.Agent.Core")
-								.LoadFile<IScript>(scriptFileName)
-								;
-			if( script == null )
-			{
-				throw new Exception($"Not a valid script file: {scriptFileName}");
-			}
-
-			//string id = $"{scriptClassName}_{Guid.NewGuid().ToString()}";
-			Script.InitScriptInstance( script, id, this );
-			 _tickers.Install( script );
+			StartScript( requestorId, id, args );
 		}
 
-		public void RunScript( string id, string? fileName, string? args )
+		public void KillScript( string requestorId, string id )
 		{
-			// FIXME: look up the script definiion in shared config
-			if( string.IsNullOrEmpty(fileName) )
-			{
-				fileName = $"scripts/{id}.cs";
-			}
-			RunScriptFile( id, fileName, args );
+			_scripts.KillScript( requestorId, id );
 		}
 
-		public void RunScript( string scriptName )
+		public ScriptState? GetScriptState( string requestorId, string id )
 		{
-			if( string.IsNullOrEmpty(scriptName) ) return;
-			
-			var( id, file, args) = Tools.ParseScriptName( scriptName );
-			if( string.IsNullOrEmpty(id) ) return;
-
-			RunScript( id, file, args );
+			return _scripts.GetScriptState( id );
 		}
 
 	}

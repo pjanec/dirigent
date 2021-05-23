@@ -29,6 +29,9 @@ namespace Dirigent
             repo.Register( "Terminate",             (ctrl, requestorId) => new Commands.Terminate(ctrl, requestorId));
             repo.Register( "Reinstall",             (ctrl, requestorId) => new Commands.Reinstall(ctrl, requestorId));
             repo.Register( "ReloadSharedConfig",    (ctrl, requestorId) => new Commands.ReloadSharedConfig(ctrl, requestorId));
+            repo.Register( "StartScript",           (ctrl, requestorId) => new Commands.StartScript(ctrl, requestorId));
+            repo.Register( "KillScript",            (ctrl, requestorId) => new Commands.KillScript(ctrl, requestorId));
+            repo.Register( "GetScriptState",        (ctrl, requestorId) => new Commands.GetScriptState(ctrl, requestorId));
         }
 
     }

@@ -30,7 +30,7 @@ namespace Dirigent.Gui
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
 			_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
-			if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.RunScript( _ac.StartupScript );
+			if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartScript( string.Empty, _ac.StartupScript );
 		}
 
 		protected override void Dispose(bool disposing)

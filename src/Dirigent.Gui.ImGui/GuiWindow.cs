@@ -95,17 +95,17 @@ namespace Dirigent.Gui
 			}
 		}
 		
-		Dictionary<string, ClientRenderer> _clientRenderers = new();
+		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 
 		void DrawApps()
 		{
-			foreach( var (id, state) in _reflStates.GetAllClientStates() )
+			foreach( var (id, state) in _reflStates.GetAllAppStates() )
 			{
-				ClientRenderer? r;
-				if( !_clientRenderers.TryGetValue( id, out r ) )
+				AppRenderer? r;
+				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new ClientRenderer( _wnd, id, _reflStates );	// will render the effective ones
-					_clientRenderers[id] = r;
+					r = new AppRenderer( _wnd, id, _reflStates );	// will render the effective ones
+					_appRenderers[id] = r;
 				}
 				r.DrawUI();
 			}
@@ -128,9 +128,38 @@ namespace Dirigent.Gui
 			}
 		}
 
+		Dictionary<string, ScriptRenderer> _scriptRenderers = new();
+
+		//record ScriptGroup
+		//(
+		//	string Name,
+		//	List<KeyValuePair<string, ScriptState>> Script
+		//);
+		
 		void DrawScripts()
 		{
+			//// get all groups
+			//Dictionary<string, ScriptGroup> groups = new Dictionary<string, ScriptGroup>();
+			//foreach( var (id, state) in _reflStates.GetAllScriptStates() )
+			//{
+			//}
+
+			// draw script under group
+			// put scripts with no group as top level items
+
+			foreach( var (id, state) in _reflStates.GetAllScriptStates() )
+			{
+				ScriptRenderer? r;
+				if( !_scriptRenderers.TryGetValue( id, out r ) )
+				{
+					r = new ScriptRenderer( _wnd, id, _reflStates );	// will render the effective ones
+					_scriptRenderers[id] = r;
+				}
+				r.DrawUI();
+			}
 		}
+
+		Dictionary<string, ClientRenderer> _clientRenderers = new();
 
 		void DrawClients()
 		{

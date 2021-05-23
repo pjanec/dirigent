@@ -24,7 +24,7 @@ namespace Dirigent
 		public IEnumerable<AppDef> AppDefs => Def.AppDefs; // same order as in the plan definiton
 
 
-		public PlanScript? Script;
+		//public PlanScript? Script;
 
 		public double StartTimeout { get; set; }
 

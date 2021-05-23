@@ -120,6 +120,18 @@ namespace Dirigent
 		PlanDef? GetPlanDef( string Id ) { return null; }
 		IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
 
+
+		/// <summary>
+		/// Gets the current script execution state
+		/// </summary>
+		/// <param name="Id"></param>
+		/// <returns></returns>
+		ScriptState? GetScriptState( string Id ) { return null; }
+		IEnumerable<KeyValuePair<string, ScriptState>> GetAllScriptStates() { return new List<KeyValuePair<string, ScriptState>>(); }
+
+		ScriptDef? GetScriptDef( string Id ) { return null; }
+		IEnumerable<ScriptDef> GetAllScriptDefs() { return new List<ScriptDef>(); }
+
 		/// <summary> ident of the network client used as RequestorId </summary>
 		string Name { get; } 
 

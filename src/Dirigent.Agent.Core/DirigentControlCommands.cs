@@ -409,4 +409,63 @@ namespace Dirigent.Commands
 		}
 	}
 
+	public class StartScript : DirigentControlCommand
+	{
+		public StartScript( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
+			(var id, var par) = Tools.ParseScriptIdArgs( args[0] );
+			ctrl.StartScript( _requestorId, id, par );
+			WriteResponse( "ACK" );
+		}
+	}
+
+	public class KillScript : DirigentControlCommand
+	{
+		public KillScript( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
+			ctrl.KillScript( _requestorId, args[0] );
+			WriteResponse( "ACK" );
+		}
+	}
+
+	public class GetScriptState : DirigentControlCommand
+	{
+		public GetScriptState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
+
+			var state = ctrl.GetScriptState( _requestorId, args[0] );
+
+			var stateStr = string.Empty;
+
+			if( state == null )
+			{
+				stateStr = "None";
+			}
+			else
+			{
+				stateStr = state.StatusText;
+			}
+
+			WriteResponse( stateStr );
+		}
+	}
+
 }

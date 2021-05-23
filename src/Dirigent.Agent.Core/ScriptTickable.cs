@@ -71,92 +71,16 @@ namespace Dirigent
 
 		// scritps
 
-		public void RunScript( string id, string? fileName=null, string? args=null )
+		public void StartScript( string idWithArgs )
 		{
-			_master.RunScript( id, fileName, args );
+			(var id, var args) = Tools.ParseScriptIdArgs( idWithArgs );
+
+			_master.Send( new StartScriptMessage( string.Empty, id, args ) );
 		}
 
-	}
-
-	public interface IScript : ITickable
-	{
-		string Status { get; }
-		ScriptCtrl Ctrl { get; set; }
-		void Init();
-		void Done();
-	}
-
-	public class Script : Disposable, IScript
-	{
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
-				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
-		
-		public string Id { get; set; } = string.Empty;
-
-		public bool ShallBeRemoved { get; protected set; }
-
-		public uint Flags => 0;
-
-		public string Status { get; protected set; } = string.Empty;
-
-		// initialized during installation
-		#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-		public ScriptCtrl Ctrl { get; set; }
-		#pragma warning restore CS8618
-
-
-		protected Coroutine? Coroutine;
-
-		protected override void Dispose( bool disposing )
+		public void KillScript( string id )
 		{
-			base.Dispose( disposing );
-			if( !disposing ) return;
-
-			Done();
-			
-			if( Coroutine != null )
-			{
-				Coroutine.Dispose();
-				Coroutine = null;
-			}
-		}
-
-		public virtual void Init()
-		{
-		}
-
-		public virtual void Done()
-		{
-		}
-
-		void ITickable.Tick()
-		{
-			// tick coroutine if exists; remove script when coroutine finishes
-			if( Coroutine != null )
-			{
-				Coroutine.Tick();
-				if( Coroutine.IsFinished )
-				{
-					Coroutine.Dispose();
-					Coroutine = null;
-					
-					ShallBeRemoved = true;
-				}
-			}
-
-			// call the virtual method
-			Tick();
-		}
-
-		public virtual void Tick()
-		{
-		}
-
-		public static void InitScriptInstance( IScript script, string id, Master master )
-		{
-			script.Id = id;
-			script.Ctrl = new ScriptCtrl(master);
-			script.Init();
+			_master.Send( new KillScriptMessage( string.Empty, id ) );
 		}
 
 	}

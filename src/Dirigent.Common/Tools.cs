@@ -164,6 +164,11 @@ namespace Dirigent
 			return stateStr;
 		}
 
+		public static string GetScriptStateText( ScriptState st )
+		{
+			return st.StatusText;
+		}
+
 		// returs first line without CR/LF
 		public static string JustFirstLine( string multiLineString )
 		{
@@ -428,27 +433,24 @@ namespace Dirigent
 		}
 
 		// Input:
-		//   Script1::Scripts/Script1.cs::argument string
+		//   Script1::argument string
 		// Output
 		//   #1: Script1
-		//	 #2: Scripts/Script1.cs
-		//	 #3: argument string
+		//	 #2: argument string
 		//
 		// Input:
 		//   Script1
 		// Output
 		//   #1: Script1
 		//	 #2: empty
-		//	 #3: empty
-		public static (string, string?, string?) ParseScriptName( string input )
+		public static (string, string?) ParseScriptIdArgs( string input )
 		{
-			var parts = input.Split("::", 3);
+			var parts = input.Split("::", 2);
 
 			var id = parts.Length > 0 ? parts[0] : string.Empty;
-			var file = parts.Length > 1 ? parts[1] : string.Empty;
-			var args = parts.Length > 2 ? parts[2] : string.Empty;
+			var args = parts.Length > 1 ? parts[1] : null;
 
-			return (id, file, args);
+			return (id, args);
 		}
 
 	}

@@ -17,6 +17,8 @@ namespace Dirigent
         bool ShallBeRemoved { get; }
 
         UInt32 Flags { get; }
+
+        Action? OnRemoved { get { return null; } }
     }
 
     /// <summary>
@@ -67,10 +69,22 @@ namespace Dirigent
             RemoveAll((x) => x.GetType() == typeof(T));
         }
 
+        // find ticker of given Id, returns null if not found
+        public ITickable? FindById( string id )
+        {
+            return _tickables.Find( x => x.Id == id );
+        }
+
         // remove ticker of given Id
         public void RemoveById( string id )
         {
             RemoveAll((x) => x.Id == id);
+        }
+
+        // remove ticker of given Id
+        public void RemoveByInstance( ITickable inst )
+        {
+            RemoveAll((x) => x == inst);
         }
 
         /// <summary>
@@ -108,6 +122,7 @@ namespace Dirigent
             {
                 log.Debug($"Removing ticker {w.Id} {w.GetType().Name}");
                 _tickables.Remove(w);
+                w.OnRemoved?.Invoke();
                 w.Dispose();
             }
             _toRemove.Clear();

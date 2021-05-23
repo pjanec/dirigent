@@ -19,10 +19,14 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
+		public ScriptState? GetScriptState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _scriptStates.TryGetValue(Id, out var st)) return st; else return null; }
+		public IEnumerable<KeyValuePair<string, ScriptState>> GetAllScriptStates() { return _scriptStates; }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
+		public ScriptDef? GetScriptDef( string Id ) { return _scriptDefs.Find((x) => x.Id==Id); }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptDefs; }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public string Name => _client.Ident.Name;
 
@@ -41,6 +45,9 @@ namespace Dirigent
 		
 		private Dictionary<string, PlanState> _planStates = new Dictionary<string, PlanState>();
 		private List<PlanDef> _planDefs = new List<PlanDef>();
+
+		private Dictionary<string, ScriptState> _scriptStates = new Dictionary<string, ScriptState>();
+		private List<ScriptDef> _scriptDefs = new List<ScriptDef>();
 
 		public ReflectedStateRepo( Net.Client client )
 		{
@@ -119,6 +126,44 @@ namespace Dirigent
 					break;
 				}
 
+				case Net.ScriptStateMessage m:
+				{
+					//Debug.Assert( m.PlansState != null );
+					_scriptStates = m.ScriptsState ?? new Dictionary<string, ScriptState>();
+					break;
+				}
+
+				case Net.ScriptDefsMessage m:
+				{
+					if( !m.Incremental ) // replace
+					{
+						if( m.ScriptDefs is not null )
+							_scriptDefs = new List<ScriptDef>( m.ScriptDefs );
+						else
+							_scriptDefs = new List<ScriptDef>();
+					}
+					else // add/update
+					{
+						if( m.ScriptDefs is not null )
+						{
+							foreach( var pd in m.ScriptDefs )
+							{
+								int idx = _scriptDefs.FindIndex( (x) => x.Id == pd.Id );
+								if( idx < 0 )
+								{
+									_scriptDefs.Add( pd );
+								}
+								else
+								{
+									_scriptDefs[idx] = pd;
+								}
+							}
+						}
+					}
+					PlansReceived?.Invoke();
+					break;
+				}
+
 				case Net.AppDefsMessage m:
 				{
 					//Debug.Assert( m.AppDefs != null );
@@ -139,6 +184,7 @@ namespace Dirigent
 					_planDefs.Clear();
 					_appStates.Clear();
 					_planStates.Clear();
+					_scriptStates.Clear();
 					break;
 				}
 			}

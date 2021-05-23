@@ -8,17 +8,6 @@ using System;
 namespace Dirigent
 {
 	/// <summary>
-	/// Script associated with the plan (optional)
-	/// Can calculate plan status, control the application sequencing etc.
-	/// Receives plan control commands (StartPlan, StopPlan, KillPlan, RestartPlan)
-	/// Ticked each frame.
-	/// </summary>
-	[ProtoBuf.ProtoContract]
-	public class PlanScript
-	{
-	}
-
-	/// <summary>
 	/// List of currently known plans including their current status
 	/// </summary>
 	public class PlanRegistry

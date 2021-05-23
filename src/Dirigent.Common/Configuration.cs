@@ -65,10 +65,9 @@ namespace Dirigent
 
 	public class SharedConfig
 	{
-		//public Dictionary<string, MachineDef> Machines = new Dictionary<string, MachineDef>();
-		//public List<ILaunchPlan> Plans = new List<ILaunchPlan>();
 		public List<AppDef> AppDefaults = new List<AppDef>();
 		public List<PlanDef> Plans = new List<PlanDef>();
+		public List<ScriptDef> Scripts = new List<ScriptDef>();
 
 	}
 

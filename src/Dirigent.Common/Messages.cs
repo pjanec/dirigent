@@ -39,6 +39,10 @@ namespace Dirigent.Net
 			{ 124, typeof( CLIResponseMessage ) },
 			{ 125, typeof( ResetMessage ) },
 			{ 126, typeof( ClientStateMessage ) },
+			{ 127, typeof( StartScriptMessage ) },
+			{ 128, typeof( KillScriptMessage ) },
+			{ 129, typeof( ScriptDefsMessage ) },
+			{ 130, typeof( ScriptStateMessage ) },
 		};
 	}
 
@@ -46,37 +50,39 @@ namespace Dirigent.Net
 	/// Base class for all messages.
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	[DataContract]
-	[KnownType( typeof( RemoteOperationErrorMessage ) ), ProtoBuf.ProtoInclude( 101, typeof( RemoteOperationErrorMessage ) )]
-	[KnownType( typeof( AppsStateMessage ) ), ProtoBuf.ProtoInclude( 102, typeof( AppsStateMessage ) )]
-	[KnownType( typeof( PlansStateMessage ) ), ProtoBuf.ProtoInclude( 103, typeof( PlansStateMessage ) )]
-	[KnownType( typeof( StartAppMessage ) ), ProtoBuf.ProtoInclude( 104, typeof( StartAppMessage ) )]
-	[KnownType( typeof( KillAppMessage ) ), ProtoBuf.ProtoInclude( 105, typeof( KillAppMessage ) )]
-	[KnownType( typeof( RestartAppMessage ) ), ProtoBuf.ProtoInclude( 106, typeof( RestartAppMessage ) )]
-	[KnownType( typeof( SetAppEnabledMessage ) ), ProtoBuf.ProtoInclude( 107, typeof( SetAppEnabledMessage ) )]
-	//[KnownType(typeof(SelectPlanMessage))         , ProtoBuf.ProtoInclude(108, typeof(SelectPlanMessage))]
-	[KnownType( typeof( StartPlanMessage ) ), ProtoBuf.ProtoInclude( 109, typeof( StartPlanMessage ) )]
-	[KnownType( typeof( StopPlanMessage ) ), ProtoBuf.ProtoInclude( 110, typeof( StopPlanMessage ) )]
-	[KnownType( typeof( KillPlanMessage ) ), ProtoBuf.ProtoInclude( 111, typeof( KillPlanMessage ) )]
-	[KnownType( typeof( RestartPlanMessage ) ), ProtoBuf.ProtoInclude( 112, typeof( RestartPlanMessage ) )]
-	//[KnownType( typeof( CurrentPlanMessage ) ), ProtoBuf.ProtoInclude( 113, typeof( CurrentPlanMessage ) )]
-	[KnownType( typeof( PlanDefsMessage ) ), ProtoBuf.ProtoInclude( 114, typeof( PlanDefsMessage ) )]
-	[KnownType( typeof( SetVarsMessage ) ), ProtoBuf.ProtoInclude( 115, typeof( SetVarsMessage ) )]
-	[KnownType( typeof( KillAllMessage ) ), ProtoBuf.ProtoInclude( 116, typeof( KillAllMessage ) )]
-	[KnownType( typeof( ShutdownMessage ) ), ProtoBuf.ProtoInclude( 117, typeof( ShutdownMessage ) )]
-	[KnownType( typeof( ReinstallMessage ) ), ProtoBuf.ProtoInclude( 118, typeof( ReinstallMessage ) )]
-	[KnownType( typeof( TerminateMessage ) ), ProtoBuf.ProtoInclude( 119, typeof( TerminateMessage ) )]
-	[KnownType( typeof( ReloadSharedConfigMessage ) ), ProtoBuf.ProtoInclude( 120, typeof( ReloadSharedConfigMessage ) )]
-	[KnownType( typeof( ClientIdent ) ), ProtoBuf.ProtoInclude( 121, typeof( ClientIdent ) )]
-	[KnownType( typeof( AppDefsMessage ) ), ProtoBuf.ProtoInclude( 122, typeof( AppDefsMessage ) )]
-	[KnownType( typeof( CLIRequestMessage ) ), ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
-	[KnownType( typeof( CLIResponseMessage ) ), ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
-	[KnownType( typeof( ResetMessage ) ), ProtoBuf.ProtoInclude( 125, typeof( ResetMessage ) )]
-	[KnownType( typeof( ClientStateMessage ) ), ProtoBuf.ProtoInclude( 126, typeof( ClientStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 101, typeof( RemoteOperationErrorMessage ) )]
+	[ProtoBuf.ProtoInclude( 102, typeof( AppsStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 103, typeof( PlansStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 104, typeof( StartAppMessage ) )]
+	[ProtoBuf.ProtoInclude( 105, typeof( KillAppMessage ) )]
+	[ProtoBuf.ProtoInclude( 106, typeof( RestartAppMessage ) )]
+	[ProtoBuf.ProtoInclude( 107, typeof( SetAppEnabledMessage ) )]
+  //[ProtoBuf.ProtoInclude(108, typeof(SelectPlanMessage))]
+	[ProtoBuf.ProtoInclude( 109, typeof( StartPlanMessage ) )]
+	[ProtoBuf.ProtoInclude( 110, typeof( StopPlanMessage ) )]
+	[ProtoBuf.ProtoInclude( 111, typeof( KillPlanMessage ) )]
+	[ProtoBuf.ProtoInclude( 112, typeof( RestartPlanMessage ) )]
+  //[ProtoBuf.ProtoInclude( 113, typeof( CurrentPlanMessage ) )]
+	[ProtoBuf.ProtoInclude( 114, typeof( PlanDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 115, typeof( SetVarsMessage ) )]
+	[ProtoBuf.ProtoInclude( 116, typeof( KillAllMessage ) )]
+	[ProtoBuf.ProtoInclude( 117, typeof( ShutdownMessage ) )]
+	[ProtoBuf.ProtoInclude( 118, typeof( ReinstallMessage ) )]
+	[ProtoBuf.ProtoInclude( 119, typeof( TerminateMessage ) )]
+	[ProtoBuf.ProtoInclude( 120, typeof( ReloadSharedConfigMessage ) )]
+	[ProtoBuf.ProtoInclude( 121, typeof( ClientIdent ) )]
+	[ProtoBuf.ProtoInclude( 122, typeof( AppDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
+	[ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
+	[ProtoBuf.ProtoInclude( 125, typeof( ResetMessage ) )]
+	[ProtoBuf.ProtoInclude( 126, typeof( ClientStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 127, typeof( StartScriptMessage ) )]
+	[ProtoBuf.ProtoInclude( 128, typeof( KillScriptMessage ) )]
+	[ProtoBuf.ProtoInclude( 129, typeof( ScriptDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 130, typeof( ScriptStateMessage ) )]
 	public class Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string Sender { get; set; } = string.Empty;  // machine name for agents, guid for GUIs, empty for master
 
 		public static void RegisterProtobufTypeMaps()
@@ -89,19 +95,15 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class RemoteOperationErrorMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string Requestor = string.Empty;
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public string Message = string.Empty; // Error description
 
 		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
 		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		public RemoteOperationErrorMessage() {}
@@ -116,19 +118,16 @@ namespace Dirigent.Net
 	// not used just if multicast option is enabled (like in case of many agents;
 	// this msg causes the master to resend to all clients (as in case of any other message) - heavy network load as this message is frequent!
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class AppsStateMessage : Message
 	{
 		public override bool IsFrequent { get { return true; } }
 
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, AppState> AppsState;
 
 		// time on sender when sending this message
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public DateTime TimeStamp;
 
 		public AppsStateMessage() {}
@@ -141,13 +140,11 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class PlansStateMessage : Message
 	{
 		public override bool IsFrequent { get { return true; } }
 
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		[MaybeNull]
 		public Dictionary<string, PlanState> PlansState;
 
@@ -162,16 +159,13 @@ namespace Dirigent.Net
 	/// Master's internal state of applications in the plan.
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class PlanAppsStateMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		[MaybeNull]
 		public string PlanName;
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, PlanAppState> AppsState;
 
@@ -199,11 +193,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class StartAppMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public AppIdTuple Id;
 
 		/// <summary>
@@ -215,11 +207,9 @@ namespace Dirigent.Net
 		/// Must be always null if sent from master to agent (agent does not know about plans anyway)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public string? PlanName;
 
 		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
 		public StartAppFlags Flags;
 
 
@@ -247,15 +237,12 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class KillAppMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public AppIdTuple Id;
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public KillAppFlags Flags;
 
 
@@ -276,11 +263,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class RestartAppMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public AppIdTuple Id;
 
 		public RestartAppMessage() {}
@@ -297,19 +282,15 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class SetAppEnabledMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string? PlanName;
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public AppIdTuple Id;
 
 		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
 		public bool Enabled;
 
 		public SetAppEnabledMessage() {}
@@ -329,11 +310,9 @@ namespace Dirigent.Net
 	}
 
 	//[ProtoBuf.ProtoContract]
-	//[DataContract]
 	//public class SelectPlanMessage : Message
 	//{
 	//    [ProtoBuf.ProtoMember(1)]
-	//    [DataMember]
 	//    public string planName;
 
 	//    public SelectPlanMessage() {}
@@ -350,11 +329,9 @@ namespace Dirigent.Net
 	//}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class StartPlanMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public String PlanName = string.Empty;
 
 		public StartPlanMessage() {}
@@ -368,11 +345,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class StopPlanMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string PlanName = string.Empty;
 
 		public StopPlanMessage() {}
@@ -386,11 +361,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class KillPlanMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string PlanName = string.Empty;
 
 		public KillPlanMessage() {}
@@ -404,11 +377,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class RestartPlanMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string PlanName = string.Empty;
 
 		public RestartPlanMessage() {}
@@ -425,11 +396,9 @@ namespace Dirigent.Net
 	///// Master tells new client about the current launch plan
 	///// </summary>
 	//[ProtoBuf.ProtoContract]
-	//[DataContract]
 	//public class CurrentPlanMessage : Message
 	//{
 	//	[ProtoBuf.ProtoMember( 1 )]
-	//	[DataMember]
 	//	public string PlanName = string.Empty;
 
 	//	public CurrentPlanMessage() {}
@@ -448,11 +417,9 @@ namespace Dirigent.Net
 	/// Master tells new client about existing plans
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class PlanDefsMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		[MaybeNull]
 		public List<PlanDef> PlanDefs;
 
@@ -460,7 +427,6 @@ namespace Dirigent.Net
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public bool Incremental;
 
 		public PlanDefsMessage() {}
@@ -477,11 +443,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class SetVarsMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public string Vars = string.Empty;
 
 		public SetVarsMessage() {}
@@ -500,11 +464,9 @@ namespace Dirigent.Net
 
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class KillAllMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public KillAllArgs Args;
 
 		public KillAllMessage() {}
@@ -522,11 +484,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class TerminateMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public TerminateArgs Args;
 
 		public TerminateMessage() {}
@@ -544,11 +504,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ShutdownMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public ShutdownArgs Args;
 
 		public ShutdownMessage() {}
@@ -566,11 +524,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ReinstallMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public ReinstallArgs Args;
 
 		public ReinstallMessage() {}
@@ -588,11 +544,9 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ReloadSharedConfigMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public ReloadSharedConfigArgs Args;
 
 		public ReloadSharedConfigMessage() {}
@@ -610,7 +564,6 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ClientIdent : Message
 	{
 		///<summary>Client name. For agents, this equals the MachineId. For Guis this is a stringized GUID</summary>
@@ -621,7 +574,6 @@ namespace Dirigent.Net
 		}
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public EMsgRecipCateg SubscribedTo;
 
 		public ClientIdent() {}
@@ -643,12 +595,10 @@ namespace Dirigent.Net
 	}
 
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class AppDefsMessage : Message
 	{
 
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		[MaybeNull] // when constructed without arguments by protobuf
 		public List<AppDef> AppDefs;
 
@@ -656,7 +606,6 @@ namespace Dirigent.Net
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		public bool Incremental;
 
 		public AppDefsMessage() {}
@@ -718,7 +667,6 @@ namespace Dirigent.Net
 	/// Master tells the client to forget every info (will be resent())
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ResetMessage : Message
 	{
 		public ResetMessage() {}
@@ -731,18 +679,15 @@ namespace Dirigent.Net
 
 	// Client is updating its state to master (at regular intervals)
 	[ProtoBuf.ProtoContract]
-	[DataContract]
 	public class ClientStateMessage : Message
 	{
 		public override bool IsFrequent { get { return true; } }
 
 		// time on sender when sending this message
 		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
 		public DateTime TimeStamp;
 
 		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
 		[MaybeNull]
 		public ClientState State;
 
@@ -753,6 +698,110 @@ namespace Dirigent.Net
 			this.State = state;
 		}
 
+	}
+
+	[ProtoBuf.ProtoContract]
+	public class StartScriptMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public string? Id;
+
+		//[ProtoBuf.ProtoMember( 2 )]
+		//public string? FileName;
+
+		[ProtoBuf.ProtoMember( 3 )]
+		public string? Args;
+
+
+		public StartScriptMessage() {}
+
+		//public StartScriptMessage( string requestorId, string id, string? fileName, string?args )
+		//{
+		//	this.Sender = requestorId;
+		//	this.Id = id;
+		//	this.FileName = fileName;
+		//	this.Args = args;
+		//}
+
+		public StartScriptMessage( string requestorId, string id, string? args )
+		{
+			this.Sender = requestorId;
+			this.Id = id;
+			this.Args = args;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( $"StartScriptMessage {Id}" );
+		}
+
+	}
+
+	[ProtoBuf.ProtoContract]
+	public class KillScriptMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public string Id;
+
+
+		public KillScriptMessage() {}
+		public KillScriptMessage( string requestorId, string id )
+		{
+			this.Sender = requestorId;
+			this.Id = id;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( "KillScript {0}", Id );
+		}
+
+	}
+
+	/// <summary>
+	/// Master tells new client about existing scripts
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class ScriptDefsMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public List<ScriptDef> ScriptDefs;
+
+		/// <summary>
+		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public bool Incremental;
+
+		public ScriptDefsMessage() {}
+		public ScriptDefsMessage( IEnumerable<ScriptDef> scriptDefs, bool incremental )
+		{
+			this.ScriptDefs = new List<ScriptDef>(scriptDefs);
+			this.Incremental = incremental;
+		}
+
+		public override string ToString()
+		{
+			return $"ScriptDefs [{string.Join(", ", from x in ScriptDefs select x.Id)}], increm={Incremental}";
+		}
+	}
+
+	[ProtoBuf.ProtoContract]
+	public class ScriptStateMessage : Message
+	{
+		public override bool IsFrequent { get { return true; } }
+
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public Dictionary<string, ScriptState> ScriptsState;
+
+		public ScriptStateMessage() {}
+		public ScriptStateMessage( Dictionary<string, ScriptState> scriptsState )
+		{
+			this.ScriptsState = new Dictionary<string, ScriptState>( scriptsState );
+		}
 	}
 
 }

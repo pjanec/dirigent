@@ -28,8 +28,7 @@ namespace Dirigent
 			loadAppDefaults();
 			loadPlans();
 			CheckDependencies();
-			//loadMachines();
-			//loadMaster();
+			loadScripts();
 		}
 
 		AppDef readAppElement( XElement e )
@@ -362,6 +361,35 @@ namespace Dirigent
 
 		}
 
+		void loadScripts()
+		{
+			var scripts = from e in doc.Element( "Shared" )?.Descendants( "Script" )
+						select e;
+
+			int index = 0;
+			foreach( var p in scripts )
+			{
+				index++;
+				var id = X.getStringAttr( p, "Name", "" );
+				var file = X.getStringAttr( p, "File", "" );
+				var args = X.getStringAttr( p, "Args", "" );
+				var group = X.getStringAttr( p, "Group", "" );
+
+				if( string.IsNullOrEmpty(id) )
+					throw new ConfigurationErrorException( $"Missing script name in script #{index}");
+
+				cfg.Scripts.Add(
+					new ScriptDef()
+					{
+						Id = id,
+						FileName = file,
+						Args = args,
+						Group = group
+					}
+				);
+			}
+
+		}
 
 		//MachineDef readMachineElement( XElement e )
 		//{

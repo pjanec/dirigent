@@ -120,6 +120,17 @@ namespace Dirigent
 		}
 	}
 
+	public class UnknownScriptId : Exception
+	{
+		public string id;
+
+		public UnknownScriptId( string id )
+			: base( "Script is '" + id + "' was not found." )
+		{
+			this.id = id;
+		}
+	}
+
 	public class AppStartFailureException : Exception
 	{
 		public AppIdTuple id;

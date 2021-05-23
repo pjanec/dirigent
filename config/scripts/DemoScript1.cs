@@ -1,7 +1,7 @@
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 using Dirigent;
 
-public class DemoScript1 : Script
+public class DemoScript1 : UserScript
 {
 	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -10,8 +10,9 @@ public class DemoScript1 : Script
 
 	public override void Init()
 	{
-		log.Info("Init!");
+		log.Info($"Init with args: '{Args}'");
 		Coroutine = new Coroutine( Run() );
+		StatusText = "Initialized";
 	}
 
 	public override void Done()
@@ -23,11 +24,15 @@ public class DemoScript1 : Script
 
 		if( _started_m1_b )
 			Ctrl.KillApp("m1.b");
+
+		StatusText = "Finished";
 	}
 
 	System.Collections.IEnumerable Run()
 	{
 		log.Info("Run!");
+
+		StatusText = "Waiting for m1 to boot";
 
 		// wait for agent m1 to boot
 		while( Ctrl.GetClientState("m1") is null ) yield return null;
@@ -37,6 +42,7 @@ public class DemoScript1 : Script
 		_started_m1_a = true;
 		
 		// wait for the app to initialize
+		StatusText = "Waiting for m1.a to initialize";
 		while ( !Ctrl.GetAppState( "m1.a" ).Initialized ) yield return null;
 
 		// start app "m1.b" defined within "plan1"
@@ -51,7 +57,8 @@ public class DemoScript1 : Script
 		//yield return new WaitForSeconds(2);
 		//Ctrl.KillApp("m1.b");
 		
-		yield return new WaitForSeconds(2);
+		StatusText = "Waiting before terminating";
+		yield return new WaitForSeconds(4);
 
 		// here to coroutine terminates which deactivates the script
 	}

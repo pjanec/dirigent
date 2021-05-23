@@ -2,7 +2,7 @@
   "profiles": {
     "Dirigent.Gui.ImGui": {
       "commandName": "Project",
-      "commandLineArgs": "--mode AllInOneDebug --startupScript \"Demo1::Scripts/DemoScript1.cs::some args\""
+      "commandLineArgs": "--mode AllInOneDebug --startupScript \"Demo1::some args\""
     }
   }
 }
