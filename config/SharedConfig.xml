@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Shared>
     <!-- Free apps (app defaults if an app is not part of any plan, having own app definition -->
-    <AppDefaults>
-    	<App
-    	    AppIdTuple = "m1.a"
-    		Template = "apps.notepad"
-    	    >
-    	</App>
-    </AppDefaults>
+	<App AppIdTuple = "m1.a" Template = "apps.notepad" />
 
     <!-- Plans -->
     <Plan Name="plan1" StartTimeout="10">
@@ -112,18 +106,8 @@
     <Plan Name="empty">
     </Plan>
 
-    <!-- Scripts to show in gui on the script tab -->
-    <!-- CLI commands
 
-        StartScript Demo1::argument string
-        KillScript Demo1
-        GetScriptState Demo1  ... returns string set by the script. Reserved values:
-            "None" ... script is not running, not returning any value
-
-        Run script at startup (can be used multiple times)
-          cmd line arg startupScript "Demo1::argument string"
-    -->
-    <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
+    <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" Groups="Common/Demo;Examples"/>
 
 
     <AppTemplate Name="apps.notepad"

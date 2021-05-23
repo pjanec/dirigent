@@ -215,13 +215,15 @@ namespace Dirigent
 
 		void loadAppDefaults()
 		{
-			var appDefaultsElem = (from e in doc.Element( "Shared" )?.Descendants( "AppDefaults" ) select e).FirstOrDefault();
-			if( appDefaultsElem != null )
+			cfg.AppDefaults.Clear();
+
+			var apps = from e in doc.Element( "Shared" )?.Elements( "App" )
+						select e;
+
+			foreach( var p in apps )
 			{
-				cfg.AppDefaults = (
-					from e in appDefaultsElem?.Descendants( "App" )
-					select readAppElement( e )
-								  ).ToList();
+				var app = readAppElement( p );
+				cfg.AppDefaults.Add( app );
 			}
 		}
 
@@ -363,6 +365,8 @@ namespace Dirigent
 
 		void loadScripts()
 		{
+			cfg.Scripts.Clear();
+
 			var scripts = from e in doc.Element( "Shared" )?.Descendants( "Script" )
 						select e;
 
@@ -390,39 +394,6 @@ namespace Dirigent
 			}
 
 		}
-
-		//MachineDef readMachineElement( XElement e )
-		//{
-		//    MachineDef m = new MachineDef();
-		//    m.MachineId = X.getStringAttr(e, "Name");
-		//    m.IpAddress = X.getStringAttr(e, "IpAddress");
-		//    return m;
-		//}
-
-		//void loadMachines()
-		//{
-		//    var machines = from m in doc.Element("Shared").Descendants("Machine")
-		//                 select readMachineElement(m);
-
-		//    foreach( var ma in machines )
-		//    {
-		//        cfg.Machines.Add( ma.MachineId, ma );
-		//    }
-		//}
-
-		//void loadMaster()
-		//{
-		//    var master = doc.Element("Shared").Element("Master");
-		//    cfg.MasterPort = X.getIntAttr( master, "Port" );
-		//    cfg.MasterName = X.getStringAttr( master, "Name" );
-		//}
-
-		//void loadLocalMachineId()
-		//{
-		//    var master = doc.Element("Shared").Element("Local");
-		//    cfg.MasterPort = X.getIntAttr( master, "MasterPort" );
-		//    cfg.MasterName = X.getStringAttr( master, "MasterName" );
-		//}
 
 	}
 }

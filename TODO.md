@@ -1,8 +1,8 @@
-[IDEA] Scripts on master, running indepedently on apps and plans. A script can be started/killed/restarted (separate set of dirigent commands). Script provides text string status.
+[TODO] "Groups" attribute for scripts, apps, plans to allow presenting them in a tree view in GUIs. Ex.: Groups="Common/Demo;Examples".
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
 
-[BUG] Agent is now using SendKeysWait, run it in a thread to avoid endless waiting for app that is stuck!
+[BUG] Agent is now using SendKeysWait (as SendKeys requires a msg pump). Will probably stuck on unresponsive app. Run it in a thread?
 
 [TODO] FolderWatcher from trayapp to Agent
 
@@ -12,9 +12,9 @@
 
 [TODO] SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
 
-[TODO] Terminate, Shutdown, Reinstall
+[TODO] Terminate, Shutdown, Reinstall - are they worth the effort? Who needs them?
 
-[BUG] When RemoteOperError Message box appears and gets closed, exception hapens (iteration variable changed)
+[BUG] When RemoteOperError Message box appears and gets closed, exception happens (iteration variable changed)
 
 [IDEA] Send all info as full state/changes. Including AppState, PlanState. Reduces unnecessary traffic if no changes.
 [IDEA] Assign each unique AppDefs a small unique integer number and use it for identifying the app def in network messages and possibly everywhere. Keep a global registry of AppDefs indexed by this number. Number assigned by master (simple counter).

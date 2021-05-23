@@ -59,3 +59,14 @@ Was set to require explicit kill!
 [TODO] ImGui: Main menu - Reload SharedConfig, Kill All
 
 
+[IDEA] Scripts on master, running indepedently on apps and plans. A script can be started/killed/restarted (separate set of dirigent commands). Script provides text string status.
+SharedConfig
+        <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
+CLI
+        StartScript Demo1::argument string
+        KillScript Demo1
+        GetScriptState Demo1  ... returns string set by the script. Reserved values:
+            "None" ... script is not running, not returning any value
+Command line
+        Run script at startup (can be used multiple times)
+          cmd line arg --startupScript "Demo1::argument string"
