@@ -63,6 +63,7 @@ namespace Dirigent
 						throw new ConfigurationErrorException("SharedConfig not defined");
 
 					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+					if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.RunScript( _ac.StartupScript );
 				}
 				else
 				{

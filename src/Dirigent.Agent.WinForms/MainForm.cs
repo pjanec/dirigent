@@ -83,7 +83,7 @@ namespace Dirigent.Gui.WinForms
 			{
 				if( firstGotPlans )
 				{
-					_currentPlan = _reflStates.GetPlanDef( ac.StartupPlanName );
+					_currentPlan = _reflStates.GetPlanDef( ac.StartupPlan );
 				}
 				firstGotPlans = false;
 			};

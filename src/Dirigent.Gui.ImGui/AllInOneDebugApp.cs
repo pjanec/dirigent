@@ -61,7 +61,8 @@ namespace Dirigent.Gui
 				_agentWin1?.Tick();
 				_agentWin2?.Tick();
 
-				Thread.Sleep( _ac.TickPeriod );
+				//Thread.Sleep( _ac.TickPeriod );
+				Thread.Sleep( 50 );
 			}
 
 			return exitCode;

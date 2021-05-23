@@ -92,7 +92,8 @@ namespace Dirigent
 			//Script.InitScriptInstance( script, "Demo1", this );
 			//_tickers.Install( script );
 			//RunScript("DemoScript1", "Scripts/DemoScript1.cs");
-			RunScript("DemoScript1");
+			//RunScript("DemoScript1");
+
 		}
 
 		protected override void Dispose(bool disposing)
@@ -676,16 +677,6 @@ namespace Dirigent
 		}
 
 
-		public void RunScript( string id, string? fileName=null, string? args=null )
-		{
-			// FIXME: look up the script definiion in shared config
-			if( string.IsNullOrEmpty(fileName) )
-			{
-				fileName = $"scripts/{id}.cs";
-			}
-			RunScriptFile( id, fileName, args );
-		}
-
 		public void RunScriptFile( string id, string scriptFileName, string? args )
 		{
 			log.Debug( $"Loading script file '{scriptFileName}'" );
@@ -711,6 +702,26 @@ namespace Dirigent
 			//string id = $"{scriptClassName}_{Guid.NewGuid().ToString()}";
 			Script.InitScriptInstance( script, id, this );
 			 _tickers.Install( script );
+		}
+
+		public void RunScript( string id, string? fileName, string? args )
+		{
+			// FIXME: look up the script definiion in shared config
+			if( string.IsNullOrEmpty(fileName) )
+			{
+				fileName = $"scripts/{id}.cs";
+			}
+			RunScriptFile( id, fileName, args );
+		}
+
+		public void RunScript( string scriptName )
+		{
+			if( string.IsNullOrEmpty(scriptName) ) return;
+			
+			var( id, file, args) = Tools.ParseScriptName( scriptName );
+			if( string.IsNullOrEmpty(id) ) return;
+
+			RunScript( id, file, args );
 		}
 
 	}

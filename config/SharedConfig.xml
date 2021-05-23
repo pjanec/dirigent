@@ -115,13 +115,13 @@
     <!-- Scripts to show in gui on the script tab -->
     <!-- CLI commands
 
-        StartScript Demo1:Scripts/DemoScript1.cs:argument string
+        StartScript Demo1::Scripts/DemoScript1.cs::argument string
         KillScript Demo1
         GetScriptState Demo1  ... returns string set by the script. Reserved values:
             "None" ... script is not running, not returning any value
 
         Run script at startup (can be used multiple times)
-          startupScript Demo1:Scripts/DemoScript1.cs:argument string
+          cmd line arg startupScript "Demo1::Scripts/DemoScript1.cs::argument string"
     -->
     <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
 

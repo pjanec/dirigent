@@ -58,8 +58,11 @@ namespace Dirigent
 		[Option( "logFile", Required = false, Default = "", HelpText = "log file name." )]
 		public string LogFile { get; set; } = string.Empty;
 
-		[Option( "startupPlan", Required = false, Default = "", HelpText = "Plan to be started on startup." )]
+		[Option( "startupPlan", Required = false, Default = "", HelpText = "Plan to be selected on startup." )]
 		public string StartupPlan { get; set; } = string.Empty;
+
+		[Option( "startupScript", Required = false, Default = "", HelpText = "Script to be started on startup." )]
+		public string StartupScript { get; set; } = string.Empty;
 
 		[Option( "startHidden", Required = false, Default = "", HelpText = "Start with Dirigent GUI hidden in tray [0|1]." )]
 		public string StartHidden { get; set; } = string.Empty;
@@ -93,7 +96,8 @@ namespace Dirigent
 		public int CliPort = 5050;
 		public string MasterIP = "127.0.0.1";
 		public string LogFileName = "";
-		public string StartupPlanName = "";
+		public string StartupPlan = "";
+		public string StartupScript = "";
 		public string StartHidden = "0"; // "0" or "1"
 		public string Mode = ""; // "", "agent", "master", "cli"
 		//public SharedConfig? SharedConfig = null;
@@ -134,7 +138,8 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Common.Properties.Settings.Default.LocalConfigFile;
 			if( Common.Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Common.Properties.Settings.Default.RootForRelativePaths;
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
-			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlanName = Common.Properties.Settings.Default.StartupPlan;
+			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlan = Common.Properties.Settings.Default.StartupPlan;
+			if( Common.Properties.Settings.Default.StartupScript != "" ) StartupScript = Common.Properties.Settings.Default.StartupScript;
 			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
@@ -158,7 +163,8 @@ namespace Dirigent
 				if( options.SharedConfigFile != "" ) SharedCfgFileName = options.SharedConfigFile;
 				if( options.LocalConfigFile != "" ) LocalCfgFileName = options.LocalConfigFile;
 				if( options.LogFile != "" ) LogFileName = options.LogFile;
-				if( options.StartupPlan != "" ) StartupPlanName = options.StartupPlan;
+				if( options.StartupPlan != "" ) StartupPlan = options.StartupPlan;
+				if( options.StartupScript != "" ) StartupScript = options.StartupScript;
 				if( options.StartHidden != "" ) StartHidden = options.StartHidden;
 				if( options.Mode != "" ) Mode = options.Mode;
 				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;
