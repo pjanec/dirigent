@@ -79,7 +79,7 @@ namespace Dirigent.Gui.WinForms
 			_reflStates = new ReflectedStateRepo( _client );
 			
 			bool firstGotPlans = true;
-			_reflStates.PlansReceived += () =>
+			_reflStates.OnPlansReceived += () =>
 			{
 				if( firstGotPlans )
 				{

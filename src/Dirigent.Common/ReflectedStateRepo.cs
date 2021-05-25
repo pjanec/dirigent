@@ -31,8 +31,11 @@ namespace Dirigent
 		public string Name => _client.Ident.Name;
 
 		// Fired awhen plan defs received/updated
-		public Action? PlansReceived;
+		public Action? OnPlansReceived;
+		public Action? OnScriptsReceived;
 
+		// fired when reset is received
+		public Action? OnReset;
 
 		private Net.Client _client;
 		private Dictionary<AppIdTuple, AppState> _appStates = new Dictionary<AppIdTuple, AppState>();
@@ -122,7 +125,7 @@ namespace Dirigent
 							}
 						}
 					}
-					PlansReceived?.Invoke();
+					OnPlansReceived?.Invoke();
 					break;
 				}
 
@@ -160,7 +163,7 @@ namespace Dirigent
 							}
 						}
 					}
-					PlansReceived?.Invoke();
+					OnScriptsReceived?.Invoke();
 					break;
 				}
 
@@ -185,6 +188,7 @@ namespace Dirigent
 					_appStates.Clear();
 					_planStates.Clear();
 					_scriptStates.Clear();
+					OnReset?.Invoke();
 					break;
 				}
 			}

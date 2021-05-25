@@ -6,6 +6,7 @@ using System.Text;
 using System.Drawing;
 using ImGuiNET;
 using System.Threading;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Dirigent.Gui
 {
@@ -24,6 +25,7 @@ namespace Dirigent.Gui
 		private ImGuiWindow _wnd;
 		private ImageInfo _txKillAll;
 
+		ScriptTreeRenderer _scriptTreeRenderer;
 
 		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
 		{
@@ -34,12 +36,34 @@ namespace Dirigent.Gui
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_reflStates = new ReflectedStateRepo( _client );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
+
+			_scriptTreeRenderer = new ScriptTreeRenderer( _wnd, _reflStates );
+
+			_reflStates.OnReset += Reset;
+			_reflStates.OnScriptsReceived += _scriptTreeRenderer.Reset;
+
+			Reset();
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
 			_client.Dispose();
+			_reflStates.OnReset -= Reset;
+			_reflStates.OnScriptsReceived -= _scriptTreeRenderer.Reset;
+		}
+
+		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
+		Dictionary<string, PlanRenderer> _planRenderers = new();
+		Dictionary<string, ClientRenderer> _clientRenderers = new();
+
+		void Reset()
+		{
+			_appRenderers = new();
+			_planRenderers = new();
+			_clientRenderers = new();
+
+			_scriptTreeRenderer.Reset();
 		}
 
 		public void Tick()
@@ -95,8 +119,6 @@ namespace Dirigent.Gui
 			}
 		}
 		
-		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
-
 		void DrawApps()
 		{
 			foreach( var (id, state) in _reflStates.GetAllAppStates() )
@@ -112,7 +134,6 @@ namespace Dirigent.Gui
 		}
 
 
-		Dictionary<string, PlanRenderer> _planRenderers = new();
 
 		void DrawPlans()
 		{
@@ -128,38 +149,14 @@ namespace Dirigent.Gui
 			}
 		}
 
-		Dictionary<string, ScriptRenderer> _scriptRenderers = new();
 
-		//record ScriptGroup
-		//(
-		//	string Name,
-		//	List<KeyValuePair<string, ScriptState>> Script
-		//);
-		
+
+
 		void DrawScripts()
 		{
-			//// get all groups
-			//Dictionary<string, ScriptGroup> groups = new Dictionary<string, ScriptGroup>();
-			//foreach( var (id, state) in _reflStates.GetAllScriptStates() )
-			//{
-			//}
-
-			// draw script under group
-			// put scripts with no group as top level items
-
-			foreach( var (id, state) in _reflStates.GetAllScriptStates() )
-			{
-				ScriptRenderer? r;
-				if( !_scriptRenderers.TryGetValue( id, out r ) )
-				{
-					r = new ScriptRenderer( _wnd, id, _reflStates );	// will render the effective ones
-					_scriptRenderers[id] = r;
-				}
-				r.DrawUI();
-			}
+			_scriptTreeRenderer.DrawUI();
 		}
 
-		Dictionary<string, ClientRenderer> _clientRenderers = new();
 
 		void DrawClients()
 		{

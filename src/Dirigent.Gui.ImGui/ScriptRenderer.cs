@@ -38,7 +38,7 @@ namespace Dirigent.Gui
 			string statusText = scriptState != null ? Tools.GetScriptStateText( scriptState ) : string.Empty;
 
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1f,1f,0f,1f) );
-			bool opened = ImGui.TreeNodeEx( $"{_id}##{_id}", ImGuiTreeNodeFlags.FramePadding);
+			bool opened = ImGui.TreeNodeEx( _id, ImGuiTreeNodeFlags.FramePadding);
 			ImGui.PopStyleColor();
 			if (ImGui.BeginPopupContextItem())
 			{
