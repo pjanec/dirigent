@@ -48,14 +48,7 @@ namespace Dirigent
 			this._appDef = appDef;
 			_sharedContext = sharedContext;
 
-			if( String.IsNullOrEmpty( sharedContext.RootForRelativePaths ) )
-			{
-				_relativePathsRoot = System.IO.Directory.GetCurrentDirectory();
-			}
-			else
-			{
-				_relativePathsRoot = sharedContext.RootForRelativePaths;
-			}
+			_relativePathsRoot = sharedContext.RootForRelativePaths;
 
 			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
@@ -118,21 +111,12 @@ namespace Dirigent
 
 		string ExpandVars( String str )
 		{
-			if( String.IsNullOrEmpty( str ) ) return String.Empty;
-
-			var s = Tools.ExpandEnvVars( str, true );
-			//s = ExpandNumericVars( s, numericParams, true );
-			s = Tools.ExpandInternalVars( s, _internalVars, true );
-			s = Tools.RemoveVars( s ); // replace the remaining vars with en empty string
-			return s;
+			return Tools.ExpandEnvAndInternalVars( str, _internalVars );
 		}
 
 		string BuildAbsolutePath( string anyPath )
 		{
-			if( Path.IsPathRooted( anyPath ) )
-				return anyPath;
-
-			return Path.Combine( _relativePathsRoot, anyPath );
+			return PathUtils.BuildAbsolutePath( anyPath, _relativePathsRoot );
 		}
 
 		public bool AdoptAlreadyRunning()

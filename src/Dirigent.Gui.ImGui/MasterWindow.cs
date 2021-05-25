@@ -25,11 +25,17 @@ namespace Dirigent.Gui
 
 			_ac = ac;
 
-			if( string.IsNullOrEmpty(_ac.SharedCfgFileName) ) throw new Exception("Shared Config not define.");
+			if( string.IsNullOrEmpty(_ac.SharedCfgFileName) ) throw new Exception("Shared Config not defined.");
 
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
-			_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+			_master = new Master(
+				_ac.LocalIP,
+				_ac.MasterPort,
+				_ac.CliPort,
+				_ac.SharedCfgFileName,
+				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+			);
 			if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartScript( string.Empty, _ac.StartupScript );
 		}
 

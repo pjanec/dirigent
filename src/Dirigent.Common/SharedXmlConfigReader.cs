@@ -377,7 +377,7 @@ namespace Dirigent
 				var id = X.getStringAttr( p, "Name", "" );
 				var file = X.getStringAttr( p, "File", "" );
 				var args = X.getStringAttr( p, "Args", "" );
-				var group = X.getStringAttr( p, "Group", "" );
+				var groups = X.getStringAttr( p, "Groups", "" );
 
 				if( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing script name in script #{index}");
@@ -388,7 +388,7 @@ namespace Dirigent
 						Id = id,
 						FileName = file,
 						Args = args,
-						Group = group
+						Groups = groups
 					}
 				);
 			}

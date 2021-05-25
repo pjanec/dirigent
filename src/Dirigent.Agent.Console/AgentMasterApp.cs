@@ -62,7 +62,13 @@ namespace Dirigent
 					if( string.IsNullOrEmpty( _ac.SharedCfgFileName ) )
 						throw new ConfigurationErrorException("SharedConfig not defined");
 
-					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+					_master = new Master(
+						_ac.LocalIP,
+						_ac.MasterPort,
+						_ac.CliPort,
+						_ac.SharedCfgFileName,
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+					);
 					if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartScript( _ac.MachineId, _ac.StartupScript );
 				}
 				else
@@ -75,7 +81,12 @@ namespace Dirigent
 			{
 				if( !_alreadyRunningTester.IsAgentAlreadyRunning() )
 				{
-					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+					_agent = new Agent(
+						_ac.MachineId,
+						_ac.MasterIP,
+						_ac.MasterPort,
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+					);
 				}
 				else
 				{

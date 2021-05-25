@@ -1,4 +1,6 @@
-﻿namespace Dirigent
+﻿using System.Collections.Generic;
+
+namespace Dirigent
 {
 	/// <summary>
 	/// Script entry based of ScriptDef; loaded from SharedConfig; can be addressed via id.
@@ -16,6 +18,7 @@
 		// instance of the script
 		private UserScript? _script;
 
+		Dictionary<string, string> _internalVars;
 
 		private Master _master;
 
@@ -23,6 +26,8 @@
 		{
 			Def = def;
 			_master = master;
+
+			_internalVars = BuildVars( def, _master.InternalVars );
 		}
 
 		public void Start( string? args )
@@ -34,9 +39,12 @@
 			if( args is null )
 				args = Def.Args;
 
-			log.Debug( $"Launching script {Id} with args '{args}' (file: {Def.FileName})" );
+			var scriptPath = Tools.ExpandEnvAndInternalVars( Def.FileName, _internalVars );
+			scriptPath = PathUtils.BuildAbsolutePath( Def.FileName, _master.RootForRelativePaths );
 
-			_script = UserScript.CreateFromFile( Def.Id, Def.FileName, args, _master );
+			log.Debug( $"Launching script {Id} with args '{args}' (file: {scriptPath})" );
+
+			_script = UserScript.CreateFromFile( Def.Id, scriptPath, args, _master );
 			_script.OnRemoved += HandleScriptRemoved;
 
 			_master.Tickers.Install( _script );
@@ -66,6 +74,19 @@
 		}
 
 
+		Dictionary<string, string> BuildVars( ScriptDef scriptDef, Dictionary<string, string> internalVars )
+		{
+			// start wit externally defined (global) internal vars
+			var res = new Dictionary<string, string>( internalVars );
+
+			// add the local variables from appdef
+			foreach( var kv in scriptDef.LocalVarsToSet )
+			{
+				res[kv.Key] = kv.Value;
+			}
+
+			return res;
+		}
 
 	}
 }

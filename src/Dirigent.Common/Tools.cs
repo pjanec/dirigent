@@ -298,6 +298,20 @@ namespace Dirigent
 		//	return str;
 		//}
 
+		public static string ExpandEnvAndInternalVars( string str, Dictionary<string, string>? internalVars=null )
+		{
+			if( string.IsNullOrEmpty( str ) ) return string.Empty;
+
+			var s = Tools.ExpandEnvVars( str, true );
+			//s = ExpandNumericVars( s, numericParams, true );
+			if( internalVars is not null )
+			{
+				s = Tools.ExpandInternalVars( s, internalVars, true );
+			}
+			s = Tools.RemoveVars( s ); // replace the remaining vars with en empty string
+			return s;
+		}
+
 		/// <summary>
 		/// Replaces any %VARNAME% with an ampty string
 		/// </summary>

@@ -269,7 +269,12 @@ namespace Dirigent.Gui.WinForms
 				// istantiate the agent and tick it in its own thread
 				try
 				{
-					_agent = new Agent( _ac.MachineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+					_agent = new Agent(
+						_ac.MachineId,
+						_ac.MasterIP,
+						_ac.MasterPort,
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+					);
 					_agentThread = new Thread(() =>
 					{
 						while( !_agent.WantsQuit )
@@ -322,7 +327,13 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					// instantiate the master and tick it in its own thread
-					_master = new Master( _ac.LocalIP, _ac.MasterPort, _ac.CliPort, _ac.SharedCfgFileName );
+					_master = new Master(
+						_ac.LocalIP,
+						_ac.MasterPort,
+						_ac.CliPort,
+						_ac.SharedCfgFileName,
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+					);
 					_masterThread = new Thread(() =>
 					{
 						while( !_master.WantsQuit )

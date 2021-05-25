@@ -27,9 +27,16 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 3 )]
 		public string Args = string.Empty;
 
-		// GUI might use this for showing scripts differently
+		// semocilon separated list of "paths" like "main/examples;"GUI might use this for showing scripts differently
 		[ProtoBuf.ProtoMember( 4 )]
-		public string Group = string.Empty;
+		public string Groups = string.Empty;
+
+		/// <summary>
+		/// list of script-local vars to set (can be used in expansions for example in process exe path or command line)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 5 )]
+		[DataMember]
+		public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
 
 		public bool Equals( ScriptDef? other )
 		{
@@ -40,7 +47,7 @@ namespace Dirigent
 				this.Id == other.Id &&
 				this.FileName == other.FileName &&
 				this.Args == other.Args &&
-				this.Group == other.Group &&
+				this.Groups == other.Groups &&
 				true
 			)
 				return true;

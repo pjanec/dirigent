@@ -28,7 +28,12 @@ namespace Dirigent.Gui
 			_ac = ac;
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_machineId = machineId;
-			_agent = new Agent( machineId, _ac.MasterIP, _ac.MasterPort, _ac.RootForRelativePaths );
+			_agent = new Agent(
+				machineId,
+				_ac.MasterIP,
+				_ac.MasterPort,
+				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+			);
 		}
 
 		protected override void Dispose(bool disposing)

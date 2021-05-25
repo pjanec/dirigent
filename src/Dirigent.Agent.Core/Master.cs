@@ -38,6 +38,8 @@ namespace Dirigent
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 
 		public TickableCollection Tickers => _tickers;
+		public string RootForRelativePaths => _rootForRelativePaths;
+		public Dictionary<string, string> InternalVars => _internalVars;
 
 		#region Private fields
 
@@ -57,15 +59,20 @@ namespace Dirigent
 		private Stopwatch _swClientRefresh;
 		private TickableCollection _tickers;
 		private string _sharedConfigFileName = string.Empty;
+		private string _rootForRelativePaths;
+		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
+
 		
 		#endregion
 
-		public Master( string localIpAddr, int port, int cliPort, string sharedConfigFileName )
+		public Master( string localIpAddr, int port, int cliPort, string sharedConfigFileName, string rootForRelativePaths )
 		{
 			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
 
 			_localIpAddr = localIpAddr;
 			_port = port;
+
+			_rootForRelativePaths = rootForRelativePaths;
 
 			_allAppStates = new AllAppsStateRegistry();
 			_allClientStates = new AllClientStateRegistry();
