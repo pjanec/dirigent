@@ -27,6 +27,8 @@ namespace Dirigent.Gui.WinForms
 		private bool _isMaster;
 		private string _machineId; // empty if GUI not running as part of local agent
 		private AlreadyRunningTester _alreadyRunningTester;
+        private ProcRunner? _guiRunner;
+		private string _guiClientId = Guid.NewGuid().ToString();
 
 		class MyApplicationContext : ApplicationContext
 		{
@@ -49,6 +51,9 @@ namespace Dirigent.Gui.WinForms
 			base.Dispose(disposing);
 
 			if( !disposing ) return;
+
+			_guiRunner?.Dispose();
+			_guiRunner = null;
 
 			DeinitializeMainForm();
 			DeinitializeTrayIcon();
@@ -85,6 +90,13 @@ namespace Dirigent.Gui.WinForms
 
 					InitializeTrayIcon();
 					InitializeMainForm();
+
+					// show the form if it should not stay hidden
+					if( !Tools.BoolFromString( _ac.StartHidden ) )
+					{
+						ShowGUI();
+					}
+
 				}
 				Application.Run( new MyApplicationContext() );
 			}
@@ -118,7 +130,7 @@ namespace Dirigent.Gui.WinForms
 			var menuItems = new List<ToolStripMenuItem>();
 			if( _runGui )
 			{
-				menuItems.Add( new ToolStripMenuItem( "Show", null, new EventHandler( ( s, e ) => ShowMainForm() ) ) );
+				menuItems.Add( new ToolStripMenuItem( "Show", null, new EventHandler( ( s, e ) => ShowGUI() ) ) );
 			}
     //        if( _runAgent )
     //        {
@@ -164,7 +176,7 @@ namespace Dirigent.Gui.WinForms
 			_notifyIcon.DoubleClick += new EventHandler( ( s, e ) => {
 				if( _runGui )
 				{
-					ShowMainForm();
+					ShowGUI();
 				}
 			});
 		}
@@ -178,11 +190,7 @@ namespace Dirigent.Gui.WinForms
 
 		void InitializeMainForm()
 		{
-			// show the form if it should not stay hidden
-			if( !Tools.BoolFromString( _ac.StartHidden ) )
-			{
-				ShowMainForm();
-			}
+			// nothing needed, will be initialized when first time opened
 		}
 
 		void DeinitializeMainForm()
@@ -242,6 +250,48 @@ namespace Dirigent.Gui.WinForms
 				_mainForm.WindowState = FormWindowState.Normal;
 			}
 
+		}
+
+		void ShowGUI()
+		{
+			if( string.IsNullOrEmpty( _ac.GuiAppExe ) )
+			{
+				// show default GUI built in this app
+				ShowMainForm();
+			}
+			else // run external process
+			{
+				try
+				{
+					if( _guiRunner == null )
+					{
+						var optionReplTab = new Dictionary<string, string>
+						{
+							["--clientId"] = _guiClientId
+						};
+
+						_guiRunner = new ProcRunner( _ac.GuiAppExe, optionReplTab, true );
+						_guiRunner.Launch();
+					}
+					else // was already started
+					{
+						// re-launch if no longer running
+						if( !_guiRunner.IsRunning )
+						{
+							_guiRunner.Launch();
+						}
+						else // just tell it to unhide
+						{
+							_guiRunner.IsShown = true;
+						}
+					}
+				}
+				catch ( Exception ex )
+				{
+					log.Error( ex );
+					ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+				}
+			}
 		}
 
         private void InitializeAgent()

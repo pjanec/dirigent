@@ -129,29 +129,6 @@ namespace Dirigent
 			//}
 
 
-			//using (var client = new Dirigent.Net.Client(ac.machineId, ac.masterIP, ac.masterPort, ac.mcastIP, ac.masterPort, ac.localIP, autoConn:true ))
-			//{
-
-			//    string rootForRelativePaths = System.IO.Path.GetDirectoryName( System.IO.Path.GetFullPath(ac.sharedCfgFileName) );
-			//    var agent = new Dirigent.Agent.Core.Agent(ac.machineId, client, true, rootForRelativePaths, false, AppConfig.BoolFromString(ac.mcastAppStates));
-
-
-			//    IEnumerable<ILaunchPlan> planRepo = (ac.scfg != null) ? ac.scfg.Plans : null;
-
-			//    // if there is some local plan repo defined, use it for local operations
-			//    if (planRepo != null)
-			//    {
-			//        agent.LocalOps.SetPlanRepo(planRepo);
-			//    }
-
-			//    // start given plan if provided
-			//    if (planRepo != null)
-			//    {
-			//        agent.LocalOps.SelectPlan(ac.startupPlanName);
-			//    }
-
-			//}
-
 			if( stayRunning )
 			{
 				try

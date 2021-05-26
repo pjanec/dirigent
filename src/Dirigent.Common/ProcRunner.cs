@@ -21,7 +21,6 @@ namespace Dirigent
         Process? _proc = null;
         private string _procNameNoExt;
         private string _procPath;
-        private string _modeOptionValue;
         private bool _killOnDispose;
 
         #if Windows
@@ -32,13 +31,19 @@ namespace Dirigent
         private const int SW_HIDE = 0;
         #endif
 
-        private bool _consoleShown = false; // last known state
+        private bool _mainWndShown = false; // last known state
         private Thread? _keepAliveThread = null;
         private bool _quitKeepAliveThread = false;
+        private string[] _cmdLineArgs;
 
-        public ProcRunner( string processPath, string modeOptionValue, bool killOnDispose )
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="processPath"></param>
+        /// <param name="optionReplacementTable"> list of pairs like {"--mode" => "new value"}  </param>
+        /// <param name="killOnDispose"></param>
+        public ProcRunner( string processPath, Dictionary<string, string>? optionReplacementTable, bool killOnDispose )
         {
-            _modeOptionValue = modeOptionValue;
             _procNameNoExt = System.IO.Path.GetFileNameWithoutExtension( processPath );
             _procPath = processPath;
             if( !System.IO.Path.IsPathFullyQualified(processPath) )
@@ -47,6 +52,20 @@ namespace Dirigent
                 _procPath = System.IO.Path.Combine( Tools.GetExeDir(), System.IO.Path.GetFileName(processPath) );
             }
             _killOnDispose = killOnDispose;
+
+            _cmdLineArgs = Environment.GetCommandLineArgs()[1..];  // exclude the exe file name
+            if( optionReplacementTable != null )
+            {
+                foreach( (var option, var value) in optionReplacementTable )
+                {
+                    _cmdLineArgs = Tools.AddOrReplaceCmdLineOptionWithValue(
+                        _cmdLineArgs,
+                        option,
+                        value
+                    );
+                }
+            }
+            
         }
 
         /// <summary>
@@ -56,13 +75,7 @@ namespace Dirigent
         {
             var psi = new ProcessStartInfo();
 			psi.FileName = _procPath;
-            psi.Arguments = string.Join(" ",
-                Tools.AddOrReplaceCmdLineOptionWithValue(
-                    Environment.GetCommandLineArgs()[1..],  // exclude the exe file name
-                    "--mode",
-                    _modeOptionValue
-                )
-            );
+            psi.Arguments = string.Join(" ", _cmdLineArgs );
             
             // tell the process who started it
             psi.Arguments += string.Format(" --parentPid {0} ", Process.GetCurrentProcess().Id );
@@ -83,9 +96,9 @@ namespace Dirigent
                     Thread.Sleep(500); 
 
                     // hide console if it should not be shown
-                    if( !_consoleShown )
+                    if( !_mainWndShown )
                     {
-                        IsConsoleShown = false; // hide the console window completely
+                        IsShown = false; // hide the window completely
                     }
                 }
                 else
@@ -178,13 +191,13 @@ namespace Dirigent
         }
 
         /// <summary>
-        /// Show/hide master's console
+        /// Show/hide the main window of the process
         /// </summary>
-        public bool IsConsoleShown
+        public bool IsShown
         {
             get
             {
-                return _consoleShown;
+                return _mainWndShown;
             }
 
             set
@@ -195,7 +208,7 @@ namespace Dirigent
                     #if Windows
                     ShowWindow( _proc.MainWindowHandle, SW_RESTORE );
                     #endif
-                    _consoleShown = true;
+                    _mainWndShown = true;
                 }
                 else
                 {
@@ -203,7 +216,7 @@ namespace Dirigent
                     #if Windows
                     ShowWindow( _proc.MainWindowHandle, SW_HIDE );
                     #endif
-                    _consoleShown = false;
+                    _mainWndShown = false;
                 }
 
             }
@@ -214,7 +227,7 @@ namespace Dirigent
 			base.Dispose(disposing);
             if(!disposing) return;
             StopKeepAlive();
-            Kill();
+            if( _killOnDispose ) Kill();
         }
 
         public void KillAllExisting()

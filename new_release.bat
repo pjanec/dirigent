@@ -1,0 +1,1 @@
+powershell -f make_release.ps1

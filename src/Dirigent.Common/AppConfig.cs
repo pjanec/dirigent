@@ -46,6 +46,9 @@ namespace Dirigent
 		[Option( "machineId", Required = false, Default = "", HelpText = "Machine Id." )]
 		public string MachineId { get; set; } = string.Empty;
 
+		[Option( "clientId", Required = false, Default = "", HelpText = "Unique Id of the network client. Used just for GUIs" )]
+		public string ClientId { get; set; } = string.Empty;
+
 		[Option( "sharedConfigFile", Required = false, Default = "", HelpText = "shared config file name." )]
 		public string SharedConfigFile { get; set; } = string.Empty;
 
@@ -82,6 +85,9 @@ namespace Dirigent
 		[Option( "parentPid", Required = false, Default = -1, HelpText = "PID of the parent (used by agent process if started from the gui process)" )]
 		public int parentPid { get; set; }
 
+		[Option( "guiAppExe", Required = false, Default = "", HelpText = "Executable for GUI" )]
+		public string GuiAppExe { get; set; } = string.Empty;
+
 		[Value( 0 )]
 		public IEnumerable<string> Items { get; set; } = new List<string>();
 	}
@@ -92,6 +98,7 @@ namespace Dirigent
 		public string SharedCfgFileName = ""; // Path.Combine(Application.StartupPath, "SharedConfig.xml");
 		public string LocalCfgFileName = ""; // empty by default - we won't try to load it
 		public string MachineId = System.Environment.MachineName;
+		public string ClientId = "";
 		public int MasterPort = 5045;
 		public int CliPort = 5050;
 		public string MasterIP = "127.0.0.1";
@@ -110,6 +117,7 @@ namespace Dirigent
 		public string McastAppStates = "0";
 		public IList<string> NonOptionArgs = new List<string>();
 		public int ParentPid = -1;
+		public string GuiAppExe = "";
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -128,6 +136,7 @@ namespace Dirigent
 		public AppConfig()
 		{
 			// overwrite with application config
+			if( Common.Properties.Settings.Default.ClientId != "" ) ClientId = Common.Properties.Settings.Default.ClientId;
 			if( Common.Properties.Settings.Default.MachineId != "" ) MachineId = Common.Properties.Settings.Default.MachineId;
 			if( Common.Properties.Settings.Default.MasterIP != "" ) MasterIP = Common.Properties.Settings.Default.MasterIP;
 			if( Common.Properties.Settings.Default.McastIP != "" ) McastIP = Common.Properties.Settings.Default.McastIP;
@@ -147,6 +156,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
 			if( Common.Properties.Settings.Default.LogFile  != "" ) LogFileName = Common.Properties.Settings.Default.LogFile;
+			if( Common.Properties.Settings.Default.GuiAppExe != "" ) GuiAppExe = Common.Properties.Settings.Default.GuiAppExe;
 
 			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>( System.Environment.GetCommandLineArgs() );
 
@@ -172,6 +182,7 @@ namespace Dirigent
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
 				ParentPid = options.parentPid;
+				if( options.GuiAppExe != "" ) GuiAppExe = options.GuiAppExe;
 			} )
 			.WithNotParsed<Options>( ( errList ) =>
 			{

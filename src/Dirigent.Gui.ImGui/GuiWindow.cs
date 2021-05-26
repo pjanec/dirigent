@@ -32,7 +32,7 @@ namespace Dirigent.Gui
 			_wnd = wnd;
 			_ac = ac;
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-			_clientIdent = new Net.ClientIdent(	string.Empty, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
+			_clientIdent = new Net.ClientIdent(	_ac.ClientId, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_reflStates = new ReflectedStateRepo( _client );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");

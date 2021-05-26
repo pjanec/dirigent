@@ -12,6 +12,16 @@ function ReplaceTargetPlatform
      Out-File -encoding utf8 $csprojFileName
 }
 
+function ReplaceOutputType
+{
+    Param( [string]$csprojFileName, [string]$newPlatform )
+
+    (Get-Content -path $csprojFileName) | % {
+      $_ -Replace '<OutputType>[^\<]*</OutputType>', "<OutputType>$newPlatform</OutputType>"
+     } |
+     Out-File -encoding utf8 $csprojFileName
+}
+
 $projects = @(
   "src\Dirigent.Common\Dirigent.Common.csproj"
   "src\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj"
@@ -26,6 +36,9 @@ Foreach ($proj in $projects)
     "Retargetting $proj => $framework"
     ReplaceTargetPlatform $proj $framework
 }
+
+# switch to classic console app (linux build does not support WinExe output)
+ReplaceOutputType "src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj" "Exe"
 
 Foreach ($proj in $projects)
 {

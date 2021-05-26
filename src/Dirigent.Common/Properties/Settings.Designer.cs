@@ -84,6 +84,17 @@ namespace Dirigent.Common.Properties
 
 		[global::System.Configuration.ApplicationScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string ClientId
+		{
+			get
+			{
+				return ( ( string )( this["ClientId"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "5045" )]
 		public int MasterPort
 		{
@@ -423,5 +434,17 @@ namespace Dirigent.Common.Properties
 				return ( ( int )( this["TickPeriod"] ) );
 			}
 		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string GuiAppExe
+		{
+			get
+			{
+				return ( ( string )( this["GuiAppExe"] ) );
+			}
+		}
+
 	}
 }
