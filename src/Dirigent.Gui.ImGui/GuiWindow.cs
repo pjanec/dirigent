@@ -36,6 +36,7 @@ namespace Dirigent.Gui
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_clientIdent = new Net.ClientIdent(	_ac.ClientId, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
+			_client.MessageReceived += OnMessage;
 			_reflStates = new ReflectedStateRepo( _client );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
 
@@ -54,6 +55,7 @@ namespace Dirigent.Gui
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+			_client.MessageReceived -= OnMessage;
 			_client.Dispose();
 			_reflStates.OnReset -= Reset;
 			_reflStates.OnAppsReceived -= _appTreeRenderer.Reset;
@@ -61,12 +63,10 @@ namespace Dirigent.Gui
 			_reflStates.OnScriptsReceived -= _scriptTreeRenderer.Reset;
 		}
 
-		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 		Dictionary<string, ClientRenderer> _clientRenderers = new();
 
 		void Reset()
 		{
-			_appRenderers = new();
 			_clientRenderers = new();
 
 			_appTreeRenderer.Reset();
@@ -172,6 +172,19 @@ namespace Dirigent.Gui
 				r.DrawUI();
 			}
 		}
+
+		void OnMessage( Net.Message msg )
+		{
+			switch( msg )
+			{
+				case Net.RemoteOperationErrorMessage m:
+				{
+					//MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+					break;
+				}
+			}
+		}
+
 
 	}
 }

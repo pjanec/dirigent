@@ -1,4 +1,4 @@
-[TODO] "Groups" attribute for scripts, apps, plans to allow presenting them in a tree view in GUIs. Ex.: Groups="Common/Demo;Examples".
+[TODO] Show RemoteOpErrors on ImGui
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
 

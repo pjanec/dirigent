@@ -70,3 +70,6 @@ CLI
 Command line
         Run script at startup (can be used multiple times)
           cmd line arg --startupScript "Demo1::argument string"
+
+[TODO] "Groups" attribute for scripts, apps, plans to allow presenting them in a tree view in GUIs. Ex.: Groups="Common/Demo;Examples".
+

@@ -2,7 +2,11 @@
 
 [TOC]
 
+# Building
 
+Dirigent is using not yet released version of Veldrid 4.9.0-gbe8e5a15f4 and veldrid.SDL 4.9.0-gbe8e5a15f4
+adding the click-through feature (clicking unfocused window passes the click to the button, no second click needed.)
+Add new package source https://www.myget.org/F/mellinoe/api/v3/index.json
 
 # Components
 
