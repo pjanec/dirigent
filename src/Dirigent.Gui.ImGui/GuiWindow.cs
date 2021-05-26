@@ -25,6 +25,8 @@ namespace Dirigent.Gui
 		private ImGuiWindow _wnd;
 		private ImageInfo _txKillAll;
 
+		AppTreeRenderer _appTreeRenderer;
+		PlanTreeRenderer _planTreeRenderer;
 		ScriptTreeRenderer _scriptTreeRenderer;
 
 		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
@@ -37,9 +39,13 @@ namespace Dirigent.Gui
 			_reflStates = new ReflectedStateRepo( _client );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
 
+			_appTreeRenderer = new AppTreeRenderer( _wnd, _reflStates );
+			_planTreeRenderer = new PlanTreeRenderer( _wnd, _reflStates );
 			_scriptTreeRenderer = new ScriptTreeRenderer( _wnd, _reflStates );
 
 			_reflStates.OnReset += Reset;
+			_reflStates.OnAppsReceived += _appTreeRenderer.Reset;
+			_reflStates.OnPlansReceived += _planTreeRenderer.Reset;
 			_reflStates.OnScriptsReceived += _scriptTreeRenderer.Reset;
 
 			Reset();
@@ -50,19 +56,21 @@ namespace Dirigent.Gui
 			base.Dispose(disposing);
 			_client.Dispose();
 			_reflStates.OnReset -= Reset;
+			_reflStates.OnAppsReceived -= _appTreeRenderer.Reset;
+			_reflStates.OnPlansReceived -= _planTreeRenderer.Reset;
 			_reflStates.OnScriptsReceived -= _scriptTreeRenderer.Reset;
 		}
 
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
-		Dictionary<string, PlanRenderer> _planRenderers = new();
 		Dictionary<string, ClientRenderer> _clientRenderers = new();
 
 		void Reset()
 		{
 			_appRenderers = new();
-			_planRenderers = new();
 			_clientRenderers = new();
 
+			_appTreeRenderer.Reset();
+			_planTreeRenderer.Reset();
 			_scriptTreeRenderer.Reset();
 		}
 
@@ -121,32 +129,25 @@ namespace Dirigent.Gui
 		
 		void DrawApps()
 		{
-			foreach( var (id, state) in _reflStates.GetAllAppStates() )
-			{
-				AppRenderer? r;
-				if( !_appRenderers.TryGetValue( id, out r ) )
-				{
-					r = new AppRenderer( _wnd, id, _reflStates );	// will render the effective ones
-					_appRenderers[id] = r;
-				}
-				r.DrawUI();
-			}
+			//foreach( var (id, state) in _reflStates.GetAllAppStates() )
+			//{
+			//	AppRenderer? r;
+			//	if( !_appRenderers.TryGetValue( id, out r ) )
+			//	{
+			//		r = new AppRenderer( _wnd, id, _reflStates );	// will render the effective ones
+			//		_appRenderers[id] = r;
+			//	}
+			//	r.DrawUI();
+			//}
+
+			_appTreeRenderer.DrawUI();
 		}
 
 
 
 		void DrawPlans()
 		{
-			foreach( var pd in _reflStates.GetAllPlanDefs() )
-			{
-				PlanRenderer? r;
-				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
-				{
-					r = new PlanRenderer( _wnd, pd.Name, _reflStates );
-					_planRenderers[pd.Name] = r;
-				}
-				r.DrawUI();
-			}
+			_planTreeRenderer.DrawUI();
 		}
 
 

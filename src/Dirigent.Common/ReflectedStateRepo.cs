@@ -31,6 +31,7 @@ namespace Dirigent
 		public string Name => _client.Ident.Name;
 
 		// Fired awhen plan defs received/updated
+		public Action? OnAppsReceived;
 		public Action? OnPlansReceived;
 		public Action? OnScriptsReceived;
 
@@ -177,6 +178,8 @@ namespace Dirigent
 							_appDefs[ad.Id] = ad;
 						}
 					}
+
+					OnAppsReceived?.Invoke();
 
 					break;
 				}

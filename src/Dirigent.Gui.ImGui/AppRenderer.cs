@@ -54,7 +54,7 @@ namespace Dirigent.Gui
 			string? planName = _appDef?.PlanName ?? appState?.PlanName;	// prefer plan from appdef
 
 
-			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0f,1f,1f,1f) );
+			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1.0f,0f,1f,1f) );
 			bool opened = ImGui.TreeNodeEx( $"{_id}##{_id}", ImGuiTreeNodeFlags.FramePadding);
 			ImGui.PopStyleColor();
 			if (ImGui.BeginPopupContextItem())

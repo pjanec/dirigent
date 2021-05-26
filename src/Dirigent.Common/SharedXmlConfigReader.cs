@@ -85,6 +85,7 @@ namespace Dirigent
 				SoftKill = e.Element( "SoftKill" ),
 				Env = e.Element( "Env" ),
 				InitDetectors = e.Element( "InitDetectors" )?.Elements(),
+				Groups = e.Attribute( "Groups" )?.Value,
 			};
 
 			// then overwrite templated values with current content
@@ -210,6 +211,12 @@ namespace Dirigent
 				}
 			}
 
+			if( x.Groups != null )
+			{
+				if( !string.IsNullOrEmpty(a.Groups) ) a.Groups += ";";
+				a.Groups += x.Groups;
+			}
+
 			return a;
 		}
 
@@ -245,6 +252,8 @@ namespace Dirigent
 				if( string.IsNullOrEmpty(planName) )
 					throw new ConfigurationErrorException( $"Missing plan name in plan #{planIndex}");
 
+				var groups = p.Attribute( "Groups" )?.Value ?? string.Empty;
+
 				// check if everything is valid
 				int index = 1;
 				foreach( var a in apps )
@@ -266,11 +275,12 @@ namespace Dirigent
 
 				cfg.Plans.Add(
 					new PlanDef()
-				{
-					Name = planName,
-					AppDefs = apps,
-					StartTimeout = startTimeout
-				}
+					{
+						Name = planName,
+						AppDefs = apps,
+						StartTimeout = startTimeout,
+						Groups = groups
+					}
 				);
 			}
 

@@ -27,7 +27,7 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 3 )]
 		public string Args = string.Empty;
 
-		// semocilon separated list of "paths" like "main/examples;"GUI might use this for showing scripts differently
+		// semicilon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
 		[ProtoBuf.ProtoMember( 4 )]
 		public string Groups = string.Empty;
 

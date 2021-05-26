@@ -172,6 +172,10 @@ namespace Dirigent
 		[DataMember]
 		public List<string> InitDetectors = new List<string>();
 
+		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing items in a folder tree
+		[ProtoBuf.ProtoMember( 26 )]
+		public string Groups = string.Empty;
+
 		public bool Equals( AppDef? other )
 		{
 			if( other is null )

@@ -31,6 +31,10 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 4 )]
 		public double StartTimeout = 0.0;
 
+		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing items in a folder tree
+		[ProtoBuf.ProtoMember( 5 )]
+		public string Groups = string.Empty;
+
 		public bool Equals( PlanDef other )
 		{
 			if( other == null )

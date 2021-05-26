@@ -4,7 +4,7 @@
 	<App AppIdTuple = "m1.a" Template = "apps.notepad" />
 
     <!-- Plans -->
-    <Plan Name="plan1" StartTimeout="10">
+    <Plan Name="plan1" StartTimeout="10" Groups="Test1">
     	<App
     	    AppIdTuple = "m1.a"
     		Template = "apps.notepad"
@@ -12,6 +12,7 @@
     		StartupDir = "%USERPROFILE%\Documents"
     		CmdLineArgs = "aaa.txt"
     		XXX_InitCondition = "exitcode 0"
+    		Groups="Folder 1"
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
     	</App>
@@ -67,7 +68,7 @@
     	</App>
     </Plan>
 
-    <Plan Name="plan2">
+    <Plan Name="plan2"  Groups="Test1">
     	<App
     	    AppIdTuple = "m1.b"
     		Template = "apps.notepad"
@@ -92,7 +93,7 @@
     	/>
     </Plan>
 
-    <Plan Name="planX">
+    <Plan Name="planX"  Groups="Test2">
     	<App
     	    AppIdTuple = "m1.x"
     		Template = "apps.notepad"
@@ -118,6 +119,7 @@
     		RestartOnCrash = "1"
     		InitCondition = "timeout 2.0"
     		SeparationInterval = "0.5"
+    		Groups="Folder 2"
     />
 
     <AppTemplate Name="apps.cmd"
