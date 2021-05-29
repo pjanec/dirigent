@@ -85,7 +85,7 @@ namespace Dirigent.Gui
 			ImGui.SetNextWindowSize( new System.Numerics.Vector2( _wnd.Size.X/2, _wnd.Size.Y/2 ));
 			if( _guiWin != null )
 			{
-				if ( ImGui.Begin( "Gui" ) )
+				if ( ImGui.Begin( "Gui", (_guiWin.HasMenu ? ImGuiWindowFlags.MenuBar : 0)) )
 				{
 					_guiWin?.DrawUI();
 					ImGui.End();

@@ -211,7 +211,7 @@ namespace Dirigent
 				}
 			}
 
-			if( x.Groups != null )
+			if( !string.IsNullOrWhiteSpace(x.Groups) )
 			{
 				if( !string.IsNullOrEmpty(a.Groups) ) a.Groups += ";";
 				a.Groups += x.Groups;

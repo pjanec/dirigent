@@ -13,6 +13,7 @@ namespace Dirigent.Gui
 	public class GuiWindow : Disposable
 	{
 		public 	IDirig Ctrl => _reflStates;
+		public bool HasMenu => true;
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -24,10 +25,12 @@ namespace Dirigent.Gui
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private ImGuiWindow _wnd;
 		private ImageInfo _txKillAll;
+		private GuiWinMenuRenderer _menuRenderer;
 
 		AppTreeRenderer _appTreeRenderer;
 		PlanTreeRenderer _planTreeRenderer;
 		ScriptTreeRenderer _scriptTreeRenderer;
+		ErrorRenderer _errorRenderer;
 
 		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
 		{
@@ -39,6 +42,9 @@ namespace Dirigent.Gui
 			_client.MessageReceived += OnMessage;
 			_reflStates = new ReflectedStateRepo( _client );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
+
+			_menuRenderer = new GuiWinMenuRenderer( _wnd, _reflStates );
+			_errorRenderer = new ErrorRenderer( _wnd );
 
 			_appTreeRenderer = new AppTreeRenderer( _wnd, _reflStates );
 			_planTreeRenderer = new PlanTreeRenderer( _wnd, _reflStates );
@@ -89,7 +95,18 @@ namespace Dirigent.Gui
 
 		public void DrawUI()
 		{
+
 			float ww = ImGui.GetWindowWidth();
+
+			_menuRenderer.DrawUI();
+
+			if (!_client.IsConnected)
+			{
+				ImGui.Text($"Connecting to {_client.MasterIP}:{_client.MasterPort}...");
+				return;
+			}
+
+			_errorRenderer.DrawUI();
 
 			if( ImGui.BeginTabBar("MainTabBar") )
 			{
@@ -180,6 +197,7 @@ namespace Dirigent.Gui
 				case Net.RemoteOperationErrorMessage m:
 				{
 					//MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+					_errorRenderer.AddErrorMessage( m.Message, 3.0 );
 					break;
 				}
 			}
