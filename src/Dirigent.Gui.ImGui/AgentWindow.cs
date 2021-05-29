@@ -78,7 +78,7 @@ namespace Dirigent.Gui
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
 				{
-					r = new AppRenderer( _wnd, id, _agent );
+					r = new AppRenderer( _wnd, id.ToString(), id, _agent );
 					_appRenderers[id] = r;
 				}
 				r.DrawUI();
@@ -95,7 +95,7 @@ namespace Dirigent.Gui
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )
 				{
-					r = new PlanRenderer( _wnd, pd.Name, _agent );
+					r = new PlanRenderer( _wnd, "", pd.Name, _agent );
 					_planRenderers[pd.Name] = r;
 				}
 				r.DrawUI();

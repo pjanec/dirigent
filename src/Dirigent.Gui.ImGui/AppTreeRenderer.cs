@@ -17,7 +17,7 @@ namespace Dirigent.Gui
 		
 		FolderTreeRenderer _treeRend;
 		FolderTree _treeRoot;
-		Dictionary<AppIdTuple, AppRenderer> _nodeRenderers;
+		Dictionary<string, AppRenderer> _nodeRenderers;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 		public AppTreeRenderer( ImGuiWindow wnd, IDirig ctrl )
@@ -51,7 +51,7 @@ namespace Dirigent.Gui
 			else // just intermediate folder
 			{
 				ImGui.PushStyleColor( ImGuiCol.Text, new System.Numerics.Vector4( 0f, 1f, 1f, 1f ) );
-				bool opened = ImGui.TreeNodeEx( $"{node.Name}", ImGuiTreeNodeFlags.FramePadding );
+				bool opened = ImGui.TreeNodeEx( $"{node.Name}##folder_{node.Name}", ImGuiTreeNodeFlags.FramePadding );
 				ImGui.PopStyleColor();
 				if ( opened ) return () => { ImGui.TreePop(); };
 				return null; // do NOT render subnodes (not unfolded)
@@ -72,19 +72,22 @@ namespace Dirigent.Gui
 		}
 
 
+		AppRenderer GetOrCreateRenderer(string uniqueUiId, AppIdTuple id)
+		{
+			AppRenderer? r;
+			if (!_nodeRenderers.TryGetValue(uniqueUiId, out r))
+			{
+				r = new AppRenderer(_wnd, uniqueUiId, id, _ctrl);  // will render the effective ones
+				_nodeRenderers[uniqueUiId] = r;
+			}
+			return r;
+		}
+
 		FolderTree BuildTree()
 		{
 			var root = new FolderTree();
 			foreach( (var id, var def) in _ctrl.GetAllAppDefs() )
 			{
-				// get renderer for a single script
-				AppRenderer? r;
-				if( !_nodeRenderers.TryGetValue( id, out r ) )
-				{
-					r = new AppRenderer( _wnd, id, _ctrl );	// will render the effective ones
-					_nodeRenderers[id] = r;
-				}
-
 				// parse "Groups" attribute into individual group paths
 				// use them to build a tree of script groups; the tree node payload = script renderer (null if just an intermediate node)
 				var groups = def.Groups.Split( ';' );
@@ -92,12 +95,16 @@ namespace Dirigent.Gui
 				{
 					foreach ( var g in groups )
 					{
-						root.InsertNode( $"{g.Trim()}/{id}", false, r, null );
+						var path = $"{g.Trim()}/{id}";
+						var r = GetOrCreateRenderer(path, id);
+						root.InsertNode( path, false, r, null );
 					}
 				}
 				else // no groups defined => put to the root
 				{
-					root.InsertNode( $"{id}", false, r, null );
+					var path = id.ToString();
+					var r = GetOrCreateRenderer(path, id);
+					root.InsertNode(path, false, r, null);
 				}
 			}
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Shared>
     <!-- Free apps (app defaults if an app is not part of any plan, having own app definition -->
-	<App AppIdTuple = "m1.a" Template = "apps.notepad" />
+	<App AppIdTuple = "m1.a" Template = "apps.notepad" Groups="Folder Free"/>
 
     <!-- Plans -->
     <Plan Name="plan1" StartTimeout="10" Groups="Test1">

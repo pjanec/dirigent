@@ -12,7 +12,6 @@ namespace Dirigent.Gui
 	public class PlanTreeRenderer
 	{
 		IDirig _ctrl;
-		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private ImGuiWindow _wnd;
 		
 		FolderTreeRenderer _treeRend;
@@ -51,7 +50,7 @@ namespace Dirigent.Gui
 			else // just intermediate folder
 			{
 				ImGui.PushStyleColor( ImGuiCol.Text, new System.Numerics.Vector4( 0f, 1f, 1f, 1f ) );
-				bool opened = ImGui.TreeNodeEx( $"{node.Name}", ImGuiTreeNodeFlags.FramePadding );
+				bool opened = ImGui.TreeNodeEx( $"{node.Name}##folder_{node.Name}", ImGuiTreeNodeFlags.FramePadding );
 				ImGui.PopStyleColor();
 				if ( opened ) return () => { ImGui.TreePop(); };
 				return null; // do NOT render subnodes (not unfolded)
@@ -71,6 +70,17 @@ namespace Dirigent.Gui
 			}
 		}
 
+		PlanRenderer GetOrCreateRenderer( string uniqueUiId, string id )
+		{
+			PlanRenderer? r;
+			if (!_nodeRenderers.TryGetValue(uniqueUiId, out r))
+			{
+				r = new PlanRenderer(_wnd, uniqueUiId, id, _ctrl);  // will render the effective ones
+				_nodeRenderers[uniqueUiId] = r;
+			}
+			return r;
+		}
+
 
 		FolderTree BuildTree()
 		{
@@ -79,14 +89,6 @@ namespace Dirigent.Gui
 			{
 				var id = def.Name;
 
-				// get renderer for a single script
-				PlanRenderer? r;
-				if( !_nodeRenderers.TryGetValue( id, out r ) )
-				{
-					r = new PlanRenderer( _wnd, id, _ctrl );	// will render the effective ones
-					_nodeRenderers[id] = r;
-				}
-
 				// parse "Groups" attribute into individual group paths
 				// use them to build a tree of script groups; the tree node payload = script renderer (null if just an intermediate node)
 				var groups = def.Groups.Split( ';' );
@@ -94,12 +96,16 @@ namespace Dirigent.Gui
 				{
 					foreach ( var g in groups )
 					{
-						root.InsertNode( $"{g.Trim()}/{id}", false, r, null );
+						var path = $"{g.Trim()}/{id}";
+						var r = GetOrCreateRenderer( path, id );
+						root.InsertNode( path, false, r, null );
 					}
 				}
 				else // no groups defined => put to the root
 				{
-					root.InsertNode( id, false, r, null );
+					var path = id;
+					var r = GetOrCreateRenderer(path, id);
+					root.InsertNode( path, false, r, null );
 				}
 			}
 

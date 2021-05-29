@@ -12,7 +12,7 @@ namespace Dirigent.Gui
 	{
 		private AppIdTuple _id;	
 		IDirig _ctrl;
-		private string _uniqueUiId = Guid.NewGuid().ToString();
+		private string _uniqueUiId;
 		private AppDef? _appDef = null; // if null, app def will be taken from IDirig interface (which is the actual one, not necessarily the same one from the plan)
 		public AppDef? AppDef { get { return _appDef; } set { _appDef = value; } }
 		private ImGuiWindow _wnd;
@@ -22,12 +22,13 @@ namespace Dirigent.Gui
 		private ImageInfo _txRestart;
 		//private System.Numerics.Vector2 _btnSize;
 		
-		public AppRenderer( ImGuiWindow wnd, AppIdTuple id, IDirig ctrl, AppDef? appDef=null )
+		public AppRenderer( ImGuiWindow wnd, string uniqueUiId, AppIdTuple id, IDirig ctrl, AppDef? appDef=null )
 		{
 			_wnd = wnd;
 			_id = id;
 			_ctrl = ctrl;
 			_appDef = appDef;
+			_uniqueUiId = uniqueUiId;
 
 			//_btnSize = ImGui.CalcTextSize("XX")*1.4f;
 			_txStart = _wnd.GetImage("Resources/play.png");

@@ -9,9 +9,9 @@ namespace Dirigent.Gui
 {
 	public class PlanRenderer
 	{
-		private string _id;
+		private string _id;	// plan name
 		IDirig _ctrl;
-		private string _uniqueUiId = Guid.NewGuid().ToString();
+		private string _uniqueUiId;
 		Dictionary<AppIdTuple, AppRenderer> _appRenderers = new();
 		private ImGuiWindow _wnd;
 		
@@ -19,9 +19,10 @@ namespace Dirigent.Gui
 		private ImageInfo _txKill;
 		private ImageInfo _txRestart;
 
-		public PlanRenderer( ImGuiWindow wnd, string id, IDirig ctrl )
+		public PlanRenderer( ImGuiWindow wnd, string uniqueUiId, string id, IDirig ctrl )
 		{
 			_wnd = wnd;
+			_uniqueUiId = uniqueUiId;
 			_id = id;
 			_ctrl = ctrl;
 
@@ -40,7 +41,7 @@ namespace Dirigent.Gui
 			string statusText = planState != null ? Tools.GetPlanStateText( planState ) : string.Empty;
 
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1f,1f,0f,1f) );
-			bool opened = ImGui.TreeNodeEx( $"{_id}##{_id}", ImGuiTreeNodeFlags.FramePadding);
+			bool opened = ImGui.TreeNodeEx( $"{_id}", ImGuiTreeNodeFlags.FramePadding);
 			ImGui.PopStyleColor();
 			if (ImGui.BeginPopupContextItem())
 			{
@@ -89,7 +90,7 @@ namespace Dirigent.Gui
 						AppRenderer? r;
 						if( !_appRenderers.TryGetValue( ad.Id, out r ) )
 						{
-							r = new AppRenderer( _wnd, ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
+							r = new AppRenderer( _wnd, _uniqueUiId+"_"+ ad.Id, ad.Id, _ctrl, ad ); // will render appdefs from the plan (not the current one)
 							_appRenderers[ad.Id] = r;
 						}
 						else r.AppDef = ad;	// app def may change so better to update it every time
