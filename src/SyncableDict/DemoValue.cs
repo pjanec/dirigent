@@ -6,25 +6,33 @@ using System.Text;
 namespace SyncableDict
 {
 
-	class DemoValue
+	public class DemoValue
 	{
-		public string Name;
-		public string Value;
+		public string Field1;
+		public string Field2;
 	}
 
 	// Holds what has changed in the original value since last reset.
 	// This class can be serialized and sent to the remote endpoint over reliable connection.
-	class DemoChangeSet : IChangeSet<DemoValue>
+	[ProtoBuf.ProtoContract]
+	public class DemoChangeSet : IChangeSet<DemoValue>
 	{
 		public enum EField : ulong
 		{
-			Name		= 1UL << 0,
-			Value		= 1UL << 1,
+			Field1 = 1UL << 0,
+			Field2 = 1UL << 1,
+
+			_ALL_ = Field1 + Field2,
 		}
 
+		[ProtoBuf.ProtoMember(1)]
 		public EField ChangeFlags;
-		public string Name;
-		public string Value;
+
+		[ProtoBuf.ProtoMember(2)]
+		public string Field1;
+
+		[ProtoBuf.ProtoMember(3)]
+		public string Field2;
 
 		public bool HasChanges => ChangeFlags != 0;
 
@@ -35,32 +43,32 @@ namespace SyncableDict
 
 		public void FromValue( DemoValue orig, DemoValue refer )
 		{
-			if( orig.Name != refer.Name )
+			if( orig.Field1 != refer.Field1 )
 			{
-				ChangeFlags |= DemoChangeSet.EField.Name;
-				Name = orig.Name;
-				refer.Name = orig.Name;
+				ChangeFlags |= DemoChangeSet.EField.Field1;
+				Field1 = orig.Field1;
+				refer.Field1 = orig.Field1;
 			}
 
-			if( orig.Value != refer.Value )
+			if( orig.Field2 != refer.Field2 )
 			{
-				ChangeFlags |= DemoChangeSet.EField.Value;
-				Value = orig.Value;
-				refer.Value = orig.Value;
+				ChangeFlags |= DemoChangeSet.EField.Field2;
+				Field2 = orig.Field2;
+				refer.Field2 = orig.Field2;
 			}
 		}
 
 
 		public void ToValue( DemoValue orig )
 		{
-			if( ( ChangeFlags & DemoChangeSet.EField.Name ) != 0 )
+			if( ( ChangeFlags & DemoChangeSet.EField.Field1 ) != 0 )
 			{
-				orig.Name = Name;
+				orig.Field1 = Field1;
 			}
 
-			if( ( ChangeFlags & DemoChangeSet.EField.Value ) != 0 )
+			if( ( ChangeFlags & DemoChangeSet.EField.Field2 ) != 0 )
 			{
-				orig.Value = Value;
+				orig.Field2 = Field2;
 			}
 		}
 
