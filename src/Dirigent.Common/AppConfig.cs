@@ -150,8 +150,6 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlan = Common.Properties.Settings.Default.StartupPlan;
 			if( Common.Properties.Settings.Default.StartupScript != "" ) StartupScript = Common.Properties.Settings.Default.StartupScript;
 			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
-			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
-			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
 			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
 			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
