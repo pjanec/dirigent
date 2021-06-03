@@ -1,7 +1,7 @@
 Param( $buildconf="Release" )
 
-# increment version number in the master version file
-& "$PSScriptRoot\increment-revno.ps1"
+## increment version number in the master version file
+#& "$PSScriptRoot\increment-revno.ps1"
 
 # generate version stamp file to be lated added to the release
 $version = (Get-Content -path "$PSScriptRoot\version.txt")

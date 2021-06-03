@@ -109,3 +109,5 @@ UpgradeLog*.XML
 /test2pcs
 .vs
 /VersionStamp.txt
+
+/version.txt

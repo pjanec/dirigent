@@ -1,6 +1,6 @@
 # Dirigent Overview
 
-Dirigent is a multi-platform application life cycle management and diagnostic tool. It allows
+Dirigent is a multi-platform remote app starting tool. It allows
 
 * Launching a given set of apps in given order on multiple different computers according to a predefined XML launch plans
 * Monitoring if the apps are  running, optionally restarting them automatically.
@@ -153,7 +153,7 @@ If no initialization detector is defined, the app is considered initialized from
 
 ## Launch plans
 
-The plan specifies what applications to launch, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
+The plan specifies a group of apps to launch and keep running, on what computers, in what order and what another apps (dependencies) need to be running and initialized prior starting a given application.
 
 The dependencies are checked among both local and remote applications. 
 
@@ -246,11 +246,19 @@ The app parameters as defined in the new plan are remembered and are applied as 
 
 ## Scripts
 
-Dirigent can run user-provided C# scripts having access to all the capabilities of the Dirigent. 
+Dirigent can run user-provided C# scripts.
 
-A script can access all features of the dirigent (starting apps, plans etc...)
+Available scripts are predefined in SharedConfig.xml and can be started/stopped in similar way as plans.
 
-Available scripts are predefined in SharedConfig.xml.
+Scripts can act as "intelligent plans", adding some user defined logic, separating the details from the high level needs (the user needs to start the system and to know if it succeeded, or switch the system mode without knowing what it means to the processes...)
+
+Scripts can
+
+* Access all features of the dirigent (starting apps, plans etc...)
+* Respond to certain conditions (some machine boots up, some app starts/dies etc.)
+* Define own sequences of actions
+* Take parameters (once when the script starts)
+* Return status (arbitrary text string)
 
 ### Script Operations
 

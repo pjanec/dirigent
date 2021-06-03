@@ -60,7 +60,9 @@ namespace Dirigent.Gui.WinForms
 
 					switch( ac.Mode.ToLower() )
 					{
-						case "gui":  // just gui, no agent
+						// just gui, no agent
+						case "remoteControlGui":  // for compatibility with Dirigent 1.x
+						case "gui":  
 						{
 							runAgent = false;
 							runGui = true;
@@ -69,9 +71,9 @@ namespace Dirigent.Gui.WinForms
 
 						// agent + gui
 						default:
+						case "agent":
 						case "traygui":  // for compatibility with Dirigent 1.x
 						case "trayapp":  // for compatibility with Dirigent 1.x
-						case "trayagentgui":
 						{
 							runAgent = true;
 							runGui = true;
@@ -80,7 +82,6 @@ namespace Dirigent.Gui.WinForms
 
 						// just agent (no gui)
 						case "daemon":
-						case "agent":
 						{
 							runAgent = true;
 							runGui = false;
