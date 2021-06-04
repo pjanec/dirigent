@@ -125,8 +125,9 @@ namespace Dirigent
 			ProcInfo? found = FindProcessByExeName( appPath );
 			if( found != null )
 			{
-				log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
-				_proc = found.Process;
+				log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\"", found.Pid, found.CmdLine );
+				_proc = Process.GetProcessById( found.Pid );
+
 				return true;
 			}
 			return false;
@@ -257,12 +258,9 @@ namespace Dirigent
 			// try to adopt an already running process (matching by process image file name, regardless of path)
 			if( _appDef.AdoptIfAlreadyRunning )
 			{
-				ProcInfo? found = FindProcessByExeName( pe.Path );
-				if( found != null )
+				if( AdoptAlreadyRunning() )
 				{
-					log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
-					_proc = found.Process;
-					return true; // act as if we started it
+					return true;
 				}
 			}
 
@@ -527,12 +525,7 @@ namespace Dirigent
 			// try to adopt an already running process (matching by process image file name, regardless of path)
 			if( _proc == null && _appDef.AdoptIfAlreadyRunning )
 			{
-				ProcInfo? found = FindProcessByExeName( pe.Path );
-				if( found != null )
-				{
-					log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\", dir=\"{2}\"", found.Process.Id, found.CmdLine, found.Process.StartInfo.WorkingDirectory );
-					_proc = found.Process;
-				}
+				AdoptAlreadyRunning();
 			}
 
 			if( _proc != null )
@@ -599,7 +592,15 @@ namespace Dirigent
 			// already exited - remember exit code and forget about the process
 			_dying = false;
 
-			_exitCode = _proc.ExitCode;
+			try
+			{
+				_exitCode = _proc.ExitCode;
+			}
+			catch // exception is thrown for process that was adopted and not started by us
+			{
+				_exitCode = 0;
+			}
+
 
 			_softKiller.Stop();
 
@@ -658,7 +659,7 @@ namespace Dirigent
 
 
 		public record ProcInfo(
-		    Process Process,
+		    int Pid,
 		    String Path,
 		    String CmdLine
 		);
@@ -679,6 +680,7 @@ namespace Dirigent
 			                            select new
 			                            {
 			                                Process = p,
+			                                Pid = p.Id,
 			                                Path = (string)mo["ExecutablePath"],
 			                                CommandLine = (string)mo["CommandLine"],
 			                            };
@@ -690,7 +692,7 @@ namespace Dirigent
 			                        if( String.Compare(exeName, searchedExeName, true ) == 0 ) // exe name matches?
 			                        {
 			                            return new ProcInfo (
-			                                i.Process,
+			                                i.Pid,
 			                                i.Path,
 			                                i.CommandLine
 			                            );
