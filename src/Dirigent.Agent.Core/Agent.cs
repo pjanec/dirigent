@@ -74,15 +74,16 @@ namespace Dirigent
 		{
 			var now = DateTime.UtcNow;
 
-			// send client's state
-			{
-				var clientState = new ClientState();
-				clientState.Ident = _clientIdent;
-				clientState.LastChange = now;
-
-				var msg = new Net.ClientStateMessage( now, clientState );
-				_client.Send( msg );
-			}
+			// THIS CAUSED StackOverflon on deserialization of proto message when using HUGE SharedConfig.xml
+			//// send client's state
+			//{
+			//	var clientState = new ClientState();
+			//	clientState.Ident = _clientIdent;
+			//	clientState.LastChange = now;
+			//
+			//	var msg = new Net.ClientStateMessage( now, clientState );
+			//	_client.Send( msg );
+			//}
 
 			// send the state of all local apps
 

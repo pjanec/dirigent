@@ -32,7 +32,7 @@ namespace Dirigent.Gui
 
 			_masterWin = new MasterWindow( _wnd, _ac );
 			_guiWin = new GuiWindow( _wnd, _ac );
-			_agentWin1 = new AgentWindow( _wnd, _ac, "m1" );
+			_agentWin1 = new AgentWindow( _wnd, _ac, !string.IsNullOrEmpty(_ac.MachineId) ? _ac.MachineId : "m1" );
 			_agentWin2 = new AgentWindow( _wnd, _ac, "m2" );
 		}
 

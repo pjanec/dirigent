@@ -1,4 +1,6 @@
-[TODO] Show RemoteOpErrors on ImGui
+[BUG] Publishing of ClientStateMessage by the agent each frame causes stack overflow in case of SharedConfig.xml.HUGE Without the agents publishing ClientStateMessage it works...
+
+[TODO] Show RemoteOpErrors on ImGui always on top of the main app window, even if the content is scrolled down
 
 [BUG] batch file app started within agent's console - shall be run in its own window!
 

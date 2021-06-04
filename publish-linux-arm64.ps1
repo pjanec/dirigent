@@ -1,6 +1,6 @@
-Param( $buildconf="Release" )
+Param( $buildconf="Release", $clean=1 )
 
-& "$PSScriptRoot\build-linux.ps1" $buildconf
+& "$PSScriptRoot\build-linux.ps1" $buildconf $clean
 
 dotnet publish src\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj -f net5.0 -r linux-arm64 --self-contained true -o publish\Dirigent.Agent.Console\linux-arm64\$buildconf
 

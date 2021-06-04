@@ -1,4 +1,4 @@
-Param( $buildconf="Release" )
+Param( $buildconf="Release", $clean=1 )
 
 $framework = "net5.0-windows"
 
@@ -41,10 +41,13 @@ Foreach ($proj in $projects)
 # avoid showing console window for this GUI
 ReplaceOutputType "src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj" "WinExe"
 
-Foreach ($proj in $projects)
+if( $clean )
 {
-    "Cleaning $proj"
-    dotnet clean --nologo -c $buildconf -f $framework -v m $proj
+    Foreach ($proj in $projects)
+    {
+        "Cleaning $proj"
+        dotnet clean --nologo -c $buildconf -f $framework -v m $proj
+    }
 }
 
 Foreach ($proj in $projects)

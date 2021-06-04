@@ -438,6 +438,7 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
+			if( PlanDefs is null ) return "PlanDefs = null";
 			return $"PlanDefs [{string.Join(", ", from x in PlanDefs select x.Name)}], increm={Incremental}";
 		}
 	}
@@ -784,6 +785,7 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
+			if( ScriptDefs is null ) return "ScriptDefs = null";
 			return $"ScriptDefs [{string.Join(", ", from x in ScriptDefs select x.Id)}], increm={Incremental}";
 		}
 	}

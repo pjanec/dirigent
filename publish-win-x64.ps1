@@ -1,6 +1,6 @@
-Param( $buildconf="Release" )
+Param( $buildconf="Release", $clean=1 )
 
-& "$PSScriptRoot\build-win.ps1" $buildconf
+& "$PSScriptRoot\build-win.ps1" $buildconf $clean
 
 dotnet publish src\Dirigent.CLI\Dirigent.CLI.csproj -f net5.0-windows -r win-x64 --self-contained false -o publish\Dirigent.CLI\win-x64\$buildconf
 dotnet publish src\Dirigent.Agent.WinForms\Dirigent.Agent.WinForms.csproj -f net5.0-windows -r win-x64 --self-contained false -o publish\Dirigent.Agent.WinForms\win-x64\$buildconf

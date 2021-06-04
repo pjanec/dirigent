@@ -40,10 +40,13 @@ Foreach ($proj in $projects)
 # switch to classic console app (linux build does not support WinExe output)
 ReplaceOutputType "src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj" "Exe"
 
-Foreach ($proj in $projects)
+if( $clean )
 {
-    "Cleaning $proj"
-    dotnet clean --nologo -c $buildconf -f $framework -v m $proj
+    Foreach ($proj in $projects)
+    {
+        "Cleaning $proj"
+        dotnet clean --nologo -c $buildconf -f $framework -v m $proj
+    }
 }
 
 Foreach ($proj in $projects)

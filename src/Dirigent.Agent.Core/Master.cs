@@ -185,6 +185,14 @@ namespace Dirigent
 				{
 					// client connected!
 					OnClientIdentified( m );
+
+					// remember initial client state as conneted
+					var cs = new ClientState();
+					cs.Ident = m;
+					cs.Connected = true;
+					cs.LastChange = DateTime.Now;
+					_allClientStates.AddOrUpdate( m.Name, cs );
+
 					break;
 				}
 
