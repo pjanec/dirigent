@@ -40,13 +40,12 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
-        public bool ShallBeRemoved => _shallBeRemoved;
+        public bool ShallBeRemoved { get; set; }
 		public LocalApp App => _app;
 
         private LocalApp _app;
         private AppState _appState;
         private AppDef _appDef;
-        private bool _shallBeRemoved = false;
         private WindowPos _pos = new();
         private Regex _titleRegExp;
 
@@ -235,7 +234,7 @@ namespace Dirigent
         {
             if( !_appState.Running || _app.Process is null  )
             {
-				_shallBeRemoved = true;
+				ShallBeRemoved = true;
 				return; // do nothing if process has terminated
             }
 
@@ -257,7 +256,7 @@ namespace Dirigent
             { 
                 if( !_pos.Keep )
                 {
-                    _shallBeRemoved = true; // positioner has fired, it is no longer needed
+                    ShallBeRemoved = true; // positioner has fired, it is no longer needed
                 }
             }
         }

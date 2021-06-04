@@ -73,3 +73,5 @@ Command line
 
 [TODO] "Groups" attribute for scripts, apps, plans to allow presenting them in a tree view in GUIs. Ex.: Groups="Common/Demo;Examples".
 
+[BUG] Apps keeps restarting after KillAll 
+

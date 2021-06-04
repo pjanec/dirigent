@@ -21,7 +21,7 @@ namespace Dirigent
         /// Shall the watcher be removed by the system?
         /// </summary>
         /// <returns></returns>
-        bool ShallBeRemoved { get; }
+        bool ShallBeRemoved { get; set; }
 
         [Flags]
         enum EFlags

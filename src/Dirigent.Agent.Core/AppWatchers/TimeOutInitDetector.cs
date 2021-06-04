@@ -14,7 +14,7 @@ namespace Dirigent
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
-        bool IAppWatcher.ShallBeRemoved => _shallBeRemoved;
+		public bool ShallBeRemoved { get; set; }
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
 		public LocalApp App => _app;
 
@@ -23,7 +23,6 @@ namespace Dirigent
         private long _initialTicks;
         private AppState _appState;
         private AppDef _appDef;
-        private bool _shallBeRemoved = false;
         private LocalApp _app;
 
         //<TimeOut>2.0</TimeOut>
@@ -76,7 +75,7 @@ namespace Dirigent
             if( IsInitialized() )
             {
                 _appState.Initialized = true;
-                _shallBeRemoved = true;
+                ShallBeRemoved = true;
             }
         }
 

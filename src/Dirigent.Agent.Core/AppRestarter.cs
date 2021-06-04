@@ -23,7 +23,7 @@ namespace Dirigent
 		/// <summary>
 		/// Done restating, can be removed from the system.
 		/// </summary>
-		public bool ShallBeRemoved { get; protected set; }
+		public bool ShallBeRemoved { get; set; }
 
         public IAppWatcher.EFlags Flags => 0; // this one should stay after launch
 		public LocalApp App => _app;

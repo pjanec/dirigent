@@ -28,10 +28,9 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
-        public bool ShallBeRemoved => _shallBeRemoved;
+		public bool ShallBeRemoved { get; set; }
 		public LocalApp App => _app;
 
-        private bool _shallBeRemoved = false;
 		private AppDef _appDef;
         private AppState _appState;
         private LocalApp _app;
@@ -49,7 +48,7 @@ namespace Dirigent
         {
             if( !_appState.Running || _app.Process is null  )
             {
-				_shallBeRemoved = true;
+				ShallBeRemoved = true;
 				return; // do nothing if process has terminated
             }
 
@@ -68,14 +67,14 @@ namespace Dirigent
 					}
 					WinApi.ShowWindowAsync( mainHwnd, showCmd );
 					log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", _appDef.WindowStyle, mainHwnd.ToInt64(), _app.ProcessId );
-					_shallBeRemoved = true;
+					ShallBeRemoved = true;
 				}
 			}
 			catch( Exception )
 			{
 				// ignore any error (MainWindowHandle might not be available if process exits immediately etc.)
 				// but if failed, don't try again
-				_shallBeRemoved = true;
+				ShallBeRemoved = true;
 			}
         }
 

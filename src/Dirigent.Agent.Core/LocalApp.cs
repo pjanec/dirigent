@@ -239,6 +239,7 @@ namespace Dirigent
 			// to avoid the app being restarted automatically
 			// after this explicit Kill (the user wants the app to stop until said otherwie)
             _watchers.RemoveWatchersOfType<AppRestarter>();
+            _watchers.RemoveWatchersOfType<CrashWatcher>();
 
             if( (flags & Net.KillAppFlags.ResetAppState) != 0 )
             {

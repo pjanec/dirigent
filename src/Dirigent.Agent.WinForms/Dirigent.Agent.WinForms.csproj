@@ -4,7 +4,7 @@
     <TargetFramework>net5.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
     <Product>Dirigent</Product>
-    <Version>3.0.0.14</Version>
+    <Version>3.0.0.16</Version>
     <Authors>pjanec</Authors>
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>

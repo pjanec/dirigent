@@ -23,13 +23,12 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
-        public bool ShallBeRemoved => _shallBeRemoved;
+        public bool ShallBeRemoved { get; set; }
 		public LocalApp App => _app;
 
         private AppState _appState;
         private int _processId;
         private AppDef _appDef;
-        private bool _shallBeRemoved = false;
         
         private string _titleRegExpString = string.Empty;
         private Regex _titleRegExp;
@@ -73,7 +72,7 @@ namespace Dirigent
         {
             if( !_appState.Running || _app.Process is null  )
             {
-				_shallBeRemoved = true;
+				ShallBeRemoved = true;
 				return false; // do nothing if process has terminated
             }
 
@@ -88,7 +87,7 @@ namespace Dirigent
                     log.DebugFormat("WindowPoppedUpInitDetector: Found matching window handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _processId );
                     
                     found = true;
-                    _shallBeRemoved = true;
+                    ShallBeRemoved = true;
                 }
             }
             return found;
@@ -107,15 +106,7 @@ namespace Dirigent
             if( IsInitialized() )
             {
                 _appState.Initialized = true;
-                _shallBeRemoved = true;
-            }
-        }
-
-        bool IAppWatcher.ShallBeRemoved
-        {
-            get
-            {
-                return _shallBeRemoved;
+                ShallBeRemoved = true;
             }
         }
 

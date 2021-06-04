@@ -23,13 +23,12 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
-        public bool ShallBeRemoved => _shallBeRemoved;
+        public bool ShallBeRemoved { get; set; }
 		public LocalApp App => _app;
 
 		public Action? OnCrash;
 
         private AppState _appState;
-        private bool _shallBeRemoved = false;
         private AppDef _appDef;
 
         private enum eState 
@@ -64,7 +63,7 @@ namespace Dirigent
                     if( _appState.Started && !_appState.Running && !_appState.Killed )
                     {
 						OnCrash?.Invoke();
-						_shallBeRemoved = true;
+						ShallBeRemoved = true;
                         _state = eState.Disabled;
                     }
                     break;

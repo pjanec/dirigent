@@ -356,7 +356,7 @@ namespace Dirigent.Gui.WinForms
 			if( _agentThread != null )
 			{
 				_agent.WantsQuit = true;
-				_masterThread.Join( 4*_ac.TickPeriod );
+				_agentThread.Join( 4*_ac.TickPeriod );
 			}
 
 			_agent?.Dispose();

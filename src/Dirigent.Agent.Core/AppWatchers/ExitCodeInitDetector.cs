@@ -14,12 +14,11 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         public IAppWatcher.EFlags Flags => IAppWatcher.EFlags.ClearOnLaunch;
-        public bool ShallBeRemoved => _shallBeRemoved;
+		public bool ShallBeRemoved { get; set; }
 		public LocalApp App => _app;
 
         private List<int> _exitCodes = new List<int>(); // list of exit codes meaning that the app was succesfull
         private AppState _appState;
-        private bool _shallBeRemoved = false;
         private LocalApp _app;
 
         public ExitCodeInitDetector( LocalApp app, XElement xml)
@@ -119,7 +118,7 @@ namespace Dirigent
             if( IsInitialized() )
             {
                 _appState.Initialized = true;
-                _shallBeRemoved = true;
+                ShallBeRemoved = true;
             }
         }
 

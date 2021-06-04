@@ -7,7 +7,7 @@
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
-    <Version>3.0.0.14</Version>
+    <Version>3.0.0.16</Version>
     <Authors>pjanec</Authors>
     <AssemblyName>Dirigent.Agent</AssemblyName>
 

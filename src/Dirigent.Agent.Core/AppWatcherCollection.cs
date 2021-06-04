@@ -30,12 +30,12 @@ namespace Dirigent
         {
             //_watchers.RemoveAll( condition );
 
-            // with debug print
-            _toRemove.Clear();
             foreach( var w in _watchers )
             {
                 if( condition(w) )
-                    _toRemove.Add(w);
+                {
+                    w.ShallBeRemoved = true;
+                }
             }
         }
 
@@ -70,7 +70,10 @@ namespace Dirigent
             // tick watchers
             foreach( var w in _watchers )
             {
-                w.Tick();
+                if( !w.ShallBeRemoved )  // ignore those marked for removal
+                {
+                    w.Tick();
+                }
             }
 
             RemoveAll( (x) => x.ShallBeRemoved );
@@ -81,6 +84,7 @@ namespace Dirigent
                 log.Debug($"Removing watcher {w.GetType().Name} from app {w.App.Id}");
                 _watchers.Remove(w);
             }
+            _toRemove.Clear();
 
             // install watchers
             foreach( var w in _toReinstall )
