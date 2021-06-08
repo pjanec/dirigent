@@ -92,8 +92,8 @@ namespace Dirigent
 
 		public virtual void Tick()
 		{
-			// execute commands, one per tick (such speed should be enough...)
-			if( Commands.Count > 0 )
+			// execute commands, all at once
+			while( Commands.Count > 0 )
 			{
 				var cmd = Commands.Dequeue();
 				try
@@ -106,10 +106,7 @@ namespace Dirigent
 				}
 				cmd.Dispose();
 			}
-			else
-			{
-				Finished = true;
-			}
+			Finished = true;
 		}
 
 		protected override void Dispose(bool disposing)
