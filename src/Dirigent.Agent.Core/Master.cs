@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dirigent.Net;
 using System.Text.RegularExpressions;
+using System.Collections.Concurrent;
 
 namespace Dirigent
 {
@@ -63,6 +64,48 @@ namespace Dirigent
 		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
 		CancellationTokenSource _webServerCTS;
 		private Task _webServerTask;
+		
+		public class SynchronousOp
+		{
+			private SemaphoreSlim _mutex;
+			private Action _action;
+			private Exception? _except;
+			
+			public Exception? Exception => _except; // exception caught when executing the action
+			
+			public SynchronousOp( Action act )
+			{
+				this._mutex = new SemaphoreSlim(0);
+				this._action = act;
+				this._except = null;
+			}
+
+			public Task WaitAsync()
+			{
+				return _mutex.WaitAsync();
+			}
+			
+			// Gets called from master's tick
+			// Potential exception can't be propagated to the async code waiting for the op to execute as
+			// the action is processed from different context (master's tick) - so we need to save the exception
+			// and the caller needs to check it
+			public void Execute()
+			{
+				try
+				{
+					_action();
+				}
+				catch( Exception ex )
+				{
+					_except = ex;
+				}
+
+				// we expect max one thread to wait for this (one async method)
+				_mutex.Release();
+			}
+		}
+
+		private ConcurrentQueue<SynchronousOp> _synchronousOps; // operations waiting to be processed within master's tick
 
 		
 		#endregion
@@ -105,8 +148,10 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
+			_synchronousOps = new ConcurrentQueue<SynchronousOp>();
+
 			_webServerCTS = new CancellationTokenSource();
-			_webServerTask = Web.WebServerRunner.RunWebServerAsync( "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token ); 
+			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token ); 
 
 			//// FIXME: Just for testing the script! To be removed!
 			//var script = new DemoScript1();
@@ -156,6 +201,39 @@ namespace Dirigent
 			{
 				RefreshClients();
 				_swClientRefresh.Restart();
+			}
+
+			ProcessSynchronousOps();
+		}
+
+		// Adds CLI request to be processed by the master during its next tick(s).
+		// Returns the request object.
+		// The caller can asynchronously await the completion of the operation (using "await operation.WaitAsync();")
+		// Thread safe, can be called from async context.
+		public CLIRequest AddCliRequest( ICLIClient client, string cmdLine ) => _cliProc.AddRequest( client, cmdLine );
+
+		// Adds operation to be processed by the master during its next tick.
+		// Returns the operation object.
+		// The caller can asynchronously await the completion of the operation (using "await operation.WaitAsync();")
+		// Thread safe, can be called from async context.
+		public SynchronousOp AddSynchronousOp( Action act )
+		{
+			var op = new SynchronousOp(act);
+			_synchronousOps.Enqueue( op );	
+			return op;
+		}
+
+		void ProcessSynchronousOps()
+		{
+			var numToTake = _synchronousOps.Count;
+			while( numToTake-- > 0 )
+			{
+				if( _synchronousOps.TryDequeue( out var op ) )
+				{
+					// Execute the operation and release its semaphore
+					// Potential exception is stored to the operation object
+					op.Execute();
+				}
 			}
 		}
 
@@ -254,7 +332,7 @@ namespace Dirigent
 				case CLIRequestMessage m:
 				{
 					var cliClient = new CLIClient( _server, m.Sender );
-					_cliProc.AddRequest( cliClient, m.Text );
+					AddCliRequest( cliClient, m.Text );
 					break;
 				}
 

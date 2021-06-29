@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
 
 namespace Dirigent
 {
@@ -112,6 +113,7 @@ namespace Dirigent
 		private Master ctrl;
 
 		List<CLIRequest> pendingRequests = new List<CLIRequest>();
+		ConcurrentQueue<CLIRequest> incomingRequests = new();  
 
 		public CLIProcessor( Master ctrl )
 		{
@@ -141,18 +143,30 @@ namespace Dirigent
 			TickRequests();
 		}
 
-		public void AddRequest( ICLIClient c, string cmdLine )
+		// this is thread/async safe
+		public CLIRequest AddRequest( ICLIClient c, string cmdLine )
 		{
 			log.DebugFormat("{0}: CLI Request: {1}", c.Name,  cmdLine );
 			var r = new CLIRequest( c, ctrl, cmdLine );
 			if( !r.Finished ) // parsed succesfully?
 			{
-				pendingRequests.Add( r );
+				incomingRequests.Enqueue( r );
 			}
+			return r;
 		}
 
 		void TickRequests()
 		{
+			// move requests from incoming to pending
+			int numReqToAdd = incomingRequests.Count;
+			while( numReqToAdd-- > 0 )
+			{
+				if( incomingRequests.TryDequeue( out var r ) )
+				{
+					pendingRequests.Add( r );
+				}
+			}
+
 			var toRemove = new List<CLIRequest>();
 			foreach( var r in pendingRequests )
 			{

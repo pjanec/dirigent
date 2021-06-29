@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dirigent
 {
@@ -15,6 +17,9 @@ namespace Dirigent
 		Queue<ICommand> Commands; // commands to be performed as part of the request
 		CommandRepository cmdRepo;
 		Master ctrl;
+		private SemaphoreSlim _mutex; // blocks async waiting for request finishing
+		private Exception? _except;
+		public Exception? Exception => _except; // exception caught when executing the request
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
@@ -32,6 +37,7 @@ namespace Dirigent
 			if( string.IsNullOrEmpty( restAfterUid ) )
 			{
 				Finished = true;
+				_mutex = new SemaphoreSlim(1);
 				return;
 			}
 
@@ -39,6 +45,7 @@ namespace Dirigent
 			{
 				var cmdList = cmdRepo.ParseCmdLine( client.Name, restAfterUid, WriteResponseLine );
 				Commands = new Queue<ICommand>( cmdList );
+				_mutex = new SemaphoreSlim(0);
 			}
 			catch( Exception e )
 			{
@@ -54,6 +61,8 @@ namespace Dirigent
 				WriteResponseLine( "ERROR: " + Tools.JustFirstLine( e.Message ) );
 
 				Finished = true;
+				_mutex = new SemaphoreSlim(1);
+				_except = e;
 			}
 		}
 
@@ -107,12 +116,19 @@ namespace Dirigent
 				cmd.Dispose();
 			}
 			Finished = true;
+			_mutex.Release();
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
 			Finished = true;
+		}
+
+		// waits until the request completes
+		public Task WaitAsync()
+		{
+			return _mutex.WaitAsync();
 		}
 	}
 }

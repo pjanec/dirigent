@@ -23,16 +23,16 @@ namespace Dirigent.Web
         //private const bool OpenBrowser = true;
         private const bool UseFileCache = true;
 
-        private static void Main(string[] args)
-        {
-            var url = args.Length > 0 ? args[0] : "http://*:8877";
+        //private static void Main(string[] args)
+        //{
+        //    var url = args.Length > 0 ? args[0] : "http://*:8877";
 
-            using (var cts = new CancellationTokenSource())
-            {
-                Task.WaitAll(
-                    RunWebServerAsync(url, HtmlRootPath, cts.Token) );
-            }
-        }
+        //    using (var cts = new CancellationTokenSource())
+        //    {
+        //        Task.WaitAll(
+        //            RunWebServerAsync(url, HtmlRootPath, cts.Token) );
+        //    }
+        //}
 
         // Gets the local path of shared files.
         // When debugging, take them directly from source so we can edit and reload.
@@ -52,7 +52,7 @@ namespace Dirigent.Web
         }
 
         // Create and configure our web server.
-        private static WebServer CreateWebServer(string url, string htmlRootPath)
+        private static WebServer CreateWebServer( string url, string htmlRootPath, Master master )
         {
 #pragma warning disable CA2000 // Call Dispose on object - this is a factory method.
             var server = new WebServer(o => o
@@ -73,9 +73,10 @@ namespace Dirigent.Web
 
 
                 .WithWebApi("/api", m => m
-                    .WithController<PlansApiController>()
-                    .WithController<AppsApiController>()
-                    .WithController<CmdApiController>()
+                    .WithController( () => new PlanApiController( master ) )
+                    .WithController( () => new AppApiController( master ) )
+                    .WithController( () => new ScriptApiController( master ) )
+                    .WithController( () => new CmdApiController( master ) )
                   )
 
                 .WithModule(new WebSocketDirigentModule("/websock"))
@@ -93,9 +94,9 @@ namespace Dirigent.Web
         }
 
         // Create and run a web server.
-        public static async Task RunWebServerAsync(string url, string htmlRootPath, CancellationToken cancellationToken)
+        public static async Task RunWebServerAsync( Master master, string url, string htmlRootPath, CancellationToken cancellationToken)
         {
-            using var server = CreateWebServer(url, htmlRootPath);
+            using var server = CreateWebServer(url, htmlRootPath, master );
             await server.RunAsync(cancellationToken).ConfigureAwait(false);
         }
 

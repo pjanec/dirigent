@@ -112,7 +112,7 @@ namespace Dirigent
 			return stCode;
 		}
 
-		public static string GetAppStateString( AppIdTuple t, AppState? appState )
+		public static string GetAppStateFlags( AppState? appState )
 		{
 			if( appState is null )
 				return string.Empty;
@@ -127,13 +127,23 @@ namespace Dirigent
 			if( appState.Dying ) sbFlags.Append( "D" );
 			if( appState.Restarting ) sbFlags.Append( "X" );
 
+			return sbFlags.ToString();
+		}
+
+		public static string GetAppStateString( AppIdTuple t, AppState? appState )
+		{
+			if( appState is null )
+				return string.Empty;
+
+			var flags = GetAppStateFlags( appState );
+
 			var now = DateTime.UtcNow;
 
 			var stateStr = String.Format(
 							   System.Globalization.CultureInfo.InvariantCulture,
 							   "APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}",
 							   t.ToString(),
-							   sbFlags.ToString(),
+							   flags,
 							   appState.ExitCode,
 							   ( now - appState.LastChange ).TotalSeconds,
 							   appState.CPU,
@@ -143,6 +153,18 @@ namespace Dirigent
 						   );
 
 			return stateStr;
+		}
+
+		public static string GetPlanStateFlags( PlanState planState )
+		{
+			if( planState is null )
+				return string.Empty;
+
+			var sbFlags = new StringBuilder();
+			if( planState.Running ) sbFlags.Append( "R" );
+			if( planState.Killing ) sbFlags.Append( "K" );
+
+			return sbFlags.ToString();
 		}
 
 		public static string GetPlanStateText( PlanState st )
