@@ -27,7 +27,7 @@ namespace Dirigent.Gui.WinForms
 		private bool _isMaster;
 		private string _machineId; // empty if GUI not running as part of local agent
 		private AlreadyRunningTester _alreadyRunningTester;
-        private ProcRunner? _guiRunner;
+        private ProcRunner _guiRunner;
 		private string _guiClientId = Guid.NewGuid().ToString();
 
 		class MyApplicationContext : ApplicationContext
@@ -378,10 +378,7 @@ namespace Dirigent.Gui.WinForms
 
 					// instantiate the master and tick it in its own thread
 					_master = new Master(
-						_ac.LocalIP,
-						_ac.MasterPort,
-						_ac.CliPort,
-						_ac.SharedCfgFileName,
+						_ac,
 						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
 					);
 					_masterThread = new Thread(() =>

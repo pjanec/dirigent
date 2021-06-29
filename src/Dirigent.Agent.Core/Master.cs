@@ -61,16 +61,18 @@ namespace Dirigent
 		private string _sharedConfigFileName = string.Empty;
 		private string _rootForRelativePaths;
 		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
+		CancellationTokenSource _webServerCTS;
+		private Task _webServerTask;
 
 		
 		#endregion
 
-		public Master( string localIpAddr, int port, int cliPort, string sharedConfigFileName, string rootForRelativePaths )
+		public Master( AppConfig ac, string rootForRelativePaths )
 		{
-			log.Info( $"Running Master at IP {localIpAddr}, port {port}, cliPort {cliPort}" );
+			log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
 
-			_localIpAddr = localIpAddr;
-			_port = port;
+			_localIpAddr = ac.LocalIP;
+			_port = ac.MasterPort;
 
 			_rootForRelativePaths = rootForRelativePaths;
 
@@ -88,20 +90,23 @@ namespace Dirigent
 
 			_scripts = new ScriptRegistry( this );
 
-			_server = new Server( port );
+			_server = new Server( ac.MasterPort );
 			_swClientRefresh = new Stopwatch();
 			_swClientRefresh.Restart();
 
 			// start a telnet client server
 			_cliProc = new CLIProcessor( this );
 
-            log.InfoFormat("Command Line Interface running on port {0}", cliPort);
-			_telnetServer = new TelnetServer( "0.0.0.0", cliPort, _cliProc );
+            log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);
+			_telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
 
-			var sharedConfig = LoadSharedConfig( sharedConfigFileName );
+			var sharedConfig = LoadSharedConfig( ac.SharedCfgFileName );
 			InitFromConfig( sharedConfig );
 
 			_tickers = new TickableCollection();
+
+			_webServerCTS = new CancellationTokenSource();
+			_webServerTask = Web.WebServerRunner.RunWebServerAsync( "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token ); 
 
 			//// FIXME: Just for testing the script! To be removed!
 			//var script = new DemoScript1();
@@ -114,12 +119,16 @@ namespace Dirigent
 
 		protected override void Dispose(bool disposing)
 		{
-			base.Dispose(disposing);
+			_webServerCTS.Cancel();
+			Task.WaitAll( _webServerTask );
+
 			_tickers.Dispose();
 			//_scripts.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
 			_server.Dispose();
+
+			base.Dispose(disposing);
 		}
 
 		public void Tick()

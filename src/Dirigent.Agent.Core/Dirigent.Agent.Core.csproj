@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <PackageReference Include="CS-Script.Core" Version="2.0.0" />
+    <PackageReference Include="EmbedIO" Version="3.4.3" />
     <PackageReference Include="log4net" Version="2.0.12" />
   </ItemGroup>
 
