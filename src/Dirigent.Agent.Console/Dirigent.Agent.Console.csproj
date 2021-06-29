@@ -32,11 +32,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Dirigent.Common\AppConfig.cs" Link="AppConfig.cs" />
-    <Compile Include="..\Dirigent.Common\Properties\Settings.Designer.cs" Link="Properties\Settings.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="..\..\config\LocalConfig.xml" Link="LocalConfig.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

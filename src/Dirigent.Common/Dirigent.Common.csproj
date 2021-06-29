@@ -31,11 +31,6 @@
 
 
   <ItemGroup>
-    <Compile Remove="AppConfig.cs" />
-    <Compile Remove="Properties\Settings.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Properties\Settings.settings" />
   </ItemGroup>
 
