@@ -82,6 +82,9 @@ namespace Dirigent
 		[Option( "tickPeriod", Required = false, Default = 0, HelpText = "Refresh period in msec." )]
 		public int TickPeriod { get; set; }
 
+		[Option( "masterPeriod", Required = false, Default = 0, HelpText = "Master refresh period in msec." )]
+		public int MasterTickPeriod { get; set; }
+
 		[Option( "parentPid", Required = false, Default = -1, HelpText = "PID of the parent (used by agent process if started from the gui process)" )]
 		public int parentPid { get; set; }
 
@@ -112,6 +115,7 @@ namespace Dirigent
 		public string RootForRelativePaths = "";
 		public string IsMaster = "0"; // "1"=run the master process automatically
 		public int TickPeriod = 500; // msec
+		public int MasterTickPeriod = 50; // msec
 		public string McastIP = "239.121.121.121";
 		public string LocalIP = "0.0.0.0";
 		public string McastAppStates = "0";
@@ -153,6 +157,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
 			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
+			if( Common.Properties.Settings.Default.MasterTickPeriod != 0 ) MasterTickPeriod = Common.Properties.Settings.Default.MasterTickPeriod;
 			if( Common.Properties.Settings.Default.LogFile  != "" ) LogFileName = Common.Properties.Settings.Default.LogFile;
 			if( Common.Properties.Settings.Default.GuiAppExe != "" ) GuiAppExe = Common.Properties.Settings.Default.GuiAppExe;
 
@@ -179,6 +184,7 @@ namespace Dirigent
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
+				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;
 				ParentPid = options.parentPid;
 				if( options.GuiAppExe != "" ) GuiAppExe = options.GuiAppExe;
 			} )

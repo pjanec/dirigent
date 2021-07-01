@@ -128,24 +128,35 @@ namespace Dirigent
 
 			if( stayRunning )
 			{
+				int numMasterTicksPerMainTick = _ac.TickPeriod / _ac.MasterTickPeriod;
+				if( numMasterTicksPerMainTick <= 0 ) numMasterTicksPerMainTick = 1;
+				int masterSleep = _ac.TickPeriod / numMasterTicksPerMainTick;
+				if( masterSleep <= 0 ) masterSleep = 1;
+				int commonSleep = _ac.TickPeriod;
+				if( _master is not null ) commonSleep -= numMasterTicksPerMainTick * masterSleep;
+
 				try
 				{
 					while( true )
 					{
-						if( _master is not null )
-						{
-							_master.Tick();
-							if( _master.WantsQuit ) break;
-						}
-
 						if( _agent is not null )
 						{
 							_agent.Tick();
 							if( _agent.WantsQuit ) break;
 						}
 
+						if( _master is not null )
+						{
+							for( int i=0; i < numMasterTicksPerMainTick; i++)
+							{
+								_master.Tick();
+								Thread.Sleep( masterSleep );
+							}
 
-						Thread.Sleep( _ac.TickPeriod );
+							if( _master.WantsQuit ) break;
+						}
+
+						Thread.Sleep( commonSleep );
 					}
 				}
 				catch( Exception ex )

@@ -2,7 +2,7 @@
   "profiles": {
     "Dirigent.Agent": {
       "commandName": "Project",
-      "commandLineArgs": "--isMaster 0 --machineId \"IOS_1\"",
+      "commandLineArgs": "--isMaster 1 --machineId \"IOS_1\"",
       "workingDirectory": "D:\\Work\\Dirigent.NetCore\\TestCases\\MT\\"
     },
     "WSL 2": {

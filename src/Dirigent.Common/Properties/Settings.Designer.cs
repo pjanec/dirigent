@@ -437,6 +437,17 @@ namespace Dirigent.Common.Properties
 
 		[global::System.Configuration.ApplicationScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "50" )]
+		public int MasterTickPeriod
+		{
+			get
+			{
+				return ( ( int )( this["MasterTickPeriod"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
 		public string GuiAppExe
 		{

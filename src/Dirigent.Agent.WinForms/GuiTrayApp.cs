@@ -386,7 +386,7 @@ namespace Dirigent.Gui.WinForms
 						while( !_master.WantsQuit )
 						{
 							_master.Tick();
-							Thread.Sleep( _ac.TickPeriod );
+							Thread.Sleep( _ac.MasterTickPeriod );
 						}
 						_master.Dispose();
 						_master = null;
