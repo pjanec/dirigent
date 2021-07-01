@@ -20,9 +20,9 @@ namespace Dirigent
 
 		// apps
 
-		public void StartApp( string id, string? planName )
+		public void StartApp( string id, string? planName, string? vars=null )
 		{
-			_master.Send( new Net.StartAppMessage( string.Empty, new AppIdTuple(id), planName ) );
+			_master.Send( new Net.StartAppMessage( string.Empty, new AppIdTuple(id), planName, flags:0, vars:Tools.ParseEnvVarList(vars) ) );
 		}
 
 		public void RestartApp( string id )

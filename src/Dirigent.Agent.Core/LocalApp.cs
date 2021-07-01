@@ -76,12 +76,12 @@ namespace Dirigent
         /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
         /// on successful launch.
         /// </summary>
-        public void StartApp( bool resetRestartsToMax=true, Net.StartAppFlags flags=0 )
+        public void StartApp( bool resetRestartsToMax=true, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
         {
-            StartApp( UpcomingAppDef, resetRestartsToMax, flags );
+            StartApp( UpcomingAppDef, resetRestartsToMax, flags, vars );
         }
 
-        public void StartApp( AppDef appDef, bool resetRestartsToMax=true, Net.StartAppFlags flags=0 )
+        public void StartApp( AppDef appDef, bool resetRestartsToMax=true, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
         {
             // don't do anything if the app is already running
             if( Launcher != null && Launcher.Running )

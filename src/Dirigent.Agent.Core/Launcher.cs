@@ -29,6 +29,7 @@ namespace Dirigent
 		int _exitCode = 0; // cached exit code from last run
 
 		Dictionary<string, string> _internalVars;
+		Dictionary<string, string> _extraVars;
 
 		SoftKiller _softKiller;
 
@@ -41,7 +42,7 @@ namespace Dirigent
 
 		SharedContext _sharedContext;
 
-		public Launcher( AppDef appDef, SharedContext sharedContext )
+		public Launcher( AppDef appDef, SharedContext sharedContext, Dictionary<string,string>? extraVars=null )
 		{
 			this.ctrl = sharedContext.Client;
 			if( ctrl == null ) throw new ArgumentNullException( "ctrl", "Valid network-bound Dirigent Control required" );
@@ -53,7 +54,8 @@ namespace Dirigent
 			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
 
-			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars );
+			_extraVars = extraVars ?? new();
+			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars, _extraVars );
 
 			//_cmdRepo = new CommandRepository( ctrl );
 			//DirigentCommandRegistrator.Register( _cmdRepo );
@@ -95,13 +97,18 @@ namespace Dirigent
 		}
 
 
-		Dictionary<string, string> BuildVars( AppDef appDef, Dictionary<string, string> internalVars )
+		Dictionary<string, string> BuildVars( AppDef appDef, Dictionary<string, string> internalVars, Dictionary<string,string> extraVars )
 		{
-			// start wit externally defined (global) internal vars
+			// start with externally defined (global) internal vars
 			var res = new Dictionary<string, string>( internalVars );
 
 			// add the local variables from appdef
 			foreach( var kv in appDef.LocalVarsToSet )
+			{
+				res[kv.Key] = kv.Value;
+			}
+
+			foreach( var kv in extraVars )
 			{
 				res[kv.Key] = kv.Value;
 			}
@@ -318,6 +325,13 @@ namespace Dirigent
 				// if relative path is specified, consider it relative to SharedConfig and make it absolute (per each ';' separated segment)
 				prefix = string.Join( ";", prefix.Split( ';' ).Select( p => BuildAbsolutePath( p ) ) );
 				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
+			}
+
+			foreach( var x in _extraVars )
+			{
+				var name = x.Key;
+				var value = ExpandVars( x.Value );
+				psi.EnvironmentVariables[name] = value;
 			}
 
 			// run the process

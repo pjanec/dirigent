@@ -489,6 +489,46 @@ namespace Dirigent
 			return (id, args);
 		}
 
+		// format of string: VAR1=VALUE1::VAR2=VALUE2
+		// throws on error
+		public static Dictionary<string,string> ParseEnvVarList( string? vars )
+		{
+			// split & parse
+			var varList = new Dictionary<string,string>();
+			if( vars is null ) return varList;
+			foreach( var kv in vars.Split(new string[] { "::" }, StringSplitOptions.None))
+			{
+				if( string.IsNullOrWhiteSpace(kv) ) // nothing present
+				{
+					throw new Exception($"Invalid SetVars format: {kv}");
+				}
+
+				int equalSignIdx = kv.IndexOf("=");
+
+				if( equalSignIdx < 0 ) // equal sign not present
+				{
+					throw new Exception($"Invalid SetVars format: {kv}");
+				}
+
+				string name = kv.Substring(0, equalSignIdx).Trim();
+				string value = kv.Substring(equalSignIdx+1).TrimStart();
+				
+				if( string.IsNullOrEmpty(name) )
+				{
+					throw new Exception($"Invalid SetVars format: {kv}");
+				}
+
+				varList[name] = value;
+			}
+			return varList;
+		}
+
+		public static string EnvVarListToString( Dictionary<string,string>? varList )
+		{
+			if( varList is null ) return "";
+			return string.Join( "::", from x in varList select $"{x.Key}={x.Value}" );
+		}
+
 	}
 
 }

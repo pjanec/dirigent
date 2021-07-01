@@ -212,19 +212,25 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 3 )]
 		public StartAppFlags Flags;
 
+		/// <summary>
+		/// Env vars to be set for a process; also set as local vars for use in macro expansion
+		/// </summary>
+		[ProtoBuf.ProtoMember( 4 )]
+		public Dictionary<string,string>? Vars;
 
 		public StartAppMessage() {}
-		public StartAppMessage( string requestorId, AppIdTuple id, string? planName, StartAppFlags flags=0 )
+		public StartAppMessage( string requestorId, AppIdTuple id, string? planName, StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
 			this.Sender = requestorId;
 			this.Id = id;
 			this.PlanName = planName;
 			this.Flags = flags;
+			this.Vars = vars;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "StartApp {0} plan {1}, flags={2}", Id.ToString(), PlanName, Flags.ToString() );
+			return string.Format( "StartApp {0} plan {1}, flags={2}, vars={3}", Id.ToString(), PlanName, Flags.ToString(), Tools.EnvVarListToString(Vars) );
 		}
 
 	}

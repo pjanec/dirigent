@@ -313,7 +313,7 @@ namespace Dirigent
 
 				case StartAppMessage m:
 				{
-					StartApp( m.Sender, m.Id, m.PlanName, m.Flags );
+					StartApp( m.Sender, m.Id, m.PlanName, m.Flags, m.Vars );
 					break;
 				}
 
@@ -649,7 +649,8 @@ namespace Dirigent
 		/// </summary>
 		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		public void StartApp( string requestorId, AppIdTuple id, string? planName, Net.StartAppFlags flags=0 )
+		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion</param>
+		public void StartApp( string requestorId, AppIdTuple id, string? planName, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
 			// load app def from given plan if a plan is specified
 			if( planName != null && planName != string.Empty )
@@ -681,7 +682,7 @@ namespace Dirigent
 			}
 
 			// send app start command
-			var msg = new Net.StartAppMessage( requestorId, id, planName, flags );
+			var msg = new Net.StartAppMessage( requestorId, id, planName, flags, vars );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
