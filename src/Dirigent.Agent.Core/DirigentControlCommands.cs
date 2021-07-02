@@ -72,7 +72,17 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			ctrl.StartPlan( _requestorId, args[0] );
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
+
+			Dictionary<string, string>? vars = null;
+			if( args.Count > 1 )
+			{
+				try { vars = Tools.ParseEnvVarList(args[1]); }
+				catch { throw new ArgumentSyntaxErrorException( "extraVars", args[1], "expected VAR1=VAL1::VAR2==VAL2" ); }
+			}
+
+
+			ctrl.StartPlan( _requestorId, args[0], vars );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -86,6 +96,8 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
+
 			ctrl.StopPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
@@ -100,6 +112,8 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
+
 			ctrl.KillPlan( _requestorId, args[0] );
 			WriteResponse( "ACK" );
 		}
@@ -114,7 +128,17 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			ctrl.RestartPlan( _requestorId, args[0] );
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
+
+			Dictionary<string, string>? vars = null;
+			if( args.Count > 1 )
+			{
+				try { vars = Tools.ParseEnvVarList(args[1]); }
+				catch { throw new ArgumentSyntaxErrorException( "extraVars", args[1], "expected VAR1=VAL1::VAR2==VAL2" ); }
+			}
+
+
+			ctrl.RestartPlan( _requestorId, args[0], vars );
 			WriteResponse( "ACK" );
 		}
 	}

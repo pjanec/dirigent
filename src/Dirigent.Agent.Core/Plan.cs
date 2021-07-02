@@ -40,6 +40,9 @@ namespace Dirigent
 		PlanRestarter? _restarter;
 		string _requestorId; // last one who asked for some plan operation
 
+		// extra vars last time used when starting a plan; null = leave same vars as were set for the apps what app were recentyl launched
+        public Dictionary<string,string>? _vars = null;
+
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		public Plan( PlanDef def, Master master )
@@ -81,11 +84,31 @@ namespace Dirigent
 			throw new UnknownAppInPlanException( id, Name );
 		}
 
-		public void Start( string requestorId )
+        /// <param name="vars">what env/macro vars to set for each app in the plan; null=no change from prev start of the apps</param>
+		public void Start( string requestorId, Dictionary<string,string>? vars=null )
 		{
 			_requestorId = requestorId;
 
+			log.DebugFormat( "Start plan {0}, vars {1}", Name, Tools.EnvVarListToString(vars) );
+
 			AdoptPlan();
+
+
+			// if the plan is running, check for var change and restart the plan if needed
+			if ( State.Running )
+            {
+				
+				if( vars is not null &&  // we want to use our vars
+					!DictionaryExtensions.DictionariesEqual( _vars, vars, null ) ) // and they are different from  the previous
+				{
+					log.Debug($"Plan {Name} new vars ({Tools.EnvVarListToString(vars)}) differ from last start {Tools.EnvVarListToString(_vars)}, triggering restart");
+					Restart( requestorId, vars );
+					return;
+				}
+			}
+
+            // remember vars
+            _vars = vars;
 
 			// if the plan is idle
 			if ( !State.Running && !State.Killing )
@@ -148,11 +171,13 @@ namespace Dirigent
             _appLaunchPlanner = null;
         }
 
-        public void Restart( string requestorId )
+        /// <param name="vars">what env/macro vars to set for each app in the plan; null=no change from prev start of the apps</param>
+        public void Restart( string requestorId, Dictionary<string,string>? vars=null )
         {
 			_requestorId = requestorId;
-			log.DebugFormat( "Restart plan {0}", Name );
-			_restarter = new PlanRestarter( requestorId, this );
+			log.DebugFormat( "Restart plan {0}, vars {1}", Name, Tools.EnvVarListToString(vars) );
+
+			_restarter = new PlanRestarter( requestorId, this, vars );
         }
 
         /// <summary>
@@ -267,7 +292,7 @@ namespace Dirigent
 				if( appToLaunch is null ) break;
 
 				// note: this will set also the Master's PlanApplied flag (the important one), not just the AppState flag from agent (just informative one)
-				_master.StartApp( _requestorId, appToLaunch.Def.Id, Name, Net.StartAppFlags.SetPlanApplied );
+				_master.StartApp( _requestorId, appToLaunch.Def.Id, Name, Net.StartAppFlags.SetPlanApplied, _vars );
 			}
 		}
 

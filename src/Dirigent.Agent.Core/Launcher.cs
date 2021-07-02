@@ -110,7 +110,14 @@ namespace Dirigent
 
 			foreach( var kv in extraVars )
 			{
-				res[kv.Key] = kv.Value;
+				if( !String.IsNullOrEmpty(kv.Value) )
+				{
+					res[kv.Key] = kv.Value;
+				}
+				else
+				{
+					res.Remove(kv.Key);
+				}
 			}
 
 			return res;
@@ -331,7 +338,14 @@ namespace Dirigent
 			{
 				var name = x.Key;
 				var value = ExpandVars( x.Value );
-				psi.EnvironmentVariables[name] = value;
+				if( !String.IsNullOrEmpty( value ) )
+				{
+					psi.EnvironmentVariables[name] = value;
+				}
+				else
+				{
+					psi.EnvironmentVariables.Remove(name);
+				}
 			}
 
 			// run the process

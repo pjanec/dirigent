@@ -506,7 +506,8 @@ namespace Dirigent
 			{
 				if( string.IsNullOrWhiteSpace(kv) ) // nothing present
 				{
-					throw new Exception($"Invalid SetVars format: {kv}");
+					//throw new Exception($"Invalid SetVars format: {kv}");
+					continue;
 				}
 
 				int equalSignIdx = kv.IndexOf("=");
@@ -531,8 +532,8 @@ namespace Dirigent
 
 		public static string EnvVarListToString( Dictionary<string,string>? varList )
 		{
-			if( varList is null ) return "";
-			return string.Join( "::", from x in varList select $"{x.Key}={x.Value}" );
+			if( varList is null ) return "<null>";
+			return "[" + string.Join( "::", from x in varList select $"{x.Key}={x.Value}" ) + "]";
 		}
 
 	}

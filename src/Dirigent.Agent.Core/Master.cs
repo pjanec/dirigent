@@ -340,7 +340,8 @@ namespace Dirigent
 
 				case StartPlanMessage m:
 				{
-					StartPlan( m.Sender, m.PlanName );
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					StartPlan( m.Sender, m.PlanName, vars );
 					break;
 				}
 
@@ -358,7 +359,8 @@ namespace Dirigent
 
 				case RestartPlanMessage m:
 				{
-					RestartPlan( m.Sender, m.PlanName );
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					RestartPlan( m.Sender, m.PlanName, vars );
 					break;
 				}
 
@@ -707,10 +709,11 @@ namespace Dirigent
 			_server.SendToSingle( msg, id.MachineId );
 		}
 
-		public void StartPlan( string requestorId, string planName )
+		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion. Null=no change from previously used vars.</param>
+		public void StartPlan( string requestorId, string planName, Dictionary<string,string>? vars=null )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Start( requestorId );
+			plan.Start( requestorId, vars );
 		}
 
 		public void StopPlan( string requestorId, string planName )
@@ -725,10 +728,11 @@ namespace Dirigent
 			plan.Kill( requestorId );
 		}
 
-		public void RestartPlan( string requestorId, string planName )
+		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion. Null=no change from vars used last time when app was started.</param>
+		public void RestartPlan( string requestorId, string planName, Dictionary<string,string>? vars=null )
 		{
 			var plan = _plans.FindPlan( planName ); // throws on error
-			plan.Restart( requestorId );
+			plan.Restart( requestorId, vars );
 		}
 
 		public void SetAppEnabled( string requestorId, string? planName, AppIdTuple id, bool enabled )

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace Dirigent
@@ -88,19 +89,28 @@ namespace Dirigent
 
         public void StartApp( AppDef appDef, bool resetRestartsToMax=true, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
         {
-            // don't do anything if the app is already running with same vars
+            log.DebugFormat("Start app {0} {1}, vars {2}", Id, flags, Tools.EnvVarListToString(vars) );
+            
+            // restart app if running with different vars than what we want right now
             if( Launcher != null && Launcher.Running )
             {
-                if( vars is not null && // we want to use our vars
-                    !DictionaryExtensions.DictionariesEqual( _vars, vars, null ) ) // and they are different from  the previous
+                if( vars is not null )
                 {
-                    RestartApp( vars );
-                    return;
+                    //// compare values (consider empty values as non-exiting variables)
+                    //var varsOrig = (from kv in _vars where !String.IsNullOrEmpty(kv.Value) select kv).ToDictionary( x=>x, y=>y );
+                    //var varsNew = (from kv in vars where !String.IsNullOrEmpty(kv.Value) select kv).ToDictionary( x=>x, y=>y );
+                    
+                    // we DO compare also empty variables (as they might delete something from the inherited environment )
+                    var varsOrig = _vars;
+                    var varsNew = vars;
+
+                    if( !DictionaryExtensions.DictionariesEqual( varsOrig, varsNew, null ) ) // and they are different from  the previous
+                    {
+                        log.Debug($"App {Id} new vars ({Tools.EnvVarListToString(vars)}) differ from last start {Tools.EnvVarListToString(_vars)}, triggering restart");
+                        RestartApp( vars );
+                    }
                 }
-                else // save vars and the app is already running => nothing needed
-                {
-                    return;
-                }
+                return;  // app is either running or just restarted, nothing more needed
             }
             
             // remember vars (only if some provided)
@@ -114,9 +124,6 @@ namespace Dirigent
 				AppState.RestartsRemaining = AppState.RESTARTS_UNITIALIZED;
 			}
 
-            log.DebugFormat("Starting app {0} {1}", Id, flags);
-
-            
             // launch the application
             AppState.Started = false;
             AppState.StartFailed = false;
@@ -126,7 +133,7 @@ namespace Dirigent
             // remove watchers that might have left from previous run
             _watchers.RemoveHavingFlags( IAppWatcher.EFlags.ClearOnLaunch );
 
-            Launcher = new Launcher( appDef, _sharedContext );
+            Launcher = new Launcher( appDef, _sharedContext, _vars );
 
             try
             {
@@ -215,6 +222,8 @@ namespace Dirigent
         /// <param name="vars">what env/macro vars to set for a process; null=no change</param>
         public void RestartApp( Dictionary<string, string>? vars )
         {
+            log.Debug( $"RestartApp {Id} vars {Tools.EnvVarListToString(vars)}" );
+
 			// kill (will do nothing if not running)
 			KillApp();
 

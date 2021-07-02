@@ -41,11 +41,13 @@ namespace Dirigent
 
         DateTime waitingStartTime;
         Plan _plan;
+        Dictionary<string,string>? _vars=null;
 		
-		public PlanRestarter( string requestorId, Plan plan )
+		public PlanRestarter( string requestorId, Plan plan, Dictionary<string,string>? vars=null )
 		{
             _requestorId = requestorId;
             _plan = plan;    
+            _vars = vars;
 
 			Reset();
         }
@@ -99,7 +101,7 @@ namespace Dirigent
 
                 case eState.Starting:
                 {
-					_plan.Start( _requestorId );
+					_plan.Start( _requestorId, _vars );
 
                     state = eState.Finished;
 					break;

@@ -7,7 +7,7 @@
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
-    <Version>3.0.0.17</Version>
+    <Version>3.0.0.18</Version>
     <Authors>pjanec</Authors>
 
     <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 

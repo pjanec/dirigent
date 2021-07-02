@@ -301,111 +301,130 @@ Command can be also entered interactively from the console:
 
     Dirigent.CLI.exe --masterIp 10.1.1.2 --mode telnet
 
-The commands are same as for the CLI TCP connection, see some examples below:
-
-    StartPlan plan1
-    
-    StopPlan plan1
-    
-    KillPlan plan1
-    
-    RestartPlan plan1
-    
-    LaunchApp m1.a
-     
-    LaunchApp m1.b@plan1
-    
-    KillApp m2.b
-    
-    RestartApp m1.a
-    
-    GetAppState m1.a
-    
-    GetAllPlansState
-    
-    SetVars VAR1=VALUE1::VAR2=VALUE2::VAR3=VALUE3
-    
-    KillApps
-    
-    ReloadSharedConfig
+The commands are same as for the CLI TCP connection, see the command reference for examples.
 
 Multiple commands on a single line can be separated by semicolon
 
     Dirigent.CLI.exe LaunchApp m1.a;StartPlan plan1
 
-## CLI control over TCP line-based connection
+## CLI Commands Reference
 
-Master is running a TCP server providing for controlling agents' operations.
+### StartPlan
 
-To send a command you can user a generic TCP socket from your app. Or use `Dirigent.CLI.exe` app for testing:
+Starts given plan, i.e. start launching apps according the plan rules
 
+  `StartPlan <planName> [<varlist>]` 
 
-TCP server allows multiple simultaneous clients. Server accepts single text line based requests from clients. Line separation character is `\n`. For each request the server sends back one or more status reply lines depending on the command type. Each request can be optionally marked with request id which is then used to mark appropriate response lines. Requests are buffered and processed sequentially, response may come later. Clients do not need to wait for a response before sending another request.
+If the varlist is specified, the variables are set to each app started from this plan.
 
-##### Request line format:
+If you want to clear the variable specified before, you pass '::' as a varlist.
 
-  `[optional-req-id] request command text till the end of line\n`
+##### Example
+    StartPlan plan1
+    StartPlan plan1 VAR1=VALUE1
+    StartPlan plan1 VAR1=VALUE1::VAR2=VALUE2
+    StartPlan plan1 ::
 
-##### Response line format:
+### StopPlan
 
-  `[optional-req-id] response text till the end of line\n`
+Stops starting next applications from the plan and evaluating the plan status.
 
-##### Request commands
+This DOES NOT kill any app! 
 
-  `StartPlan <planName>` .... starts given plan, i.e. start launching apps
+  `StopPlan <planName>`
 
-  `StopPlan <planName>` ..... stops starting next applications from the plan
+##### Example
+    StopPlan plan1
 
-  `KillPlan <planName>` ..... kills given plans (kills all its apps)
+### KillPlan
 
-  `RestartPlan <planName>` .. stops all apps and starts the plan again
+Kills given plans (kills all its apps)
 
-  `GetPlanState <planName>`  returns the status of given plan
+  `KillPlan <planName>` 
 
-  `GetAllPlansState` ..... returns one line per plan; last line will be "END\n"
+##### Example
+    KillPlan plan1
 
+### RestartPlan
 
+Kills all apps from the plan and starts the plan again.
 
-  `LaunchApp <appId>` ....... starts given app
+  `RestartPlan <planName> [<varlist>]` 
 
-  `LaunchApp <appId>@<planid>` ....... starts given app with the parameters as defined in given plan
+If the varlist is specified, the variables are set to each app started from this plan.
 
-  `KillApp <appId>` ......... kills given app
+If you want to clear the variable specified before, you pass '::' as a varlist.
 
-  `RestartApp <appId>` ...... restarts given app 
+##### Example
+    RestartPlan m1.a
+    RestartPlan m1.a VAR1=VALUE1
+    RestartPlan m1.a VAR1=VALUE1::VAR2=VALUE2
+    RestartPlan m1.a 
 
+### LaunchApp
+
+Starts given app
+
+  `LaunchApp <appId>[@<planid>] [<varlist>]`
+
+If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
+
+  `LaunchApp <appId>` 
+
+If the plan name is specified, starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
+
+  `LaunchApp <appId>@<planid>` 
+
+If the list of variables is present, those variables are passed as environment variable to the process started. They can also be used for expansion of the app's `CmdLineArgs` and `ExeFullPath` attributes in the SharedConfig.
+
+  `LaunchApp <appId> VAR1=VALUE1::VAR2=VALUE2`
+
+If the list of values is missing, the app is started with the most recently used variable list (the variables are not unset automatically!)
+
+If you want to clear the variable specified before, you pass '::' as a varlist. Or you specify the variable value as empty (VAR1=)
+
+  `LaunchApp <appId> ::`
+
+##### Examples
+
+    LaunchApp m1.a
+    LaunchApp m1.a VAR1=VALUE1
+    LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
+    LaunchApp m1.a@plan1
+    LaunchApp m1.a@plan1 VAR1=VALUE1::VAR2=VALUE2
+    LaunchApp m1.a VAR1=
+    LaunchApp m1.a ::
+
+### KillApp
+
+Kills given app
+
+  `KillApp <appId>`
+
+##### Example
+    KillApp m1.a
+
+### RestartApp
+
+Restarts given app. Optionally passing a new list of values.
+
+If the list of values is missing, the app is started with the most recent variables used.
+
+  `RestartApp <appId> [varlist]`
+
+If you want to clear the variable specified before, you pass '::' as a varlist. Or you specify the variable value as empty (VAR1=)
+
+##### Example
+    RestartApp m1.a
+    RestartApp m1.a VAR1=VALUE1
+    RestartApp m1.a VAR1=VALUE1::VAR2=VALUE2
+    RestartApp m1.a VAR1=
+    RestartApp m1.a ::
+
+### GetAppState
   `GetAppState <appName>`   returns the status of given app
 
-  `GetAllAppsState` ...... returns one line per application; last line will be "END\n"
-
-
-
-
-
-  `SetVars VAR=VALUE::VAR=VALUE` ...... sets environment variable(s) to be inherited by the processes launched afterwards (note that you can set multiple variables at once, separated by '::')
-
-  `KillAll` ...... kills all running apps on all computers, stops all plans
-
-  `ReloadSharedConfig` ...... tries to reload the shared config, optionally killing all apps before the reload
-
-
-
-
-
-##### Response text for GetPlanState
-
-  `PLAN:<planName>:None`
-
-  `PLAN:<planName>:InProgress`
-
-  `PLAN:<planName>:Failure`
-
-  `PLAN:<planName>:Success`
-
-  `PLAN:<planName>:Killing`
-
-
-##### Response text for GetAppState
+##### Response text
 
   `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>:<PlanName>`
 
@@ -433,31 +452,135 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 ###### ExitCode
 
-  Integer number    if exit code (valid only if app has exited, i.e. Started but not Running)
+Integer number of the last exit code. Valid only if app has exited, i.e. Started but not Running, zero otherwise.
 
 ###### StatusAge
 
-  Number of seconds since last update of the app state
+Number of seconds since last update of the app state
 
 ###### CPU
 
-[NOT IMPLEMENTED]  Integer percentage of CPU usage
+Integer percentage of CPU usage [NOT IMPLEMENTED, zero]
 
 ###### GPU
 
-[NOT IMPLEMENTED]    Integer percentage of GPU usage
+Integer percentage of GPU usage [NOT IMPLEMENTED, zero]
 
 ###### MemoryMB
 
-[NOT IMPLEMENTED]    Integer number of MBytes used
+Integer number of MBytes used  [NOT IMPLEMENTED, zero]
 
 
 ###### PlanName
 
   The name of plan in whose context the app was most recently launched.
 
+##### Example
 
-##### Response text for other commands
+  Request:   `GetAppState m1.a1`
+
+  Response:     `APP:m1.a:SIP:255:10:34:0:7623:plan1`
+
+
+
+
+### GetAllAppsState
+  `GetAllAppsState` ...... returns status of all apps known to dirigent 
+
+**Response text**
+
+One line per application (see GetAppState command). The last line is "END\n"
+
+    APP:m1.a:SIP:1:0:0:0:7623:plan1
+    APP:m1.b::0:0:0:7234:
+    END
+
+### GetPlanState
+
+Returns the status of given plan
+
+  `GetPlanState <planName>`  
+
+##### Response text
+
+  `PLAN:<planName>:<status>`
+
+##### Example
+
+  Request:   `GetPlanState plan1`
+
+  Response:     `PLAN:plan1:Success`
+
+### GetAllPlansState
+
+Gathers the status of all plans known to the Dirigent
+
+  `GetAllPlansState` 
+
+##### Response text
+
+Returns one line per plan; last line is "END\n"
+
+	PLAN:plan1:None
+	PLAN:plan2:Success
+	PLAN:plan3:Killing
+	END
+
+### SetVars
+
+Sets environment variable(s) to be inherited by the processes launched afterwards.
+
+Multiple variables can be set at once , separated by '::'.
+
+Once set, the environment variables stays set until they are changed. Each process started by Dirigent will inherit all those variables.
+
+To unset a variable, set it to an empty value (VAR1=)
+
+  `SetVars <varlist>`
+
+##### Examples
+
+	SetVars VAR1=VALUE1
+	SetVars VAR1=VALUE1::VAR2=VALUE2
+	SetVars VAR1=
+	SetVars VAR1=::VAR2=
+
+
+### KillAll
+
+Kills all running apps on all computers, stops all plans
+
+  `KillAll` 
+
+### ReloadSharedConfig
+
+Reloads the shared config.
+
+This does not affect the apps that are already running. Should the app definition change, it is applied the next time the app is started/restarted.
+
+  `ReloadSharedConfig`
+
+
+
+## CLI control over TCP line-based connection
+
+Master is running a TCP server providing for controlling agents' operations.
+
+To send a command you can user a generic TCP socket from your app. Or use `Dirigent.CLI.exe` app for testing:
+
+
+TCP server allows multiple simultaneous clients. Server accepts single text line based requests from clients. Line separation character is `\n`. For each request the server sends back one or more status reply lines depending on the command type. Each request can be optionally marked with request id which is then used to mark appropriate response lines. Requests are buffered and processed sequentially, response may come later. Clients do not need to wait for a response before sending another request.
+
+##### Request line format:
+
+  `[optional-req-id] request command text till the end of line\n`
+
+##### Response line format:
+
+  `[optional-req-id] response text till the end of line\n`
+
+
+##### Response text for non-query commands
 
   `ACK\n` ... command reception was acknowledged, command was issued
 
@@ -527,7 +650,38 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
   Response:     `ACK`
 
+## HTTP Server API
 
+Dirigent is running a simple web server on default port 8899, making Dirigent's features available also via the HTTP protocol.
+
+### GET /api/appdefs
+returns a list of all appdefs as JSON `[{'id':'m1.a'}, ...]`
+
+### GET /api/appdefs/m1.a
+returns a list of a specific appdefs as JSON `{'id':'m1.a'}`
+
+### GET /api/appstates
+returns a list of the state of all apps as JSON `[{'id':'m1.a', 'status':{'code':'Running', 'flags':'SIP'}}, ...]`
+
+### GET /api/appstates/m1.a
+returns a list of the state of given app as JSON `{'id':'m1.a', 'status':{'code':'Running', 'flags':'SIP'}}`
+
+### GET /api/plandefs
+returns a list of all plandefs as JSON `[{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]`
+
+### GET /api/plandefs/plan1
+returns plandef of a single given plan as JSON `{'name':'plan1', 'appDefs':[...]}`
+
+### GET /api/planstates
+returns a list of the state of all plans as JSON `[{'name':'plan1', 'status':{'code':'InProgress'}}, {'name':'plan2', status={'code':'None'}}]`
+
+### GET /api/planstates/plan1
+returns a state of a single plan as JSON `{'name':'plan1', 'status':{'code':'InProgress'}}`
+
+### POST /api/cli
+Executes a cli command sent as POST data; for example `StartApp m1.a`
+Returns same response as from the CLI command (see CLI command reference), for example `ACK`
+    
 
 ## Configuration
 

@@ -358,11 +358,24 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 1 )]
 		public String PlanName = string.Empty;
 
+		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public Dictionary<string,string>? Vars;
+
+		/// <summary>Do we want to set/change the variables for a processs?</summary>
+		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
+		[ProtoBuf.ProtoMember( 3 )]
+		public bool UseVars;
+
 		public StartPlanMessage() {}
-		public StartPlanMessage( string requestorId, String planName )
+
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
+		public StartPlanMessage( string requestorId, String planName, Dictionary<string,string>? vars=null )
 		{
 			this.Sender = requestorId;
 			this.PlanName = planName;
+			this.Vars = vars;
+			this.UseVars = vars is not null;
 		}
 
 		public override string ToString() { return string.Format( "StartPlan {0}", PlanName ); }
@@ -406,11 +419,23 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 1 )]
 		public string PlanName = string.Empty;
 
+		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public Dictionary<string,string>? Vars;
+
+		/// <summary>Do we want to set/change the variables for a processs?</summary>
+		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
+		[ProtoBuf.ProtoMember( 3 )]
+		public bool UseVars;
+
 		public RestartPlanMessage() {}
-		public RestartPlanMessage( string requestorId, String planName )
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
+		public RestartPlanMessage( string requestorId, String planName, Dictionary<string,string>? vars=null )
 		{
 			this.Sender = requestorId;
 			this.PlanName = planName;
+			this.Vars = vars;
+			this.UseVars = vars is not null;
 		}
 
 		public override string ToString() { return string.Format( "RestartPlan {0}", PlanName ); }

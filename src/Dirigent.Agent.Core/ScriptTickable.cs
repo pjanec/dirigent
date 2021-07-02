@@ -42,14 +42,14 @@ namespace Dirigent
 
 		// plans
 
-		public void StartPlan( string id )
+		public void StartPlan( string id, string? vars=null )
 		{
-			_master.Send( new Net.StartPlanMessage( string.Empty, id ) );
+			_master.Send( new Net.StartPlanMessage( string.Empty, id, vars:Tools.ParseEnvVarList(vars) ) );
 		}
 
-		public void RestartPlan( string id )
+		public void RestartPlan( string id, string? vars=null )
 		{
-			_master.Send( new Net.RestartPlanMessage( string.Empty, id ) );
+			_master.Send( new Net.RestartPlanMessage( string.Empty, id, vars:Tools.ParseEnvVarList(vars) ) );
 		}
 
 		public void KillPlan( string id )
