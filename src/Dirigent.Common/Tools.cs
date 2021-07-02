@@ -489,13 +489,19 @@ namespace Dirigent
 			return (id, args);
 		}
 
-		// format of string: VAR1=VALUE1::VAR2=VALUE2
-		// throws on error
-		public static Dictionary<string,string> ParseEnvVarList( string? vars )
+		/// <summary>
+		/// Parses the stringized value list into a dictionary.
+		/// Format of string: VAR1=VALUE1::VAR2=VALUE2
+		/// Throws on error!
+		/// </summary>
+		/// <param name="vars">if null, fucvtion returns null</param>
+		/// <returns>null if vars is null, otherwise valid dict object</returns>
+		public static Dictionary<string,string>? ParseEnvVarList( string? vars )
 		{
+			if( vars is null ) return null;
+
 			// split & parse
 			var varList = new Dictionary<string,string>();
-			if( vars is null ) return varList;
 			foreach( var kv in vars.Split(new string[] { "::" }, StringSplitOptions.None))
 			{
 				if( string.IsNullOrWhiteSpace(kv) ) // nothing present

@@ -25,9 +25,9 @@ namespace Dirigent
 			_master.Send( new Net.StartAppMessage( string.Empty, new AppIdTuple(id), planName, flags:0, vars:Tools.ParseEnvVarList(vars) ) );
 		}
 
-		public void RestartApp( string id )
+		public void RestartApp( string id, string? vars=null )
 		{
-			_master.Send( new Net.RestartAppMessage( string.Empty, new AppIdTuple(id) ) );
+			_master.Send( new Net.RestartAppMessage( string.Empty, new AppIdTuple(id), vars:Tools.ParseEnvVarList(vars) ) );
 		}
 
 		public void KillApp( string id )

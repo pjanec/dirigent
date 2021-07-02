@@ -44,6 +44,10 @@ namespace Dirigent
 
         private SharedContext _sharedContext;
 
+		// extra vars last time used when starting an app
+        public Dictionary<string,string> _vars = new();
+
+
 
 		public LocalApp( AppDef ad, SharedContext sharedContext )
 		{
@@ -76,6 +80,7 @@ namespace Dirigent
         /// Launch the app with the "upcoming" app definition that replaces the "Recent" one
         /// on successful launch.
         /// </summary>
+        /// <param name="vars">what env/macro vars to set for a process; null=no change from prev start</param>
         public void StartApp( bool resetRestartsToMax=true, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
         {
             StartApp( UpcomingAppDef, resetRestartsToMax, flags, vars );
@@ -83,10 +88,25 @@ namespace Dirigent
 
         public void StartApp( AppDef appDef, bool resetRestartsToMax=true, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
         {
-            // don't do anything if the app is already running
+            // don't do anything if the app is already running with same vars
             if( Launcher != null && Launcher.Running )
             {
-                return;
+                if( vars is not null && // we want to use our vars
+                    !DictionaryExtensions.DictionariesEqual( _vars, vars, null ) ) // and they are different from  the previous
+                {
+                    RestartApp( vars );
+                    return;
+                }
+                else // save vars and the app is already running => nothing needed
+                {
+                    return;
+                }
+            }
+            
+            // remember vars (only if some provided)
+            if( vars is not null )
+            {
+                _vars = vars;
             }
 
 			if( resetRestartsToMax )
@@ -177,7 +197,7 @@ namespace Dirigent
 					    {
 						    // Activate restarter, continue counting down the number of remaining restarts
 						    // as set in appState.RestartsRemaining.
-                            _watchers.ReinstallWatcher( new AppRestarter( this, true ) );
+                            _watchers.ReinstallWatcher( new AppRestarter( this, true, vars:vars ) );
 					    };
                         _watchers.ReinstallWatcher( ar );
                     }
@@ -192,14 +212,15 @@ namespace Dirigent
             }
         }
 
-        public void RestartApp()
+        /// <param name="vars">what env/macro vars to set for a process; null=no change</param>
+        public void RestartApp( Dictionary<string, string>? vars )
         {
 			// kill (will do nothing if not running)
 			KillApp();
 
 	        // setup restarter (reset to MAX tries)
 			AppState.RestartsRemaining = AppState.RESTARTS_UNITIALIZED; // will reset to max tries
-            _watchers.ReinstallWatcher( new AppRestarter( this, waitBeforeRestart: false ) ); // restart immediately (no waiting)
+            _watchers.ReinstallWatcher( new AppRestarter( this, waitBeforeRestart: false, vars:vars ) ); // restart immediately (no waiting)
         }
 
         public void KillApp( Net.KillAppFlags flags=0 )

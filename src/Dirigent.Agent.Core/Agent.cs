@@ -122,7 +122,8 @@ namespace Dirigent
 				case Net.StartAppMessage m:
 				{
 					var la = _localApps.FindApp( m.Id );
-					la.StartApp( flags: m.Flags, vars:m.Vars );
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					la.StartApp( flags: m.Flags, vars: vars );
 					break;
 				}
 
@@ -136,7 +137,8 @@ namespace Dirigent
 				case Net.RestartAppMessage m:
 				{
 					var la = _localApps.FindApp( m.Id );
-					la.RestartApp();
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					la.RestartApp( vars );
 					break;
 				}
 
@@ -191,6 +193,7 @@ namespace Dirigent
 			{
 				// split & parse
 				var varList = Tools.ParseEnvVarList( vars );
+				if( varList is null ) return;
 
 				// apply
 				foreach( var kv in varList )

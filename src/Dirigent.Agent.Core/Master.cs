@@ -313,7 +313,8 @@ namespace Dirigent
 
 				case StartAppMessage m:
 				{
-					StartApp( m.Sender, m.Id, m.PlanName, m.Flags, m.Vars );
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					StartApp( m.Sender, m.Id, m.PlanName, m.Flags, vars );
 					break;
 				}
 
@@ -325,7 +326,8 @@ namespace Dirigent
 
 				case RestartAppMessage m:
 				{
-					RestartApp( m.Sender, m.Id );
+					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
+					RestartApp( m.Sender, m.Id, vars );
 					break;
 				}
 
@@ -649,7 +651,7 @@ namespace Dirigent
 		/// </summary>
 		/// <param name="id">App to run</param>
 		/// <param name="planName">The plan the app belongs to. null=none (use default app settings), Empty=current plan, non-empty=specific plan name.</param>
-		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion</param>
+		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion. Null=no change from previously used vars.</param>
 		public void StartApp( string requestorId, AppIdTuple id, string? planName, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
 			// load app def from given plan if a plan is specified
@@ -698,9 +700,10 @@ namespace Dirigent
 		/// <summary>
 		/// Sends app restart command directly to owning agent.
 		/// </summary>
-		public void RestartApp( string requestorId, AppIdTuple id )
+		/// <param name="vars">Additional env vars to be set for a process; also set as local vars for use in macro expansion. Null=no change from previously used vars.</param>
+		public void RestartApp( string requestorId, AppIdTuple id, Dictionary<string,string>? vars=null )
 		{
-			var msg = new Net.RestartAppMessage( requestorId, id );
+			var msg = new Net.RestartAppMessage( requestorId, id, vars );
 			_server.SendToSingle( msg, id.MachineId );
 		}
 

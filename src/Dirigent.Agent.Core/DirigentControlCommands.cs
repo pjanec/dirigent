@@ -173,7 +173,15 @@ namespace Dirigent.Commands
 			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
 			var (id, planName) = Tools.ParseAppIdWithPlan( args[0] );
 			if( id.AppId == "" ) ThrowAppIdTupleSyntax(args[0]);
-			ctrl.RestartApp( _requestorId, id );
+
+			Dictionary<string, string>? vars = null;
+			if( args.Count > 1 )
+			{
+				try { vars = Tools.ParseEnvVarList(args[1]); }
+				catch { throw new ArgumentSyntaxErrorException( "extraVars", args[1], "expected VAR1=VAL1::VAR2==VAL2" ); }
+			}
+
+			ctrl.RestartApp( _requestorId, id, vars );
 			WriteResponse( "ACK" );
 		}
 	}

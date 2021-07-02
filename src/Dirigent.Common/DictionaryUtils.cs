@@ -5,16 +5,23 @@ namespace Dirigent
 {
 
 	// https://stackoverflow.com/questions/3928822/comparing-2-dictionarystring-string-instances
-	static class DictionaryExtensions
+	public static class DictionaryExtensions
 	{
 		public static bool DictionaryEqual<TKey, TValue>(
-			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second )
+			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue>? second )
 		{
 			return first.DictionaryEqual( second, null );
 		}
 
 		public static bool DictionaryEqual<TKey, TValue>(
-			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second,
+			this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue>? second,
+			IEqualityComparer<TValue>? valueComparer )
+		{
+			return DictionariesEqual( first, second, valueComparer );
+		}
+
+		public static bool DictionariesEqual<TKey, TValue>(
+			IDictionary<TKey, TValue>? first, IDictionary<TKey, TValue>? second,
 			IEqualityComparer<TValue>? valueComparer )
 		{
 			if( first == second ) return true;

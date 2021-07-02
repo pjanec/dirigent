@@ -212,13 +212,17 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 3 )]
 		public StartAppFlags Flags;
 
-		/// <summary>
-		/// Env vars to be set for a process; also set as local vars for use in macro expansion
-		/// </summary>
+		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
 		[ProtoBuf.ProtoMember( 4 )]
 		public Dictionary<string,string>? Vars;
 
+		/// <summary>Do we want to set/change the variables for a processs?</summary>
+		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
+		[ProtoBuf.ProtoMember( 5 )]
+		public bool UseVars;
+
 		public StartAppMessage() {}
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
 		public StartAppMessage( string requestorId, AppIdTuple id, string? planName, StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
 			this.Sender = requestorId;
@@ -226,6 +230,7 @@ namespace Dirigent.Net
 			this.PlanName = planName;
 			this.Flags = flags;
 			this.Vars = vars;
+			this.UseVars = vars is not null;
 		}
 
 		public override string ToString()
@@ -274,11 +279,24 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 1 )]
 		public AppIdTuple Id;
 
+		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public Dictionary<string,string>? Vars;
+
+		/// <summary>Do we want to set/change the variables for a processs?</summary>
+		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
+		[ProtoBuf.ProtoMember( 3 )]
+		public bool UseVars;
+
+
 		public RestartAppMessage() {}
-		public RestartAppMessage( string requestorId, AppIdTuple id )
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
+		public RestartAppMessage( string requestorId, AppIdTuple id, Dictionary<string,string>? vars=null )
 		{
 			this.Sender = requestorId;
 			this.Id = id;
+			this.Vars = vars;
+			this.UseVars = vars is not null;
 		}
 		public override string ToString()
 		{

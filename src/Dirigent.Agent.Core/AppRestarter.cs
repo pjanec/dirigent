@@ -33,6 +33,9 @@ namespace Dirigent
         private AppDef _appDef;
         private AppState _appState; // reference to a live writable appState - we will modify it here
 
+		// null = no change in the variables (the ones from most recent StartApp will be applied)
+		private Dictionary<string, string>? _vars;
+
         private enum eState 
         {
             Init,
@@ -52,11 +55,13 @@ namespace Dirigent
         double RESTART_DELAY = 1.0; // how long to wait before restarting the app
         int MAX_TRIES = -1; // how many times to try restarting before giving up; -1 = forever
 
-		public AppRestarter( LocalApp app, bool waitBeforeRestart )
+        /// <param name="vars">what env/macro vars to set for a process; null=no change</param>
+		public AppRestarter( LocalApp app, bool waitBeforeRestart, Dictionary<string, string>? vars )
 		{
 			_app = app;
 			_appDef = _app.RecentAppDef;
 			_appState = _app.AppState;
+			_vars = vars;
 
             parseXml();
 
@@ -157,7 +162,7 @@ namespace Dirigent
 					if( launch )
 					{
 						// start the app again (and leave the number of restarts as is)
-						_app.StartApp( false );
+						_app.StartApp( false, vars:_vars );
 					}
 					
 					// deactivate itself
