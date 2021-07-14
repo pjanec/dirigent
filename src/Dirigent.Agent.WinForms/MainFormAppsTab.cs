@@ -306,7 +306,11 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
+					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
+						_ctrl.Name,
+						id,
+						Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+					)));
 					launchItem.Enabled = isAccessible && !st.Running;
 					popup.Items.Add( launchItem );
 
@@ -367,7 +371,11 @@ namespace Dirigent.Gui.WinForms
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
+							guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
+								_ctrl.Name,
+								id,
+								Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+							)));
 						}
 					}
 
@@ -419,7 +427,11 @@ namespace Dirigent.Gui.WinForms
 						var id = new AppIdTuple( focused.Cells[0].Value as string );
 						var st = _ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.Send( new Net.StartAppMessage( _ctrl.Name, id, null ) ) );
+						guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
+							_ctrl.Name,
+							id,
+							Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+						) ) );
 					}
 				}
 			}

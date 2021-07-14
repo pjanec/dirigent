@@ -536,6 +536,20 @@ namespace Dirigent
 			return "[" + string.Join( "::", from x in varList select $"{x.Key}={x.Value}" ) + "]";
 		}
 
+		public static bool IsAppInPlan( IDirig iDirig, AppIdTuple appId, PlanDef? planDef )
+		{
+			if( planDef is null ) return false; // the plan does not exists
+			var appDef = planDef.AppDefs.Find( x => x.Id == appId );
+			return appDef is not null; // app is part of the plan
+		}
+
+		public static bool IsAppInPlan( IDirig iDirig, AppIdTuple appId, string? planId )
+		{
+			if( planId is null ) return false;
+			var planDef = iDirig.GetPlanDef( planId );
+			return IsAppInPlan( iDirig, appId, planDef );
+		}
+
 	}
 
 }
