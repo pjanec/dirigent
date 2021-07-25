@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0-windows</TargetFramework>
     <Product>Dirigent</Product>
-    <Version>3.0.0.19</Version>
+    <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
     <Authors>pjanec</Authors>
   </PropertyGroup>
 

@@ -16,7 +16,9 @@
 
 [TODO] SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
 
-[TODO] Terminate, Shutdown, Reinstall - are they worth the effort? Who needs them?
+[DONE] Terminate, Shutdown
+
+[TODO] Reinstall - is it wort the effort? Who needs it?
 
 [BUG] When RemoteOperError Message box appears and gets closed, exception happens (iteration variable changed)
 
@@ -29,15 +31,15 @@
 
 [DONE] WebServer REST API on master for querying the defs/statuses, extended to allow firing commands
 
-    GET /api/plan/def ... list of all plandefs [{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]
+    GET /api/plandefs ... list of all plandefs [{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]
 
-    GET /api/plan/def/plan1 ... plandef of a single given plan {'name':'plan1', 'appDefs':[...]}
-    GET /api/plan/def?name="plan1"
+    GET /api/plandefs/plan1 ... plandef of a single given plan {'name':'plan1', 'appDefs':[...]}
+    GET /api/plandefs?name="plan1"
 
-    GET /api/plan/state ... list of the state of all plans [{'name':'plan1', 'status':{'code':'InProgress'}, {'name':'plan2', status={'code':'None'}}]
+    GET /api/planstates ... list of the state of all plans [{'name':'plan1', 'status':{'code':'InProgress'}, {'name':'plan2', status={'code':'None'}}]
     
-    GET /api/plan/state/plan1 ... state of a single plan {'code':'InProgress'}
-    GET /api/plan/state?name="plan1"
+    GET /api/planstates/plan1 ... state of a single plan {'code':'InProgress'}
+    GET /api/planstates?name="plan1"
 
     POST /api/cmd/StartApp/m1.a ... response on success: {}; response on failure: {error:{text:'error text'}}
     POST /api/cmd/StartApp?id=m1.a&plan=plan1

@@ -7,8 +7,8 @@ Param( $buildconf="Release" )
 $version = (Get-Content -path "$PSScriptRoot\version.txt")
 & "$PSScriptRoot\gen-ver-stamp.ps1" "$PSScriptRoot\VersionStamp.txt" $version
 
-# bake the new version to all projects
-& "$PSScriptRoot\update_version.ps1"
+# set the verison for the build processes started below
+$env:RELEASE_VERSION = $version
 
 # rebuld & publish for all platforms
 
