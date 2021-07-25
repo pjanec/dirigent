@@ -203,8 +203,9 @@
             this.reloadToolStripMenuItem,
             this.killToolStripMenuItem1,
             this.powerToolStripMenuItem1,
-            this.exitToolStripMenuItem,
-            this.reinstallToolStripMenuItem});
+            this.exitToolStripMenuItem//,
+            //this.reinstallToolStripMenuItem
+            });
 			this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
 			this.toolsToolStripMenuItem.Size = new System.Drawing.Size(78, 34);
 			this.toolsToolStripMenuItem.Text = "Tools";

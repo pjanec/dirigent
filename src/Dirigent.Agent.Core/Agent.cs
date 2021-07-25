@@ -153,6 +153,18 @@ namespace Dirigent
 					SetVars( m.Vars );
 					break;
 				}
+
+				case Net.ShutdownMessage m:
+				{
+					Shutdown( m.Args );
+					break;
+				}
+
+				case Net.TerminateMessage m:
+				{
+					Terminate( m.Args );
+					break;
+				}
 			}
 		}
 
@@ -218,6 +230,61 @@ namespace Dirigent
 			}
 		}
 
+        public void Terminate( TerminateArgs args )
+        {
+			if( !String.IsNullOrEmpty( args.MachineId ) && _clientIdent.Sender != args.MachineId )
+				return;
+
+	        log.DebugFormat("Terminate killApps={0} machineId={1}", args.KillApps, args.MachineId);
+
+			if( args.KillApps )
+			{
+				KillAllLocalAppsNoWait();
+			}
+
+			// terminate dirigent agent
+			AppMessenger.Instance.Send( new Dirigent.AppMessages.ExitApp() );
+        }
+
+        public void Shutdown( ShutdownArgs args )
+        {
+	        log.DebugFormat("Shutdown mode={0}", args.Mode.ToString());
+
+			string procName = "";
+			string cmdl = "";
+
+			#if Windows
+				procName = "shutdown.exe";
+				if( args.Mode == EShutdownMode.PowerOff ) cmdl="-s -t 0";
+				if( args.Mode == EShutdownMode.Reboot ) cmdl="-r -t 0";
+			#endif 
+			
+			#if Linux
+				procName = "sudo";
+				if( args.Mode == EShutdownMode.PowerOff )
+				{
+					cmdl="shutdown now";
+				}
+				if( args.Mode == EShutdownMode.Reboot )
+				{
+					cmdl="shutdown -r now";
+				}
+			#endif 
+
+			var psi = new System.Diagnostics.ProcessStartInfo(procName, cmdl);
+			psi.UseShellExecute = true;
+            log.DebugFormat("StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\"", psi.FileName, psi.Arguments, psi.WorkingDirectory );
+			System.Diagnostics.Process.Start(psi);
+        }
+
+
+		void KillAllLocalAppsNoWait()
+		{
+			foreach( var la in _localApps.Apps.Values )
+			{
+				la.KillApp();
+			}
+		}
 
 	}
 }

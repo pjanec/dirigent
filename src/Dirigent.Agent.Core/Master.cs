@@ -409,6 +409,24 @@ namespace Dirigent
 					}
 					break;
 				}
+
+				case SetVarsMessage m:
+				{
+					SetVars( m.Sender, m.Vars );
+					break;
+				}
+
+				case TerminateMessage m:
+				{
+					Terminate( m.Sender, m.Args );
+					break;
+				}
+
+				case ShutdownMessage m:
+				{
+					Shutdown( m.Sender, m.Args );
+					break;
+				}
 			}
 
 		}
