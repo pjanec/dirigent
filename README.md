@@ -278,6 +278,9 @@ For a script that is not running, a special text string `None` is returned.
 - **Set Vars.** Sets an environment variable(s) for the Dirigent process. They can be used for expansion in the applications' exe paths, command lines and other places.
 - **Kill All.** Kills all running apps on all computers and stops all running plans. Kind of a 'central stop' feature.
 - **Reload Shared Config.** Tries to reload the shared config containing the plan and app definitions.
+- **Reboot All.** Reboots all computers where Dirigent agent is running.
+- **Shutdown All.** Shuts down all computers where Dirigent agent is running.
+- **Terminate Agents.** Kill the dirigent agents on all the computers. To be used before reinstalling the dirigent app.
 
 
 ### Dirigent.Agent
@@ -560,7 +563,40 @@ This does not affect the apps that are already running. Should the app definitio
 
   `ReloadSharedConfig`
 
+### Shutdown
 
+Reboots or shuts down all computers where the dirigent agent is running
+
+ `Shutdown mode=PowerOff|Reboot`
+
+##### Examples
+
+	Shutdown mode=PowerOff
+	Shutdown mode=Reboot
+
+### Terminate
+
+Terminates Dirigent agents on the computers, optionally killing all the apps managed by the Dirigent. To be used before reinstalling the dirigent app.
+
+ `Terminate [killApps=0|1] [machineId=<machineId>]`
+
+If *killApps* option is "1", Dirigent tries to kill all apps before terminating itself. Default = "0".
+
+Warning: Dirigent does not make sure the apps really get killed. It terminates itself right after issuing the kill command to the operating system for each of the running app managed by the Dirigent.
+
+If *machineId* options is given, terminates the agent just on that machine. Of empty or missing, the Dirigent terminates it agents and GUIs on all machines. Default: empty.
+
+##### Examples
+
+	Terminate
+	Terminate killApps=1
+	Terminate machineId=PC-1
+	Terminate machineId=PC-1 killApps=1
+
+
+### 
+
+## 
 
 ## CLI control over TCP line-based connection
 
