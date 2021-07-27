@@ -370,13 +370,17 @@ Starts given app
 
   `LaunchApp <appId>[@<planid>] [<varlist>]`
 
-If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
-
   `LaunchApp <appId>` 
 
-If the plan name is specified, starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
+If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
 
   `LaunchApp <appId>@<planid>` 
+
+If the plan name is specified after the ampersand character, Dirigent starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
+
+  `LaunchApp <appId>@` 
+
+If an empty plan is explicitly specified (ampersand character present but no plan name follows), Dirigent uses the standalone app definition if available (see Standalone apps description - they are the `<app>` elements defined outside of any plan in the SharedConfig.xml) 
 
 If the list of variables is present, those variables are passed as environment variable to the process started. They can also be used for expansion of the app's `CmdLineArgs` and `ExeFullPath` attributes in the SharedConfig.
 
@@ -394,6 +398,7 @@ If you want to clear the variable specified before, you pass '::' as a varlist. 
     LaunchApp m1.a VAR1=VALUE1
     LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
     LaunchApp m1.a@plan1
+    LaunchApp m1.a@
     LaunchApp m1.a@plan1 VAR1=VALUE1::VAR2=VALUE2
     LaunchApp m1.a VAR1=
     LaunchApp m1.a ::
@@ -784,20 +789,47 @@ Shared configuration is stored in the `SharedConfig.xlm` file. The location of t
 
 Shared config file is mandatory. Dirigent agent executable in master mode won't start without it.
 
+#### Basic structure
 
-#### Launch plan
+The file defines
 
-Launch plan comprises just a list of apps to be launched in given order. Multiple parallel plans can be active at a time.
+* Standalone apps
+* Plans and apps inside them
+* Scripts
 
-##### `<plan/>` element
+```
+<Shared>
+    <App ... />
+    <App ... />
 
-* `StartTimeout` - time in seconds before an unsuccessfully running plan is reported as *Failed*. Unsuccessful means that
-  * Non-volatile apps (that should be running all the time) is not running or has not initialized yet.
-  * Volatile apps have not yet been started, initialized or finished.
+    <Script ... />
+    <Script ... />    
 
-##### `<app/>` element
+    <Plan ... >
+        <App ... />
+        <App ... />
+    <Plan/>  
 
-Each app in the launch plan has the following attributes:
+    <Plan ... >
+        <App ... />
+        <App ... />
+    <Plan/>  
+</Shared>
+```
+
+#### App definitions
+
+##### `<App/>` element
+
+Example:
+
+```
+<App AppIdTuple = "m1.a" ExeFullPath = "c:\windows\notepad.exe" StartupDir = "c:\" CmdLineArgs = "C:\file1.txt"/>
+```
+
+
+
+Attributes:
 
 - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
 
@@ -851,108 +883,161 @@ Each app in the launch plan has the following attributes:
 App sub-sections:
 
 - `SoftKill`
-  
-        <SoftKill>
-           <Keys Timeout="1.5" Keys="^(c)"/>
-           <Close Timeout="0.7"/>
-        </SoftKill>
-  
+
+      <SoftKill>
+         <Keys Timeout="1.5" Keys="^(c)"/>
+         <Close Timeout="0.7"/>
+      </SoftKill>
+
   Defines a a sequence of "soft" attempts to terminate a process. Dirigent try to terminate the process using the actions from the sequence, starting with the first one defined.
-  
+
   If the action fail (the process is not terminated within defined timeout), next action (presumably more severe) is tried.
-  
+
   Only if all actions fail, the process is killed in the hard way.
-  
+
   If an extra Kill command is issued while the process is being attempted to be terminated in the soft way, the process is killed immediately in the hard way (impatient kill.)
 
   Note: The *KillTree* option in NOT applied if Dirigent succeeded to terminate the process in one of the soft ways.
 
   Sub-sections:
-  
+
   - `Keys` - send one or more keys to the main window. See Window.Forms.SendKeys manual for the key name format. 
 
   - `Close` - emulates the close command sent to the main window.
 
 
 - `WindowPos`
-  
+
       <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
-  
+
   Finds a window belonging to the application by its title using regular expression search. Affects window settings (position, z-order etc.)
-  
+
   The window must belong to the started process or to its first-level child processes. This allows for launching a batch file and starting the target process from there.
-  
+
   There can be multiple WindowPos sections defined for one application.
-  
+
   Attributes:
-  
+
   - `TitleRegExp` - regular expression to search in the window title. This is the only mandatory attribute, the rest of attributes are optional.
-  
+
   - `Rect` - desired screen coordinates [left,top,width,height] of the window relative to the given screen. All zeros means 'not set' and behaves as if not specified at all. 
-  
+
   - `Screen` - screen number to place the window at; 0=main screen (default)
-  
+
   - `Keep` - 0/1 whether to keep applying the coordinates in short regular intervals, i.e. to force the window to stay at given coordinates. If not set, the first successful search for
-  
+
   - `SendToBack` - 0/1 whether to put window below all other windows, i.e. to avoid popping up
-  
+
   - `BringToFront` - 0/1 whether to put window to the foreground and activate it; usefel in combination with Keep="1" to keep the window visible and focused
-  
+
   - `TopMost` - 0/1 whether to make the window 'Always on top'
-  
+
   - `WindowStyle` - "normal" | "minimized" | "maximized" | "hidden"
-  
+
   If used in a template, the WindowPos definition is added to all application using this template.
-  
+
   - `InitDetectors`
-    
+
     <InitDetectors>
         <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
         <TimeOut>5.0</TimeOut>
       </InitDetectors>
-  
+
   Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*  
-  
+
   If multiple detectors are defined, the first one whose condition is satisfied marks the app as initialized.
 
 - `Env`
-  
+
       <Env>
         <Set Variable="TMP" Value="C:\TEMP" />
         <Set Variable="TEMP" Value="C:\TEMP" />
         <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
         <Local Variable="P1" Value="myLocalParam1" />
       </Env>
-  
+
   Modifies the environment variables for the started process, taking the Dirigent Agent's startup environment as a basis.
-  
+
   Existing environment variables can be set to a new value. Non-existing will be created, existing will be overwritten.
-  
+
   Specific support for PATH variable allows prepending or appending given string to PATH.
-  
+
   Attributes:
-  
+
   - `Set` - set given variable to a new value. Both attributes `Variable` and `Name` are mandatory. Environment variables in form of %VARNAME% contained in the Value are expanded using Agent's current environment.
   - `Path` - if attribute `Prepend` is present, prepends its value at the beginning of the PATH variable. if attribute `Append` is present, appends its value at the end of the PATH variable. Environment variables contained in the `Prepend` or `Append` attribute values in form of %VARNAME% are expanded using Agent's current environment. Relative paths are considered relative to the location of the shared config file and are converted to absolute paths.
   - `Local` - set Dirigent's internal variable to given value. The variable can be used for expansion inside process exe path and command line similarly as the env vars but is not propagated to the process environment.
-  
+
 - `Restarter`
-  
+
       <Restarter maxTries="2" delay="5"/>
-  
+
   This settings specifies the parameters of the restart service which is activated upon application crash (when the app terminates without being killed via Dirigent). Such service is enabled only if  `RestartOnCrash='1'`.
-  
+
   Dirigent will try to restart a crashed app for given number of times before it gives up. Upon crash, Dirigent waits for specified time before a restart attempt is made.
-  
+
   Attributes:
 
   - `maxTries` - how many restart attempts are made before the Dirigent gives up restarting. -1 means 'try forever'. Default is -1.
   - `delay` - how long time in seconds to wait before the Dirigent attempts to restart a crashed app. Default is 1 sec.
 
   Upon an `StartPlan` or `LaunchApp` request the number of remaining restart attempts is reset to the `maxTries` value.
-  
+
   `KillApp` or `KillPlan` requests deactivate any pending restart operation.
 
+#### Standalone app definitions
+
+Applications can be defined either as part of a plan (see below) or as a "standalone" `<App/>` elements outside of a plan.
+
+The standalone ones are useful in cases like
+
+1. The app does not belong to any plan
+2. The app within the plan uses different settings than the standalone app
+
+Default 
+
+
+#### Launch plan
+
+Launch plan comprises just a list of apps to be launched in given order. Multiple parallel plans can be active at a time.
+
+##### `<Plan/>` element
+
+Example
+
+```
+<Plan Name="plan1" StartTimeout="10">
+```
+
+Attributes
+
+* `StartTimeout` - time in seconds before an unsuccessfully running plan is reported as *Failed*. Unsuccessful means that
+  * Non-volatile apps (that should be running all the time) is not running or has not initialized yet.
+  * Volatile apps have not yet been started, initialized or finished.
+
+##### `<App/>` sub elements of the `<Plan>` element
+
+Define what apps belong to the plan. Located inside the plan definition like in the following example
+
+App element have same format and meaning as the "standalone" `<App/>` elements defined outside of a plan.
+
+#### Script definitions
+
+##### `<Script/>` element
+
+Example:
+
+```
+<Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
+```
+
+ Script element has the following attributes:
+
+- `Name` - unique text id of the script instance;
+
+- `File` - script's file path; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
+
+- `Args` - command line arguments string passed to the script; available via the `Args` member variable of the script class.
 
 ### Utility Plans vs. standard plans
 

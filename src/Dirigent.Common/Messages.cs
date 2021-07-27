@@ -200,8 +200,8 @@ namespace Dirigent.Net
 
 		/// <summary>
 		/// From what plan the app def should be taken.
-		///    null= no plan (use defaults)
-		///    empty = last plan applied to this app
+		///    null = last plan applied to this app
+		///    empty = no plan (use default app def if exist)
 		///    non-empty = plan name to take the appdef from
 		/// This is used when the command is sent from gui to master.
 		/// Must be always null if sent from master to agent (agent does not know about plans anyway)

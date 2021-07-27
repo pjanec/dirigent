@@ -675,22 +675,22 @@ namespace Dirigent
 		public void StartApp( string requestorId, AppIdTuple id, string? planName, Net.StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
 			// load app def from given plan if a plan is specified
-			if( planName != null && planName != string.Empty )
+			if( !String.IsNullOrEmpty(planName) )
 			{
 				var app = _plans.FindAppInPlan( planName, id );
 
 				// this sends app def to agent if different from the previous
 				_allAppDefs.AddOrUpdate( app.Def );
 			}
-			else// load from defaults 
-			if( planName is null )
+			else// empty plan name = load from default app defs
+			if( planName is not null && String.IsNullOrEmpty(planName) )
 			{
 				if( _defaultAppDefs.TryGetValue( id, out var appDef ) )
 				{
 					_allAppDefs.AddOrUpdate( appDef );
 				}
 			}
-			else // plan name empty, keep recent app def
+			else // plan name is null, keep recently used app def
 			{
 				// nothing to do, app defs are already loaded, no change
 			}

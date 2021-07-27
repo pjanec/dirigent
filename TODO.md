@@ -1,3 +1,5 @@
+[DONE] LaunchApp without specifying a plan should use app def from last used plan. If empty string ("LaunchApp m1.a@"), force the default appdef if defined.
+
 [TODO] HTTP port as a command line argument.
 [TODO] bind web server to any interface.
 [BUG] Publishing of ClientStateMessage by the agent each frame causes stack overflow on deserialization in master in case of SharedConfig.xml.HUGE. Without the agents publishing ClientStateMessage it works... It fails only for message sent from an agent running in a separate process. Same message from an agent embedded with the master in Dirigent.Agent.exe does not cause this problem. Fortunately sending the ClientStateMessage from the agent is not necessary for giving just Connected/Disconnected feedback so it was removed.
