@@ -68,7 +68,7 @@
     	</App>
     </Plan>
 
-    <Plan Name="plan2"  Groups="Test1">
+    <Plan Name="plan2"  Groups="Test1" ApplyOnSelect="1">
     	<App
     	    AppIdTuple = "m1.b"
     		Template = "apps.notepad"

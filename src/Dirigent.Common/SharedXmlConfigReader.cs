@@ -254,6 +254,10 @@ namespace Dirigent
 
 				var groups = p.Attribute( "Groups" )?.Value ?? string.Empty;
 
+				var applyOnStart = X.getBoolAttr( p, "ApplyOnStart", false, true );
+
+				var applyOnSelect = X.getBoolAttr( p, "ApplyOnSelect", false, true );
+
 				// check if everything is valid
 				int index = 1;
 				foreach( var a in apps )
@@ -279,7 +283,9 @@ namespace Dirigent
 						Name = planName,
 						AppDefs = apps,
 						StartTimeout = startTimeout,
-						Groups = groups
+						Groups = groups,
+						ApplyOnStart = applyOnStart,
+						ApplyOnSelect = applyOnSelect
 					}
 				);
 			}

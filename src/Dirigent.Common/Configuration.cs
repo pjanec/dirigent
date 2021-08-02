@@ -35,6 +35,15 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 5 )]
 		public string Groups = string.Empty;
 
+		// update app def of all contained apps when the plan is started
+		[ProtoBuf.ProtoMember( 6 )]
+		public bool ApplyOnStart;
+
+		// update app def of all contained apps when the plan is selected on GUI
+		[ProtoBuf.ProtoMember( 7 )]
+		public bool ApplyOnSelect;
+		
+
 		public bool Equals( PlanDef other )
 		{
 			if( other == null )

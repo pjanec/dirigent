@@ -1,7 +1,13 @@
-[DONE] LaunchApp without specifying a plan should use app def from last used plan. If empty string ("LaunchApp m1.a@"), force the default appdef if defined.
+[IDEA] Single selected plan from all GUIs (optional). Dirigent could be configured to distribute the Selected Plan to all its GUIs, meaning all GUIS will share the same selected plan. This might be useful for example for development purposes with multiple computers.
+
+[IDEA] Sharing the ClientState with Master. Disabled for now as sending it caused StackOverflof on deserialization of proto message on master when using many clients and huge SharedConfig.xml. Not sure what was the cause. Might be some timing/initialization issue related to protobuf deserialization??
+
+[IDEA] Tell the master about selecting a plan in the GUI using a new message PlanSelected. Master to update the app definitions to those from the plan (only if enabled, either by dirigent global setting, or individual plan setting...)
+
+
 
 [TODO] HTTP port as a command line argument.
-[TODO] bind web server to any interface.
+[TODO] bind web server to any interface (this is probably working already...)
 [BUG] Publishing of ClientStateMessage by the agent each frame causes stack overflow on deserialization in master in case of SharedConfig.xml.HUGE. Without the agents publishing ClientStateMessage it works... It fails only for message sent from an agent running in a separate process. Same message from an agent embedded with the master in Dirigent.Agent.exe does not cause this problem. Fortunately sending the ClientStateMessage from the agent is not necessary for giving just Connected/Disconnected feedback so it was removed.
 
 [TODO] Show RemoteOpErrors on ImGui always on top of the main app window, even if the content is scrolled down
@@ -18,8 +24,6 @@
 
 [TODO] SetLocalAppsToMaxRestartTries( rti.Plan.getAppDefs() );
 
-[DONE] Terminate, Shutdown
-
 [TODO] Reinstall - is it wort the effort? Who needs it?
 
 [BUG] When RemoteOperError Message box appears and gets closed, exception happens (iteration variable changed)
@@ -31,21 +35,6 @@
 
 [IDEA] Add debug mode (--debug) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
 
-[DONE] WebServer REST API on master for querying the defs/statuses, extended to allow firing commands
-
-    GET /api/plandefs ... list of all plandefs [{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]
-
-    GET /api/plandefs/plan1 ... plandef of a single given plan {'name':'plan1', 'appDefs':[...]}
-    GET /api/plandefs?name="plan1"
-
-    GET /api/planstates ... list of the state of all plans [{'name':'plan1', 'status':{'code':'InProgress'}, {'name':'plan2', status={'code':'None'}}]
-    
-    GET /api/planstates/plan1 ... state of a single plan {'code':'InProgress'}
-    GET /api/planstates?name="plan1"
-
-    POST /api/cmd/StartApp/m1.a ... response on success: {}; response on failure: {error:{text:'error text'}}
-    POST /api/cmd/StartApp?id=m1.a&plan=plan1
-  
 
 [IDEA] WebServer WebSocket API for periodical push notifications about app/plan/script/client status
 

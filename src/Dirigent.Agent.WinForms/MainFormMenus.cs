@@ -100,6 +100,18 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		void addPlanSelectionMenuItem( int index, string planName )
+		{
+			EventHandler clickHandler = ( sender, args ) => guardedOp( () => { selectPlan( planName); } );
+
+			var itemText = String.Format( "&{0}: {1}", index, string.IsNullOrEmpty(planName)?"<no plan>":planName );
+			var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler );
+			selectPlanToolStripMenuItem.DropDownItems.Add( menuItem );
+
+			mnuPlanList.Items.Add( itemText, null, clickHandler );
+		}
+
+
 		void populatePlanSelectionMenu()
 		{
 			mnuPlanList = new ContextMenuStrip();
@@ -108,18 +120,11 @@ namespace Dirigent.Gui.WinForms
 
 			// fill the Plan -> Load menu with items
 			int index = 0;
+			addPlanSelectionMenuItem( index++, string.Empty ); // no plan
+
 			foreach( var plan in _planRepo )
 			{
-				index++;
-
-				var planName = plan.Name; // independent variable to be remebered by the lambda below
-				EventHandler clickHandler = ( sender, args ) => guardedOp( () => { _currentPlan = _ctrl.GetPlanDef( planName ); } );
-
-				var itemText = String.Format( "&{0}: {1}", index, plan.Name );
-				var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler );
-				selectPlanToolStripMenuItem.DropDownItems.Add( menuItem );
-
-				mnuPlanList.Items.Add( itemText, null, clickHandler );
+				addPlanSelectionMenuItem( index++, plan.Name );
 			}
 		}
 

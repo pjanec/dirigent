@@ -83,7 +83,7 @@ namespace Dirigent.Gui.WinForms
 			{
 				if( firstGotPlans )
 				{
-					_currentPlan = _reflStates.GetPlanDef( ac.StartupPlan );
+					selectPlan( ac.StartupPlan );
 				}
 				firstGotPlans = false;
 			};
@@ -124,7 +124,7 @@ namespace Dirigent.Gui.WinForms
 		const int HOTKEY_ID_START_CURRENT_PLAN = 1;
 		const int HOTKEY_ID_KILL_CURRENT_PLAN = 2;
 		const int HOTKEY_ID_RESTART_CURRENT_PLAN = 3;
-		const int HOTKEY_ID_SELECT_PLAN_0 = 4; // not used as hot key, just base value for 1..9
+		const int HOTKEY_ID_SELECT_PLAN_0 = 4; 
 		const int HOTKEY_ID_SELECT_PLAN_1 = HOTKEY_ID_SELECT_PLAN_0 + 1;
 		const int HOTKEY_ID_SELECT_PLAN_2 = HOTKEY_ID_SELECT_PLAN_0 + 2;
 		const int HOTKEY_ID_SELECT_PLAN_3 = HOTKEY_ID_SELECT_PLAN_0 + 3;
@@ -172,7 +172,7 @@ namespace Dirigent.Gui.WinForms
 				}
 			}
 
-			for( int i = 1; i <= 9; i++ )
+			for( int i = 0; i <= 9; i++ )
 			{
 				var x = document.XPathSelectElement( String.Format( templ, String.Format( "SelectPlan{0}HotKey", i ) ) );
 				string hotKeyStr = ( x != null ) ? x.Value : String.Format( "Control + Shift + Alt + {0}", i );
@@ -302,6 +302,12 @@ namespace Dirigent.Gui.WinForms
 			refreshPlans();
 		}
 
+		void selectPlan( string planName )
+		{
+			_currentPlan = _ctrl.GetPlanDef( planName );
+			_ctrl.Send( new Net.SelectPlanMessage( _ctrl.Name, _currentPlan is null ? string.Empty : _currentPlan.Name ) );
+		}
+
 		private void frmMain_Resize( object sender, EventArgs e )
 		{
 			//if (FormWindowState.Minimized == this.WindowState)
@@ -373,6 +379,12 @@ namespace Dirigent.Gui.WinForms
 					}
 
 
+					case HOTKEY_ID_SELECT_PLAN_0:
+					{
+						selectPlan( null );
+						break;
+					}
+
 					case HOTKEY_ID_SELECT_PLAN_1:
 					case HOTKEY_ID_SELECT_PLAN_2:
 					case HOTKEY_ID_SELECT_PLAN_3:
@@ -389,7 +401,7 @@ namespace Dirigent.Gui.WinForms
 						{
 							var planName = plans[i].Name;
 							this._notifyIcon.ShowBalloonTip( 1000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
-							_currentPlan = _ctrl.GetPlanDef( planName );
+							selectPlan( planName );
 						}
 						break;
 					}

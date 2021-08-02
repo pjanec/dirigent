@@ -20,7 +20,7 @@ namespace Dirigent.Net
 			{ 105, typeof( KillAppMessage ) },
 			{ 106, typeof( RestartAppMessage ) },
 			{ 107, typeof( SetAppEnabledMessage ) },
-			//{ 108, typeof(SelectPlanMessage) },
+			{ 108, typeof( SelectPlanMessage) },
 			{ 109, typeof( StartPlanMessage ) },
 			{ 110, typeof( StopPlanMessage ) },
 			{ 111, typeof( KillPlanMessage ) },
@@ -43,6 +43,7 @@ namespace Dirigent.Net
 			{ 128, typeof( KillScriptMessage ) },
 			{ 129, typeof( ScriptDefsMessage ) },
 			{ 130, typeof( ScriptStateMessage ) },
+			{ 131, typeof( ApplyPlanMessage ) },
 		};
 	}
 
@@ -57,7 +58,7 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 105, typeof( KillAppMessage ) )]
 	[ProtoBuf.ProtoInclude( 106, typeof( RestartAppMessage ) )]
 	[ProtoBuf.ProtoInclude( 107, typeof( SetAppEnabledMessage ) )]
-  //[ProtoBuf.ProtoInclude(108, typeof(SelectPlanMessage))]
+    [ProtoBuf.ProtoInclude( 108, typeof(SelectPlanMessage))]
 	[ProtoBuf.ProtoInclude( 109, typeof( StartPlanMessage ) )]
 	[ProtoBuf.ProtoInclude( 110, typeof( StopPlanMessage ) )]
 	[ProtoBuf.ProtoInclude( 111, typeof( KillPlanMessage ) )]
@@ -80,6 +81,8 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 128, typeof( KillScriptMessage ) )]
 	[ProtoBuf.ProtoInclude( 129, typeof( ScriptDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 130, typeof( ScriptStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 131, typeof( ApplyPlanMessage ) )]
+
 	public class Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
@@ -94,6 +97,9 @@ namespace Dirigent.Net
 		public virtual bool IsFrequent { get { return false; } }
 	}
 
+	/// <summary>
+	/// Agent tells others there was an error processing some operation. Master resends this to GUIs.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class RemoteOperationErrorMessage : Message
 	{
@@ -115,8 +121,9 @@ namespace Dirigent.Net
 		}
 	}
 
-	// not used just if multicast option is enabled (like in case of many agents;
-	// this msg causes the master to resend to all clients (as in case of any other message) - heavy network load as this message is frequent!
+	/// <summary>
+	/// Agent tells the master what is the status if his apps. Master resends this to GUIs.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class AppsStateMessage : Message
 	{
@@ -139,6 +146,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Master tells GUIs what is the status of the plans.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class PlansStateMessage : Message
 	{
@@ -157,6 +167,7 @@ namespace Dirigent.Net
 
 	/// <summary>
 	/// Master's internal state of applications in the plan.
+	/// Not in use.
 	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class PlanAppsStateMessage : Message
@@ -192,6 +203,9 @@ namespace Dirigent.Net
 		SetPlanApplied = 1 << 1,	 // Sets the AppState.PlanApplied flag
 	}
 
+	/// <summary>
+	/// Someone asking the Master to start a concrete app. Resent by Master to the app's agent.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class StartAppMessage : Message
 	{
@@ -247,6 +261,9 @@ namespace Dirigent.Net
 		//ForgetAppDef = 1 << 1, // agent should forget the definition of the app to stop sending its status as the appdefs are going to be replaced
 	}
 
+	/// <summary>
+	/// Someone asking the Master to kill a concrete app. Resent by Master to the app's agent.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class KillAppMessage : Message
 	{
@@ -273,6 +290,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to restart a concrete app. Resent by Master to the app's agent.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class RestartAppMessage : Message
 	{
@@ -305,6 +325,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to temporarily remove an app from the plan execustion (if enabled=false).
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class SetAppEnabledMessage : Message
 	{
@@ -333,25 +356,32 @@ namespace Dirigent.Net
 
 	}
 
-	//[ProtoBuf.ProtoContract]
-	//public class SelectPlanMessage : Message
-	//{
-	//    [ProtoBuf.ProtoMember(1)]
-	//    public string planName;
+	/// <summary>
+	/// GUI is telling the Master about what plan is currently selected there.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class SelectPlanMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public string PlanName = string.Empty;
 
-	//    public SelectPlanMessage() {}
-	//    public SelectPlanMessage( String planName )
-	//    {
-	//        this.plan = plan
-	//    }
+		public SelectPlanMessage() { }
+		public SelectPlanMessage( string requestorId, String planName )
+		{
+			this.Sender = requestorId;
+			this.PlanName = planName;
+		}
 
-	//    public override string ToString()
-	//    {
-	//        return string.Format("SelectPlan {0}", plan.Name);
-	//    }
+		public override string ToString()
+		{
+			return string.Format( "SelectPlan {0}", PlanName );
+		}
 
-	//}
+	}
 
+	/// <summary>
+	/// Someone asking the Master to start a plan.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class StartPlanMessage : Message
 	{
@@ -381,6 +411,9 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format( "StartPlan {0}", PlanName ); }
 	}
 
+	/// <summary>
+	/// Someone asking the Master to stop starting next apps from the plan (this does not kill the apps!)
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class StopPlanMessage : Message
 	{
@@ -397,6 +430,9 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format( "StopPlan {0}", PlanName ); }
 	}
 
+	/// <summary>
+	/// Someone asking the Master to kill all apps in the plan.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class KillPlanMessage : Message
 	{
@@ -413,6 +449,9 @@ namespace Dirigent.Net
 		public override string ToString() { return string.Format( "KillPlan {0}", PlanName ); }
 	}
 
+	/// <summary>
+	/// Someone asking the Master to restart all apps in the plan.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class RestartPlanMessage : Message
 	{
@@ -492,6 +531,9 @@ namespace Dirigent.Net
 		}
 	}
 
+	/// <summary>
+	/// Someone asking the Master to set env vars for newly started processed. Master resends to all agents.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class SetVarsMessage : Message
 	{
@@ -513,6 +555,9 @@ namespace Dirigent.Net
 	}
 
 
+	/// <summary>
+	/// Someone asking the Master to kill all apps and plans. Master kills the plans, resending KillApp to all agents.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class KillAllMessage : Message
 	{
@@ -533,6 +578,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to terminate the agents/guis. Master resends to agents/guis.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class TerminateMessage : Message
 	{
@@ -553,6 +601,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to shutdown/reboot the computers. Master resends to agents.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ShutdownMessage : Message
 	{
@@ -573,6 +624,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to reinstall the Dirigent. Master resends to all.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ReinstallMessage : Message
 	{
@@ -593,6 +647,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to reload the shared config.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ReloadSharedConfigMessage : Message
 	{
@@ -613,6 +670,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Client (Agent or GUI) identifies itself. Must be the first message sent when connected to the Master.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ClientIdent : Message
 	{
@@ -644,6 +704,10 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Master tells the agent what app defs to use. Agent will overwrite the already known apps and add the new apps.
+	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class AppDefsMessage : Message
 	{
@@ -673,6 +737,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to execute given Command Line Interface command
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class CLIRequestMessage : Message
 	{
@@ -693,6 +760,9 @@ namespace Dirigent.Net
 		}
 	}
 
+	/// <summary>
+	/// Master sends back to the sender the response from the just executed CLI command.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class CLIResponseMessage : Message
 	{
@@ -714,8 +784,13 @@ namespace Dirigent.Net
 	}
 
 	/// <summary>
-	/// Master tells the client to forget every info (will be resent())
+	/// Master tells the client to forget every info - all apps etc.
+	/// Sent when loading the shared config, before the new app defs are sent.
 	/// </summary>
+	/// <remarks>
+	/// This will not kill the apps; so if the running ones are no longer part of the new app defs,
+	/// they will stay running and it will not be possible to kill them via dirigent.
+	/// </remarks>
 	[ProtoBuf.ProtoContract]
 	public class ResetMessage : Message
 	{
@@ -727,7 +802,9 @@ namespace Dirigent.Net
 		}
 	}
 
-	// Client is updating its state to master (at regular intervals)
+	/// <summary>
+	/// Client is updating its state to master (at regular intervals)
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ClientStateMessage : Message
 	{
@@ -750,6 +827,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to start a script
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class StartScriptMessage : Message
 	{
@@ -787,6 +867,9 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// Someone asking the Master to kill a running script.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class KillScriptMessage : Message
 	{
@@ -839,6 +922,9 @@ namespace Dirigent.Net
 		}
 	}
 
+	/// <summary>
+	/// Master tells clients aboout the status of the scripts.
+	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ScriptStateMessage : Message
 	{
@@ -853,6 +939,35 @@ namespace Dirigent.Net
 		{
 			this.ScriptsState = new Dictionary<string, ScriptState>( scriptsState );
 		}
+	}
+
+	/// <summary>
+	/// Someone is asking the master to update the app defs to the ones in given plan.
+	/// Plan is applied either to given app from the plan (if specified), otherwise to all the apps in the plan.
+	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class ApplyPlanMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public string PlanName = string.Empty;
+
+		// if empty, the plan is applied to all the apps from the plan
+		[ProtoBuf.ProtoMember( 2 )]
+		public AppIdTuple AppIdTuple;
+
+		public ApplyPlanMessage() { }
+		public ApplyPlanMessage( String planName, AppIdTuple appIdTuple )
+		{
+			this.PlanName = planName;
+			this.AppIdTuple = appIdTuple;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( "ApplyPlan {0} {1}", PlanName, AppIdTuple );
+		}
+
 	}
 
 }

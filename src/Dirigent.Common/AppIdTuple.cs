@@ -104,5 +104,10 @@ namespace Dirigent
 		{
 			return !( t1.Equals( person2 ) );
 		}
+
+		public bool IsEmpty()
+		{
+			return string.IsNullOrEmpty(MachineId) && string.IsNullOrEmpty(AppId);
+		}
 	}
 }

@@ -210,23 +210,21 @@ namespace Dirigent.Commands
 		}
 	}
 
-	//public class SelectPlan : DirigentControlCommand
-	//{
-	//    public SelectPlan(Master ctrl, string requestorId)
-	//        : base(ctrl)
-	//    {
-	//    }
+	public class SelectPlan : DirigentControlCommand
+	{
+		public SelectPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
 
-	//    public override void Execute(IList<string> args)
-	//    {
-	//        if (args.Count == 0) throw new MissingArgumentException("planName", "plan name expected.");
+		public override void Execute()
+		{
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
 
-	//        // find plan in the repository
-	//        ILaunchPlan plan = Tools.FindPlanByName( ctrl.GetPlanRepo(), args[0]) ;
-
-	//        ctrl.SelectPlan(_requestorId, plan);
-	//    }
-	//}
+			ctrl.SelectPlan( _requestorId, args[0] );
+			WriteResponse( "ACK" );
+		}
+	}
 
 	public class GetPlanState : DirigentControlCommand
 	{
@@ -505,6 +503,30 @@ namespace Dirigent.Commands
 			}
 
 			WriteResponse( stateStr );
+		}
+	}
+
+	public class ApplyPlan : DirigentControlCommand
+	{
+		public ApplyPlan( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 )  throw new MissingArgumentException( "planId", "planId expected." );
+			var planName = args[0];
+
+			AppIdTuple appIdTuple = new AppIdTuple();
+			if( args.Count > 0 )
+			{
+				appIdTuple = new AppIdTuple( args[1] );
+			}
+
+			ctrl.ApplyPlan( _requestorId, planName, appIdTuple );
+			
+			WriteResponse( "ACK" );
 		}
 	}
 

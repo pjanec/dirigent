@@ -291,6 +291,21 @@ namespace Dirigent.Common.Properties
 
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "Control + Shift + Alt + 0" )]
+		public string SelectPlan0HotKey
+		{
+			get
+			{
+				return ( ( string )( this["SelectPlan0HotKey"] ) );
+			}
+			set
+			{
+				this["SelectPlan0HotKey"] = value;
+			}
+		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "Control + Shift + Alt + 1" )]
 		public string SelectPlan1HotKey
 		{

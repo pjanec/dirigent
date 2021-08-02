@@ -18,7 +18,7 @@ namespace Dirigent
             repo.Register( "StartApp",              (ctrl, requestorId) => new Commands.StartApp(ctrl, requestorId));
             repo.Register( "KillApp",               (ctrl, requestorId) => new Commands.KillApp(ctrl, requestorId));
             repo.Register( "RestartApp",            (ctrl, requestorId) => new Commands.RestartApp(ctrl, requestorId));
-            //Register(new Commands.SelectPlan(ctrl));
+            repo.Register( "SelectPlan",            (ctrl, requestorId) => new Commands.SelectPlan(ctrl, requestorId));
             repo.Register( "GetPlanState",          (ctrl, requestorId) => new Commands.GetPlanState(ctrl, requestorId));
             repo.Register( "GetAppState",           (ctrl, requestorId) => new Commands.GetAppState(ctrl, requestorId));
             repo.Register( "GetAllPlansState",      (ctrl, requestorId) => new Commands.GetAllPlansState(ctrl, requestorId));
@@ -32,6 +32,7 @@ namespace Dirigent
             repo.Register( "StartScript",           (ctrl, requestorId) => new Commands.StartScript(ctrl, requestorId));
             repo.Register( "KillScript",            (ctrl, requestorId) => new Commands.KillScript(ctrl, requestorId));
             repo.Register( "GetScriptState",        (ctrl, requestorId) => new Commands.GetScriptState(ctrl, requestorId));
+            repo.Register( "ApplyPlan",             (ctrl, requestorId) => new Commands.ApplyPlan(ctrl, requestorId));
         }
 
     }

@@ -427,6 +427,18 @@ namespace Dirigent
 					Shutdown( m.Sender, m.Args );
 					break;
 				}
+
+				case ApplyPlanMessage m:
+				{
+					ApplyPlan( m.Sender, m.PlanName, m.AppIdTuple );
+					break;
+				}
+
+				case SelectPlanMessage m:
+				{
+					SelectPlan( m.Sender, m.PlanName );
+					break;
+				}
 			}
 
 		}
@@ -654,15 +666,25 @@ namespace Dirigent
 
 
 		/// <summary>
-		/// Updates appDefs before acting on apps within the plan
+		/// Updates appDefs of all apps in the plan to those from the plan
 		/// </summary>
-		/// <param name="planDef"></param>
-		void UsePlan( PlanDef planDef )
+		void ApplyPlanToAllApps( Plan plan )
 		{
-			foreach( var ad in planDef.AppDefs )
+			log.Debug($"Applying plan {plan.Name} to all apps from the plan");
+			foreach( var ad in plan.Def.AppDefs )
 			{
 				_allAppDefs.AddOrUpdate( ad );
 			}
+		}
+
+		/// <summary>
+		/// Updates appDefs of given app to the one from the plan
+		/// </summary>
+		void ApplyPlanToSingleApp( Plan plan, AppIdTuple appIdTuple )
+		{
+			log.Debug($"Applying plan {plan.Name} to single app {appIdTuple}");
+			var planApp = plan.FindApp( appIdTuple );
+			_allAppDefs.AddOrUpdate( planApp.Def );
 		}
 
 		/// <summary>
@@ -855,5 +877,37 @@ namespace Dirigent
 			return _scripts.GetScriptState( id );
 		}
 
+		public void ApplyPlan( string requestorId, string planName, AppIdTuple appIdTuple )
+		{
+			var plan = _plans.FindPlan( planName ); // throws on error
+			if (appIdTuple.IsEmpty())
+			{
+				ApplyPlanToAllApps( plan );  // throws on error
+			}
+			else
+			{
+				ApplyPlanToSingleApp( plan, appIdTuple );  // throws on error
+			}
+		}
+
+		public void SelectPlan( string requestorId, string planName )
+		{
+			// remember what plan is selected on what client (remember: we do not use the ClientState message as it causes StackOverflow)
+			if( _allClientStates.ClientStates.TryGetValue( requestorId, out var clientState ) )
+			{
+				clientState.SelectedPlanName = planName;
+			}
+
+			// apply the plan if said so in the plan def
+
+			if( string.IsNullOrEmpty(planName) )
+				return;
+
+			var plan = _plans.FindPlan( planName ); // throws on error
+			if( plan.Def.ApplyOnSelect )
+			{
+				ApplyPlanToAllApps( plan );
+			}
+		}
 	}
 }

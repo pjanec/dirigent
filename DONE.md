@@ -1,4 +1,40 @@
+[DONE] Extend possible impacts of the Select Plan operation in the GUI
+ 1. To choose what plan will be started when pressing the big green Play button. This affects jut the GUI when issuing the StartPlan command.
+ 2. To choose from what plan the the app definition will be taken if an individual app is started from the GUI. Here we need to remember the selected plan just inside the GUI when issuing the "LaunchApp xxx.yyy@plan" command when clicking on the "Start app" icon.
+ 3. To choose from what plan the the app definition will be taken when an external controller will start an individual app. Here we need to change the app definition in the Agent's memory so when a "LaunchApp xxx.yyy" command comes to the agent, it already remembers what app definition (from what plan) to use.
 
+Options 1 and 2 are in place already. Option 3 is the question discussed below.
+
+Selecting a plan from GUI could switch all apps from the plan into the plan's configuration, to be applied when the app is later started without specifiong the plan name (i.e. using the most recent plan applied to that app.) This is fine for development where there is only one Dirigent. But is it good for production?
+
+In production there are many Dirigent GUIs on different computers, operated possibly by different users not knowing about each other. When they select & start a plan, the plan selection should not affect the system until the plan is actually started. So the users (or some Dirigent GUI startup script) can select the plan as needed for that particular user. But the selection should remain GUI-local until it is applied when actually starting a plan or a single app from the selected plan...
+
+Selecting a plan on one GUI would switch the app's definition on agents to the ones from the selected plan for anyone who is going to start the app without specifying the plan (like via "LaunchApp m1.a", i.e. using the most recently applied plan). Do we want this?
+
+Or should we keep the "Select Plan" operation strictly just a local state of that particular GUI, not affecting the agents (by applying the plan to the apps) until the plan is actually started?
+
+Should we choose how the SelectPlan works on per-GUI basis (config option, 3-state checkbox etc?) Or should it be a plan's config new attribute? Probably all of these, with the 3-state checkbox having the highest priority (if not in the "default" state), then the plan's config attribute, then the agent-wide option...
+
+
+Controlling the Dirigents from some background apps would work safely if it works either on Plan level (starting plans - this applies the app def from the plan when the app gets started by the plan) or using explicit plan names when working on the app level (lauching individual apps from a concrete plan). If it works on the app level without explicitly specifying a plan, it assumes the apps definitions have been somehow chosen before - usually coming from the default (standalone) app definitions in the SharedConfig.
+
+
+[DONE] LaunchApp without specifying a plan should use app def from last used plan. If empty string ("LaunchApp m1.a@"), force the default appdef if defined.
+
+[DONE] Terminate, Shutdown
+
+[DONE] WebServer REST API on master for querying the defs/statuses, extended to allow firing commands
+
+    GET /api/plandefs ... list of all plandefs [{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]
+
+    GET /api/plandefs/plan1 ... plandef of a single given plan {'name':'plan1', 'appDefs':[...]}
+
+    GET /api/planstates ... list of the state of all plans [{'name':'plan1', 'status':{'code':'InProgress'}, {'name':'plan2', status={'code':'None'}}]
+    
+    GET /api/planstates/plan1 ... state of a single plan {'code':'InProgress'}
+
+    POST /api/cli, data "StartApp m1.a" ... response on success: "ACK"; response on failure: "ERROR: xxxxxx"
+  
 
 [DONE] If an app is disabled, it will never be started so its appdef is never sent to an agent that will never change the Disabled flag in AppState.
 We need to tell the agent about disabling the app for concrete plan.. Do we?? Why the agent should know? Agent does not need to know if app is disabled

@@ -237,6 +237,8 @@ Dirigent can work individually with each of applications found in any the plans 
 
 An app with same name can appear in multiple plans. In each plan it can be defined with different parameters. The parameters get applied when the app is being launched as part of the plan.
 
+When starting an app, Dirigent sets the DIRIGENT_PLAN environment variable to the plan name the app belongs to.
+
 ### Adopting apps
 
 If a plan references an app that is already running (possibly started as part of a different plan executed before), the new plan does not try to start the app again or restart it. The app is left running with its original parameters. The new plan acts as if that app have been started by the plan.
@@ -599,9 +601,38 @@ If *machineId* options is given, terminates the agent just on that machine. Of e
 	Terminate machineId=PC-1 killApps=1
 
 
-### 
+### ApplyPlan
 
-## 
+Changes the app definitions to the one from given plan. Applies the plan either to all apps from the plan or just one single app from the plan (if appIdTuple is present).
+
+ `ApplyPlan <planName> [<appIdTuple>]`
+
+If *appIdTuple* is missing, the app definition will be updated for all the apps in the plan. If present, just that app will be updated.
+
+##### Remarks
+
+The app definition from the plan will be used on the next start of the app. Until then the previously set app definitions will be used, potentially coming from different plan or from the standalone app definitions.
+
+Affects also the DIRIGENT_PLAN environment variable which is set when the app is started.
+
+##### Examples
+
+	ApplyPlan plan1
+	ApplyPlan plan1 m1.a
+
+### SelectPlan
+
+Informs the Dirigent about the plan selection in a GUI.
+
+ `SelectPlan <planName>`
+
+##### Remarks
+
+Dirigent performs actions related to a plan selection. For example it might execute the ApplyPlan if this option is enabled.
+
+##### Examples
+
+	SelectPlan plan1
 
 ## CLI control over TCP line-based connection
 
@@ -994,7 +1025,10 @@ The standalone ones are useful in cases like
 1. The app does not belong to any plan
 2. The app within the plan uses different settings than the standalone app
 
-Default 
+Standalone apps definition is used by the Dirigent if
+
+* If the app is not part of any plan but is defined as standalone
+* The app is started with explicitly specified empty plan (`LaunchApp m1.a@`)
 
 
 #### Launch plan
@@ -1011,11 +1045,17 @@ Example
 
 Attributes
 
+* `Name` - unique id of the plan
 * `StartTimeout` - time in seconds before an unsuccessfully running plan is reported as *Failed*. Unsuccessful means that
   * Non-volatile apps (that should be running all the time) is not running or has not initialized yet.
   * Volatile apps have not yet been started, initialized or finished.
+* `Groups` - a semicolon separated list of group names the plan belongs to
+  * Some GUIs support sorting the plans to the groups
+* `ApplyOnStart` - the app definition for all of the apps from the plan are updated to the ones from this plan when the plan gets started/restarted.
+* `ApplyOnSelect` - the app definition for all of the apps from the plan are updated to the ones from this plan as soon as the plan is selected on the GUI, even before it gets started. This makes sure that after selecting the plan in the GUI the apps will be started with plan's settings even when starting them individually and without explicitly specifying the plan.
 
-##### `<App/>` sub elements of the `<Plan>` element
+
+##### <App/>
 
 Define what apps belong to the plan. Located inside the plan definition like in the following example
 
@@ -1129,6 +1169,8 @@ Shortcut can be redefined in the `Dirigent.Agent.dll.config`. By default
     Start current plan ..... Control + Shift + Alt + S
     Kill current plan ...... Control + Shift + Alt + K
     Restart current plan ... Control + Shift + Alt + R
+    
+    Select no plan ......... Control + Shift + Alt + 0
     Select 1st plan ........ Control + Shift + Alt + 1
     Select 2nd plan ........ Control + Shift + Alt + 2
     Select 3rd plan ........ Control + Shift + Alt + 3

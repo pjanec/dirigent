@@ -91,8 +91,12 @@ namespace Dirigent
 
 			log.DebugFormat( "Start plan {0}, vars {1}", Name, Tools.EnvVarListToString(vars) );
 
+			if( Def.ApplyOnStart )
+			{
+				_master.ApplyPlan("", Name, new AppIdTuple());
+			}
+			
 			AdoptPlan();
-
 
 			// if the plan is running, check for var change and restart the plan if needed
 			if ( State.Running )
