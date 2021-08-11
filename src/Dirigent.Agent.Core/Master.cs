@@ -31,7 +31,7 @@ namespace Dirigent
 		public ScriptDef? GetScriptDef( string Id ) { if( _scripts.Scripts.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return from x in _scripts.Scripts.Values select x.Def; }
 		public string Name => string.Empty;
-		public void Send( Net.Message msg ) { ProcessIncomingMessage( msg ); }
+		public void Send( Net.Message msg ) { ProcessIncomingMessageAndHandleExceptions( msg ); }
 
 		#endregion
 
@@ -191,7 +191,7 @@ namespace Dirigent
 			// process all messages received since last tick from all clients
 			_server.Tick( ( msg ) =>
 			{
-				ProcessIncomingMessage( msg );
+				ProcessIncomingMessageAndHandleExceptions( msg );
 			} );
 
 			HandleDisconnectedClients();
@@ -441,6 +441,23 @@ namespace Dirigent
 				}
 			}
 
+		}
+
+		void ProcessIncomingMessageAndHandleExceptions( Message msg )
+		{
+			try
+			{
+				ProcessIncomingMessage( msg );
+			}
+			catch( Exception ex )
+			{
+				var errText = $"Exception '{ex.Message}' when processing message '{msg}'";
+				log.Error(errText, ex);
+					
+				// send error back to the sender
+				// note: if the sender is an agent and not a GUI, we won't see anything...
+				_server.SendToSingle( new RemoteOperationErrorMessage( msg.Sender, errText ), msg.Sender );
+			}
 		}
 
 		/// <summary>
