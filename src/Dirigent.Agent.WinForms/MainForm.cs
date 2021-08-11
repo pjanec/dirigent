@@ -86,6 +86,12 @@ namespace Dirigent.Gui.WinForms
 					selectPlan( ac.StartupPlan );
 				}
 				firstGotPlans = false;
+
+				// udate current plan reference in case the plan def has changed
+				if( _currentPlan is not null )
+				{
+					_currentPlan = _reflStates.GetPlanDef( _currentPlan.Name );
+				}
 			};
 
 			_ctrl = _reflStates;
