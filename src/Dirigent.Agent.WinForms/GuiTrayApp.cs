@@ -323,8 +323,10 @@ namespace Dirigent.Gui.WinForms
 						_ac.MachineId,
 						_ac.MasterIP,
 						_ac.MasterPort,
-						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths ),
+						_ac.LocalCfgFileName
 					);
+
 					_agentThread = new Thread(() =>
 					{
 						while( !_agent.WantsQuit )

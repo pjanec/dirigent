@@ -3,7 +3,7 @@
 <Local>
   <!-- watching for new crash dump !-->
   <FolderWatcher
-      Path = "..\..\Bin\All\CrashDumps"
+      Path = "CrashDumps"
       IncludeSubdirs="false"
       Conditions="NewFile"
       Filter = "*.dmp"

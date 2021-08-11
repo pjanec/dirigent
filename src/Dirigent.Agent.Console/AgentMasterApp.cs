@@ -82,7 +82,8 @@ namespace Dirigent
 						_ac.MachineId,
 						_ac.MasterIP,
 						_ac.MasterPort,
-						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths ),
+						_ac.LocalCfgFileName
 					);
 				}
 				else

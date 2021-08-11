@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Dirigent
 {
@@ -28,13 +29,17 @@ namespace Dirigent
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private Net.Client _client;
 		private SharedContext _sharedContext;
+		private string _rootForRelativePaths;
+		private LocalConfig? _localConfig;
+
+		List<FolderWatcher> _folderWatchers = new List<FolderWatcher>();
 
         /// <summary>
 		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
 
-		public Agent( string machineId, string masterIP, int masterPort, string rootForRelativePaths )
+		public Agent( string machineId, string masterIP, int masterPort, string rootForRelativePaths, string localCfgFileName )
 
 
 		{
@@ -42,6 +47,7 @@ namespace Dirigent
 
 			_clientIdent = new Net.ClientIdent() { Sender = machineId, SubscribedTo = Net.EMsgRecipCateg.Agent };
 			_client = new Net.Client( _clientIdent, masterIP, masterPort, autoConn: true );
+			_rootForRelativePaths = rootForRelativePaths;
 
 			_sharedContext = new SharedContext(
 				rootForRelativePaths,
@@ -52,6 +58,11 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext );
 
+			_localConfig = LoadLocalConfig( localCfgFileName );
+			if( _localConfig is not null )
+			{
+				InitFromLocalConfig();
+			}
 
 		}
 
@@ -283,6 +294,37 @@ namespace Dirigent
 			foreach( var la in _localApps.Apps.Values )
 			{
 				la.KillApp();
+			}
+		}
+
+		LocalConfig? LoadLocalConfig( string fileName )
+		{
+			if( string.IsNullOrEmpty( fileName ) )
+				return null;
+
+			var fullPath = Path.GetFullPath( fileName );
+			log.DebugFormat( "Loading local config file '{0}'", fullPath );
+			return new LocalXmlConfigReader( File.OpenText( fullPath ) ).cfg;
+		}
+
+		void InitFromLocalConfig()
+		{
+			InitializeFolderWatchers();
+		}
+
+
+		void InitializeFolderWatchers()
+		{
+			// no local config file loaded	
+			if( _localConfig is null) return;
+
+			foreach( var xmlCfg in _localConfig.folderWatcherXmls )
+			{
+				var fw = new FolderWatcher( xmlCfg, this, _rootForRelativePaths );
+				if( fw.Initialized )
+				{
+					_folderWatchers.Add( fw );
+				}
 			}
 		}
 

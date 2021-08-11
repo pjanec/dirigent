@@ -1115,6 +1115,7 @@ Example of setting in agent's local config file:
 		  <!-- what to do if change detected -->
 		  <Action Type="StartPlan" PlanName="CollectLogs">      
 		  <Action Type="LaunchApp" AppIdTuple="PC1.WarningApp"/>
+		  <Action Type="LaunchApp" AppIdTuple="PC2.AnotherApp@plan1"/>
 	  </FolderWatcher>
 
 The Path, if relative, is resolved relative to the location of the SharedConfig.xml file. Environment variables in form of %VARNAME% are expanded using Agen't current environment.

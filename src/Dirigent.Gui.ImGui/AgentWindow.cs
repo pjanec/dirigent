@@ -32,7 +32,8 @@ namespace Dirigent.Gui
 				machineId,
 				_ac.MasterIP,
 				_ac.MasterPort,
-				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths ),
+				_ac.LocalCfgFileName
 			);
 		}
 
