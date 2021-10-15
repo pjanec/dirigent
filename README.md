@@ -327,7 +327,7 @@ If you want to clear the variable specified before, you pass '::' as a varlist.
 ##### Example
     StartPlan plan1
     StartPlan plan1 VAR1=VALUE1
-    StartPlan plan1 VAR1=VALUE ""1""::VAR2="VALUE 2"
+    StartPlan plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
     StartPlan plan1 ::
 
 ### StopPlan
@@ -363,7 +363,7 @@ If you want to clear the variable specified before, you pass '::' as a varlist.
 ##### Example
     RestartPlan m1.a
     RestartPlan m1.a VAR1=VALUE1
-    RestartPlan m1.a VAR1=VALUE ""1""::VAR2="VALUE 2"
+    RestartPlan m1.a VAR1="VALUE ""1"""::VAR2="VALUE 2"
     RestartPlan m1.a 
 
 ### LaunchApp
@@ -404,7 +404,7 @@ Variable value strings containing spaces need to be enclosed in double-quotes. T
     LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
     LaunchApp m1.a@plan1
     LaunchApp m1.a@
-    LaunchApp m1.a@plan1 VAR1=VALUE ""1""::VAR2="VALUE 2"
+    LaunchApp m1.a@plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
     LaunchApp m1.a VAR1=
     LaunchApp m1.a ::
 
@@ -556,7 +556,7 @@ To unset a variable, set it to an empty value (VAR1=)
 ##### Examples
 
 	SetVars VAR1=VALUE1
-	SetVars VAR1=VALUE ""1""::VAR2="VALUE 2"
+	SetVars VAR1="VALUE ""1"""::VAR2="VALUE 2"
 	SetVars VAR1=
 	SetVars VAR1=::VAR2=
 
