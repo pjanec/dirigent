@@ -151,18 +151,62 @@ namespace Dirigent
             return new List<ICommand>();
         }
 
-		void SplitToWordTokens( string s, out List<string> tokens )
+        /// <summary>
+        /// Spaces can be included inside single or double quotes.
+        /// Doubled quote characters are added as a single character.
+        /// Single quotes character inside single  quotes is added (the outer quotes removed)
+        /// Double quote character inside single quotes is added  (the outer quotes removed)
+        /// hi => hi
+        /// "hi" => hi
+        /// "hi guys" => hi guys
+        /// "hi ""guys""" => hi "guys"
+        /// "hi 'guys'" => hi 'guys'
+        /// 'hi "guys"' => hi "guys"
+        /// 
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="tokens"></param>
+		void SplitToWordTokens( string str, out List<string> tokens )
 		{
 			tokens = new List<string>();
-			var parts = s.Split( null );
-			foreach( var p in parts )
-			{
-				if( !string.IsNullOrEmpty( p ) )
-				{
-					tokens.Add( p );
-				}
-			}
-		}
 
+            if (String.IsNullOrWhiteSpace(str)) return;
+            int ndx = 0;
+            string s = "";
+            bool insideDoubleQuote = false;
+            bool insideSingleQuote = false;
+
+            while (ndx < str.Length)
+            {
+                if (str[ndx] == ' ' && !insideDoubleQuote && !insideSingleQuote)
+                {
+                    if (!String.IsNullOrWhiteSpace(s.Trim())) tokens.Add(s.Trim());
+                    s = "";
+                }
+                if (str[ndx] == '"' && ndx+1 < str.Length && str[ndx+1] == '"')
+                {
+                    s += '"';
+                    ndx += 2;
+                }
+                else
+                if (str[ndx] == '"' && !insideSingleQuote) 
+                {
+                    insideDoubleQuote = !insideDoubleQuote;
+                    ndx++;
+                }
+                else
+                if (str[ndx] == '\'' && !insideDoubleQuote) 
+                {
+                    insideSingleQuote = !insideSingleQuote;
+                    ndx++;
+                }
+                else
+                {
+                    s += str[ndx];
+                    ndx++;
+                }
+            }
+            if (!String.IsNullOrWhiteSpace(s.Trim())) tokens.Add(s.Trim());
+        }
     }
 }
