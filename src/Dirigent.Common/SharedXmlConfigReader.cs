@@ -76,6 +76,7 @@ namespace Dirigent
 				PriorityClass = e.Attribute( "PriorityClass" )?.Value,
 				InitCondition = e.Attribute( "InitCondition" )?.Value,
 				SeparationInterval = e.Attribute( "SeparationInterval" )?.Value,
+				MinKillingTime = e.Attribute( "MinKillingTime" )?.Value,
 				Dependecies = e.Attribute( "Dependencies" )?.Value,
 				KillTree = e.Attribute( "KillTree" )?.Value,
 				KillSoftly = e.Attribute( "KillSoftly" )?.Value,
@@ -101,6 +102,7 @@ namespace Dirigent
 			if( x.PriorityClass != null ) a.PriorityClass = x.PriorityClass;
 			if( x.InitCondition != null ) a.InitializedCondition = x.InitCondition;
 			if( x.SeparationInterval != null ) a.SeparationInterval = double.Parse( x.SeparationInterval, CultureInfo.InvariantCulture );
+			if( x.MinKillingTime != null ) a.MinKillingTime = double.Parse( x.MinKillingTime, CultureInfo.InvariantCulture );
 			if( x.Dependecies != null )
 			{
 				var deps = new List<string>();

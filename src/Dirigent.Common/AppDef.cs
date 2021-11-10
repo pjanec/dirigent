@@ -176,6 +176,10 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 26 )]
 		public string Groups = string.Empty;
 
+		[ProtoBuf.ProtoMember( 27 )]
+		[DataMember]
+		public double MinKillingTime; // min seconds before reporting "killed" after the kill operation
+
 		public bool Equals( AppDef? other )
 		{
 			if( other is null )
@@ -194,6 +198,7 @@ namespace Dirigent
 				this.PriorityClass == other.PriorityClass &&
 				this.InitializedCondition == other.InitializedCondition &&
 				this.SeparationInterval == other.SeparationInterval &&
+				this.MinKillingTime == other.MinKillingTime &&
 				( // either both dependecies are null or they are the same list
 					( this.Dependencies == null && other.Dependencies == null )
 					||

@@ -33,6 +33,10 @@ namespace Dirigent
 
 		SoftKiller _softKiller;
 
+		Stopwatch _sw = new Stopwatch();
+		double _dt = 0.01; // delta of real time for this tick (duration of previous tick)
+		double _timeSinceKill = 0; // time in seconds elapsed since the kill was performed;
+
 
 		// Mechanism for hard kill if multiple kills are sent while the process is being killed
 		// (likely using a kill sequnce) but still not dead (kill actions not effective and user is impatient,
@@ -85,6 +89,15 @@ namespace Dirigent
 
 		public void Tick()
 		{
+			_dt = _sw.Elapsed.TotalSeconds;
+			_sw.Restart();
+
+			// count time from last kill
+			if( _dying )
+			{
+				_timeSinceKill += _dt;
+			}
+
 			checkExited();
 
 			if( _softKiller.IsRunning )
@@ -244,7 +257,6 @@ namespace Dirigent
 
 			// not exited yet
 			_exitCode = 0;
-
 
 			// set environment variables here so we can use them when expanding process path/args/cwd
 			Environment.SetEnvironmentVariable( "DIRIGENT_SHAREDCONFDIR", _relativePathsRoot );
@@ -579,6 +591,8 @@ namespace Dirigent
 			}
 
 			_dying = true;
+			_timeSinceKill = 0.0;
+
 
 			// if already executing a soft kill sequence?
 			if( _softKiller.IsRunning )
@@ -614,6 +628,12 @@ namespace Dirigent
 			if( !_proc.HasExited )
 			{
 				// still running
+				return false;
+			}
+
+			if( _dying && _timeSinceKill < _appDef.MinKillingTime )
+			{
+				// we pretend the process is still running (actually it may be still running as the HasExited seems to report death too early)
 				return false;
 			}
 

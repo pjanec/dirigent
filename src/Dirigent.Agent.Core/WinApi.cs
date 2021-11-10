@@ -13,6 +13,8 @@ namespace Dirigent
 {
 	static public class WinApi
 	{
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
+
         // from http://stackoverflow.com/questions/2531828/how-to-enumerate-all-windows-belonging-to-a-particular-process-using-net/2584672#2584672
 
         public delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
@@ -36,18 +38,29 @@ namespace Dirigent
 				var mainWndH = pr.MainWindowHandle;
 				if( mainWndH != IntPtr.Zero ) handles.Add( mainWndH );
 
-                foreach (ProcessThread thread in Process.GetProcessById(processId).Threads)
-                    EnumThreadWindows(
-						thread.Id, 
-                        (hWnd, lParam) =>
-						{
-							if( handles.IndexOf(hWnd) < 0 )	// add just unique handles
-							{
-								handles.Add(hWnd);
-							}
-							return true;
-						},
-						IntPtr.Zero);
+                try
+                {
+                    var proc = Process.GetProcessById(processId);
+                    foreach (ProcessThread thread in proc.Threads)
+                    {
+                        EnumThreadWindows(
+						    thread.Id, 
+                            (hWnd, lParam) =>
+						    {
+							    if( handles.IndexOf(hWnd) < 0 )	// add just unique handles
+							    {
+								    handles.Add(hWnd);
+							    }
+							    return true;
+						    },
+						    IntPtr.Zero);
+                    }
+                }
+                catch( System.Exception ex )
+                {
+                    // throws exception for not-accessible processes
+                    log.Debug($"Failed to enumerate process threads/windows handles. pid={processId} ex={ex.Message}");
+                }
             }
             return handles;
         }

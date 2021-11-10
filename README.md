@@ -916,6 +916,8 @@ Attributes:
 
 - `SeparationInterval <numseconds>` - how much time to wait before starting the next application
 
+- `MinKillingTime <numseconds>` - minimal time since the kill operation to wait before reporting "killed". This avoids reporting the process death too early after the kill, when the process might be still running (mitigates the false/too early process death report provided by Process.hasExited).
+
 App sub-sections:
 
 - `SoftKill`
