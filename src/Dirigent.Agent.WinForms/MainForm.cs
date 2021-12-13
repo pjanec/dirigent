@@ -68,6 +68,24 @@ namespace Dirigent.Gui.WinForms
 
 			InitializeComponent();
 
+			if( Common.Properties.Settings.Default.GridRowSpacing > 0 ) 
+			{
+				this.gridPlans.RowTemplate.Height = Common.Properties.Settings.Default.GridRowSpacing;
+				this.gridApps.RowTemplate.Height = Common.Properties.Settings.Default.GridRowSpacing;
+			}
+
+			if( Common.Properties.Settings.Default.GridButtonSpacing > 0 ) 
+			{
+				this.hdrPlanStart.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrPlanStop.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrPlanKill.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrPlanRestart.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrKillIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrLaunchIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				this.hdrRestartIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+			}
+
+
 			registerHotKeys();
 
 			//setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
@@ -416,6 +434,18 @@ namespace Dirigent.Gui.WinForms
 			base.WndProc( ref m );
 		}
 
+		private void killAllWithConfirmation()
+		{
+			if(	 Common.Properties.Settings.Default.ConfirmKillAll == 0	// do not want to confirm
+			      ||
+			     MessageBox.Show( "Kill all apps???", "Dirigent",
+								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+			{
+				var args = new KillAllArgs() {};
+				_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
+			}
+		}
+
 		private void onlineDocumentationToolStripMenuItem_Click( object sender, EventArgs e )
 		{
 			System.Diagnostics.Process.Start( "https://github.com/pjanec/dirigent" );
@@ -448,8 +478,7 @@ namespace Dirigent.Gui.WinForms
 
 		private void killAllRunningAppsToolStripMenuItem_Click( object sender, EventArgs e )
 		{
-			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
+			killAllWithConfirmation();
 		}
 
 		private void rebootAllToolStripMenuItem1_Click( object sender, EventArgs e )
@@ -487,14 +516,12 @@ namespace Dirigent.Gui.WinForms
 
 		private void btnKillAll_Click( object sender, EventArgs e )
 		{
-			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
+			killAllWithConfirmation();
 		}
 
 		private void bntKillAll2_Click( object sender, EventArgs e )
 		{
-			var args = new KillAllArgs() {};
-			_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
+			killAllWithConfirmation();
 		}
 
 	}

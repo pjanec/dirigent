@@ -472,5 +472,37 @@ namespace Dirigent.Common.Properties
 			}
 		}
 
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "0" )]
+		public int GridRowSpacing
+		{
+			get
+			{
+				return ( ( int )( this["GridRowSpacing"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "0" )]
+		public int GridButtonSpacing
+		{
+			get
+			{
+				return ( ( int )( this["GridButtonSpacing"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "0" )]
+		public int ConfirmKillAll
+		{
+			get
+			{
+				return ( ( int )( this["ConfirmKillAll"] ) );
+			}
+		}
 	}
 }
