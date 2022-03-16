@@ -808,6 +808,10 @@ The options can be specified either on the command line (prefixed with double da
 
  `--guiAppExe` ... what app executable to run when the tray icon is double clicked; if not defined, the default winForms gui embedded in the agent executable is shown.
 
+ `--attachdebugger` ... pauses the agent loading until Enter is pressed on the console. Allows attaching a debugger to a starting agent process. Requires the agent to be started form a console window!
+
+### 
+
 ### Agent's local config file
 
 Agent's local config file contains configuration that is specific for an agent (for example folder watching settings). Each agent can use its own local configuration.

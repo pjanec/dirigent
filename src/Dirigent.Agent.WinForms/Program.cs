@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Threading;
+using System.Runtime.InteropServices;
 
 using log4net;
 
@@ -33,6 +34,9 @@ namespace Dirigent.Gui.WinForms
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
 
+		[DllImport("kernel32.dll", SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		static extern bool AllocConsole();
 
 
 		/// <summary>
@@ -42,6 +46,14 @@ namespace Dirigent.Gui.WinForms
 		static int Main()
 		{
 			EAppExitCode exitCode = EAppExitCode.NoError;
+
+			// debugging feature - shows console and waits for pressing Return before continuing with whatever else
+			if( Environment.CommandLine.Contains("--attachdebugger") )
+			{
+				AllocConsole();
+				Console.WriteLine("Attach the debugger and press Return to continue...");
+				Console.ReadLine();
+			}
 
 			try
 			{
