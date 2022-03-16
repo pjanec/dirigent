@@ -91,33 +91,51 @@ namespace Dirigent
         {
             log.DebugFormat("Start app {0} {1}, vars {2}", Id, flags, Tools.EnvVarListToString(vars) );
             
+            // determine new vars - first wins
+            //  1. explicitly specified in the StartApp
+            //  2. empty list if Unset option forces the clean env
+            //  3. recent ones from previous run
+            var varsNew = vars; // explicitly specified ones
+            if( varsNew is null && !appDef.ReusePrevVars ) // no new vars provided but we are not allowed to use the previous ones
+            {
+                varsNew = new(); // empty (clean env)
+            }
+            if( varsNew is null )
+            {
+                varsNew = _vars; // cached from prev run
+            }
+
             // restart app if running with different vars than what we want right now
             if( Launcher != null && Launcher.Running )
             {
-                if( vars is not null )
+                // we consider empty values as non-exiting variables
+                // we DO compare also empty variables (as they might delete something from the inherited environment )
+                var varsOrig = _vars;
+                var varsDifferent = !DictionaryExtensions.DictionariesEqual( varsOrig, varsNew, null );
+                
+                // restart if different env vars are desired
+                if( varsDifferent )
                 {
-                    //// compare values (consider empty values as non-exiting variables)
-                    //var varsOrig = (from kv in _vars where !String.IsNullOrEmpty(kv.Value) select kv).ToDictionary( x=>x, y=>y );
-                    //var varsNew = (from kv in vars where !String.IsNullOrEmpty(kv.Value) select kv).ToDictionary( x=>x, y=>y );
-                    
-                    // we DO compare also empty variables (as they might delete something from the inherited environment )
-                    var varsOrig = _vars;
-                    var varsNew = vars;
-
-                    if( !DictionaryExtensions.DictionariesEqual( varsOrig, varsNew, null ) ) // and they are different from  the previous
+                    if( appDef.LeaveRunningWithPrevVars )
                     {
-                        log.Debug($"App {Id} new vars ({Tools.EnvVarListToString(vars)}) differ from last start {Tools.EnvVarListToString(_vars)}, triggering restart");
-                        RestartApp( vars );
+                        
+                        log.Debug($"App {Id} new vars ({Tools.EnvVarListToString(varsNew)}) differ from last start {Tools.EnvVarListToString(varsOrig)}, but LeaveRunningWithPrevVars=1, so keeping the app running with original vars.");
+
+                        // next time start the app with the most recently desired variables
+                        _vars = varsNew;
+                    }
+                    else
+                    {
+                        log.Debug($"App {Id} new vars ({Tools.EnvVarListToString(varsNew)}) differ from last start {Tools.EnvVarListToString(varsOrig)} and LeaveRunningWithPrevVars=0, so restarting with new vars!");
+                        RestartApp( varsNew );
                     }
                 }
                 return;  // app is either running or just restarted, nothing more needed
             }
             
-            // remember vars (only if some provided)
-            if( vars is not null )
-            {
-                _vars = vars;
-            }
+            // remember currently desired vars for next run
+            _vars = varsNew;
+            
 
 			if( resetRestartsToMax )
 			{

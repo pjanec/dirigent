@@ -13,7 +13,7 @@ namespace Dirigent
 		///<summary>Where to watch for exe etc. Usually the location of SharedConfig.xml</summary>
 		string RootForRelativePaths,
 
-		///<summary>Variables not published to started process environment but still usable for exansion within exe file name, cmd line args, startup dirs etc.</summary>
+		///<summary>Variables not published to started process environment but still usable for expansion within exe file name, cmd line args, startup dirs etc.</summary>
 		Dictionary<string, string> InternalVars,
 
 		///<summary>Factory for one type af app watchers</summary>

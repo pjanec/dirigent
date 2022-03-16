@@ -121,13 +121,15 @@ namespace Dirigent
 				res[kv.Key] = kv.Value;
 			}
 
+			// process explicitly specified variables
 			foreach( var kv in extraVars )
 			{
+				// add extra var
 				if( !String.IsNullOrEmpty(kv.Value) )
 				{
 					res[kv.Key] = kv.Value;
 				}
-				else
+				else // uset the var if empty value if provided
 				{
 					res.Remove(kv.Key);
 				}

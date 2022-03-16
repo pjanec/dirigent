@@ -36,9 +36,7 @@
 
     	<App
     	    AppIdTuple = "m1.d"
-    		Template = "apps.cmd"
-    		StartupDir = "c:\"
-    		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
+    		Template = "apps.cmd.show_vars"
     		Volatile = "1"
     		>
     		<Env>
@@ -48,6 +46,14 @@
     		  <!-- specific support for Path variable modifications-->
     		  <Path Prepend="C:\BIN;%ProgramFiles%\MyApp\Bin;RelPath1\sub1;..\RelPath2\sub1" /> 
     		</Env>
+    	</App>
+
+    	<App
+    	    AppIdTuple = "m1.ShowEnvVars"
+    		Template = "apps.cmd.show_vars"
+    		ReusePrevVars = "1"
+    		LeaveRunningWithPrevVars = "1"
+    		>
     	</App>
 
     	<App
@@ -141,5 +147,11 @@
     		ExeFullPath = "/usr/bin/bash"
     		StartupDir = ""
     		CmdLineArgs = ""
+    />
+
+    <AppTemplate Name="apps.cmd.show_vars"
+    		Template = "apps.cmd"
+    		StartupDir = "c:\"
+    		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
     />
 </Shared>

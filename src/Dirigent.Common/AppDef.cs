@@ -180,6 +180,20 @@ namespace Dirigent
 		[DataMember]
 		public double MinKillingTime; // min seconds before reporting "killed" after the kill operation
 
+		/// <summary>
+		/// Specifies whether on StartApp the process should be restarted with new env vars if it is already running with a different set of explicit env vars.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 28 )]
+		[DataMember]
+		public bool LeaveRunningWithPrevVars;
+
+		/// <summary>
+		/// If true, removes cached env vars specified for the previous runs. Will use just those defined in AppDef and those explicitly specified as part of StartApp command.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 29 )]
+		[DataMember]
+		public bool ReusePrevVars;
+
 		public bool Equals( AppDef? other )
 		{
 			if( other is null )
@@ -218,6 +232,8 @@ namespace Dirigent
 				this.EnvVarPathToAppend == other.EnvVarPathToAppend &&
 				this.InitDetectors.SequenceEqual( other.InitDetectors ) &&
 				//this.Watchers.SequenceEqual(other.Watchers) &&
+				this.LeaveRunningWithPrevVars == other.LeaveRunningWithPrevVars &&
+				this.ReusePrevVars == other.ReusePrevVars &&
 				true
 			)
 				return true;

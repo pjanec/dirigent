@@ -314,6 +314,78 @@ Multiple commands on a single line can be separated by semicolon
 
 ## CLI Commands Reference
 
+### LaunchApp (same as StartApp)
+
+Starts given app if not already running. The general syntax is as follows:
+
+	LaunchApp <appId>[@<planid>] [<varlist>]
+
+Note: the app might get restarted if already running with different set of explicit env vars - see `LeaveRunningWithPrevVars` option.
+
+#### App definitions from different plans
+
+If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
+
+	LaunchApp m1.a
+
+If the plan name is specified after the ampersand character, Dirigent starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
+
+	LaunchApp m1.a@plan1
+
+If an empty plan is explicitly specified (the ampersand character present but no plan name follows), Dirigent uses the standalone app definition if available (see `Standalone apps` description - they are the `<app>` elements defined outside of any plan in the SharedConfig.xml) 
+
+	LaunchApp m1.a@
+
+#### Explicit Environment Variables
+
+If the list of variables is present, those variables are passed as environment variable to the process started. They can also be used for expansion of the app's `CmdLineArgs` and `ExeFullPath` attributes in the SharedConfig.
+
+	LaunchApp m1.a VAR1=VALUE1
+	LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
+
+If the list of values is missing, the app can be optionally started with the most recently used explicit env. variables  - if the `ReusePrevVars=1` option is specified in the app definition
+
+If you want to explicitly avoid using the variable specified before, pass `::` as the variable list. Or you specify the variable value with empty value:
+
+	LaunchApp m1.a ::
+	LaunchApp m1.a VAR1=
+
+Variable value strings containing spaces need to be enclosed in double-quotes. The outer double-quotes are removed. To add a double-quote character in the variable body, use two successive double-quotes.
+
+	LaunchApp m1.a@plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
+
+The result will be like:
+
+    VAR1=VALUE "1"
+    VAR2="VALUE 2"
+
+
+### KillApp
+
+Kills given app
+
+  `KillApp <appId>`
+
+##### Example
+
+    KillApp m1.a
+
+### RestartApp
+
+Restarts given app. Optionally passing a new list of values.
+
+  `RestartApp <appId> [varlist]`
+
+If the list of values is missing, the app can be optionally started with the most recent explicit environment variables used. See the `LaunchApp` description for more details on explicit environment variables handling.
+
+##### Example
+
+    RestartApp m1.a
+    RestartApp m1.a VAR1=VALUE1
+    RestartApp m1.a VAR1=VALUE1::VAR2=VALUE2
+    RestartApp m1.a VAR1=
+    RestartApp m1.a ::
+
 ### StartPlan
 
 Starts given plan, i.e. start launching apps according the plan rules
@@ -321,6 +393,8 @@ Starts given plan, i.e. start launching apps according the plan rules
   `StartPlan <planName> [<varlist>]` 
 
 If the varlist is specified, the variables are set to each app started from this plan.
+
+See the `LaunchApp` chapter for more details on how the explicit environment variables are handled.
 
 If you want to clear the variable specified before, you pass '::' as a varlist.
 
@@ -365,74 +439,6 @@ If you want to clear the variable specified before, you pass '::' as a varlist.
     RestartPlan m1.a VAR1=VALUE1
     RestartPlan m1.a VAR1="VALUE ""1"""::VAR2="VALUE 2"
     RestartPlan m1.a 
-
-### LaunchApp
-
-Starts given app
-
-  `LaunchApp <appId>[@<planid>] [<varlist>]`
-
-  `LaunchApp <appId>` 
-
-If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
-
-  `LaunchApp <appId>@<planid>` 
-
-If the plan name is specified after the ampersand character, Dirigent starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
-
-  `LaunchApp <appId>@` 
-
-If an empty plan is explicitly specified (ampersand character present but no plan name follows), Dirigent uses the standalone app definition if available (see Standalone apps description - they are the `<app>` elements defined outside of any plan in the SharedConfig.xml) 
-
-If the list of variables is present, those variables are passed as environment variable to the process started. They can also be used for expansion of the app's `CmdLineArgs` and `ExeFullPath` attributes in the SharedConfig.
-
-  `LaunchApp <appId> VAR1=VALUE1::VAR2=VALUE2`
-
-If the list of values is missing, the app is started with the most recently used variable list (the variables are not unset automatically!)
-
-If you want to clear the variable specified before, you pass '::' as a varlist. Or you specify the variable value as empty (VAR1=)
-
-  `LaunchApp <appId> ::`
-
-Variable value strings containing spaces need to be enclosed in double-quotes. The outer double-qotes are removed. To add a double-quote character in the variable body, use two successive double-quotes.
-
-
-##### Examples
-
-    LaunchApp m1.a
-    LaunchApp m1.a VAR1=VALUE1
-    LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
-    LaunchApp m1.a@plan1
-    LaunchApp m1.a@
-    LaunchApp m1.a@plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
-    LaunchApp m1.a VAR1=
-    LaunchApp m1.a ::
-
-### KillApp
-
-Kills given app
-
-  `KillApp <appId>`
-
-##### Example
-    KillApp m1.a
-
-### RestartApp
-
-Restarts given app. Optionally passing a new list of values.
-
-If the list of values is missing, the app is started with the most recent variables used.
-
-  `RestartApp <appId> [varlist]`
-
-If you want to clear the variable specified before, you pass '::' as a varlist. Or you specify the variable value as empty (VAR1=)
-
-##### Example
-    RestartApp m1.a
-    RestartApp m1.a VAR1=VALUE1
-    RestartApp m1.a VAR1=VALUE1::VAR2=VALUE2
-    RestartApp m1.a VAR1=
-    RestartApp m1.a ::
 
 ### GetAppState
   `GetAppState <appName>`   returns the status of given app
@@ -541,7 +547,9 @@ Returns one line per plan; last line is "END\n"
 
 ### SetVars
 
-Sets environment variable(s) to be inherited by the processes launched afterwards.
+Sets environment variable(s) to be inherited by the processes launched afterwards. Changes Dirigent's environment so it is applied to all process started later.
+
+Note: This is a different set of variables than the explicit variables that can be set as part of `LaunchApp` or `RestartApp` commands.
 
 Multiple variables can be set at once , separated by '::'.
 
@@ -549,7 +557,7 @@ String containing spaces need to be enclosed in double-quotes. The outer double-
 
 Once set, the environment variables stays set until they are changed. Each process started by Dirigent will inherit all those variables.
 
-To unset a variable, set it to an empty value (VAR1=)
+To unset a variable, you need to set it to an empty value (VAR1=)
 
   `SetVars <varlist>`
 
@@ -633,7 +641,7 @@ Informs the Dirigent about the plan selection in a GUI.
 
 ##### Remarks
 
-Dirigent performs actions related to a plan selection. For example it might execute the ApplyPlan if this option is enabled.
+Dirigent performs actions related to a plan selection. For example it might execute the `ApplyPlan` if this option is enabled.
 
 ##### Examples
 
@@ -947,6 +955,18 @@ App sub-sections:
 
   - `Close` - emulates the close command sent to the main window.
 
+
+- `ReusePrevVars 0|1` - controls whether to reuse cached environment variables used last time when launching the app again. 0 by default.
+  * 1 = The cached env. variables  (used for previous launch of this app) are applied again if no vars are explicitly specified in the `LaunchApp` command.
+  * 0 = The cached env. variables are unset before launching the app. The app will NOT inherit any variables from it's previous launches, will always start with clean environment.
+  
+- `LeaveRunningWithPrevVars 0|1` - controls how to handle situation when the app is already running but with different set of environment variables. 0 by default.
+
+  - 0 =  `StartApp` command will **restart** the already running app if it was started with different set of env vars.
+  
+  - 1 =  `StartApp` command will keep the already running app intact (**no restart**) even if it was launched with different set of env vars. But Dirigent will remember the new variables and will use them the next time this apps is started.
+  
+    
 
 - `WindowPos`
 

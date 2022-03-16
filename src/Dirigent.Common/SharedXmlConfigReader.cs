@@ -71,6 +71,8 @@ namespace Dirigent
 				StartupOrder = e.Attribute( "StartupOrder" )?.Value,
 				Disabled = e.Attribute( "Disabled" )?.Value,
 				Volatile = e.Attribute( "Volatile" )?.Value,
+				ReusePrevVars = e.Attribute( "ReusePrevVars" )?.Value,
+				LeaveRunningWithPrevVars = e.Attribute( "LeaveRunningWithPrevVars" )?.Value,
 				RestartOnCrash = e.Attribute( "RestartOnCrash" )?.Value,
 				AdoptIfAlreadyRunning = e.Attribute( "AdoptIfAlreadyRunning" )?.Value,
 				PriorityClass = e.Attribute( "PriorityClass" )?.Value,
@@ -97,6 +99,8 @@ namespace Dirigent
 			if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
 			if( x.Disabled != null ) a.Disabled = ( int.Parse( x.Disabled ) != 0 );
 			if( x.Volatile != null ) a.Volatile = ( int.Parse( x.Volatile ) != 0 );
+			if( x.ReusePrevVars != null ) a.ReusePrevVars = ( int.Parse( x.ReusePrevVars ) != 0 );
+			if( x.LeaveRunningWithPrevVars != null ) a.LeaveRunningWithPrevVars = ( int.Parse( x.LeaveRunningWithPrevVars ) != 0 );
 			if( x.RestartOnCrash != null ) a.RestartOnCrash = ( int.Parse( x.RestartOnCrash ) != 0 );
 			if( x.AdoptIfAlreadyRunning != null ) a.AdoptIfAlreadyRunning = ( int.Parse( x.AdoptIfAlreadyRunning ) != 0 );
 			if( x.PriorityClass != null ) a.PriorityClass = x.PriorityClass;
