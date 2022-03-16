@@ -448,7 +448,8 @@ namespace Dirigent.Gui.WinForms
 
 		private void onlineDocumentationToolStripMenuItem_Click( object sender, EventArgs e )
 		{
-			System.Diagnostics.Process.Start( "https://github.com/pjanec/dirigent" );
+			var url = "https://github.com/pjanec/dirigent";
+			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
 		}
 
 		private void reloadSharedConfigToolStripMenuItem_Click( object sender, EventArgs e )
