@@ -97,7 +97,7 @@ namespace Dirigent.Net
 		// Async!
 		protected override void OnConnected()
 		{
-			Console.WriteLine( $"TCP session with Id {Id} connected!" );
+			log.Info( $"TCP session with Id {Id} connected!" );
 
 			_server.OnSessionConnected( this );
 		}
@@ -105,7 +105,7 @@ namespace Dirigent.Net
 		// Async!
 		protected override void OnDisconnected()
 		{
-			Console.WriteLine( $"TCP session with Id {Id} disconnected!" );
+			log.Info( $"TCP session with Id {Id} disconnected!" );
 			_server.OnSessionDisconnected( this );
 		}
 
@@ -117,7 +117,7 @@ namespace Dirigent.Net
 
 		protected override void OnError( SocketError error )
 		{
-			Console.WriteLine( $"TCP session caught an error with code {error}" );
+			log.Error( $"TCP session caught an error with code {error}" );
 		}
 
 	}

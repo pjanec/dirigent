@@ -13,6 +13,8 @@ namespace Dirigent.Net
 
 	class ProtoClient : NetCoreServer.TcpClient
 	{
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
+
 		/// <summary>
 		/// WARNING: Async!
 		/// </summary>
@@ -70,14 +72,14 @@ namespace Dirigent.Net
 
 		protected override void OnConnected()
 		{
-			Console.WriteLine( $"TCP client connected a new session with Id {Id}" );
+			log.Info( $"TCP client connected a new session with Id {Id}" );
 
 			Connected?.Invoke();
 		}
 
 		protected override void OnDisconnected()
 		{
-			Console.WriteLine( $"TCP client disconnected a session with Id {Id}" );
+			log.Info( $"TCP client disconnected a session with Id {Id}" );
 
 			Disconnected?.Invoke();
 
@@ -88,7 +90,23 @@ namespace Dirigent.Net
 
 				// Try to connect again
 				if( !_stop )
-					ConnectAsync();
+				{
+					while(true)	// loop to retry the connect call if exception happens
+					{
+						try
+						{
+							ConnectAsync();
+							break;
+						}
+						catch( System.Exception ex )
+						{
+							log.Error( $"TCP client ConnectAsync exception: {ex}" );
+							
+							// wait a while before trying again
+							Thread.Sleep( 5000 );
+						}
+					}
+				}
 			}
 		}
 
@@ -100,7 +118,7 @@ namespace Dirigent.Net
 
 		protected override void OnError( SocketError error )
 		{
-			Console.WriteLine( $"TCP client caught an error with code {error}" );
+			log.Error( $"TCP client caught an error with code {error}" );
 		}
 
 		private bool _stop;
