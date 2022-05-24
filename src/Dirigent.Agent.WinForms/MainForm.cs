@@ -88,6 +88,8 @@ namespace Dirigent.Gui.WinForms
 
 			registerHotKeys();
 
+			ShowJustAppFromCurrentPlan = Tools.BoolFromString( Common.Properties.Settings.Default.ShowJustAppsFromCurrentPlan );
+
 			//setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
 
 			_planRepo = new List<PlanDef>();
@@ -163,7 +165,7 @@ namespace Dirigent.Gui.WinForms
 		{
 			var exeConfigFileName = System.Reflection.Assembly.GetEntryAssembly().Location + ".config";
 			XDocument document = XDocument.Load( exeConfigFileName );
-			var templ = "/configuration/userSettings/Dirigent.Agent.TrayApp.Properties.Settings/setting[@name='{0}']/value";
+			var templ = "/configuration/userSettings/Dirigent.Common.Properties.Settings/setting[@name='{0}']/value";
 			{
 				var x = document.XPathSelectElement( String.Format( templ, "StartPlanHotKey" ) );
 				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + S";

@@ -343,7 +343,7 @@ If the list of variables is present, those variables are passed as environment v
 	LaunchApp m1.a VAR1=VALUE1
 	LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
 
-If the list of values is missing, the app can be optionally started with the most recently used explicit env. variables  - if the `ReusePrevVars=1` option is specified in the app definition
+If the list of values is missing, the app can be optionally started with the most recently used explicit env. variables  - if the `ReusePrevVars=1` option is specified in the app definition. Without the option the app will be started without any explicit env var (unless they are specified on the command line).
 
 If you want to explicitly avoid using the variable specified before, pass `::` as the variable list. Or you specify the variable value with empty value:
 
@@ -357,7 +357,7 @@ Variable value strings containing spaces need to be enclosed in double-quotes. T
 The result will be like:
 
     VAR1=VALUE "1"
-    VAR2="VALUE 2"
+    VAR2=VALUE 2
 
 
 ### KillApp
