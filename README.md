@@ -52,12 +52,12 @@ Both apps are based on the same template `apps.notepad` defining the basic attri
                 StartupOrder = "0"
                 RestartOnCrash = "1"
                 SeparationInterval = "3.5"
+        >
             <InitDetectors>
               <WindowPoppedUp TitleRegExp="\s-\sNotepad"/>
               <TimeOut>5.0</TimeOut>
             </InitDetectors>
-        />
-    
+        </AppTemplate
     </Shared>
 
 What that plan will do if launched?
