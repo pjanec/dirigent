@@ -207,11 +207,13 @@ namespace Dirigent
 
                     #if Windows
 				    // instantiate window positioners
+                    var windowPositioners = new List<IAppWatcher>();
 				    foreach (var xml in RecentAppDef.WindowPosXml)
 				    {
 					    var wpo = new WindowPositioner( this, XElement.Parse(xml));
-					    _watchers.ReinstallWatcher(wpo);
+                        windowPositioners.Add( wpo );
 				    }
+					_watchers.ReinstallWatchers( windowPositioners );
                     #endif
 
 				    // instantiate crash watcher

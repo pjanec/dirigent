@@ -14,7 +14,7 @@ namespace Dirigent
 
         private List<IAppWatcher> _toRemove = new(20);
 
-        private List<IAppWatcher> _toReinstall = new List<IAppWatcher>();
+        private List<List<IAppWatcher>> _toReinstall = new List<List<IAppWatcher>>();
 
         /// <summary>
         /// Replaces watcher of the same type if existing, or adds a new one
@@ -23,7 +23,17 @@ namespace Dirigent
         public void ReinstallWatcher( IAppWatcher w )
         {
             // postpone to a safe place outside of watcher's tick
-            _toReinstall.Add( w );
+            _toReinstall.Add( new List<IAppWatcher>() { w } );
+        }
+
+        /// <summary>
+        /// Removes watchers of the same type and adds new ones from the list
+        /// </summary>
+        public void ReinstallWatchers( List<IAppWatcher> watchers )
+        {
+            if( watchers.Count == 0 ) return;
+            // postpone to a safe place outside of watcher's tick
+            _toReinstall.Add( watchers );
         }
 
         void RemoveAll( Func<IAppWatcher, bool> condition )
@@ -87,9 +97,18 @@ namespace Dirigent
             _toRemove.Clear();
 
             // install watchers
-            foreach( var w in _toReinstall )
+            foreach( var grp in _toReinstall )
             {
-                Reinstall( w );    
+                // first remove all of same type
+                foreach( var w in grp )
+                {
+                    RemoveAll( (x) => x.GetType() == w.GetType() );
+                }
+                // then add them
+                foreach( var w in grp )
+                {
+                    _watchers.Add( w );
+                }
             }
             _toReinstall.Clear();
         }
