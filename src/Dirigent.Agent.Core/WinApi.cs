@@ -271,15 +271,15 @@ namespace Dirigent
         public const int SW_SHOWNORMAL = 1; // Activates and displays a window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when displaying the window for the first time.
         public const int SW_SHOWMINIMIZED = 2; // Activates the window and displays it as a minimized window.
         public const int SW_SHOWMAXIMIZED = 3; // Activates the window and displays it as a maximized window.
-        public const int SW_SHOWNOACTIVATE = 4; // Displays a window in its most recent size and position. This value is similar to SW_SHOWNORMAL, except that the window is not activated.
-        public const int SW_RESTORE = 9; // Activates and displays the window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when restoring a minimized window.
-        public const int SW_MINIMIZE = 6; // Minimizes the specified window and activates the next top-level window in the Z order.
         public const int SW_MAXIMIZE = 3; // Minimizes the specified window and activates the next top-level window in the Z order.
+        public const int SW_SHOWNOACTIVATE = 4; // Displays a window in its most recent size and position. This value is similar to SW_SHOWNORMAL, except that the window is not activated.
         public const int SW_SHOW = 5; // Activates the window and displays it in its current size and position.
-        public const int SW_FORCEMINIMIZE = 11; // Minimizes a window, even if the thread that owns the window is not responding. This flag should only be used when minimizing windows from a different thread.
-        public const int SW_SHOWDEFAULT = 10; // Sets the show state based on the SW_ value specified in the STARTUPINFO structure passed to the CreateProcess function by the program that started the application.
+        public const int SW_MINIMIZE = 6; // Minimizes the specified window and activates the next top-level window in the Z order.
         public const int SW_SHOWMINNOACTIVE = 7; // Displays the window as a minimized window. This value is similar to SW_SHOWMINIMIZED, except the window is not activated.
         public const int SW_SHOWNA = 8; // Displays the window in its current size and position. This value is similar to SW_SHOW, except that the window is not activated.
+        public const int SW_RESTORE = 9; // Activates and displays the window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when restoring a minimized window.
+        public const int SW_SHOWDEFAULT = 10; // Sets the show state based on the SW_ value specified in the STARTUPINFO structure passed to the CreateProcess function by the program that started the application.
+        public const int SW_FORCEMINIMIZE = 11; // Minimizes a window, even if the thread that owns the window is not responding. This flag should only be used when minimizing windows from a different thread.
 
 		[DllImport("user32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -316,6 +316,214 @@ namespace Dirigent
             public System.Drawing.Rectangle rcNormalPosition;
         }
 
+
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
+
+        public const Int32 INFINITE = -1;
+        public const Int32 WAIT_ABANDONED = 0x80;
+        public const Int32 WAIT_OBJECT_0 = 0x00;
+        public const Int32 WAIT_TIMEOUT = 0x102;
+        public const Int32 WAIT_FAILED = -1;
+
+
+        [Flags]
+        public enum ProcessAccessFlags : uint
+        {
+            All = 0x001F0FFF,
+            Terminate = 0x00000001,
+            CreateThread = 0x00000002,
+            VirtualMemoryOperation = 0x00000008,
+            VirtualMemoryRead = 0x00000010,
+            VirtualMemoryWrite = 0x00000020,
+            DuplicateHandle = 0x00000040,
+            CreateProcess = 0x000000080,
+            SetQuota = 0x00000100,
+            SetInformation = 0x00000200,
+            QueryInformation = 0x00000400,
+            QueryLimitedInformation = 0x00001000,
+            Synchronize = 0x00100000
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr OpenProcess(
+             uint processAccess,
+             bool bInheritHandle,
+             uint processId
+        );
+
+        public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+
+        public static IntPtr OpenProcess(Process proc, ProcessAccessFlags flags)
+        {
+             return OpenProcess((uint)flags, false, (uint)proc.Id);
+        }
+
+        [DllImport("psapi.dll")]
+        public static extern uint GetProcessImageFileName(
+            IntPtr hProcess,
+            [Out] StringBuilder lpImageFileName,
+            [In] [MarshalAs(UnmanagedType.U4)] int nSize
+        );
+
+        [DllImport("kernel32.dll", SetLastError=true)]
+        public static extern uint GetModuleFileName
+        (
+            [In] IntPtr hModule,
+            [Out] StringBuilder lpFilename,
+            [In] [MarshalAs(UnmanagedType.U4)]
+            int nSize
+        );
+
+        public const uint STILL_ACTIVE = 259;
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct STARTUPINFOEX
+        {
+            public STARTUPINFO StartupInfo;
+            public IntPtr lpAttributeList;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        struct STARTUPINFO
+        {
+            public Int32 cb;
+            public string lpReserved;
+            public string lpDesktop;
+            public string lpTitle;
+            public Int32 dwX;
+            public Int32 dwY;
+            public Int32 dwXSize;
+            public Int32 dwYSize;
+            public Int32 dwXCountChars;
+            public Int32 dwYCountChars;
+            public Int32 dwFillAttribute;
+            public Int32 dwFlags;
+            public Int16 wShowWindow;
+            public Int16 cbReserved2;
+            public IntPtr lpReserved2;
+            public IntPtr hStdInput;
+            public IntPtr hStdOutput;
+            public IntPtr hStdError;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_INFORMATION
+        {
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public int dwProcessId;
+            public int dwThreadId;
+        }
+
+        [DllImport("kernel32.dll", SetLastError=true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool CreateProcess(
+            string? lpApplicationName,
+            string? lpCommandLine,
+            IntPtr lpProcessAttributes,
+            IntPtr lpThreadAttributes,
+            bool bInheritHandles,
+            uint dwCreationFlags,
+            [In, MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpEnvironment,  // note the LPWStr => we have to use CREATE_UNICODE_ENVIRONMENT in dwCreationFlags!!
+            string? lpCurrentDirectory,
+            [In] ref STARTUPINFOEX lpStartupInfo,
+            out PROCESS_INFORMATION lpProcessInformation
+        );
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError=true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+
+        public static bool StartProcess(
+            string applicationName,
+            string arguments,
+            Dictionary<string, string> environment,
+            string currentDirectory,
+            ProcessWindowStyle windowStyle,
+            out PROCESS_INFORMATION processInfo,
+            out int win32error 
+            )
+        {
+            var pInfo = new PROCESS_INFORMATION();
+            var sInfoEx = new STARTUPINFOEX();
+            sInfoEx.StartupInfo.cb = Marshal.SizeOf(sInfoEx);
+            sInfoEx.StartupInfo.dwFlags = 0x0001; // (STARTF_USESHOWWINDOW)
+            sInfoEx.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+
+            if( windowStyle == ProcessWindowStyle.Normal ) sInfoEx.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+            else
+            if( windowStyle == ProcessWindowStyle.Minimized ) sInfoEx.StartupInfo.wShowWindow = SW_SHOWMINNOACTIVE;
+            else
+            if( windowStyle == ProcessWindowStyle.Maximized ) sInfoEx.StartupInfo.wShowWindow = SW_SHOWMAXIMIZED;
+            else
+            if( windowStyle == ProcessWindowStyle.Hidden ) sInfoEx.StartupInfo.wShowWindow = SW_HIDE;
+
+            // prepare env vars
+            var sbEnv = new StringBuilder();
+            {
+                string[] keys = new string[environment.Count];
+                environment.Keys.CopyTo(keys, 0);
+                Array.Sort(keys, StringComparer.OrdinalIgnoreCase);
+
+
+                for( int i=0; i < environment.Count; i++ )
+                {
+                    var name = keys[i];
+                    var value = environment[name] ?? String.Empty;
+                    sbEnv.Append( $"{name}={value}\0" );
+                }
+                sbEnv.Append('\0');
+            }
+
+            try
+            {
+                var appName = applicationName.Trim();
+                if( appName.IndexOf(' ') >= 0 )
+                {
+                    if( !appName.StartsWith('\"') ) appName = "\""+appName;
+                    if( !appName.EndsWith('\"') ) appName = appName+"\"";
+                }
+                var commandLine = appName+" "+arguments;
+
+                if( !CreateProcess(
+                    applicationName,
+                    commandLine,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    false,
+                    0x0080410, // (EXTENDED_STARTUPINFO_PERSENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE)
+                    sbEnv,
+                    currentDirectory,
+                    ref sInfoEx,
+                    out processInfo
+                    ) )
+                {
+                    win32error = Marshal.GetLastWin32Error();
+                    return false;
+                }
+                win32error = 0;
+                return true;
+            }
+            finally
+            {
+                // Close process and thread handles
+                if (pInfo.hProcess != IntPtr.Zero)
+                {
+                    CloseHandle(pInfo.hProcess);
+                }
+                if (pInfo.hThread != IntPtr.Zero)
+                {
+                    CloseHandle(pInfo.hThread);
+                }
+            }
+        }
 
 #endregion
 

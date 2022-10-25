@@ -32,7 +32,7 @@ namespace Dirigent
 
 		//public AppScript? AppScript;
 
-        public Process? Process => Launcher?.Process;
+        public Process_? Process => Launcher?.Process;
         public int ProcessId => Process?.Id ?? -1;
 
         ///<summary>Starts/kills the app process. Null if app is not supposed to be running (not launched)</summary>
@@ -172,7 +172,7 @@ namespace Dirigent
 
                     #if Windows
 				    // install main window styler if we specified the style explicitly
-				    if (RecentAppDef.WindowStyle != EWindowStyle.NotSet)
+				    if( RecentAppDef.WindowStyle != EWindowStyle.NotSet )
 				    {
 					    var w = new MainWindowStyler( this );
 					    _watchers.ReinstallWatcher( w );

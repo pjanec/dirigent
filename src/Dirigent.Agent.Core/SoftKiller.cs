@@ -16,7 +16,7 @@ namespace Dirigent
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
         AppDef _appDef;
-        Process? _proc;
+        Process_? _proc;
 
         // If soft kill sequence is defined, we try to terminate the process using 
         // the actions from the sequence. Each action has a timeout defined; if timed out,
@@ -48,7 +48,7 @@ namespace Dirigent
             Stop();
 		}
 
-        public void Start( Process proc )
+        public void Start( Process_ proc )
         {
             this._proc = proc;
 
@@ -142,7 +142,7 @@ namespace Dirigent
                 timeout = X.getDoubleAttr(elem, "timeout", -1 , true);
             }
 
-            public virtual void Execute( AppDef appDef, Process proc )
+            public virtual void Execute( AppDef appDef, Process_ proc )
             {
                 // starts counting
                 sw.Restart();
@@ -165,7 +165,7 @@ namespace Dirigent
                 }
             }
 
-			public override void Execute(AppDef appDef, Process proc)
+			public override void Execute(AppDef appDef, Process_ proc)
 			{
 				base.Execute(appDef, proc);
 
@@ -179,7 +179,7 @@ namespace Dirigent
             static extern int SetForegroundWindow(IntPtr point);
 
             public KSI_Keys( XElement xel ) : base(xel) {}
-			public override void Execute(AppDef appDef, Process proc)
+			public override void Execute(AppDef appDef, Process_ proc)
 			{
 				base.Execute(appDef, proc);
 

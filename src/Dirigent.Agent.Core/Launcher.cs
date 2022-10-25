@@ -19,7 +19,7 @@ namespace Dirigent
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		Net.Client ctrl;
-		Process? _proc;
+		Process_? _proc;
 		AppDef _appDef;
 		string _relativePathsRoot;
 		string? _planName; // in what plan's context the app is going to be started (just informative)
@@ -155,7 +155,7 @@ namespace Dirigent
 			if( found != null )
 			{
 				log.DebugFormat( "Adopted existing process pid={0}, cmd=\"{1}\"", found.Pid, found.CmdLine );
-				_proc = Process.GetProcessById( found.Pid );
+				_proc = Process_.GetProcessById( found.Pid );
 
 				return true;
 			}
@@ -295,7 +295,7 @@ namespace Dirigent
 			remainingKillOrdersToForcedHardKill = numKillOrdersToForcedHardKill;
 
 			// start the process
-			var psi = new ProcessStartInfo();
+			var psi = new ProcessStartInfo_();
 			psi.FileName = BuildAbsolutePath( pe.Path );
 			if( !String.IsNullOrEmpty( pe.CmdLine ) )
 			{
@@ -317,8 +317,18 @@ namespace Dirigent
 			};
 
 
-
-			psi.UseShellExecute = false; // allows us using environment variables
+			//if( _appDef.WindowStyle == EWindowStyle.NoWindow )
+			//{
+				// "start /min" command seems to work pretty well for both console and window apps.
+				// what does it do? (cudos to WinApiOverride!)
+				//  CreateProcessW
+				//   dwCreationFlags = 0x0080410 (EXTENDED_STARTUPINFO_PERSENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE)
+				//   lpStartupInfo = 
+				//     cb = 0x70
+				//     dwFlags = 0x0001 (STARTF_USESHOWWINDOW)
+				//     lpDesktop = "WinSta0\Default" (unicode string)
+				//     wShowWindow = 0x007 (SW_SHOWMINNOACTIVE)
+			//}
 
 			//
 			// modify the environment
@@ -367,7 +377,7 @@ namespace Dirigent
 			try
 			{
 				log.DebugFormat( "StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
-				_proc = Process.Start( psi );
+				_proc = Process_.Start( psi );
 				if( _proc != null )
 				{
 					log.DebugFormat( "StartProc SUCCESS pid {0}", _proc.Id );
@@ -417,7 +427,7 @@ namespace Dirigent
 			            Process proc;
 			            try
 			            {
-			                proc = Process.GetProcessById(pid);
+			                proc = System.Diagnostics.Process.GetProcessById(pid);
 			                log.DebugFormat(new String(' ', indent)+"KillTree pid {0}, name \"{1}\"", pid, proc.ProcessName );
 			            }
 			            catch( ArgumentException )
@@ -434,7 +444,7 @@ namespace Dirigent
 			                var childPid = Convert.ToInt32(mo["ProcessID"]);
 
 			                Process? childProc = null;
-			                try { childProc = Process.GetProcessById(childPid); }
+			                try { childProc = System.Diagnostics.Process.GetProcessById(childPid); }
 			                catch( ArgumentException ) {
 			                    log.DebugFormat(new String(' ', indent)+"KillTree ChildProc pid {0} - NOT RUNNING", childPid );
 			                }
@@ -705,7 +715,7 @@ namespace Dirigent
 		}
 
 		//public int ProcessId => _proc?.Id ?? -1;
-		public Process? Process => _proc;
+		public Process_? Process => _proc;
 
 
 		public record ProcInfo(
@@ -724,7 +734,7 @@ namespace Dirigent
 			            using (var searcher = new ManagementObjectSearcher(wmiQueryString))
 			            using (var results = searcher.Get())
 			            {
-			                var query = from p in Process.GetProcesses()
+			                var query = from p in System.Diagnostics.Process.GetProcesses()
 			                            join mo in results.Cast<ManagementObject>()
 			                            on p.Id equals (int)(uint)mo["ProcessId"]
 			                            select new
