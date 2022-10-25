@@ -176,6 +176,13 @@ namespace Dirigent
 					Terminate( m.Args );
 					break;
 				}
+
+				case Net.SetWindowStyleMessage m:
+				{
+					var la = _localApps.FindApp( m.AppIdTuple );
+					la.SetWindowStyle( m.WindowStyle );
+					break;
+				}
 			}
 		}
 

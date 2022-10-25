@@ -305,37 +305,57 @@ namespace Dirigent.Gui.WinForms
 					var popup = new System.Windows.Forms.ContextMenuStrip( this.components );
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
-					var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-					launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
-						_ctrl.Name,
-						id,
-						Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
-					)));
-					launchItem.Enabled = isAccessible && !st.Running;
-					popup.Items.Add( launchItem );
+					{
+						var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
+						launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
+							_ctrl.Name,
+							id,
+							Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+						)));
+						launchItem.Enabled = isAccessible && !st.Running;
+						popup.Items.Add( launchItem );
+					}
 
-					var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-					killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
-					killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
-					popup.Items.Add( killItem );
+					{
+						var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
+						killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
+						killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
+						popup.Items.Add( killItem );
+					}
 
-					var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-					restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
-					restartItem.Enabled = isAccessible; // && st.Running;
-					popup.Items.Add( restartItem );
+					{
+						var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
+						restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
+						restartItem.Enabled = isAccessible; // && st.Running;
+						popup.Items.Add( restartItem );
+					}
 
-					if( appDef != null && appDef.Disabled )
+					if( plan != null )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
 						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, true ) ) );
 						popup.Items.Add( setEnabledItem );
 					}
 
-					if( appDef != null )
+					if( plan != null )
 					{
 						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
 						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, false ) ) );
 						popup.Items.Add( setEnabledItem );
+					}
+
+					{
+						var showWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
+						showWindowItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
+						showWindowItem.Enabled = isAccessible && st.Running;
+						popup.Items.Add( showWindowItem );
+					}
+
+					{
+						var hideWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
+						hideWindowItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
+						hideWindowItem.Enabled = isAccessible && st.Running;
+						popup.Items.Add( hideWindowItem );
 					}
 
 					//var propsItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );

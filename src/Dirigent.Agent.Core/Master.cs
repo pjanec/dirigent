@@ -439,6 +439,12 @@ namespace Dirigent
 					SelectPlan( m.Sender, m.PlanName );
 					break;
 				}
+
+				case SetWindowStyleMessage m:
+				{
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.Agent );
+					break;
+				}
 			}
 
 		}
@@ -926,5 +932,7 @@ namespace Dirigent
 				ApplyPlanToAllApps( plan );
 			}
 		}
+
+		
 	}
 }

@@ -44,6 +44,7 @@ namespace Dirigent.Net
 			{ 129, typeof( ScriptDefsMessage ) },
 			{ 130, typeof( ScriptStateMessage ) },
 			{ 131, typeof( ApplyPlanMessage ) },
+			{ 132, typeof( SetWindowStyleMessage ) },
 		};
 	}
 
@@ -82,6 +83,7 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 129, typeof( ScriptDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 130, typeof( ScriptStateMessage ) )]
 	[ProtoBuf.ProtoInclude( 131, typeof( ApplyPlanMessage ) )]
+	[ProtoBuf.ProtoInclude( 132, typeof( SetWindowStyleMessage ) )]
 
 	public class Message
 	{
@@ -970,4 +972,29 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class SetWindowStyleMessage : Message
+	{
+		// if empty, the plan is applied to all the apps from the plan
+		[ProtoBuf.ProtoMember( 1 )]
+		public AppIdTuple AppIdTuple;
+
+		[ProtoBuf.ProtoMember( 2 )]
+		public EWindowStyle WindowStyle = EWindowStyle.NotSet;
+
+		public SetWindowStyleMessage() { }
+		public SetWindowStyleMessage( AppIdTuple appIdTuple, EWindowStyle windowStyle )
+		{
+			this.AppIdTuple = appIdTuple;
+			this.WindowStyle = windowStyle;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( "SeWindowStyle of {0} to {1}", AppIdTuple, WindowStyle );
+		}
+
+	}
 }

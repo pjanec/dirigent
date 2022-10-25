@@ -57,16 +57,7 @@ namespace Dirigent
 				IntPtr mainHwnd = _app.Process.MainWindowHandle;
 				if( mainHwnd != IntPtr.Zero ) // window has been created!
 				{
-					int showCmd = WinApi.SW_SHOWNORMAL;
-					switch( _appDef.WindowStyle )
-					{
-						case EWindowStyle.Hidden: showCmd=WinApi.SW_HIDE; break;
-						case EWindowStyle.Minimized: showCmd=WinApi.SW_MINIMIZE; break;
-						case EWindowStyle.Maximized: showCmd=WinApi.SW_MAXIMIZE; break;
-						case EWindowStyle.Normal: showCmd=WinApi.SW_SHOWNORMAL; break;
-					}
-					WinApi.ShowWindowAsync( mainHwnd, showCmd );
-					log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", _appDef.WindowStyle, mainHwnd.ToInt64(), _app.ProcessId );
+					SetWindowStyle( mainHwnd, _appDef.WindowStyle, _app.ProcessId );
 					ShallBeRemoved = true;
 				}
 			}
@@ -77,6 +68,38 @@ namespace Dirigent
 				ShallBeRemoved = true;
 			}
         }
+
+		public static void SetWindowStyle( IntPtr hWnd, EWindowStyle style, int pid, bool moveToFront=false )
+		{
+			int showCmd = WinApi.SW_SHOWNORMAL;
+			switch( style )
+			{
+				case EWindowStyle.Hidden:
+					showCmd=WinApi.SW_HIDE;
+					moveToFront = false;
+					break;
+
+				case EWindowStyle.Minimized:
+					showCmd=WinApi.SW_MINIMIZE;
+					moveToFront = false;
+					break;
+
+				case EWindowStyle.Maximized:
+					showCmd=WinApi.SW_MAXIMIZE;
+					break;
+
+				case EWindowStyle.Normal:
+					showCmd=WinApi.SW_SHOWNORMAL;
+					break;
+			}
+			WinApi.ShowWindowAsync( hWnd, showCmd );
+			log.DebugFormat("Applied style={0} to main widow 0x{1:X} of proc pid={2}", style, hWnd.ToInt64(), pid );
+
+			if( moveToFront )
+			{
+			WinApi.SetForegroundWindow( hWnd );
+			}
+		}
 
     }
 }

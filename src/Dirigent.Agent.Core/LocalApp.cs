@@ -328,5 +328,27 @@ namespace Dirigent
 				AppState.Dying = false;
             }
         }
+
+        public void SetWindowStyle( EWindowStyle style )
+        {
+
+            if( Launcher == null ||
+                Launcher.Process == null ||
+                !Launcher.Running ||
+                Launcher.Process.MainWindowHandle == IntPtr.Zero // no window
+                )
+            {
+                return;
+            }
+
+            #if Windows
+            MainWindowStyler.SetWindowStyle(
+                Launcher.Process.MainWindowHandle,
+                style,
+                Launcher.Process.Id,
+                moveToFront: true // user requested to show the window, make sure it goes to the top
+            );
+            #endif
+        }
 	}
 }
