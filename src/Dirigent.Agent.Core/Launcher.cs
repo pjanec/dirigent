@@ -84,7 +84,8 @@ namespace Dirigent
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
-			_softKiller.Dispose();
+			if( !disposing ) return;
+			_softKiller?.Dispose();
 		}
 
 		public void Tick()

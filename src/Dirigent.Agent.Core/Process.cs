@@ -16,8 +16,23 @@ namespace Dirigent
 		public string FileName = String.Empty;
 		public string Arguments = String.Empty;
 		public string WorkingDirectory = String.Empty;
-		public Dictionary<string, string> EnvironmentVariables = new Dictionary<string, string>();
+		public Dictionary<string, string> EnvironmentVariables = new Dictionary<string, string>( StringComparer.OrdinalIgnoreCase );
 		public ProcessWindowStyle WindowStyle = ProcessWindowStyle.Normal;
+
+		public ProcessStartInfo_()
+		{
+			// inherit env vars from this process
+			foreach( System.Collections.DictionaryEntry kv in Environment.GetEnvironmentVariables(EnvironmentVariableTarget.Process) )
+			{
+				var name = (string?)kv.Key;
+				var value = (string?) kv.Value;
+				if(!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
+				{
+					EnvironmentVariables[name] = value;
+				}
+			}
+		}			
+
 	}
 
 	/// <summary>
@@ -92,35 +107,7 @@ namespace Dirigent
 		{
 			_hasProcessInfo = false;
 
-			// inherit env vars from parent process
-			var envVars = new Dictionary<string, string>();
-			foreach( System.Collections.DictionaryEntry kv in Environment.GetEnvironmentVariables() )
-			{
-				var name = (string?)kv.Key;
-				var value = (string?) kv.Value;
-				if(!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(value))
-				{
-					envVars[name] = value;
-				}
-			}
-			
-			// update with the specific ones
-			foreach( KeyValuePair<string, string> kv in psi.EnvironmentVariables )
-			{
-				if( string.IsNullOrEmpty(kv.Key) ) continue;
-
-				if( !string.IsNullOrEmpty( kv.Value ) ) 
-				{
-					envVars[kv.Key] = kv.Value;
-				}
-				else // delete the variable if having empty value
-				{
-					envVars.Remove(kv.Key);
-				}
-			}
-
-
-			if( WinApi.StartProcess( psi.FileName, psi.Arguments, envVars, psi.WorkingDirectory, psi.WindowStyle, out _processInfo, out int win32error ) )
+			if( WinApi.StartProcess( psi.FileName, psi.Arguments, psi.EnvironmentVariables, psi.WorkingDirectory, psi.WindowStyle, out _processInfo, out int win32error ) )
 			{
 				_hasProcessInfo = true;
 				try
