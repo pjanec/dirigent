@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 #if Windows
 using System.Management;
 #endif
@@ -184,7 +185,7 @@ namespace Dirigent
 				{
 					// make sure we get access to the handle
 					var handle = WinApi.OpenProcess( (uint) WinApi.ProcessAccessFlags.Synchronize, false, (uint)_processInfo.dwProcessId );
-					if( handle != WinApi.INVALID_HANDLE_VALUE )
+					if( handle != IntPtr.Zero )
 					{
 						bool isStillRunning = false;
 						if( WinApi.WaitForSingleObject( _processInfo.hProcess, 0 ) == WinApi.WAIT_TIMEOUT ) // still active?
@@ -208,17 +209,50 @@ namespace Dirigent
 		{
 			get
 			{
-				if( _process!=null )
-					return _process.ExitCode;
-
 			#if Windows
-				if( !_hasProcessInfo ) // process never started
-					return -1;
+				if( _hasProcessInfo ) // process started by us
+				{
+					// as the Process object is not available, we need to find the info ourselves
+					if( WinApi.GetExitCodeProcess( _processInfo.hProcess, out var exitCode2 ) )
+					{
+						return (int)exitCode2;
+					}
+					throw new System.ComponentModel.Win32Exception( Marshal.GetLastWin32Error() );
+				}
+				else
+				if( _process != null ) // process adopted?
+				{
+					bool exitCodeFound = false;
+					uint exitCode = 0;
 
-				// as the Process object is not available, we need to find the info ourselves
-				WinApi.GetExitCodeProcess( _processInfo.hProcess, out var exitCode );
-				return (int)exitCode;
-			#else
+					var hProcess = WinApi.OpenProcess( (uint) WinApi.ProcessAccessFlags.QueryLimitedInformation, false, (uint)_process.Id );
+					if( hProcess != IntPtr.Zero ) // fails if process not started by us (adopted) and we do not have admin rights
+					{
+						if( WinApi.GetExitCodeProcess( hProcess, out exitCode ) )
+						{
+							exitCodeFound = true;
+						}
+						WinApi.CloseHandle( hProcess );
+					}
+
+					if( exitCodeFound )
+					{
+						return (int) exitCode;
+					}
+					else
+					{
+						throw new System.ComponentModel.Win32Exception( Marshal.GetLastWin32Error() );
+					}
+				}
+				else // process never started nor adopted
+				{
+					return -1;
+				}
+			#else				
+				if( _process != null )
+				{
+					return _process.ExitCode;
+				}
 				return 0;
 			#endif
 			}
@@ -238,14 +272,14 @@ namespace Dirigent
 				// as the Process object is not available, we need to find the info ourselves
 				var name = string.Empty;
 				var handle = WinApi.OpenProcess( (uint) WinApi.ProcessAccessFlags.QueryLimitedInformation, false, (uint)_processInfo.dwProcessId );
-				if( handle != WinApi.INVALID_HANDLE_VALUE )
+				if( handle != IntPtr.Zero )
 				{
 					var sb = new StringBuilder(1000);
 					WinApi.GetProcessImageFileName( _processInfo.hProcess, sb, 1000 );
 
 					name = System.IO.Path.GetFileName( sb.ToString() );
+					WinApi.CloseHandle( handle );
 				}
-				WinApi.CloseHandle( handle );
 				return name;
 			#else
 				return string.Empty;

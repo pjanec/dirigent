@@ -656,12 +656,13 @@ namespace Dirigent
 			try
 			{
 				_exitCode = _proc.ExitCode;
+				log.DebugFormat( " {0} pid {1} terminated with exit code {2}.", _appDef.Id, _proc.Id, _exitCode );
 			}
-			catch // exception is thrown for process that was adopted and not started by us
+			catch( Exception ex ) // exception is thrown for process that was adopted and not started by us
 			{
 				_exitCode = 0;
+				log.DebugFormat( " {0} pid {1} terminated; exit code could not be determined ({2}).", _appDef.Id, _proc.Id, ex.Message );
 			}
-
 
 			_softKiller.Stop();
 
