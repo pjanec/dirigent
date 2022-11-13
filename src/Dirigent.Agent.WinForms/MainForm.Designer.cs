@@ -61,14 +61,7 @@
 			this.tmrTick = new System.Windows.Forms.Timer(this.components);
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabPageApps = new System.Windows.Forms.TabPage();
-			this.gridApps = new System.Windows.Forms.DataGridView();
-			this.hdrName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-			this.hdrStatus = new System.Windows.Forms.DataGridViewTextBoxColumn();
-			this.hdrLaunchIcon = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrKillIcon = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrRestartIcon = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrEnabled = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-			this.hdrPlan = new System.Windows.Forms.DataGridViewTextBoxColumn();
+			this.gridApps = new Zuby.ADGV.AdvancedDataGridView();
 			this.toolStripApps = new Dirigent.Gui.WinForms.MyToolStrip();
 			this.btnSelectPlan = new System.Windows.Forms.ToolStripButton();
 			this.btnStartPlan = new System.Windows.Forms.ToolStripButton();
@@ -78,13 +71,7 @@
 			this.bntKillAll2 = new System.Windows.Forms.ToolStripButton();
 			this.btnShowJustAppsFromCurrentPlan = new System.Windows.Forms.ToolStripButton();
 			this.tabPagePlans = new System.Windows.Forms.TabPage();
-			this.gridPlans = new System.Windows.Forms.DataGridView();
-			this.hdrPlanName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-			this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
-			this.hdrPlanStart = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrPlanStop = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrPlanKill = new System.Windows.Forms.DataGridViewImageColumn();
-			this.hdrPlanRestart = new System.Windows.Forms.DataGridViewImageColumn();
+			this.gridPlans = new Zuby.ADGV.AdvancedDataGridView();
 			this.toolStripPlans = new Dirigent.Gui.WinForms.MyToolStrip();
 			this.btnKillAll = new System.Windows.Forms.ToolStripButton();
 			this.statusStrip.SuspendLayout();
@@ -360,14 +347,6 @@
 			this.gridApps.AllowUserToDeleteRows = false;
 			this.gridApps.BackgroundColor = System.Drawing.SystemColors.Window;
 			this.gridApps.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			this.gridApps.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.hdrName,
-            this.hdrStatus,
-            this.hdrLaunchIcon,
-            this.hdrKillIcon,
-            this.hdrRestartIcon,
-            this.hdrEnabled,
-            this.hdrPlan});
 			this.gridApps.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.gridApps.Location = new System.Drawing.Point(4, 30);
 			this.gridApps.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -383,62 +362,6 @@
 			this.gridApps.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridApps_CellFormatting);
 			this.gridApps.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseClick);
 			this.gridApps.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridApps_MouseDoubleClick);
-			// 
-			// hdrName
-			// 
-			this.hdrName.HeaderText = "Application Name";
-			this.hdrName.MinimumWidth = 9;
-			this.hdrName.Name = "hdrName";
-			this.hdrName.ReadOnly = true;
-			this.hdrName.Width = 250;
-			// 
-			// hdrStatus
-			// 
-			this.hdrStatus.HeaderText = "Status";
-			this.hdrStatus.MinimumWidth = 9;
-			this.hdrStatus.Name = "hdrStatus";
-			this.hdrStatus.ReadOnly = true;
-			this.hdrStatus.Width = 175;
-			// 
-			// hdrLaunchIcon
-			// 
-			this.hdrLaunchIcon.HeaderText = "";
-			this.hdrLaunchIcon.MinimumWidth = 9;
-			this.hdrLaunchIcon.Name = "hdrLaunchIcon";
-			this.hdrLaunchIcon.ReadOnly = true;
-			this.hdrLaunchIcon.Width = 24;
-			// 
-			// hdrKillIcon
-			// 
-			this.hdrKillIcon.HeaderText = "";
-			this.hdrKillIcon.MinimumWidth = 9;
-			this.hdrKillIcon.Name = "hdrKillIcon";
-			this.hdrKillIcon.ReadOnly = true;
-			this.hdrKillIcon.Width = 24;
-			// 
-			// hdrRestartIcon
-			// 
-			this.hdrRestartIcon.HeaderText = "";
-			this.hdrRestartIcon.MinimumWidth = 9;
-			this.hdrRestartIcon.Name = "hdrRestartIcon";
-			this.hdrRestartIcon.ReadOnly = true;
-			this.hdrRestartIcon.Width = 24;
-			// 
-			// hdrEnabled
-			// 
-			this.hdrEnabled.HeaderText = "Enabled";
-			this.hdrEnabled.MinimumWidth = 9;
-			this.hdrEnabled.Name = "hdrEnabled";
-			this.hdrEnabled.ReadOnly = true;
-			this.hdrEnabled.Width = 50;
-			// 
-			// hdrPlan
-			// 
-			this.hdrPlan.HeaderText = "Last Plan";
-			this.hdrPlan.MinimumWidth = 9;
-			this.hdrPlan.Name = "hdrPlan";
-			this.hdrPlan.ReadOnly = true;
-			this.hdrPlan.Width = 175;
 			// 
 			// toolStripApps
 			// 
@@ -547,13 +470,6 @@
 			this.gridPlans.AllowUserToDeleteRows = false;
 			this.gridPlans.BackgroundColor = System.Drawing.SystemColors.Window;
 			this.gridPlans.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-			this.gridPlans.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.hdrPlanName,
-            this.Status,
-            this.hdrPlanStart,
-            this.hdrPlanStop,
-            this.hdrPlanKill,
-            this.hdrPlanRestart});
 			this.gridPlans.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.gridPlans.Location = new System.Drawing.Point(4, 30);
 			this.gridPlans.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -569,54 +485,6 @@
 			this.gridPlans.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridPlans_CellFormatting);
 			this.gridPlans.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseClick);
 			this.gridPlans.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridPlans_MouseDoubleClick);
-			// 
-			// hdrPlanName
-			// 
-			this.hdrPlanName.HeaderText = "Plan Name";
-			this.hdrPlanName.MinimumWidth = 9;
-			this.hdrPlanName.Name = "hdrPlanName";
-			this.hdrPlanName.ReadOnly = true;
-			this.hdrPlanName.Width = 250;
-			// 
-			// Status
-			// 
-			this.Status.HeaderText = "Status";
-			this.Status.MinimumWidth = 9;
-			this.Status.Name = "Status";
-			this.Status.ReadOnly = true;
-			this.Status.Width = 175;
-			// 
-			// hdrPlanStart
-			// 
-			this.hdrPlanStart.HeaderText = "";
-			this.hdrPlanStart.MinimumWidth = 9;
-			this.hdrPlanStart.Name = "hdrPlanStart";
-			this.hdrPlanStart.ReadOnly = true;
-			this.hdrPlanStart.Width = 24;
-			// 
-			// hdrPlanStop
-			// 
-			this.hdrPlanStop.HeaderText = "";
-			this.hdrPlanStop.MinimumWidth = 9;
-			this.hdrPlanStop.Name = "hdrPlanStop";
-			this.hdrPlanStop.ReadOnly = true;
-			this.hdrPlanStop.Width = 24;
-			// 
-			// hdrPlanKill
-			// 
-			this.hdrPlanKill.HeaderText = "";
-			this.hdrPlanKill.MinimumWidth = 9;
-			this.hdrPlanKill.Name = "hdrPlanKill";
-			this.hdrPlanKill.ReadOnly = true;
-			this.hdrPlanKill.Width = 24;
-			// 
-			// hdrPlanRestart
-			// 
-			this.hdrPlanRestart.HeaderText = "";
-			this.hdrPlanRestart.MinimumWidth = 9;
-			this.hdrPlanRestart.Name = "hdrPlanRestart";
-			this.hdrPlanRestart.ReadOnly = true;
-			this.hdrPlanRestart.Width = 24;
 			// 
 			// toolStripPlans
 			// 
@@ -700,14 +568,8 @@
 		private System.Windows.Forms.ToolStripButton btnRestartPlan;
 		private System.Windows.Forms.ToolStripButton btnShowJustAppsFromCurrentPlan;
 		private System.Windows.Forms.TabPage tabPagePlans;
-		private System.Windows.Forms.DataGridView gridApps;
-		private System.Windows.Forms.DataGridView gridPlans;
-		private System.Windows.Forms.DataGridViewTextBoxColumn hdrPlanName;
-		private System.Windows.Forms.DataGridViewTextBoxColumn Status;
-		private System.Windows.Forms.DataGridViewImageColumn hdrPlanStart;
-		private System.Windows.Forms.DataGridViewImageColumn hdrPlanStop;
-		private System.Windows.Forms.DataGridViewImageColumn hdrPlanKill;
-		private System.Windows.Forms.DataGridViewImageColumn hdrPlanRestart;
+		private Zuby.ADGV.AdvancedDataGridView gridApps;
+		private Zuby.ADGV.AdvancedDataGridView gridPlans;
 		private System.Windows.Forms.ToolStripMenuItem onlineDocumentationToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
@@ -727,13 +589,6 @@
 		private MyToolStrip toolStripPlans;
 		private System.Windows.Forms.ToolStripButton btnKillAll;
 		private System.Windows.Forms.ToolStripButton bntKillAll2;
-		private System.Windows.Forms.DataGridViewTextBoxColumn hdrName;
-		private System.Windows.Forms.DataGridViewTextBoxColumn hdrStatus;
-		private System.Windows.Forms.DataGridViewImageColumn hdrLaunchIcon;
-		private System.Windows.Forms.DataGridViewImageColumn hdrKillIcon;
-		private System.Windows.Forms.DataGridViewImageColumn hdrRestartIcon;
-		private System.Windows.Forms.DataGridViewCheckBoxColumn hdrEnabled;
-		private System.Windows.Forms.DataGridViewTextBoxColumn hdrPlan;
 	}
 }
 

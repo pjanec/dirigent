@@ -14,36 +14,105 @@ namespace Dirigent.Gui.WinForms
 {
 	public partial class frmMain : Form
 	{
-		const int appTabColName = 0;
-		const int appTabColStatus = 1;
-		const int appTabColIconStart = 2;
-		const int appTabColIconKill = 3;
-		const int appTabColIconRestart = 4;
-		const int appTabColEnabled = 5;
-		const int appTabColPlan = 6;
+		const int appTabColMachineId = 0;
+		const int appTabColAppId = 1;
+		const int appTabColStatus = 2;
+		const int appTabColIconStart = 3;
+		const int appTabColIconKill = 4;
+		const int appTabColIconRestart = 5;
+		const int appTabColEnabled = 6;
+		const int appTabColPlan = 7;
 		const int appTabNumCols = appTabColPlan + 1;
 
 
-		void refreshAppList()
+        private BindingSource _gridAppsBindingSource = null;
+		private DataTable _gridAppsDataTable = null;
+        private DataSet _gridAppsDataSet = null;
+
+		void initAppGrid()
 		{
-			var plan = _currentPlan;
+			gridApps.SetDoubleBuffered();
 
-			gridApps.Rows.Clear();
+			// when using DataTables the ADGV can properly filter rows
+			_gridAppsBindingSource = new BindingSource();
+			_gridAppsDataTable = new DataTable();
+			_gridAppsDataSet = new DataSet();
 
-			if( plan != null )
+			_gridAppsBindingSource.DataSource = _gridAppsDataSet;
+
+	        _gridAppsDataTable = _gridAppsDataSet.Tables.Add("AppsTable");
+			_gridAppsDataTable.Columns.Add("MachineId", typeof(string));
+			_gridAppsDataTable.Columns.Add("AppId", typeof(string));
+			_gridAppsDataTable.Columns.Add("Status", typeof(string));
+			_gridAppsDataTable.Columns.Add("IconStart", typeof(Bitmap));
+			_gridAppsDataTable.Columns.Add("IconKill", typeof(Bitmap));
+			_gridAppsDataTable.Columns.Add("IconRestart", typeof(Bitmap));
+			_gridAppsDataTable.Columns.Add("Enabled", typeof(bool));
+			_gridAppsDataTable.Columns.Add("Plan", typeof(string));
+
+			_gridAppsBindingSource.DataMember = _gridAppsDataSet.Tables[0].TableName;
+
+			gridApps.DataSource = _gridAppsBindingSource;
+
+			// adjust columns
+
+			var _hdrMachineId = gridApps.Columns[appTabColMachineId];
+			_hdrMachineId.HeaderText = "Machine";
+			_hdrMachineId.MinimumWidth = 9;
+			_hdrMachineId.ReadOnly = true;
+			_hdrMachineId.Width = 125;
+
+			var _hdrAppId = gridApps.Columns[appTabColAppId];
+			_hdrAppId.HeaderText = "App";
+			_hdrAppId.MinimumWidth = 9;
+			_hdrAppId.ReadOnly = true;
+			_hdrAppId.Width = 125;
+
+			var _hdrStatus = gridApps.Columns[appTabColStatus];
+			_hdrStatus.HeaderText = "Status";
+			_hdrStatus.MinimumWidth = 9;
+			_hdrStatus.ReadOnly = true;
+			_hdrStatus.Width = 175;
+
+			var _hdrLaunchIcon = gridApps.Columns[appTabColIconStart];
+			_hdrLaunchIcon.HeaderText = "";
+			_hdrLaunchIcon.MinimumWidth = 9;
+			_hdrLaunchIcon.ReadOnly = true;
+			_hdrLaunchIcon.Width = 24;
+
+			var _hdrKillIcon = gridApps.Columns[appTabColIconKill];
+			_hdrKillIcon.HeaderText = "";
+			_hdrKillIcon.MinimumWidth = 9;
+			_hdrKillIcon.ReadOnly = true;
+			_hdrKillIcon.Width = 24;
+
+			var _hdrRestartIcon = gridApps.Columns[appTabColIconRestart];
+			_hdrRestartIcon.HeaderText = "";
+			_hdrRestartIcon.MinimumWidth = 9;
+			_hdrRestartIcon.ReadOnly = true;
+			_hdrRestartIcon.Width = 24;
+
+			var _hdrEnabled = gridApps.Columns[appTabColEnabled];
+			_hdrEnabled.HeaderText = "Enabled";
+			_hdrEnabled.MinimumWidth = 9;
+			_hdrEnabled.ReadOnly = true;
+			_hdrEnabled.Width = 50;
+
+			var _hdrPlan = gridApps.Columns[appTabColPlan];
+			_hdrPlan.HeaderText = "Last Plan";
+			_hdrPlan.MinimumWidth = 9;
+			_hdrPlan.ReadOnly = true;
+			_hdrPlan.Width = 175;
+
+			if (Common.Properties.Settings.Default.GridButtonSpacing > 0)
 			{
-				foreach( AppDef ad in plan.AppDefs )
-				{
-					gridApps.Rows.Add(
-						new object[]
-					{
-						ad.Id.ToString(),
-						Tools.GetAppStateText( _ctrl.GetAppState( ad.Id ), _ctrl.GetPlanState(plan.Name), ad )
-					}
-					);
-				}
+				_hdrLaunchIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				_hdrKillIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
+				_hdrRestartIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
 			}
+
 		}
+
 
 		struct UPD
 		{
@@ -69,8 +138,13 @@ namespace Dirigent.Gui.WinForms
 		/// Update the list of apps by doing minimal changes to avoid losing focus.
 		/// Adding what is not yet there and deleting what has disappeared.
 		/// </summary>
-		void refreshAppList_smart()
+		void refreshAppGrid()
 		{
+			if( _gridAppsBindingSource == null )
+			{
+				initAppGrid();
+			}
+
 			DataGridViewRow selected = null;
 
 			var plan = _currentPlan;
@@ -89,74 +163,79 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			// remember apps from plan
-			Dictionary<string, AppIdTuple> newApps = new Dictionary<string, AppIdTuple>();
+			Dictionary<AppIdTuple, AppIdTuple> newApps = new Dictionary<AppIdTuple, AppIdTuple>();
 
 			foreach( AppIdTuple a in appStates.Keys )
 			{
-				newApps[a.ToString()] = a;
+				newApps[a] = a;
 			}
 
 			// remember apps from list
-			Dictionary<string, DataGridViewRow> oldApps = new Dictionary<string, DataGridViewRow>();
+			Dictionary<AppIdTuple, DataRow> oldApps = new Dictionary<AppIdTuple, DataRow>();
 
-			foreach( DataGridViewRow item in gridApps.Rows )
+			foreach( DataGridViewRow gridRow in gridApps.Rows )
 			{
-				string id = item.Cells[appTabColName].Value as string;
-				oldApps[id] = item;
+				var id = getAppTupleFromAppGridRow( gridRow );
 
-				if( item.Selected )
+				oldApps[id] = getDataRowFromGridRow( gridRow );
+
+				if( gridRow.Selected )
 				{
 					if( selected == null )
 					{
-						selected = item;
+						selected = gridRow;
 					}
 				}
 			}
 
 			// determine what to add and what to remove
-			List<DataGridViewRow> toRemove = new List<DataGridViewRow>();
+			List<DataRow> toRemove = new List<DataRow>();
 			List<object[]> toAdd = new List<object[]>();
 
-			foreach( DataGridViewRow item in gridApps.Rows )
+			foreach( DataGridViewRow gridRow in gridApps.Rows )
 			{
-				string id = item.Cells[0].Value as string;
+				var id = getAppTupleFromAppGridRow( gridRow );
+
 				if( !newApps.ContainsKey( id ) )
 				{
-					toRemove.Add( item );
+					var dataRow = getDataRowFromGridRow( gridRow );
+					toRemove.Add( dataRow );
 				}
 			}
 
 			foreach( var x in appStates )
 			{
-				var idStr = x.Key.ToString();
-				if( !oldApps.ContainsKey( idStr ) )
+				var id = x.Key;
+				var appState = x.Value;
+
+				if( !oldApps.ContainsKey( id ) )
 				{
-					var id = x.Key;
-					var appState = x.Value;
+
 					var item = new object[appTabNumCols];
-					item[appTabColName] = idStr;
+					item[appTabColMachineId] = id.MachineId;
+					item[appTabColAppId] = id.AppId;
 					//item[appTabColStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
 					item[appTabColStatus] = Tools.GetAppStateText( appState, _ctrl.GetPlanState(appState.PlanName), _ctrl.GetAppDef(id) );
-					item[appTabColIconStart] = ResizeImage( new Bitmap( Resource1.play ), new Size( 20, 20 ) );
-					item[appTabColIconKill] = ResizeImage( new Bitmap( Resource1.delete ), new Size( 20, 20 ) );
-					item[appTabColIconRestart] = ResizeImage( new Bitmap( Resource1.refresh ), new Size( 20, 20 ) );
+					item[appTabColIconStart] = _iconStart;
+					item[appTabColIconKill] = _iconKill;
+					item[appTabColIconRestart] = _iconRestart;
 					item[appTabColEnabled] = false;
 					item[appTabColPlan] = GetPlanForApp( id );
 					toAdd.Add( item );
 				}
 			}
 
-			foreach( var i in toRemove )
+			foreach( var dataRow in toRemove )
 			{
-				gridApps.Rows.Remove( i );
+				_gridAppsDataTable.Rows.Remove( dataRow );
 			}
 
-			foreach( var i in toAdd )
+			foreach( var newrow in toAdd )
 			{
-				gridApps.Rows.Add( i );
+				_gridAppsDataTable.Rows.Add( newrow );
 			}
 
-			Dictionary<DataGridViewRow, UPD> toUpdate = new Dictionary<DataGridViewRow, UPD>();
+			Dictionary<DataRow, UPD> toUpdate = new Dictionary<DataRow, UPD>();
 			foreach( var o in oldApps )
 			{
 				if( !toRemove.Contains( o.Value ) )
@@ -180,39 +259,42 @@ namespace Dirigent.Gui.WinForms
 
 			foreach( var tu in toUpdate )
 			{
-				var row = tu.Key;
+				var dataRow = tu.Key;
 				var upd = tu.Value;
 
-				row.Cells[appTabColStatus].Value = upd.Status;
+				dataRow.SetField( appTabColStatus, upd.Status );
 
 				if( upd.PlanName != null )
 				{
-					row.Cells[appTabColPlan].Value = upd.PlanName;
+					dataRow.SetField( appTabColStatus, upd.Status );
+					dataRow.SetField( appTabColPlan, upd.PlanName );
 				}
 			}
 
 			// colorize the background of items from current plan
-			List<string> planAppIds = ( from ad in planAppIdTuples select ad.ToString() ).ToList();
+			List<AppIdTuple> planAppIds = ( from ad in planAppIdTuples select ad ).ToList();
 
-			foreach( DataGridViewRow item in gridApps.Rows )
+			foreach( DataGridViewRow gridRow in gridApps.Rows )
 			{
-				string idStr = item.Cells[0].Value as string;
-				var id = AppIdTuple.fromString( idStr, "" );
+				var id = getAppTupleFromAppGridRow( gridRow );
 
-				if( planAppIds.Contains( idStr ) )
+				if( planAppIds.Contains( id ) )
 				{
-					item.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
+					gridRow.DefaultCellStyle.BackColor = Color.LightGoldenrodYellow;
 				}
 				else
 				{
-					item.DefaultCellStyle.BackColor = SystemColors.Control;
+					gridRow.DefaultCellStyle.BackColor = SystemColors.Control;
 				}
 
 				// set checkbox based on Enabled attribute od the appDef from current plan
 				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 				{
-					var chkCell = item.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
+					var chkCell = gridRow.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
+					
+					// could be set via the bindings to DataRow??
 					chkCell.Value = appDef != null ? !appDef.Disabled : false;
+
 					// emulate "Disabled" grayed appearance
 					chkCell.FlatStyle = appDef != null ? FlatStyle.Standard : FlatStyle.Flat;
 					chkCell.Style.ForeColor = appDef != null ? Color.Black : Color.DarkGray;
@@ -220,21 +302,30 @@ namespace Dirigent.Gui.WinForms
 				}
 				// put app state into a tooltip
 				{
-					var appStatusCell = item.Cells[appTabColStatus]; // as DataGridViewCell;
+					var appStatusCell = gridRow.Cells[appTabColStatus]; // as DataGridViewCell;
 					appStatusCell.ToolTipText = Tools.GetAppStateString( id, _ctrl.GetAppState( id ) );
 				}
 
+			}
+
+			if( toAdd.Count > 0 || toRemove.Count > 0 || toUpdate.Count > 0 )
+			{
+				gridApps.Refresh();
 			}
 		}
 
 		private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
-			var id = new AppIdTuple( ( string ) gridApps.Rows[e.RowIndex].Cells[appTabColName].Value );
+			var gridRow = gridApps.Rows[e.RowIndex];
+			var dataRow = getDataRowFromGridRow( gridRow );
+			var dataItems = dataRow.ItemArray;
+			var id = getAppTupleFromAppGridDataRow( dataRow );
+
 			var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
-			var defst = gridApps.Rows[e.RowIndex].Cells[appTabColName].Style;
+			var defst = gridApps.Rows[e.RowIndex].Cells[appTabColMachineId].Style;
 			if( e.ColumnIndex == appTabColStatus )
 			{
-				var txt = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex].Value as string;
+				var txt = dataItems[appTabColStatus] as string;
 				if( txt.StartsWith( "Running" ) )
 				{
 					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
@@ -281,6 +372,27 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		private DataRow getDataRowFromGridRow( DataGridViewRow gridRow )
+		{
+			var drv = gridRow.DataBoundItem as DataRowView;
+			var dataRow = drv.Row;
+			return dataRow;
+		}
+
+		private AppIdTuple getAppTupleFromAppGridDataRow( DataRow dataRow )
+		{
+			var dataItems = dataRow.ItemArray;
+			var id = new AppIdTuple( (string)dataItems[appTabColMachineId], (string)dataItems[appTabColAppId] );
+			return id;
+		}
+
+		private AppIdTuple getAppTupleFromAppGridRow( DataGridViewRow gridRow )
+		{
+			var dataRow = getDataRowFromGridRow( gridRow );
+			var id = getAppTupleFromAppGridDataRow( dataRow );
+			return id;
+		}
+
 		private void gridApps_MouseClick( object sender, MouseEventArgs e )
 		{
 			var hti = gridApps.HitTest( e.X, e.Y );
@@ -292,7 +404,8 @@ namespace Dirigent.Gui.WinForms
 			if( currentRow >= 0 ) // ignore header clicks
 			{
 				DataGridViewRow focused = gridApps.Rows[currentRow];
-				var id = new AppIdTuple( focused.Cells[0].Value as string );
+				var id = getAppTupleFromAppGridRow( focused );
+
 				var st = _ctrl.GetAppState( id );
 				bool connected = IsConnected;
 				//bool isLocalApp = id.MachineId == this._machineId;
@@ -441,10 +554,10 @@ namespace Dirigent.Gui.WinForms
 
 				if( row >= 0 )
 				{
-					if( col == appTabColName || col == appTabColStatus || col == appTabColPlan )  // just Name and Status columns
+					if( col == appTabColMachineId || col == appTabColAppId || col == appTabColStatus || col == appTabColPlan )
 					{
 						DataGridViewRow focused = gridApps.Rows[row];
-						var id = new AppIdTuple( focused.Cells[0].Value as string );
+						var id = getAppTupleFromAppGridRow( focused );
 						var st = _ctrl.GetAppState( id );
 
 						guardedOp( () => _ctrl.Send( new Net.StartAppMessage(

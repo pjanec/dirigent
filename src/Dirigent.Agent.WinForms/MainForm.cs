@@ -39,6 +39,11 @@ namespace Dirigent.Gui.WinForms
 		private Net.Client _client;
 		private ReflectedStateRepo _reflStates;
 
+		private readonly Bitmap _iconStart = ResizeImage( new Bitmap( Resource1.play ), new Size( 20, 20 ) );
+		private readonly Bitmap _iconStop = ResizeImage( new Bitmap( Resource1.stop ), new Size( 20, 20 ) );
+		private readonly Bitmap _iconKill = ResizeImage( new Bitmap( Resource1.delete ), new Size( 20, 20 ) );
+		private readonly Bitmap _iconRestart = ResizeImage( new Bitmap( Resource1.refresh ), new Size( 20, 20 ) );
+
 		public bool ShowJustAppFromCurrentPlan
 		{
 			get
@@ -72,17 +77,6 @@ namespace Dirigent.Gui.WinForms
 			{
 				this.gridPlans.RowTemplate.Height = Common.Properties.Settings.Default.GridRowSpacing;
 				this.gridApps.RowTemplate.Height = Common.Properties.Settings.Default.GridRowSpacing;
-			}
-
-			if( Common.Properties.Settings.Default.GridButtonSpacing > 0 ) 
-			{
-				this.hdrPlanStart.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrPlanStop.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrPlanKill.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrPlanRestart.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrKillIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrLaunchIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
-				this.hdrRestartIcon.Width = Common.Properties.Settings.Default.GridButtonSpacing;
 			}
 
 
@@ -321,8 +315,7 @@ namespace Dirigent.Gui.WinForms
 
 		void refreshGui()
 		{
-			//refreshAppList();
-			refreshAppList_smart();
+			refreshAppGrid();
 			refreshStatusBar();
 			refreshMenu();
 			refreshPlans();
