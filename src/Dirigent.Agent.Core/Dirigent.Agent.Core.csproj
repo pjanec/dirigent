@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <!-- use net5.0 for linux build... -->
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <Product>Dirigent</Product>
     <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
     <Authors>pjanec</Authors>
 
-    <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 
+    <IsWindows Condition="'$(TargetFramework)' == 'net6.0-windows'">true</IsWindows> 
 
     <!--compile time - only set if compiled on linux...-->
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>

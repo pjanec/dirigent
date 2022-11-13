@@ -1,6 +1,6 @@
 Param( $buildconf="Release" )
 
-$framework = "net5.0"
+$framework = "net6.0"
 
 function ReplaceTargetPlatform
 {

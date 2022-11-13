@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- use net5.0 for linux build... -->
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <!-- use net6.0 for linux build... -->
+    <TargetFramework>net6.0-windows</TargetFramework>
     <OutputType>Exe</OutputType>
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
     <Nullable>enable</Nullable>
@@ -11,7 +11,7 @@
     <Authors>pjanec</Authors>
     <AssemblyName>Dirigent.Agent</AssemblyName>
 
-    <IsWindows Condition="'$(TargetFramework)' == 'net5.0-windows'">true</IsWindows> 
+    <IsWindows Condition="'$(TargetFramework)' == 'net6.0-windows'">true</IsWindows> 
 
     <!--compile time - only set if compiled on linux...-->
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
