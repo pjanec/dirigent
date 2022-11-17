@@ -68,12 +68,16 @@
 			this.btnStopPlan = new System.Windows.Forms.ToolStripButton();
 			this.btnKillPlan = new System.Windows.Forms.ToolStripButton();
 			this.btnRestartPlan = new System.Windows.Forms.ToolStripButton();
-			this.bntKillAll2 = new System.Windows.Forms.ToolStripButton();
+			this.bntAppsKillAll = new System.Windows.Forms.ToolStripButton();
 			this.btnShowJustAppsFromCurrentPlan = new System.Windows.Forms.ToolStripButton();
 			this.tabPagePlans = new System.Windows.Forms.TabPage();
 			this.gridPlans = new Zuby.ADGV.AdvancedDataGridView();
+			this.gridScripts = new Zuby.ADGV.AdvancedDataGridView();
 			this.toolStripPlans = new Dirigent.Gui.WinForms.MyToolStrip();
-			this.btnKillAll = new System.Windows.Forms.ToolStripButton();
+			this.btnPlansKillAll = new System.Windows.Forms.ToolStripButton();
+			this.tabPageScripts = new System.Windows.Forms.TabPage();
+			this.toolStripScripts = new Dirigent.Gui.WinForms.MyToolStrip();
+			this.btnScriptsKillAll = new System.Windows.Forms.ToolStripButton();
 			this.statusStrip.SuspendLayout();
 			this.menuMain.SuspendLayout();
 			this.tabControl1.SuspendLayout();
@@ -83,6 +87,9 @@
 			this.tabPagePlans.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.gridPlans)).BeginInit();
 			this.toolStripPlans.SuspendLayout();
+			this.tabPageScripts.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.gridScripts)).BeginInit();
+			this.toolStripScripts.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// statusStrip
@@ -320,6 +327,7 @@
 			// 
 			this.tabControl1.Controls.Add(this.tabPageApps);
 			this.tabControl1.Controls.Add(this.tabPagePlans);
+			this.tabControl1.Controls.Add(this.tabPageScripts);
 			this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.tabControl1.Location = new System.Drawing.Point(0, 42);
 			this.tabControl1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -372,7 +380,7 @@
             this.btnStopPlan,
             this.btnKillPlan,
             this.btnRestartPlan,
-            this.bntKillAll2,
+            this.bntAppsKillAll,
             this.btnShowJustAppsFromCurrentPlan});
 			this.toolStripApps.Location = new System.Drawing.Point(4, 5);
 			this.toolStripApps.Name = "toolStripApps";
@@ -431,15 +439,15 @@
 			this.btnRestartPlan.Text = "Restart Plan";
 			this.btnRestartPlan.Click += new System.EventHandler(this.restartPlanMenuItem_Click);
 			// 
-			// bntKillAll2
+			// bntAppsKillAll
 			// 
-			this.bntKillAll2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.bntKillAll2.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
-			this.bntKillAll2.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.bntKillAll2.Name = "bntKillAll2";
-			this.bntKillAll2.Size = new System.Drawing.Size(40, 19);
-			this.bntKillAll2.Text = "Kill All";
-			this.bntKillAll2.Click += new System.EventHandler(this.bntKillAll2_Click);
+			this.bntAppsKillAll.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.bntAppsKillAll.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
+			this.bntAppsKillAll.ImageTransparentColor = System.Drawing.Color.Magenta;
+			this.bntAppsKillAll.Name = "bntAppsKillAll";
+			this.bntAppsKillAll.Size = new System.Drawing.Size(40, 19);
+			this.bntAppsKillAll.Text = "Kill All";
+			this.bntAppsKillAll.Click += new System.EventHandler(this.bntAppsKillAll_Click);
 			// 
 			// btnShowJustAppsFromCurrentPlan
 			// 
@@ -490,22 +498,78 @@
 			// 
 			this.toolStripPlans.ImageScalingSize = new System.Drawing.Size(28, 28);
 			this.toolStripPlans.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.btnKillAll});
+            this.btnPlansKillAll});
 			this.toolStripPlans.Location = new System.Drawing.Point(4, 5);
 			this.toolStripPlans.Name = "toolStripPlans";
 			this.toolStripPlans.Size = new System.Drawing.Size(1051, 25);
 			this.toolStripPlans.TabIndex = 1;
 			this.toolStripPlans.Text = "myToolStrip1";
 			// 
-			// btnKillAll
+			// btnPlansKillAll
 			// 
-			this.btnKillAll.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-			this.btnKillAll.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
-			this.btnKillAll.ImageTransparentColor = System.Drawing.Color.Magenta;
-			this.btnKillAll.Name = "btnKillAll";
-			this.btnKillAll.Size = new System.Drawing.Size(40, 19);
-			this.btnKillAll.Text = "Kill All";
-			this.btnKillAll.Click += new System.EventHandler(this.btnKillAll_Click);
+			this.btnPlansKillAll.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnPlansKillAll.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
+			this.btnPlansKillAll.ImageTransparentColor = System.Drawing.Color.Magenta;
+			this.btnPlansKillAll.Name = "btnPlansKillAll";
+			this.btnPlansKillAll.Size = new System.Drawing.Size(40, 19);
+			this.btnPlansKillAll.Text = "Kill All";
+			this.btnPlansKillAll.Click += new System.EventHandler(this.btnPlansKillAll_Click);
+			// 
+			// tabPageScripts
+			// 
+			this.tabPageScripts.Controls.Add(this.gridScripts);
+			this.tabPageScripts.Controls.Add(this.toolStripScripts);
+			this.tabPageScripts.Location = new System.Drawing.Point(4, 39);
+			this.tabPageScripts.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+			this.tabPageScripts.Name = "tabPageScripts";
+			this.tabPageScripts.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
+			this.tabPageScripts.Size = new System.Drawing.Size(1059, 498);
+			this.tabPageScripts.TabIndex = 1;
+			this.tabPageScripts.Text = "Scripts";
+			this.tabPageScripts.UseVisualStyleBackColor = true;
+			// 
+			// gridScripts
+			// 
+			this.gridScripts.AllowUserToAddRows = false;
+			this.gridScripts.AllowUserToDeleteRows = false;
+			this.gridScripts.BackgroundColor = System.Drawing.SystemColors.Window;
+			this.gridScripts.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			this.gridScripts.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.gridScripts.Location = new System.Drawing.Point(4, 30);
+			this.gridScripts.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+			this.gridScripts.MultiSelect = false;
+			this.gridScripts.Name = "gridScripts";
+			this.gridScripts.ReadOnly = true;
+			this.gridScripts.RowHeadersVisible = false;
+			this.gridScripts.RowHeadersWidth = 72;
+			this.gridScripts.RowTemplate.Height = 24;
+			this.gridScripts.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+			this.gridScripts.Size = new System.Drawing.Size(1051, 463);
+			this.gridScripts.TabIndex = 6;
+			this.gridScripts.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridScripts_CellFormatting);
+			this.gridScripts.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gridScripts_MouseClick);
+			this.gridScripts.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.gridScripts_MouseDoubleClick);
+			// 
+			// toolStripScripts
+			// 
+			this.toolStripScripts.ImageScalingSize = new System.Drawing.Size(28, 28);
+			this.toolStripScripts.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.btnScriptsKillAll});
+			this.toolStripScripts.Location = new System.Drawing.Point(4, 5);
+			this.toolStripScripts.Name = "toolStripScripts";
+			this.toolStripScripts.Size = new System.Drawing.Size(1051, 25);
+			this.toolStripScripts.TabIndex = 1;
+			this.toolStripScripts.Text = "myToolStrip1";
+			// 
+			// btnScriptsKillAll
+			// 
+			this.btnScriptsKillAll.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+			this.btnScriptsKillAll.Image = global::Dirigent.Gui.WinForms.Resource1.killall;
+			this.btnScriptsKillAll.ImageTransparentColor = System.Drawing.Color.Magenta;
+			this.btnScriptsKillAll.Name = "btnScriptsKillAll";
+			this.btnScriptsKillAll.Size = new System.Drawing.Size(40, 19);
+			this.btnScriptsKillAll.Text = "Kill All";
+			this.btnScriptsKillAll.Click += new System.EventHandler(this.btnScriptsKillAll_Click);
 			// 
 			// frmMain
 			// 
@@ -538,6 +602,11 @@
 			((System.ComponentModel.ISupportInitialize)(this.gridPlans)).EndInit();
 			this.toolStripPlans.ResumeLayout(false);
 			this.toolStripPlans.PerformLayout();
+			this.tabPageScripts.ResumeLayout(false);
+			this.tabPageScripts.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.gridScripts)).EndInit();
+			this.toolStripScripts.ResumeLayout(false);
+			this.toolStripScripts.PerformLayout();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -568,8 +637,10 @@
 		private System.Windows.Forms.ToolStripButton btnRestartPlan;
 		private System.Windows.Forms.ToolStripButton btnShowJustAppsFromCurrentPlan;
 		private System.Windows.Forms.TabPage tabPagePlans;
+		private System.Windows.Forms.TabPage tabPageScripts;
 		private Zuby.ADGV.AdvancedDataGridView gridApps;
 		private Zuby.ADGV.AdvancedDataGridView gridPlans;
+		private Zuby.ADGV.AdvancedDataGridView gridScripts;
 		private System.Windows.Forms.ToolStripMenuItem onlineDocumentationToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
@@ -587,8 +658,10 @@
 		private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem1;
 		private MyToolStrip toolStripPlans;
-		private System.Windows.Forms.ToolStripButton btnKillAll;
-		private System.Windows.Forms.ToolStripButton bntKillAll2;
+		private System.Windows.Forms.ToolStripButton bntAppsKillAll;
+		private System.Windows.Forms.ToolStripButton btnPlansKillAll;
+		private System.Windows.Forms.ToolStripButton btnScriptsKillAll;
+		private MyToolStrip toolStripScripts;
 	}
 }
 

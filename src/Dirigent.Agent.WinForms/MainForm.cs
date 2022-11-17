@@ -36,6 +36,7 @@ namespace Dirigent.Gui.WinForms
 		private string _machineId; // empty if GUI not running as part of local agent
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private List<PlanDef> _planRepo; // current plan repo
+		private List<ScriptDef> _scriptRepo; // current plan repo
 		private Net.Client _client;
 		private ReflectedStateRepo _reflStates;
 
@@ -87,6 +88,7 @@ namespace Dirigent.Gui.WinForms
 			//setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
 
 			_planRepo = new List<PlanDef>();
+			_scriptRepo = new List<ScriptDef>();
 
 			_client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
 			_client.MessageReceived += OnMessage;
@@ -106,6 +108,11 @@ namespace Dirigent.Gui.WinForms
 				{
 					_currentPlan = _reflStates.GetPlanDef( _currentPlan.Name );
 				}
+			};
+
+
+			_reflStates.OnScriptsReceived += () =>
+			{
 			};
 
 			_ctrl = _reflStates;
@@ -309,8 +316,19 @@ namespace Dirigent.Gui.WinForms
 			}
 			updatePlansStatus();
 
-
 			setTitle();
+		}
+
+		void refreshScripts()
+		{
+			// check for new plans and update local copy/menu if they are different
+			var newScriptRepo = _ctrl.GetAllScriptDefs();
+			if( !newScriptRepo.SequenceEqual( _scriptRepo ) )
+			{
+				_scriptRepo = new List<ScriptDef>( newScriptRepo );
+				populateScriptLists();
+			}
+			updateScriptsStatus();
 		}
 
 		void refreshGui()
@@ -319,6 +337,7 @@ namespace Dirigent.Gui.WinForms
 			refreshStatusBar();
 			refreshMenu();
 			refreshPlans();
+			refreshScripts();
 		}
 
 		void selectPlan( string planName )
@@ -358,6 +377,11 @@ namespace Dirigent.Gui.WinForms
 		{
 			populatePlanSelectionMenu();
 			populatePlanGrid();
+		}
+
+		void populateScriptLists()
+		{
+			populateScriptGrid();
 		}
 
 		protected override void WndProc( ref Message m )
@@ -510,12 +534,17 @@ namespace Dirigent.Gui.WinForms
 			AppMessenger.Instance.Send( new Dirigent.AppMessages.ExitApp() );	 // handled in GuiApp
 		}
 
-		private void btnKillAll_Click( object sender, EventArgs e )
+		private void bntAppsKillAll_Click( object sender, EventArgs e )
 		{
 			killAllWithConfirmation();
 		}
 
-		private void bntKillAll2_Click( object sender, EventArgs e )
+		private void btnPlansKillAll_Click( object sender, EventArgs e )
+		{
+			killAllWithConfirmation();
+		}
+
+		private void btnScriptsKillAll_Click( object sender, EventArgs e )
 		{
 			killAllWithConfirmation();
 		}

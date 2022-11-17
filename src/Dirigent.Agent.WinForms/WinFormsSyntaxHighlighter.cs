@@ -686,4 +686,29 @@ namespace WinFormsSyntaxHighlighter
 
         #endregion
     }
+
+    public static class JsonPatternsPreset
+    {
+        public static void ApplyTo( SyntaxHighlighter sh )
+        {
+            //// multi-line comments
+            //syntaxHighlighter.AddPattern(new PatternDefinition(new Regex(@"/\*(.|[\r\n])*?\*/", RegexOptions.Multiline | RegexOptions.Compiled)), new SyntaxStyle(Color.DarkSeaGreen, false, true));
+            //// singlie-line comments
+            //syntaxHighlighter.AddPattern(new PatternDefinition(new Regex(@"//.*?$", RegexOptions.Multiline | RegexOptions.Compiled)), new SyntaxStyle(Color.Green, false, true));
+            // fields
+            sh.AddPattern(new PatternDefinition(@"\""([^""]|\""\"")*\"":"), new SyntaxStyle(Color.Brown));
+            // double quote strings
+            sh.AddPattern(new PatternDefinition(@"\""([^""]|\""\"")*\"""), new SyntaxStyle(Color.Red));
+            // single quote strings
+            sh.AddPattern(new PatternDefinition(@"\'([^']|\'\')*\'"), new SyntaxStyle(Color.Salmon));
+            // operators
+            sh.AddPattern(new PatternDefinition("=", "[", "]", "{", "}"), new SyntaxStyle(Color.Black));
+            // numbers
+            sh.AddPattern(new PatternDefinition(@"\d+\.\d+|\d+"), new SyntaxStyle(Color.Black));
+            // keywords1
+            sh.AddPattern(new PatternDefinition("null", "false", "true"), new SyntaxStyle(Color.Blue));
+            //// keywords2
+            //syntaxHighlighter.AddPattern(new CaseInsensitivePatternDefinition("public", "partial", "class", "void"), new SyntaxStyle(Color.Navy, true, false));
+        }
+    }
 }

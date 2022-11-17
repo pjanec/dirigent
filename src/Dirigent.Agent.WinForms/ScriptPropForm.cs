@@ -15,19 +15,19 @@ using WinFormsSyntaxHighlighter;
 
 namespace Dirigent.Gui.WinForms
 {
-	public partial class frmAppProperties : Form
+	public partial class frmScriptProperties : Form
 	{
-		AppDef _appDef;
+		ScriptDef _scriptDef;
 
-		public frmAppProperties( AppDef appDef )
+		public frmScriptProperties( ScriptDef scriptDef )
 		{
 			InitializeComponent();
 
-			_appDef = appDef;
-			Text = $"[{appDef.Id}] Properties";
+			_scriptDef = scriptDef;
+			Text = $"[{scriptDef.Id}] Properties";
 
 
-			string jsonString = JsonSerializer.Serialize( appDef, new JsonSerializerOptions() { WriteIndented=true, IncludeFields=true } );
+			string jsonString = JsonSerializer.Serialize( scriptDef, new JsonSerializerOptions() { WriteIndented=true, IncludeFields=true } );
 			rtbAppProps.Text = jsonString;
 
             var syntaxHighlighter = new SyntaxHighlighter(rtbAppProps);

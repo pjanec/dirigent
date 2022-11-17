@@ -34,4 +34,9 @@
     <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Update="ScriptPropForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
 </Project>

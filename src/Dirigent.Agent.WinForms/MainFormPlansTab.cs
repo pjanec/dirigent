@@ -200,22 +200,22 @@ namespace Dirigent.Gui.WinForms
 					var plan = _planRepo.FirstOrDefault( p => p.Name == planName );
 
 					// icon clicks
-					if( currentCol == 2 ) // start
+					if( currentCol == planTabColIconStart ) // start
 					{
 						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
 						guardedOp( () => _ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, plan.Name )  ) );
 					}
-					else if( currentCol == 3 ) // stop
+					else if( currentCol == planTabColIconStop ) // stop
 					{
 						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
 						guardedOp( () => _ctrl.Send( new Net.StopPlanMessage( _ctrl.Name, plan.Name )  ) );
 					}
-					else if( currentCol == 4 ) // kill
+					else if( currentCol == planTabColIconKill ) // kill
 					{
 						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
 						guardedOp( () => _ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, plan.Name )  ) );
 					}
-					else if( currentCol == 5 ) // restart
+					else if( currentCol == planTabColIconRestart ) // restart
 					{
 						guardedOp( () => _currentPlan = _ctrl.GetPlanDef( plan.Name ) );
 						guardedOp( () => _ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, plan.Name )  ) );
