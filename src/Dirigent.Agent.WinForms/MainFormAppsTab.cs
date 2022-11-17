@@ -389,7 +389,6 @@ namespace Dirigent.Gui.WinForms
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
 			var plan = _currentPlan;
-			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.AppDefs select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
@@ -400,7 +399,6 @@ namespace Dirigent.Gui.WinForms
 				bool connected = IsConnected;
 				//bool isLocalApp = id.MachineId == this._machineId;
 				bool isAccessible = connected; // can we change its state?
-				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 
 				if( e.Button == MouseButtons.Right )
 				{
@@ -448,6 +446,11 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
+						var separator = new System.Windows.Forms.ToolStripSeparator();
+						popup.Items.Add( separator );
+					}
+
+					{
 						var showWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
 						showWindowItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
 						showWindowItem.Enabled = isAccessible && st.Running;
@@ -460,6 +463,24 @@ namespace Dirigent.Gui.WinForms
 						hideWindowItem.Enabled = isAccessible && st.Running;
 						popup.Items.Add( hideWindowItem );
 					}
+
+					{
+						var separator = new System.Windows.Forms.ToolStripSeparator();
+						popup.Items.Add( separator );
+					}
+
+					{
+						var propsWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
+						propsWindowItem.Click += ( s, a ) => guardedOp( () => 
+						{
+							var appDef = _ctrl.GetAppDef( id );
+							var frm = new frmAppProperties( appDef );
+							frm.Show();
+						});
+						propsWindowItem.Enabled = true;
+						popup.Items.Add( propsWindowItem );
+					}
+
 
 					//var propsItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
 					//propsItem.Click += ( s, a ) => guardedOp( () =>
