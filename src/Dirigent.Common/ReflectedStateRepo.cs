@@ -83,7 +83,10 @@ namespace Dirigent
 
 						foreach( var (id, state) in m.AppsState )
 						{
-							state.LastChange += localTimeDelta; // recalc to local time
+							if( state.LastChange.Ticks != 0 ) // if this is unitialized (from whatever reason), do not try to adjust it
+							{
+								state.LastChange += localTimeDelta; // recalc to local time
+							}
 
 							_appStates[id] = state;	
 						}

@@ -103,10 +103,17 @@ namespace Dirigent
 				stCode = "Failed to start";
 			}
 
-			var statusInfoAge = DateTime.UtcNow - st.LastChange;
-			if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+			if( st.LastChange.Ticks == 0 )
 			{
-				stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
+				stCode += string.Format( " (Offline)" );
+			}
+			else
+			{
+				var statusInfoAge = DateTime.UtcNow - st.LastChange;
+				if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+				{
+					stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
+				}
 			}
 
 			return stCode;
