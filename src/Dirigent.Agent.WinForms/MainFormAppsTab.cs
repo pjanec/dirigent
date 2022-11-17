@@ -145,7 +145,6 @@ namespace Dirigent.Gui.WinForms
 				initAppGrid();
 			}
 
-			DataGridViewRow selected = null;
 
 			var plan = _currentPlan;
 
@@ -173,32 +172,23 @@ namespace Dirigent.Gui.WinForms
 			// remember apps from list
 			Dictionary<AppIdTuple, DataRow> oldApps = new Dictionary<AppIdTuple, DataRow>();
 
-			foreach( DataGridViewRow gridRow in gridApps.Rows )
+			foreach( DataRow dataRow in _gridAppsDataTable.Rows )
 			{
-				var id = getAppTupleFromAppGridRow( gridRow );
+				var id = getAppTupleFromAppDataRow( dataRow );
 
-				oldApps[id] = getDataRowFromGridRow( gridRow );
-
-				if( gridRow.Selected )
-				{
-					if( selected == null )
-					{
-						selected = gridRow;
-					}
-				}
+				oldApps[id] = dataRow;
 			}
 
 			// determine what to add and what to remove
 			List<DataRow> toRemove = new List<DataRow>();
 			List<object[]> toAdd = new List<object[]>();
 
-			foreach( DataGridViewRow gridRow in gridApps.Rows )
+			foreach( DataRow dataRow in _gridAppsDataTable.Rows )
 			{
-				var id = getAppTupleFromAppGridRow( gridRow );
+				var id = getAppTupleFromAppDataRow( dataRow );
 
 				if( !newApps.ContainsKey( id ) )
 				{
-					var dataRow = getDataRowFromGridRow( gridRow );
 					toRemove.Add( dataRow );
 				}
 			}
@@ -319,7 +309,7 @@ namespace Dirigent.Gui.WinForms
 			var gridRow = gridApps.Rows[e.RowIndex];
 			var dataRow = getDataRowFromGridRow( gridRow );
 			var dataItems = dataRow.ItemArray;
-			var id = getAppTupleFromAppGridDataRow( dataRow );
+			var id = getAppTupleFromAppDataRow( dataRow );
 
 			var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
 			var defst = gridApps.Rows[e.RowIndex].Cells[appTabColMachineId].Style;
@@ -379,7 +369,7 @@ namespace Dirigent.Gui.WinForms
 			return dataRow;
 		}
 
-		private AppIdTuple getAppTupleFromAppGridDataRow( DataRow dataRow )
+		private AppIdTuple getAppTupleFromAppDataRow( DataRow dataRow )
 		{
 			var dataItems = dataRow.ItemArray;
 			var id = new AppIdTuple( (string)dataItems[appTabColMachineId], (string)dataItems[appTabColAppId] );
@@ -389,7 +379,7 @@ namespace Dirigent.Gui.WinForms
 		private AppIdTuple getAppTupleFromAppGridRow( DataGridViewRow gridRow )
 		{
 			var dataRow = getDataRowFromGridRow( gridRow );
-			var id = getAppTupleFromAppGridDataRow( dataRow );
+			var id = getAppTupleFromAppDataRow( dataRow );
 			return id;
 		}
 
