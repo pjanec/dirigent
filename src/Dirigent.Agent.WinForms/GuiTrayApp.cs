@@ -103,7 +103,7 @@ namespace Dirigent.Gui.WinForms
 			//catch( Exception ex )
 			//{
 			//	log.Error( ex );
-			//	ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+			//	ExceptionDialog.showExceptionWithStackTrace( ex, "Exception", "" );
 			//	exitCode = EAppExitCode.ExceptionError;
 			//}
 
@@ -185,7 +185,10 @@ namespace Dirigent.Gui.WinForms
 		{
 			// We must manually tidy up and remove the icon before we exit.
 			// Otherwise it will be left behind until the user mouses over.
-			_notifyIcon.Visible = false;
+			if( _notifyIcon != null )
+			{
+				_notifyIcon.Visible = false;
+			}
 		}
 
 		void InitializeMainForm()
@@ -289,7 +292,7 @@ namespace Dirigent.Gui.WinForms
 				catch ( Exception ex )
 				{
 					log.Error( ex );
-					ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+					ExceptionDialog.showExceptionWithStackTrace( ex, "Exception", "" );
 				}
 			}
 		}
@@ -310,7 +313,7 @@ namespace Dirigent.Gui.WinForms
 			//catch (Exception ex)
 			//{
 			//	log.Error(ex);
-			//	ExceptionDialog.showException(ex, "Dirigent Exception", "");
+			//	ExceptionDialog.showExceptionWidthStackTrac(ex, "Exception", "");
 			//	_agentRunner = null;
 			//}
 
@@ -342,7 +345,7 @@ namespace Dirigent.Gui.WinForms
 				catch (Exception ex)
 				{
 					log.Error(ex);
-					ExceptionDialog.showException(ex, "Dirigent Exception", "");
+					ExceptionDialog.showExceptionWithStackTrace(ex, "Exception", "");
 					_agent = null;
 				}
 			}
@@ -375,7 +378,7 @@ namespace Dirigent.Gui.WinForms
 					{
 						var ex = new ConfigurationErrorException("SharedConfig not defined");
 						log.Error(ex);
-						ExceptionDialog.showException(ex, "Dirigent Exception", "");
+						ExceptionDialog.showExceptionWithStackTrace(ex, "Exception", "");
 					}
 
 					// instantiate the master and tick it in its own thread

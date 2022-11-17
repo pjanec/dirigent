@@ -55,6 +55,7 @@ namespace Dirigent.Gui.WinForms
 				Console.ReadLine();
 			}
 
+			IApp app = null;
 			try
 			{
 				log.Info( $"Started with cmdLine: {Environment.CommandLine}" );
@@ -110,7 +111,7 @@ namespace Dirigent.Gui.WinForms
 						}
 					}
 
-					IApp app = new GuiTrayApp( ac, runAgent, runGui, isMaster );
+					app = new GuiTrayApp( ac, runAgent, runGui, isMaster );
 					exitCode = app.run();
 					app.Dispose();
 					log.Debug( $"Exiting gracefully with exitCode {(int)exitCode} ({exitCode})." );
@@ -119,6 +120,8 @@ namespace Dirigent.Gui.WinForms
 			catch( Exception ex )
 			{
 				log.Error( ex );
+				ExceptionDialog.showExceptionWithStackTrace(ex, "Exception", "");
+				app?.Dispose();
 				exitCode = EAppExitCode.ExceptionError;
 			}
 

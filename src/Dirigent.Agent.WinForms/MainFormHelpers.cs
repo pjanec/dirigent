@@ -26,7 +26,7 @@ namespace Dirigent.Gui.WinForms
 			catch( Exception ex )
 			{
 				log.Error( ex );
-				ExceptionDialog.showException( ex, "Dirigent Exception", "" );
+				ExceptionDialog.showExceptionWithStackTrace( ex, "Exception", "" );
 			}
 		}
 
