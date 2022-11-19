@@ -138,7 +138,7 @@ namespace Dirigent.Gui.WinForms
 		/// Update the list of apps by doing minimal changes to avoid losing focus.
 		/// Adding what is not yet there and deleting what has disappeared.
 		/// </summary>
-		void refreshAppGrid()
+		void refreshApps()
 		{
 			if( _gridAppsBindingSource == null )
 			{
@@ -407,102 +407,79 @@ namespace Dirigent.Gui.WinForms
 					popup.Enabled = connected || _allowLocalIfDisconnected;
 
 					{
-						var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-						launchItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
 							_ctrl.Name,
 							id,
 							Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
 						)));
-						launchItem.Enabled = isAccessible && !st.Running;
-						popup.Items.Add( launchItem );
+						item.Enabled = isAccessible && !st.Running;
+						popup.Items.Add( item );
 					}
 
 					{
-						var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-						killItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
-						killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
-						popup.Items.Add( killItem );
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
+						item.Enabled = isAccessible && ( st.Running || st.Restarting );
+						popup.Items.Add( item );
 					}
 
 					{
-						var restartItem = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-						restartItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
-						restartItem.Enabled = isAccessible; // && st.Running;
-						popup.Items.Add( restartItem );
-					}
-
-					if( plan != null )
-					{
-						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, true ) ) );
-						popup.Items.Add( setEnabledItem );
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
+						item.Enabled = isAccessible; // && st.Running;
+						popup.Items.Add( item );
 					}
 
 					if( plan != null )
 					{
-						var setEnabledItem = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
-						setEnabledItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, false ) ) );
-						popup.Items.Add( setEnabledItem );
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, true ) ) );
+						popup.Items.Add( item );
+					}
+
+					if( plan != null )
+					{
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, false ) ) );
+						popup.Items.Add( item );
 					}
 
 					{
-						var separator = new System.Windows.Forms.ToolStripSeparator();
-						popup.Items.Add( separator );
+						var item = new System.Windows.Forms.ToolStripSeparator();
+						popup.Items.Add( item );
 					}
 
 					{
-						var showWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
-						showWindowItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
-						showWindowItem.Enabled = isAccessible && st.Running;
-						popup.Items.Add( showWindowItem );
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
+						item.Enabled = isAccessible && st.Running;
+						popup.Items.Add( item );
 					}
 
 					{
-						var hideWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
-						hideWindowItem.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
-						hideWindowItem.Enabled = isAccessible && st.Running;
-						popup.Items.Add( hideWindowItem );
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
+						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
+						item.Enabled = isAccessible && st.Running;
+						popup.Items.Add( item );
 					}
 
 					{
-						var separator = new System.Windows.Forms.ToolStripSeparator();
-						popup.Items.Add( separator );
+						var item = new System.Windows.Forms.ToolStripSeparator();
+						popup.Items.Add( item );
 					}
 
 					{
-						var propsWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
-						propsWindowItem.Click += ( s, a ) => guardedOp( () => 
+						var item = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
+						item.Click += ( s, a ) => guardedOp( () => 
 						{
 							var appDef = _ctrl.GetAppDef( id );
 							var frm = new frmAppProperties( appDef );
 							frm.Show();
 						});
-						propsWindowItem.Enabled = true;
-						popup.Items.Add( propsWindowItem );
+						item.Enabled = true;
+						popup.Items.Add( item );
 					}
-
-
-					//var propsItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
-					//propsItem.Click += ( s, a ) => guardedOp( () =>
-					//{
-					//	try{
-					//	var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
-					//	var serializer = new System.Runtime.Serialization.DataContractSerializer(typeof(AppDef));
-					//	using var sw = new StringWriter();
-					//	using var writer = new System.Xml.XmlTextWriter(sw);
-					//	writer.Formatting = System.Xml.Formatting.Indented; // indent the Xml so it's human readable
-					//	serializer.WriteObject(writer, appDef);
-					//	writer.Flush();
-					//	var xmlString = sw.ToString();
-					//	MessageBox.Show(xmlString); 
-					//	} catch( Exception ex )
-					//	{
-					//		int i =1;
-					//	}
-					//});
-					//propsItem.Enabled = true;
-					//popup.Items.Add( propsItem );
-
 
 
 					popup.Show( Cursor.Position );

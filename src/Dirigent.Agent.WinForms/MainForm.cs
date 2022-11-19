@@ -305,39 +305,14 @@ namespace Dirigent.Gui.WinForms
 			restartPlanToolStripMenuItem.Enabled = hasPlan;
 		}
 
-		void refreshPlans()
-		{
-			// check for new plans and update local copy/menu if they are different
-			var newPlanRepo = _ctrl.GetAllPlanDefs();
-			if( !newPlanRepo.SequenceEqual( _planRepo ) )
-			{
-				_planRepo = new List<PlanDef>( newPlanRepo );
-				populatePlanLists();
-			}
-			updatePlansStatus();
-
-			setTitle();
-		}
-
-		void refreshScripts()
-		{
-			// check for new plans and update local copy/menu if they are different
-			var newScriptRepo = _ctrl.GetAllScriptDefs();
-			if( !newScriptRepo.SequenceEqual( _scriptRepo ) )
-			{
-				_scriptRepo = new List<ScriptDef>( newScriptRepo );
-				populateScriptLists();
-			}
-			updateScriptsStatus();
-		}
-
 		void refreshGui()
 		{
-			refreshAppGrid();
-			refreshStatusBar();
-			refreshMenu();
+			refreshApps();
 			refreshPlans();
 			refreshScripts();
+			refreshMachs();
+			refreshStatusBar();
+			refreshMenu();
 		}
 
 		void selectPlan( string planName )
@@ -371,17 +346,6 @@ namespace Dirigent.Gui.WinForms
 		private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
 		{
 			myDispose();
-		}
-
-		void populatePlanLists()
-		{
-			populatePlanSelectionMenu();
-			populatePlanGrid();
-		}
-
-		void populateScriptLists()
-		{
-			populateScriptGrid();
 		}
 
 		protected override void WndProc( ref Message m )
@@ -545,6 +509,11 @@ namespace Dirigent.Gui.WinForms
 		}
 
 		private void btnScriptsKillAll_Click( object sender, EventArgs e )
+		{
+			killAllWithConfirmation();
+		}
+
+		private void btnMachsKillAll_Click( object sender, EventArgs e )
 		{
 			killAllWithConfirmation();
 		}

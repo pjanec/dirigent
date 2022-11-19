@@ -76,6 +76,18 @@ namespace Dirigent.Gui.WinForms
 		}
 
 
+		void refreshScripts()
+		{
+			// check for new plans and update local copy/menu if they are different
+			var newScriptRepo = _ctrl.GetAllScriptDefs();
+			if( !newScriptRepo.SequenceEqual( _scriptRepo ) )
+			{
+				_scriptRepo = new List<ScriptDef>( newScriptRepo );
+				populateScriptGrid();
+			}
+			updateScriptsStatus();
+		}
+
 		void populateScriptGrid()
 		{
 			if( _gridScriptsBindingSource == null )

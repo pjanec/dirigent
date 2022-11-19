@@ -16,6 +16,8 @@
     		MinKillingTime = "3.5"
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
+
+            <File Id="aaa" Path="%USERPROFILE%\Documents\aaa.txt"/>
     	</App>
 
     	<App
@@ -154,4 +156,33 @@
     		StartupDir = "c:\"
     		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
     />
+
+    <Machine Name="m1">
+        <Share Name="C" Path="C:\"/>
+        <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt"/>
+        <NewestFile Id="Log" Folder="C:\Logs\App1" Mask="*.txt" Recursive="1"/>
+        <Folder Id="Docs" Path="%USERPROFILE%\Documents"/>
+    </Machine>
+
+   	<App
+	    AppIdTuple = "m1.appWithFile"
+		Template = "apps.notepad"
+		ExeFullPath = "%SystemRoot%\notepad.exe"
+		StartupDir = "%USERPROFILE%\Documents"
+		CmdLineArgs = "xxx.txt"
+	    >
+
+        <File Id="xxx" Path="%USERPROFILE%\Documents\xxx.txt"/>
+        <Folder Id="LocalData" Path="%AppData%\Local\AppWithFile"/>
+	</App>
+
+	<FilePackage Name="pack1">
+	    <!-- reference to machine-specific file-->
+	    <FileRef Machine="m1" Id="Greetings"/>
+	    <!-- reference to application-specific file-->
+	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
+	    <!-- direct definition of independent file using UNC path-->
+	    <File Id="file1" Path="\\server\share\path\to\file.txt"/>
+	</FilePackage>
+
 </Shared>

@@ -93,6 +93,26 @@ namespace Dirigent.Gui.WinForms
 		}
 
 
+		void refreshPlans()
+		{
+			// check for new plans and update local copy/menu if they are different
+			var newPlanRepo = _ctrl.GetAllPlanDefs();
+			if( !newPlanRepo.SequenceEqual( _planRepo ) )
+			{
+				_planRepo = new List<PlanDef>( newPlanRepo );
+				populatePlanLists();
+			}
+			updatePlansStatus();
+
+			setTitle();
+		}
+
+		void populatePlanLists()
+		{
+			populatePlanSelectionMenu();
+			populatePlanGrid();
+		}
+
 		void populatePlanGrid()
 		{
 			if( _gridPlansBindingSource == null )
