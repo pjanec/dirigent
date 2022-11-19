@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Dirigent.Gui.WinForms": {
+      "commandName": "Project",
+      "commandLineArgs": "--isMaster 1 --machineId SIMSERVER",
+      "workingDirectory": "D:\\Work\\Dirigent.NetCore\\TestCases\\MT\\"
+    }
+  }
+}

@@ -35,7 +35,7 @@
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="ScriptPropForm.cs">
+    <Compile Update="Forms\PropsScript.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

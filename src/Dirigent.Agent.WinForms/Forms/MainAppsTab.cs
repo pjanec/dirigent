@@ -12,93 +12,102 @@ using System.IO;
 
 namespace Dirigent.Gui.WinForms
 {
-	public partial class frmMain : Form
+	public class MainAppsTab : MainExtension
 	{
-		const int appTabColMachineId = 0;
-		const int appTabColAppId = 1;
-		const int appTabColStatus = 2;
-		const int appTabColIconStart = 3;
-		const int appTabColIconKill = 4;
-		const int appTabColIconRestart = 5;
-		const int appTabColEnabled = 6;
-		const int appTabColPlan = 7;
-		const int appTabNumCols = appTabColPlan + 1;
+		const int colMachineId = 0;
+		const int colAppId = 1;
+		const int colStatus = 2;
+		const int colIconStart = 3;
+		const int colIconKill = 4;
+		const int colIconRestart = 5;
+		const int colEnabled = 6;
+		const int colPlan = 7;
+		const int colMAX = 8;
 
 
-        private BindingSource _gridAppsBindingSource = null;
-		private DataTable _gridAppsDataTable = null;
-        private DataSet _gridAppsDataSet = null;
+		private Zuby.ADGV.AdvancedDataGridView _grid;
+        private BindingSource _bindingSource = null;
+		private DataTable _dataTable = null;
+        private DataSet _dataSet = null;
 
-		void initAppGrid()
+		public MainAppsTab(
+			frmMain form,
+			Zuby.ADGV.AdvancedDataGridView grid
+			) : base(form)
 		{
-			gridApps.SetDoubleBuffered();
+			_grid = grid;
+		}
+
+		void initGrid()
+		{
+			_grid.SetDoubleBuffered();
 
 			// when using DataTables the ADGV can properly filter rows
-			_gridAppsBindingSource = new BindingSource();
-			_gridAppsDataTable = new DataTable();
-			_gridAppsDataSet = new DataSet();
+			_bindingSource = new BindingSource();
+			_dataTable = new DataTable();
+			_dataSet = new DataSet();
 
-			_gridAppsBindingSource.DataSource = _gridAppsDataSet;
+			_bindingSource.DataSource = _dataSet;
 
-	        _gridAppsDataTable = _gridAppsDataSet.Tables.Add("AppsTable");
-			_gridAppsDataTable.Columns.Add("MachineId", typeof(string));
-			_gridAppsDataTable.Columns.Add("AppId", typeof(string));
-			_gridAppsDataTable.Columns.Add("Status", typeof(string));
-			_gridAppsDataTable.Columns.Add("IconStart", typeof(Bitmap));
-			_gridAppsDataTable.Columns.Add("IconKill", typeof(Bitmap));
-			_gridAppsDataTable.Columns.Add("IconRestart", typeof(Bitmap));
-			_gridAppsDataTable.Columns.Add("Enabled", typeof(bool));
-			_gridAppsDataTable.Columns.Add("Plan", typeof(string));
+	        _dataTable = _dataSet.Tables.Add("AppsTable");
+			_dataTable.Columns.Add("MachineId", typeof(string));
+			_dataTable.Columns.Add("AppId", typeof(string));
+			_dataTable.Columns.Add("Status", typeof(string));
+			_dataTable.Columns.Add("IconStart", typeof(Bitmap));
+			_dataTable.Columns.Add("IconKill", typeof(Bitmap));
+			_dataTable.Columns.Add("IconRestart", typeof(Bitmap));
+			_dataTable.Columns.Add("Enabled", typeof(bool));
+			_dataTable.Columns.Add("Plan", typeof(string));
 
-			_gridAppsBindingSource.DataMember = _gridAppsDataSet.Tables[0].TableName;
+			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
-			gridApps.DataSource = _gridAppsBindingSource;
+			_grid.DataSource = _bindingSource;
 
 			// adjust columns
 
-			var _hdrMachineId = gridApps.Columns[appTabColMachineId];
+			var _hdrMachineId = _grid.Columns[colMachineId];
 			_hdrMachineId.HeaderText = "Machine";
 			_hdrMachineId.MinimumWidth = 9;
 			_hdrMachineId.ReadOnly = true;
 			_hdrMachineId.Width = 125;
 
-			var _hdrAppId = gridApps.Columns[appTabColAppId];
+			var _hdrAppId = _grid.Columns[colAppId];
 			_hdrAppId.HeaderText = "App";
 			_hdrAppId.MinimumWidth = 9;
 			_hdrAppId.ReadOnly = true;
 			_hdrAppId.Width = 125;
 
-			var _hdrStatus = gridApps.Columns[appTabColStatus];
+			var _hdrStatus = _grid.Columns[colStatus];
 			_hdrStatus.HeaderText = "Status";
 			_hdrStatus.MinimumWidth = 9;
 			_hdrStatus.ReadOnly = true;
 			_hdrStatus.Width = 175;
 
-			var _hdrLaunchIcon = gridApps.Columns[appTabColIconStart];
+			var _hdrLaunchIcon = _grid.Columns[colIconStart];
 			_hdrLaunchIcon.HeaderText = "";
 			_hdrLaunchIcon.MinimumWidth = 9;
 			_hdrLaunchIcon.ReadOnly = true;
 			_hdrLaunchIcon.Width = 24;
 
-			var _hdrKillIcon = gridApps.Columns[appTabColIconKill];
+			var _hdrKillIcon = _grid.Columns[colIconKill];
 			_hdrKillIcon.HeaderText = "";
 			_hdrKillIcon.MinimumWidth = 9;
 			_hdrKillIcon.ReadOnly = true;
 			_hdrKillIcon.Width = 24;
 
-			var _hdrRestartIcon = gridApps.Columns[appTabColIconRestart];
+			var _hdrRestartIcon = _grid.Columns[colIconRestart];
 			_hdrRestartIcon.HeaderText = "";
 			_hdrRestartIcon.MinimumWidth = 9;
 			_hdrRestartIcon.ReadOnly = true;
 			_hdrRestartIcon.Width = 24;
 
-			var _hdrEnabled = gridApps.Columns[appTabColEnabled];
+			var _hdrEnabled = _grid.Columns[colEnabled];
 			_hdrEnabled.HeaderText = "Enabled";
 			_hdrEnabled.MinimumWidth = 9;
 			_hdrEnabled.ReadOnly = true;
 			_hdrEnabled.Width = 50;
 
-			var _hdrPlan = gridApps.Columns[appTabColPlan];
+			var _hdrPlan = _grid.Columns[colPlan];
 			_hdrPlan.HeaderText = "Last Plan";
 			_hdrPlan.MinimumWidth = 9;
 			_hdrPlan.ReadOnly = true;
@@ -123,7 +132,7 @@ namespace Dirigent.Gui.WinForms
 		string GetPlanForApp( AppIdTuple id )
 		{
 			var x =
-				( from p in _ctrl.GetAllPlanDefs()
+				( from p in Ctrl.GetAllPlanDefs()
 				  from a in p.AppDefs
 				  where a.Id == id
 				  select p.Name ).ToList();
@@ -138,27 +147,27 @@ namespace Dirigent.Gui.WinForms
 		/// Update the list of apps by doing minimal changes to avoid losing focus.
 		/// Adding what is not yet there and deleting what has disappeared.
 		/// </summary>
-		void refreshApps()
+		public void Refresh()
 		{
-			if( _gridAppsBindingSource == null )
+			if( _bindingSource == null )
 			{
-				initAppGrid();
+				initGrid();
 			}
 
 
-			var plan = _currentPlan;
+			var plan = CurrentPlan;
 
 			var planAppDefsDict = ( plan != null ) ? ( from ad in plan.AppDefs select ad ).ToDictionary( ad => ad.Id, ad => ad ) : new Dictionary<AppIdTuple, AppDef>();
 			var planAppIdTuples = ( plan != null ) ? ( from ad in plan.AppDefs select ad.Id ).ToList() : new List<AppIdTuple>();
 
 			Dictionary<AppIdTuple, AppState> appStates;
-			if( ShowJustAppFromCurrentPlan )
+			if( _form.ShowJustAppFromCurrentPlan )
 			{
-				appStates = ( from i in _ctrl.GetAllAppStates() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
+				appStates = ( from i in Ctrl.GetAllAppStates() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
 			}
 			else // show from all plans
 			{
-				appStates = new Dictionary<AppIdTuple, AppState>( _ctrl.GetAllAppStates() );
+				appStates = new Dictionary<AppIdTuple, AppState>( Ctrl.GetAllAppStates() );
 			}
 
 			// remember apps from plan
@@ -172,7 +181,7 @@ namespace Dirigent.Gui.WinForms
 			// remember apps from list
 			Dictionary<AppIdTuple, DataRow> oldApps = new Dictionary<AppIdTuple, DataRow>();
 
-			foreach( DataRow dataRow in _gridAppsDataTable.Rows )
+			foreach( DataRow dataRow in _dataTable.Rows )
 			{
 				var id = getAppTupleFromAppDataRow( dataRow );
 
@@ -183,7 +192,7 @@ namespace Dirigent.Gui.WinForms
 			List<DataRow> toRemove = new List<DataRow>();
 			List<object[]> toAdd = new List<object[]>();
 
-			foreach( DataRow dataRow in _gridAppsDataTable.Rows )
+			foreach( DataRow dataRow in _dataTable.Rows )
 			{
 				var id = getAppTupleFromAppDataRow( dataRow );
 
@@ -201,28 +210,28 @@ namespace Dirigent.Gui.WinForms
 				if( !oldApps.ContainsKey( id ) )
 				{
 
-					var item = new object[appTabNumCols];
-					item[appTabColMachineId] = id.MachineId;
-					item[appTabColAppId] = id.AppId;
-					//item[appTabColStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
-					item[appTabColStatus] = Tools.GetAppStateText( appState, _ctrl.GetPlanState(appState.PlanName), _ctrl.GetAppDef(id) );
-					item[appTabColIconStart] = _iconStart;
-					item[appTabColIconKill] = _iconKill;
-					item[appTabColIconRestart] = _iconRestart;
-					item[appTabColEnabled] = false;
-					item[appTabColPlan] = GetPlanForApp( id );
+					var item = new object[colMAX];
+					item[colMachineId] = id.MachineId;
+					item[colAppId] = id.AppId;
+					//item[colStatus] = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) );
+					item[colStatus] = Tools.GetAppStateText( appState, Ctrl.GetPlanState(appState.PlanName), Ctrl.GetAppDef(id) );
+					item[colIconStart] = _iconStart;
+					item[colIconKill] = _iconKill;
+					item[colIconRestart] = _iconRestart;
+					item[colEnabled] = false;
+					item[colPlan] = GetPlanForApp( id );
 					toAdd.Add( item );
 				}
 			}
 
 			foreach( var dataRow in toRemove )
 			{
-				_gridAppsDataTable.Rows.Remove( dataRow );
+				_dataTable.Rows.Remove( dataRow );
 			}
 
 			foreach( var newrow in toAdd )
 			{
-				_gridAppsDataTable.Rows.Add( newrow );
+				_dataTable.Rows.Add( newrow );
 			}
 
 			Dictionary<DataRow, UPD> toUpdate = new Dictionary<DataRow, UPD>();
@@ -231,11 +240,11 @@ namespace Dirigent.Gui.WinForms
 				if( !toRemove.Contains( o.Value ) )
 				{
 					var id = newApps[o.Key];
-					var appState = _ctrl.GetAppState( id );
+					var appState = Ctrl.GetAppState( id );
 					var upd = new UPD()
 					{
 						//Status = getAppStatusCode( id, appState, planAppIdTuples.Contains( id ) ),
-						Status = Tools.GetAppStateText( appState, _ctrl.GetPlanState( appState.PlanName ), _ctrl.GetAppDef( id ) ),
+						Status = Tools.GetAppStateText( appState, Ctrl.GetPlanState( appState.PlanName ), Ctrl.GetAppDef( id ) ),
 						PlanName = null
 					};
 					if( appState.PlanName != null )
@@ -252,19 +261,19 @@ namespace Dirigent.Gui.WinForms
 				var dataRow = tu.Key;
 				var upd = tu.Value;
 
-				dataRow.SetField( appTabColStatus, upd.Status );
+				dataRow.SetField( colStatus, upd.Status );
 
 				if( upd.PlanName != null )
 				{
-					dataRow.SetField( appTabColStatus, upd.Status );
-					dataRow.SetField( appTabColPlan, upd.PlanName );
+					dataRow.SetField( colStatus, upd.Status );
+					dataRow.SetField( colPlan, upd.PlanName );
 				}
 			}
 
 			// colorize the background of items from current plan
 			List<AppIdTuple> planAppIds = ( from ad in planAppIdTuples select ad ).ToList();
 
-			foreach( DataGridViewRow gridRow in gridApps.Rows )
+			foreach( DataGridViewRow gridRow in _grid.Rows )
 			{
 				var id = getAppTupleFromAppGridRow( gridRow );
 
@@ -280,7 +289,7 @@ namespace Dirigent.Gui.WinForms
 				// set checkbox based on Enabled attribute od the appDef from current plan
 				var appDef = planAppDefsDict.ContainsKey( id ) ? planAppDefsDict[id] : null;
 				{
-					var chkCell = gridRow.Cells[appTabColEnabled] as DataGridViewCheckBoxCell;
+					var chkCell = gridRow.Cells[colEnabled] as DataGridViewCheckBoxCell;
 					
 					// could be set via the bindings to DataRow??
 					chkCell.Value = appDef != null ? !appDef.Disabled : false;
@@ -292,30 +301,30 @@ namespace Dirigent.Gui.WinForms
 				}
 				// put app state into a tooltip
 				{
-					var appStatusCell = gridRow.Cells[appTabColStatus]; // as DataGridViewCell;
-					appStatusCell.ToolTipText = Tools.GetAppStateString( id, _ctrl.GetAppState( id ) );
+					var appStatusCell = gridRow.Cells[colStatus]; // as DataGridViewCell;
+					appStatusCell.ToolTipText = Tools.GetAppStateString( id, Ctrl.GetAppState( id ) );
 				}
 
 			}
 
 			if( toAdd.Count > 0 || toRemove.Count > 0 || toUpdate.Count > 0 )
 			{
-				gridApps.Refresh();
+				_grid.Refresh();
 			}
 		}
 
-		private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
-			var gridRow = gridApps.Rows[e.RowIndex];
-			var dataRow = getDataRowFromGridRow( gridRow );
+			var gridRow = _grid.Rows[e.RowIndex];
+			var dataRow = WFT.GetDataRowFromGridRow( gridRow );
 			var dataItems = dataRow.ItemArray;
 			var id = getAppTupleFromAppDataRow( dataRow );
 
-			var cell = gridApps.Rows[e.RowIndex].Cells[e.ColumnIndex];
-			var defst = gridApps.Rows[e.RowIndex].Cells[appTabColMachineId].Style;
-			if( e.ColumnIndex == appTabColStatus )
+			var cell = _grid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+			var defst = _grid.Rows[e.RowIndex].Cells[colMachineId].Style;
+			if( e.ColumnIndex == colStatus )
 			{
-				var txt = dataItems[appTabColStatus] as string;
+				var txt = dataItems[colStatus] as string;
 				if( txt.StartsWith( "Running" ) )
 				{
 					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
@@ -331,7 +340,7 @@ namespace Dirigent.Gui.WinForms
 				else if( txt.StartsWith( "Terminated" ) )
 				{
 					var appDef =
-						( from p in _ctrl.GetAllPlanDefs()
+						( from p in Ctrl.GetAllPlanDefs()
 						  from a in p.AppDefs
 						  where a.Id == id
 						  select a ).FirstOrDefault();
@@ -362,56 +371,50 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
-		private DataRow getDataRowFromGridRow( DataGridViewRow gridRow )
-		{
-			var drv = gridRow.DataBoundItem as DataRowView;
-			var dataRow = drv.Row;
-			return dataRow;
-		}
 
 		private AppIdTuple getAppTupleFromAppDataRow( DataRow dataRow )
 		{
 			var dataItems = dataRow.ItemArray;
-			var id = new AppIdTuple( (string)dataItems[appTabColMachineId], (string)dataItems[appTabColAppId] );
+			var id = new AppIdTuple( (string)dataItems[colMachineId], (string)dataItems[colAppId] );
 			return id;
 		}
 
 		private AppIdTuple getAppTupleFromAppGridRow( DataGridViewRow gridRow )
 		{
-			var dataRow = getDataRowFromGridRow( gridRow );
+			var dataRow = WFT.GetDataRowFromGridRow( gridRow );
 			var id = getAppTupleFromAppDataRow( dataRow );
 			return id;
 		}
 
-		private void gridApps_MouseClick( object sender, MouseEventArgs e )
+		public void MouseClick( object sender, MouseEventArgs e )
 		{
-			var hti = gridApps.HitTest( e.X, e.Y );
+			var hti = _grid.HitTest( e.X, e.Y );
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
-			var plan = _currentPlan;
+			var plan = CurrentPlan;
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
-				DataGridViewRow focused = gridApps.Rows[currentRow];
+				DataGridViewRow focused = _grid.Rows[currentRow];
 				var id = getAppTupleFromAppGridRow( focused );
 
-				var st = _ctrl.GetAppState( id );
-				bool connected = IsConnected;
+				var st = Ctrl.GetAppState( id );
+				bool connected = Client.IsConnected;
 				//bool isLocalApp = id.MachineId == this._machineId;
 				bool isAccessible = connected; // can we change its state?
 
 				if( e.Button == MouseButtons.Right )
 				{
 					// build popup menu
-					var popup = new System.Windows.Forms.ContextMenuStrip( this.components );
-					popup.Enabled = connected || _allowLocalIfDisconnected;
+					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
+					popup.Enabled = connected || _form.AllowLocalIfDisconnected;
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
-							_ctrl.Name,
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+							Ctrl.Name,
 							id,
-							Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+							Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
 						)));
 						item.Enabled = isAccessible && !st.Running;
 						popup.Items.Add( item );
@@ -419,14 +422,14 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.KillAppMessage( Ctrl.Name, id ) ) );
 						item.Enabled = isAccessible && ( st.Running || st.Restarting );
 						popup.Items.Add( item );
 					}
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
 						item.Enabled = isAccessible; // && st.Running;
 						popup.Items.Add( item );
 					}
@@ -434,14 +437,14 @@ namespace Dirigent.Gui.WinForms
 					if( plan != null )
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Enable" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, true ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetAppEnabledMessage( Ctrl.Name, plan.Name, id, true ) ) );
 						popup.Items.Add( item );
 					}
 
 					if( plan != null )
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Disable" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, false ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetAppEnabledMessage( Ctrl.Name, plan.Name, id, false ) ) );
 						popup.Items.Add( item );
 					}
 
@@ -452,14 +455,14 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
 						item.Enabled = isAccessible && st.Running;
 						popup.Items.Add( item );
 					}
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
-						item.Click += ( s, a ) => guardedOp( () => _ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
 						item.Enabled = isAccessible && st.Running;
 						popup.Items.Add( item );
 					}
@@ -471,9 +474,9 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
-						item.Click += ( s, a ) => guardedOp( () => 
+						item.Click += ( s, a ) => WFT.GuardedOp( () => 
 						{
-							var appDef = _ctrl.GetAppDef( id );
+							var appDef = Ctrl.GetAppDef( id );
 							var frm = new frmAppProperties( appDef );
 							frm.Show();
 						});
@@ -488,40 +491,40 @@ namespace Dirigent.Gui.WinForms
 				else if( e.Button == MouseButtons.Left )
 				{
 					// icon clicks
-					if( currentCol == appTabColIconStart )
+					if( currentCol == colIconStart )
 					{
 						if( isAccessible ) // && !st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
-								_ctrl.Name,
+							WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+								Ctrl.Name,
 								id,
-								Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+								Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
 							)));
 						}
 					}
 
-					if( currentCol == appTabColIconKill )
+					if( currentCol == colIconKill )
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.KillAppMessage( _ctrl.Name, id ) ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.KillAppMessage( Ctrl.Name, id ) ) );
 						}
 					}
 
-					if( currentCol == appTabColIconRestart )
+					if( currentCol == colIconRestart )
 					{
 						if( isAccessible ) // && st.Running )
 						{
-							guardedOp( () => _ctrl.Send( new Net.RestartAppMessage( _ctrl.Name, id ) ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
 						}
 					}
 
-					if( currentCol == appTabColEnabled )
+					if( currentCol == colEnabled )
 					{
 						var wasEnabled = ( bool ) focused.Cells[currentCol].Value;
 						if( plan != null )
 						{
-							guardedOp( () => _ctrl.Send( new Net.SetAppEnabledMessage( _ctrl.Name, plan.Name, id, !wasEnabled ) ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.SetAppEnabledMessage( Ctrl.Name, plan.Name, id, !wasEnabled ) ) );
 						}
 						else
 						{
@@ -532,110 +535,30 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
-		private void gridApps_MouseDoubleClick( object sender, MouseEventArgs e )
+		public void MouseDoubleClick( object sender, MouseEventArgs e )
 		{
 			// launch the app
 			if( e.Button == MouseButtons.Left )
 			{
-				int row = gridApps.HitTest( e.X, e.Y ).RowIndex;
-				int col = gridApps.HitTest( e.X, e.Y ).ColumnIndex;
+				int row = _grid.HitTest( e.X, e.Y ).RowIndex;
+				int col = _grid.HitTest( e.X, e.Y ).ColumnIndex;
 
 				if( row >= 0 )
 				{
-					if( col == appTabColMachineId || col == appTabColAppId || col == appTabColStatus || col == appTabColPlan )
+					if( col == colMachineId || col == colAppId || col == colStatus || col == colPlan )
 					{
-						DataGridViewRow focused = gridApps.Rows[row];
+						DataGridViewRow focused = _grid.Rows[row];
 						var id = getAppTupleFromAppGridRow( focused );
-						var st = _ctrl.GetAppState( id );
+						var st = Ctrl.GetAppState( id );
 
-						guardedOp( () => _ctrl.Send( new Net.StartAppMessage(
-							_ctrl.Name,
+						WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+							Ctrl.Name,
 							id,
-							Tools.IsAppInPlan(_ctrl, id, _currentPlan ) ? _currentPlan.Name : null // prefer selected plan over others
+							Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
 						) ) );
 					}
 				}
 			}
-		}
-
-		//string getAppStatusCode( AppIdTuple id, AppState st, AppDef ad )
-		//{
-		//	string stCode = "Not running";
-
-		//	bool connected = IsConnected;
-		//	var currTime = DateTime.UtcNow;
-		//	bool isRemoteApp = id.MachineId != this._machineId;
-
-		//	if( isRemoteApp && !connected )
-		//	{
-		//		stCode = "??? (discon.)";
-		//		return stCode;
-		//	}
-
-		//	var currPlan = _currentPlan;
-		//	if( currPlan != null )
-		//	{
-		//		var planState = _ctrl.GetPlanState( currPlan.Name );
-		//		bool isPartOfPlan = !string.IsNullOrEmpty(st.PlanName) && (currPlan.Name == st.PlanName);
-		//		bool planRunning = ( currPlan != null ) && planState.Running && isPartOfPlan;
-		//		if( planRunning && !st.PlanApplied && !ad.Disabled )
-		//		{
-		//			stCode = "Planned";
-		//		}
-		//	}
-
-		//	if( st.Started )
-		//	{
-		//		if( st.Running )
-		//		{
-		//			if( st.Dying )
-		//			{
-		//				stCode = "Dying";
-		//			}
-		//			else if( !st.Initialized )
-		//			{
-		//				stCode = "Initializing";
-		//			}
-		//			else
-		//			{
-		//				stCode = "Running";
-		//			}
-		//		}
-		//		else
-		//			// !st.Running
-		//		{
-		//			if( st.Restarting )
-		//			{
-		//				stCode = "Restarting";
-		//				if( st.RestartsRemaining >= 0 ) stCode += String.Format( " ({0} remaining)", st.RestartsRemaining );
-		//			}
-		//			else if( st.Killed )
-		//			{
-		//				stCode = "Killed";
-		//			}
-		//			else
-		//			{
-		//				stCode = string.Format( "Terminated ({0})", st.ExitCode );
-		//			}
-		//		}
-		//	}
-		//	else if( st.StartFailed )
-		//	{
-		//		stCode = "Failed to start";
-		//	}
-
-		//	var statusInfoAge = currTime - st.LastChange;
-		//	if( isRemoteApp && statusInfoAge > TimeSpan.FromSeconds( 3 ) )
-		//	{
-		//		stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
-		//	}
-
-
-		//	return stCode;
-		//}
-
-		private void gridApps_CellToolTipTextNeeded( object sender, DataGridViewCellToolTipTextNeededEventArgs e )
-		{
 		}
 
 	}

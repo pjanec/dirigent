@@ -1,23 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
 using System.Reflection;
-
-using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Dirigent.Gui.WinForms
 {
-	public partial class frmMain : Form
+	public static class WFT
 	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
+
+		public static DataRow GetDataRowFromGridRow( DataGridViewRow gridRow )
+		{
+			var drv = gridRow.DataBoundItem as DataRowView;
+			var dataRow = drv.Row;
+			return dataRow;
+		}
+
 		/// <summary>
 		/// Executes a delegate and show exception window on exception
 		/// </summary>
-		private static void guardedOp( MethodInvoker mi )
+		public static void GuardedOp( MethodInvoker mi )
 		{
 			try
 			{
@@ -54,7 +62,6 @@ namespace Dirigent.Gui.WinForms
 				doubleBufferPropertyInfo.SetValue( control, enable, null );
 			}
 		}
-
 
 	}
 }

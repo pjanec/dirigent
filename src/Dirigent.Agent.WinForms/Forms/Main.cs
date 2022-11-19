@@ -21,40 +21,38 @@ namespace Dirigent.Gui.WinForms
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
 
-		// DLL libraries used to manage hotkeys
-		[DllImport( "user32.dll" )]
-		public static extern bool RegisterHotKey( IntPtr hWnd, int id, int fsModifiers, int vlc );
-		[DllImport( "user32.dll" )]
-		public static extern bool UnregisterHotKey( IntPtr hWnd, int id );
-
 		private NotifyIcon _notifyIcon;
-		private bool _allowLocalIfDisconnected = false;
-		//private GuiAppCallbacks _callbacks;
+		public bool AllowLocalIfDisconnected { get; private set; }
 		private AppConfig _ac;
 
-		private IDirig _ctrl;
+		public System.ComponentModel.IContainer Components => components;
+
+		public IDirig Ctrl { get; private set; }
+
 		private string _machineId; // empty if GUI not running as part of local agent
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
-		private List<PlanDef> _planRepo; // current plan repo
-		private List<ScriptDef> _scriptRepo; // current plan repo
-		private Net.Client _client;
-		private ReflectedStateRepo _reflStates;
 
-		private readonly Bitmap _iconStart = ResizeImage( new Bitmap( Resource1.play ), new Size( 20, 20 ) );
-		private readonly Bitmap _iconStop = ResizeImage( new Bitmap( Resource1.stop ), new Size( 20, 20 ) );
-		private readonly Bitmap _iconKill = ResizeImage( new Bitmap( Resource1.delete ), new Size( 20, 20 ) );
-		private readonly Bitmap _iconRestart = ResizeImage( new Bitmap( Resource1.refresh ), new Size( 20, 20 ) );
+		public List<PlanDef> PlanRepo { get; private set; }
+
+		public List<ScriptDef> ScriptRepo { get; private set; }
+
+		public Net.Client Client { get; private set; }
+
+		public ReflectedStateRepo ReflStates { get; private set; }
+
+		public PlanDef CurrentPlan { get; set; }
+
+		private MainAppsTab _tabApps;
+		private MainPlansTab _tabPlans;
+		private MainScriptsTab _tabScripts;
+		private MainMachsTab _tabMachs;
+
+		ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
 		public bool ShowJustAppFromCurrentPlan
 		{
-			get
-			{
-				return btnShowJustAppsFromCurrentPlan.Checked;
-			}
-			set
-			{
-				btnShowJustAppsFromCurrentPlan.Checked = value;
-			}
+			get { return btnShowJustAppsFromCurrentPlan.Checked; }
+			set	{ btnShowJustAppsFromCurrentPlan.Checked = value; }
 		}
 
 		public frmMain(
@@ -67,10 +65,9 @@ namespace Dirigent.Gui.WinForms
 			_machineId = machineId; // FIXME: this is only valid if we are running a local agent! How do we know??
 			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
 			_notifyIcon = notifyIcon;
-			_allowLocalIfDisconnected = true;
+			AllowLocalIfDisconnected = true;
 
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-
 
 			InitializeComponent();
 
@@ -85,17 +82,15 @@ namespace Dirigent.Gui.WinForms
 
 			ShowJustAppFromCurrentPlan = Tools.BoolFromString( Common.Properties.Settings.Default.ShowJustAppsFromCurrentPlan );
 
-			//setDoubleBuffered(gridApps, true); // not needed anymore, DataViewGrid does not flicker
+			PlanRepo = new List<PlanDef>();
+			ScriptRepo = new List<ScriptDef>();
 
-			_planRepo = new List<PlanDef>();
-			_scriptRepo = new List<ScriptDef>();
-
-			_client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
-			_client.MessageReceived += OnMessage;
-			_reflStates = new ReflectedStateRepo( _client );
+			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
+			Client.MessageReceived += OnMessage;
+			ReflStates = new ReflectedStateRepo( Client );
 			
 			bool firstGotPlans = true;
-			_reflStates.OnPlansReceived += () =>
+			ReflStates.OnPlansReceived += () =>
 			{
 				if( firstGotPlans )
 				{
@@ -104,18 +99,23 @@ namespace Dirigent.Gui.WinForms
 				firstGotPlans = false;
 
 				// udate current plan reference in case the plan def has changed
-				if( _currentPlan is not null )
+				if( CurrentPlan is not null )
 				{
-					_currentPlan = _reflStates.GetPlanDef( _currentPlan.Name );
+					CurrentPlan = ReflStates.GetPlanDef( CurrentPlan.Name );
 				}
 			};
 
 
-			_reflStates.OnScriptsReceived += () =>
+			ReflStates.OnScriptsReceived += () =>
 			{
 			};
 
-			_ctrl = _reflStates;
+			Ctrl = ReflStates;
+
+			_tabApps = new MainAppsTab( this, gridApps );
+			_tabPlans = new MainPlansTab( this, gridPlans );
+			_tabScripts = new MainScriptsTab( this, gridScripts );
+			_tabMachs = new MainMachsTab( this, gridMachs );
 
 			// start ticking
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
@@ -127,11 +127,11 @@ namespace Dirigent.Gui.WinForms
 		void myDispose()
 		{
 			tmrTick.Enabled = false;
-			if( _client is not null )
+			if( Client is not null )
 			{
-				_client.MessageReceived -= OnMessage;
-				_client.Dispose();
-				_client = null;
+				Client.MessageReceived -= OnMessage;
+				Client.Dispose();
+				Client = null;
 			}
 		}
 
@@ -161,6 +161,12 @@ namespace Dirigent.Gui.WinForms
 		const int HOTKEY_ID_SELECT_PLAN_7 = HOTKEY_ID_SELECT_PLAN_0 + 7;
 		const int HOTKEY_ID_SELECT_PLAN_8 = HOTKEY_ID_SELECT_PLAN_0 + 8;
 		const int HOTKEY_ID_SELECT_PLAN_9 = HOTKEY_ID_SELECT_PLAN_0 + 9;
+
+		// DLL libraries used to manage hotkeys
+		[DllImport( "user32.dll" )]
+		public static extern bool RegisterHotKey( IntPtr hWnd, int id, int fsModifiers, int vlc );
+		[DllImport( "user32.dll" )]
+		public static extern bool UnregisterHotKey( IntPtr hWnd, int id );
 
 		void registerHotKeys()
 		{
@@ -229,12 +235,11 @@ namespace Dirigent.Gui.WinForms
 			//}
 		}
 
-		private PlanDef _currentPlan;
 		void setTitle()
 		{
 			string planName = "<no plan>";
 
-			var currPlan = _currentPlan;
+			var currPlan = CurrentPlan;
 			if( currPlan != null )
 			{
 				planName = currPlan.Name;
@@ -258,7 +263,7 @@ namespace Dirigent.Gui.WinForms
 		{
 			try
 			{
-				_client.Tick();
+				Client.Tick();
 			}
 			catch( RemoteOperationErrorException ex ) // operation exception (not necesarily remote, could be also local
 				// as all operational requests always go through the network if
@@ -278,7 +283,7 @@ namespace Dirigent.Gui.WinForms
 			refreshGui();
 		}
 
-		bool IsConnected => _client.IsConnected;
+		public bool IsConnected => Client.IsConnected;
 
 		void refreshStatusBar()
 		{
@@ -297,8 +302,8 @@ namespace Dirigent.Gui.WinForms
 		void refreshMenu()
 		{
 			bool isConnected = IsConnected;
-			bool hasPlan = _currentPlan != null;
-			planToolStripMenuItem.Enabled = isConnected || _allowLocalIfDisconnected;
+			bool hasPlan = CurrentPlan != null;
+			planToolStripMenuItem.Enabled = isConnected || AllowLocalIfDisconnected;
 			startPlanToolStripMenuItem.Enabled = hasPlan;
 			stopPlanToolStripMenuItem.Enabled = hasPlan;
 			killPlanToolStripMenuItem.Enabled = hasPlan;
@@ -307,18 +312,19 @@ namespace Dirigent.Gui.WinForms
 
 		void refreshGui()
 		{
-			refreshApps();
-			refreshPlans();
-			refreshScripts();
-			refreshMachs();
+			_tabApps.Refresh();
+			_tabPlans.Refresh();
+			_tabScripts.Refresh();
+			_tabMachs.Refresh();
 			refreshStatusBar();
 			refreshMenu();
+			setTitle();
 		}
 
 		void selectPlan( string planName )
 		{
-			_currentPlan = _ctrl.GetPlanDef( planName );
-			_ctrl.Send( new Net.SelectPlanMessage( _ctrl.Name, _currentPlan is null ? string.Empty : _currentPlan.Name ) );
+			CurrentPlan = Ctrl.GetPlanDef( planName );
+			Ctrl.Send( new Net.SelectPlanMessage( Ctrl.Name, CurrentPlan is null ? string.Empty : CurrentPlan.Name ) );
 		}
 
 		private void frmMain_Resize( object sender, EventArgs e )
@@ -357,30 +363,30 @@ namespace Dirigent.Gui.WinForms
 				{
 					case HOTKEY_ID_START_CURRENT_PLAN:
 					{
-						var currPlan = _currentPlan;
+						var currPlan = CurrentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.StartPlanMessage( _ctrl.Name, currPlan.Name ) );
+							Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
 
 					case HOTKEY_ID_KILL_CURRENT_PLAN:
 					{
-						var currPlan = _currentPlan;
+						var currPlan = CurrentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.KillPlanMessage( _ctrl.Name, currPlan.Name ) );
+							Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
 
 					case HOTKEY_ID_RESTART_CURRENT_PLAN:
 					{
-						var currPlan = _currentPlan;
+						var currPlan = CurrentPlan;
 						if( currPlan != null )
 						{
-							_ctrl.Send( new Net.RestartPlanMessage( _ctrl.Name, currPlan.Name ) );
+							Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, currPlan.Name ) );
 						}
 						break;
 					}
@@ -403,7 +409,7 @@ namespace Dirigent.Gui.WinForms
 					case HOTKEY_ID_SELECT_PLAN_9:
 					{
 						int i = keyId - HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
-						List<PlanDef> plans = new List<PlanDef>( _ctrl.GetAllPlanDefs() );
+						List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlanDefs() );
 						if( i < plans.Count )
 						{
 							var planName = plans[i].Name;
@@ -425,7 +431,7 @@ namespace Dirigent.Gui.WinForms
 								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new KillAllArgs() {};
-				_ctrl.Send( new Net.KillAllMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.KillAllMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -438,7 +444,7 @@ namespace Dirigent.Gui.WinForms
 		private void reloadSharedConfigToolStripMenuItem_Click( object sender, EventArgs e )
 		{
 			var args = new ReloadSharedConfigArgs() { KillApps = false };
-			_ctrl.Send( new Net.ReloadSharedConfigMessage( _ctrl.Name, args ) );
+			Ctrl.Send( new Net.ReloadSharedConfigMessage( Ctrl.Name, args ) );
 		}
 
 		private void terminateAndKillAppsToolStripMenuItem_Click( object sender, EventArgs e )
@@ -446,7 +452,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Terminate Dirigent on all computers?\n\nThis will also kill all apps!", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new TerminateArgs() { KillApps = true };
-				_ctrl.Send( new Net.TerminateMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.TerminateMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -456,7 +462,7 @@ namespace Dirigent.Gui.WinForms
 								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new TerminateArgs() { KillApps = false };
-				_ctrl.Send( new Net.TerminateMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.TerminateMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -470,7 +476,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Reboot all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
-				_ctrl.Send( new Net.ShutdownMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -479,7 +485,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Shut down all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
-				_ctrl.Send( new Net.ShutdownMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -489,7 +495,7 @@ namespace Dirigent.Gui.WinForms
 								 MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ReinstallArgs() { DownloadMode = EDownloadMode.Manual };
-				_ctrl.Send( new Net.ReinstallMessage( _ctrl.Name, args ) );
+				Ctrl.Send( new Net.ReinstallMessage( Ctrl.Name, args ) );
 			}
 		}
 
@@ -517,6 +523,188 @@ namespace Dirigent.Gui.WinForms
 		{
 			killAllWithConfirmation();
 		}
+
+		// Apps
+
+		private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			_tabApps.CellFormatting( sender, e );
+		}
+
+		private void gridApps_MouseClick( object sender, MouseEventArgs e )
+		{
+			_tabApps.MouseClick( sender, e );
+		}
+
+		private void gridApps_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			_tabApps.MouseDoubleClick( sender, e );
+		}
+
+		// Plans
+
+		private void gridPlans_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			_tabPlans.CellFormatting( sender, e );
+		}
+
+		private void gridPlans_MouseClick( object sender, MouseEventArgs e )
+		{
+			_tabPlans.MouseClick( sender, e );
+		}
+
+		private void gridPlans_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			_tabPlans.MouseDoubleClick( sender, e );
+		}
+
+		// Script
+
+		private void gridScripts_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			_tabScripts.CellFormatting( sender, e );
+		}
+
+		private void gridScripts_MouseClick( object sender, MouseEventArgs e )
+		{
+			_tabScripts.MouseClick( sender, e );
+		}
+
+		private void gridScripts_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			_tabScripts.MouseDoubleClick( sender, e );
+		}
+
+		// Machs
+
+		private void gridMachs_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			_tabMachs.CellFormatting( sender, e );
+		}
+
+		private void gridMachs_MouseClick( object sender, MouseEventArgs e )
+		{
+			_tabMachs.MouseClick( sender, e );
+		}
+
+		private void gridMachs_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			_tabMachs.MouseDoubleClick( sender, e );
+		}
+
+
+		// Menus
+
+		private void aboutMenuItem_Click( object sender, EventArgs e )
+		{
+			var version = Assembly.GetExecutingAssembly().GetName().Version;
+
+			// read the content of versionstamp file next to dirigent binaries
+			var verStampPath = System.IO.Path.Combine( Tools.GetExeDir(), "VersionStamp.txt" );
+			string verStampText;
+			try
+			{
+
+				verStampText = File.ReadAllText( verStampPath );
+			}
+			catch( Exception )
+			{
+				verStampText = "Version info file not found:\n" + verStampPath;
+			}
+
+			MessageBox.Show(
+				"Dirigent app launcher\nby pjanec\nMIT license\n\nver." + version + "\n\n" + verStampText,
+				"About Dirigent",
+				MessageBoxButtons.OK,
+				MessageBoxIcon.Information );
+		}
+
+		private void ShowNoPlanSelectedError()
+		{
+			MessageBox.Show(
+				"No plan selected. Select a plan first.",
+				"Dirigent",
+				MessageBoxButtons.OK,
+				MessageBoxIcon.Information );
+		}
+
+		private void startPlanMenuItem_Click( object sender, EventArgs e )
+		{
+			if( CurrentPlan is null )
+			{
+				ShowNoPlanSelectedError();
+				return;
+			}
+			WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+		}
+
+		private void stopPlanMenuItem_Click( object sender, EventArgs e )
+		{
+			if( CurrentPlan is null )
+			{
+				ShowNoPlanSelectedError();
+				return;
+			}
+			WFT.GuardedOp( () => Ctrl.Send( new Net.StopPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+		}
+
+		private void killPlanMenuItem_Click( object sender, EventArgs e )
+		{
+			if( CurrentPlan is null )
+			{
+				ShowNoPlanSelectedError();
+				return;
+			}
+			WFT.GuardedOp( () => Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+		}
+
+		private void restartPlanMenuItem_Click( object sender, EventArgs e )
+		{
+			if( CurrentPlan is null )
+			{
+				ShowNoPlanSelectedError();
+				return;
+			}
+			WFT.GuardedOp( () => Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+		}
+
+		private void selectPlanMenuItem_Click( object sender, EventArgs e )
+		{
+			//selectPlanToolStripMenuItem.ShowDropDown();
+			if( mnuPlanList is not null )
+			{
+				mnuPlanList.Show( this, this.PointToClient( Cursor.Position ) );
+			}
+		}
+
+		void addPlanSelectionMenuItem( int index, string planName )
+		{
+			EventHandler clickHandler = ( sender, args ) => WFT.GuardedOp( () => { selectPlan( planName); } );
+
+			var itemText = String.Format( "&{0}: {1}", index, string.IsNullOrEmpty(planName)?"<no plan>":planName );
+			var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler );
+			selectPlanToolStripMenuItem.DropDownItems.Add( menuItem );
+
+			mnuPlanList.Items.Add( itemText, null, clickHandler );
+		}
+
+
+		public void PopulatePlanSelectionMenu()
+		{
+			mnuPlanList = new ContextMenuStrip();
+
+			selectPlanToolStripMenuItem.DropDownItems.Clear();
+
+			// fill the Plan -> Load menu with items
+			int index = 0;
+			addPlanSelectionMenuItem( index++, string.Empty ); // no plan
+
+			foreach( var plan in PlanRepo )
+			{
+				addPlanSelectionMenuItem( index++, plan.Name );
+			}
+		}
+
 
 	}
 }

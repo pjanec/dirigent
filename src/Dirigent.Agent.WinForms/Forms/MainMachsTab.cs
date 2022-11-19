@@ -13,41 +13,50 @@ using System.IO;
 
 namespace Dirigent.Gui.WinForms
 {
-	public partial class frmMain : Form
+	public class MainMachsTab : MainExtension
 	{
-		const int machTabColName = 0;
-		const int machTabColStatus = 1;
-		const int machTabNumCols = 2;
+		const int colName = 0;
+		const int colStatus = 1;
+		const int colMAX = 2;
 
-        private BindingSource _gridMachsBindingSource = null;
-		private DataTable _gridMachsDataTable = null;
-        private DataSet _gridMachsDataSet = null;
+		private Zuby.ADGV.AdvancedDataGridView _grid;
+        private BindingSource _bindingSource = null;
+		private DataTable _dataTable = null;
+        private DataSet _dataSet = null;
 
-		void initMachsGrid()
+		public MainMachsTab(
+			frmMain form,
+			Zuby.ADGV.AdvancedDataGridView grid
+			) : base( form )
+		{
+			_grid = grid;
+		}
+
+		void initGrid()
 		{
 			// when using DataTables the ADGV can properly filter rows
-			_gridMachsBindingSource = new BindingSource();
-			_gridMachsDataTable = new DataTable();
-			_gridMachsDataSet = new DataSet();
+			_bindingSource = new BindingSource();
+			_dataTable = new DataTable();
+			_dataSet = new DataSet();
 
-			_gridMachsBindingSource.DataSource = _gridMachsDataSet;
-			gridMachs.DataSource = _gridMachsBindingSource;
+			_bindingSource.DataSource = _dataSet;
+			_grid.DataSource = _bindingSource;
 
-	        _gridMachsDataTable = _gridMachsDataSet.Tables.Add("MachinesTable");
-			_gridMachsDataTable.Columns.Add("Name", typeof(string));
-			_gridMachsDataTable.Columns.Add("Status", typeof(string));
+	        _dataTable = _dataSet.Tables.Add("MachinesTable");
+			_dataTable.Columns.Add("Name", typeof(string));
+			_dataTable.Columns.Add("Status", typeof(string));
 
-			_gridMachsBindingSource.DataMember = _gridMachsDataSet.Tables[0].TableName;
+			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
 			// fix columns appearance
 
-			var _hdrScriptName = gridMachs.Columns[machTabColName];
+			var _hdrScriptName = _grid.Columns[colName];
 			_hdrScriptName.HeaderText = "Name";
 			_hdrScriptName.MinimumWidth = 9;
 			_hdrScriptName.ReadOnly = true;
 			_hdrScriptName.Width = 250;
 
-			var _Status = gridMachs.Columns[machTabColStatus];
+			var _Status = _grid.Columns[colStatus];
 			_Status.HeaderText = "Status";
 			_Status.MinimumWidth = 9;
 			_Status.ReadOnly = true;
@@ -59,7 +68,7 @@ namespace Dirigent.Gui.WinForms
 		private string getClientIdFromMachsDataRow( DataRow dataRow )
 		{
 			var dataItems = dataRow.ItemArray;
-			var id = (string)dataItems[machTabColName];
+			var id = (string)dataItems[colName];
 			return id;
 		}
 		
@@ -74,11 +83,11 @@ namespace Dirigent.Gui.WinForms
 		}
 
 
-		void refreshMachs()
+		public void Refresh()
 		{
-			if( _gridMachsBindingSource == null )
+			if( _bindingSource == null )
 			{
-				initMachsGrid();
+				initGrid();
 			}
 
 			// find what has changed
@@ -90,7 +99,7 @@ namespace Dirigent.Gui.WinForms
 			var toAdd = new List<object[]>();
 			var toRemove = new List<DataRow>();
 
-			foreach( DataRow dataRow in _gridMachsDataTable.Rows )
+			foreach( DataRow dataRow in _dataTable.Rows )
 			{
 				var id = getClientIdFromMachsDataRow( dataRow );
 
@@ -98,25 +107,25 @@ namespace Dirigent.Gui.WinForms
 			}
 
 
-			foreach (var (id, state) in _reflStates.GetAllClientStates())
+			foreach (var (id, state) in ReflStates.GetAllClientStates())
 			{
 				if( oldRows.ContainsKey( id )) continue; // already existing
 				if( !isMachineId( id ) ) continue; // ignore non-machine clients
 
-				var item = new object[machTabNumCols];
-				item[machTabColName] = id;
-				item[machTabColStatus] = Tools.GetClientStateText( state );
+				var item = new object[colMAX];
+				item[colName] = id;
+				item[colStatus] = Tools.GetClientStateText( state );
 				toAdd.Add( item );
 			}
 
 			foreach( var dataRow in toRemove )
 			{
-				_gridMachsDataTable.Rows.Remove( dataRow );
+				_dataTable.Rows.Remove( dataRow );
 			}
 
 			foreach( var newrow in toAdd )
 			{
-				_gridMachsDataTable.Rows.Add( newrow );
+				_dataTable.Rows.Add( newrow );
 			}
 
 			// update existing
@@ -124,26 +133,26 @@ namespace Dirigent.Gui.WinForms
 			{
 				if( toRemove.Contains( dataRow ) ) continue;
 
-				var state = _ctrl.GetClientState( id );
-				dataRow.SetField( machTabColStatus, Tools.GetClientStateText( state ) );
+				var state = Ctrl.GetClientState( id );
+				dataRow.SetField( colStatus, Tools.GetClientStateText( state ) );
 			}
 		}
 
-		private void gridMachs_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
 		}
 
-		private void gridMachs_MouseClick( object sender, MouseEventArgs e )
+		public void MouseClick( object sender, MouseEventArgs e )
 		{
-			var hti = gridMachs.HitTest( e.X, e.Y );
+			var hti = _grid.HitTest( e.X, e.Y );
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
-				DataGridViewRow focusedGridRow = gridMachs.Rows[currentRow];
-				string id = getClientIdFromMachsDataRow( getDataRowFromGridRow( focusedGridRow ) );
-				bool connected = IsConnected;
+				DataGridViewRow focusedGridRow = _grid.Rows[currentRow];
+				string id = getClientIdFromMachsDataRow( WFT.GetDataRowFromGridRow( focusedGridRow ) );
+				bool connected = Client.IsConnected;
 
 
 				//if( e.Button == MouseButtons.Left )
@@ -153,8 +162,7 @@ namespace Dirigent.Gui.WinForms
 				if( e.Button == MouseButtons.Right )
 				{
 					// build popup menu
-					var popup = new System.Windows.Forms.ContextMenuStrip( this.components );
-					popup.Enabled = connected || _allowLocalIfDisconnected;
+					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Folders" );
@@ -174,17 +182,16 @@ namespace Dirigent.Gui.WinForms
 		}
 
 		// starts the doubleclicked plan
-		private void gridMachs_MouseDoubleClick( object sender, MouseEventArgs e )
+		public void MouseDoubleClick( object sender, MouseEventArgs e )
 		{
-			var hti = gridMachs.HitTest( e.X, e.Y );
+			var hti = _grid.HitTest( e.X, e.Y );
 			int currentRow = hti.RowIndex;
 			int currentCol = hti.ColumnIndex;
 
 			if( currentRow >= 0 ) // ignore header clicks
 			{
-				DataGridViewRow focusedGridRow = gridMachs.Rows[currentRow];
-				string id = getClientIdFromMachsDataRow( getDataRowFromGridRow( focusedGridRow ) );
-				bool connected = IsConnected;
+				DataGridViewRow focusedGridRow = _grid.Rows[currentRow];
+				string id = getClientIdFromMachsDataRow( WFT.GetDataRowFromGridRow( focusedGridRow ) );
 
 				//if( e.Button == MouseButtons.Left )
 				//{

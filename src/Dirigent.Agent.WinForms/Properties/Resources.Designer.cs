@@ -80,5 +80,124 @@ namespace Dirigent.Gui.WinForms.Properties
 				return ( ( System.Drawing.Icon )( obj ) );
 			}
 		}
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap delete
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "delete", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+		/// </summary>
+		internal static System.Drawing.Icon dirigent
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "dirigent", resourceCulture );
+				return ( ( System.Drawing.Icon )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap itemlist
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "itemlist", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap items_few
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "items_few", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap items_many
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "items_many", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap killall
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "killall", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap open
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "open", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap play
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "play", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap refresh
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "refresh", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
+
+		/// <summary>
+		///   Looks up a localized resource of type System.Drawing.Bitmap.
+		/// </summary>
+		internal static System.Drawing.Bitmap stop
+		{
+			get
+			{
+				object obj = ResourceManager.GetObject( "stop", resourceCulture );
+				return ( ( System.Drawing.Bitmap )( obj ) );
+			}
+		}
 	}
 }

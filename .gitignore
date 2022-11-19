@@ -112,3 +112,4 @@ UpgradeLog*.XML
 
 /version.txt
 TestCases
+/html
