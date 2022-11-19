@@ -333,6 +333,21 @@
         bgAAAABJRU5ErkJggg==
 </value>
   </data>
+  <metadata name="toolStripFiles.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>195, 17</value>
+  </metadata>
+  <data name="btnFilesKillAll.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+      iVBORw0KGgoAAAANSUhEUgAAABYAAAAYCAYAAAD+vg1LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
+      YQUAAAAJcEhZcwAAFiUAABYlAUlSJPAAAAFGSURBVEhLrZVBSgNBEEVn5RkCOYMHyDYQcOVBRPAYgYAH
+      ELyBIAiCK0HwAK6yCmQVEATBVUAIJP8N3aEmU910D/nwmEzVr5pO93RPk9FI3IlX8SX2AX4TI4enWGPx
+      IP5FbJYCD15qspqJH+E1yUENta6uxU54hSVQS4+OLsVWeAU10INeR30KzzgEerVibmziTUzERbhyb/Ml
+      nna+WdUY4DXy9CRqPI8ElibQmR8j4jWeFYE/E+CveSJe4+H97jQ+14jbxnYqXgg4svNX4lkTsIsHz4KV
+      Rly5t/kSDz2bKxPI8RHwcqfQs1XJBpkGvJzluEEQE5/b0ow06l14HuhtacQB4pmBkUblRt07hKI8cw1J
+      eeYakvLMNSQ15OsRoTapufCKSliIpDhI7sW32AgedCtOm9wIcnjwUpM6nJKKD/sNFDRpmgNUfT9AKoPt
+      bgAAAABJRU5ErkJggg==
+    </value>
+  </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAQAEBAQAAAABAAoAQAARgAAABgYEAAAAAQA6AEAAG4BAAAgIBAAAAAEAOgCAABWAwAAFBQQAAAA

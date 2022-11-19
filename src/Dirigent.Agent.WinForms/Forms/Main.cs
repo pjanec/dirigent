@@ -46,6 +46,7 @@ namespace Dirigent.Gui.WinForms
 		private MainPlansTab _tabPlans;
 		private MainScriptsTab _tabScripts;
 		private MainMachsTab _tabMachs;
+		private MainFilesTab _tabFiles;
 
 		ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
@@ -116,6 +117,7 @@ namespace Dirigent.Gui.WinForms
 			_tabPlans = new MainPlansTab( this, gridPlans );
 			_tabScripts = new MainScriptsTab( this, gridScripts );
 			_tabMachs = new MainMachsTab( this, gridMachs );
+			_tabFiles = new MainFilesTab( this, gridFiles );
 
 			// start ticking
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
@@ -316,6 +318,7 @@ namespace Dirigent.Gui.WinForms
 			_tabPlans.Refresh();
 			_tabScripts.Refresh();
 			_tabMachs.Refresh();
+			_tabFiles.Refresh();
 			refreshStatusBar();
 			refreshMenu();
 			setTitle();
@@ -524,6 +527,11 @@ namespace Dirigent.Gui.WinForms
 			killAllWithConfirmation();
 		}
 
+		private void btnFilesKillAll_Click( object sender, EventArgs e )
+		{
+			killAllWithConfirmation();
+		}
+
 		// Apps
 
 		private void gridApps_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
@@ -592,6 +600,23 @@ namespace Dirigent.Gui.WinForms
 			_tabMachs.MouseDoubleClick( sender, e );
 		}
 
+
+		// Files
+
+		private void gridFiles_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			_tabFiles.CellFormatting( sender, e );
+		}
+
+		private void gridFiles_MouseClick( object sender, MouseEventArgs e )
+		{
+			_tabFiles.MouseClick( sender, e );
+		}
+
+		private void gridFiles_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			_tabFiles.MouseDoubleClick( sender, e );
+		}
 
 		// Menus
 
