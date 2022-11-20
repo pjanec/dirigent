@@ -10,62 +10,59 @@ namespace Dirigent
 {
 
 	/// <summary>
-	/// Definition of a machine (computer) in the whole system
+	/// Definition of file package associated with a machine, with an application on a machine or with no association (a global file package)
 	/// </summary>
 	[ProtoBuf.ProtoContract]
 	[DataContract]
-	public class MachineDef : IEquatable<MachineDef>
+	public class FilePackageDef : IEquatable<FilePackageDef>
 	{
 		/// <summary>
-		/// Unique machine id in the system
+		/// Unique package id
 		/// </summary>
 		[ProtoBuf.ProtoMember( 1 )]
 		[DataMember]
-		public string Id = String.Empty;
+		public Guid Guid;
 
 		/// <summary>
-		/// Machine IP address used for constructing UNC file paths to the machine.
-		/// Should stay empty to be auto-determined from the TCP connection.
-		/// If not empty, it overrides the auto-determined IP
+		/// Human readable package id
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
-		public string IP = String.Empty;
+		public string? Id;
 
 		/// <summary>
-		/// File shares the machine defines; to be used for remote file access
+		/// Machine the package belongs to. Null if global file.
 		/// </summary>
 		[ProtoBuf.ProtoMember( 3 )]
 		[DataMember]
-		public List<FileShareDef> FileShares = new List<FileShareDef>();
+		public string? MachineId;
 
 		/// <summary>
-		/// Files associated with the machine only (not associated with an application).
-		/// References to a global table of files.
+		/// App the package belongs to. Used only if the file is bound to an app.
 		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
 		[DataMember]
-		public List<Guid> Files = new List<Guid>();
+		public string? AppId;
 
 		/// <summary>
-		/// Machine-specific file packages.
-		/// References to a global table of file packages.
+		/// List of the files within the package; references to FileDefs
 		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
+		[ProtoBuf.ProtoMember(5)]
 		[DataMember]
-		public List<Guid> FilePackages = new List<Guid>();
+		public List<Guid> Files = new List<Guid>();
 
 
-		public bool Equals( MachineDef? other )
+		public bool Equals( FilePackageDef? other )
 		{
 			if( other is null )
 				return false;
 
 			if(
+				this.Guid == other.Guid &&
 				this.Id == other.Id &&
-				this.FileShares.SequenceEqual( other.FileShares ) &&
+				this.MachineId == other.MachineId &&
+				this.AppId == other.AppId &&
 				this.Files.SequenceEqual( other.Files ) &&
-				this.FilePackages.SequenceEqual( other.FilePackages ) &&
 				true
 			)
 				return true;
@@ -78,7 +75,7 @@ namespace Dirigent
 			if( obj == null )
 				return false;
 
-			var typed = obj as MachineDef;
+			var typed = obj as FilePackageDef;
 			if( typed is null )
 				return false;
 			else
@@ -87,10 +84,10 @@ namespace Dirigent
 
 		public override int GetHashCode()
 		{
-			return this.Id.GetHashCode();
+			return this.Guid.GetHashCode();
 		}
 
-		public static bool operator ==( MachineDef t1, MachineDef t2 )
+		public static bool operator ==( FilePackageDef t1, FilePackageDef t2 )
 		{
 			if( ( object )t1 == null || ( ( object )t2 ) == null )
 				return Object.Equals( t1, t2 );
@@ -98,7 +95,7 @@ namespace Dirigent
 			return t1.Equals( t2 );
 		}
 
-		public static bool operator !=( MachineDef t1, MachineDef t2 )
+		public static bool operator !=( FilePackageDef t1, FilePackageDef t2 )
 		{
 			if( t1 is null || t2 is null )
 				return !Object.Equals( t1, t2 );
@@ -109,7 +106,7 @@ namespace Dirigent
 
 		public override string ToString()
 		{
-			return $"{Id}";
+			return $"{Id}@{MachineId}.{AppId} ({Files.Count} files)";
 		}
 	}
 

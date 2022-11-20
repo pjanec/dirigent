@@ -17,7 +17,8 @@ namespace Dirigent.Gui.WinForms
 	{
 		const int colName = 0;
 		const int colStatus = 1;
-		const int colMAX = 2;
+		const int colAddress = 2;
+		const int colMAX = 3;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -45,6 +46,7 @@ namespace Dirigent.Gui.WinForms
 	        _dataTable = _dataSet.Tables.Add("MachinesTable");
 			_dataTable.Columns.Add("Name", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
+			_dataTable.Columns.Add("Address", typeof(string));
 
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
@@ -61,6 +63,12 @@ namespace Dirigent.Gui.WinForms
 			_Status.MinimumWidth = 9;
 			_Status.ReadOnly = true;
 			_Status.Width = 175;
+
+			var _Address = _grid.Columns[colAddress];
+			_Address.HeaderText = "Address";
+			_Address.MinimumWidth = 9;
+			_Address.ReadOnly = true;
+			_Address.Width = 175;
 
 		}
 
@@ -115,6 +123,7 @@ namespace Dirigent.Gui.WinForms
 				var item = new object[colMAX];
 				item[colName] = id;
 				item[colStatus] = Tools.GetClientStateText( state );
+				item[colAddress] = $"{state.IP}";
 				toAdd.Add( item );
 			}
 

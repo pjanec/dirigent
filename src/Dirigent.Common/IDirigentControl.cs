@@ -132,6 +132,12 @@ namespace Dirigent
 		ScriptDef? GetScriptDef( string Id ) { return null; }
 		IEnumerable<ScriptDef> GetAllScriptDefs() { return new List<ScriptDef>(); }
 
+		FileDef? GetFileDef( Guid guid ) { return null; }
+		IEnumerable<FileDef> GetAllFileDefs() { return new List<FileDef>(); }
+
+		FilePackage? GetFilePackage( Guid guid ) { return null; }
+		IEnumerable<FilePackage> GetAllFilePackages() { return new List<FilePackage>(); }
+
 		/// <summary> ident of the network client used as RequestorId </summary>
 		string Name { get; } 
 

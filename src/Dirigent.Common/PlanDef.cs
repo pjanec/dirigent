@@ -1,21 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Net;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
-	public class PlanScriptDef
-	{
-		/// <summary>
-		/// Path to the script file; Either absolute or relative to the SharedConfig file location
-		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		public string Name = string.Empty;
-	}
-
 	[ProtoBuf.ProtoContract]
 	public class PlanDef
 	{
@@ -73,28 +61,6 @@ namespace Dirigent
 		public override int GetHashCode()
 		{
 			return this.Name.GetHashCode();
-		}
-	}
-
-	public class SharedConfig
-	{
-		public List<AppDef> AppDefaults = new List<AppDef>();
-		public List<PlanDef> Plans = new List<PlanDef>();
-		public List<ScriptDef> Scripts = new List<ScriptDef>();
-
-	}
-
-	public class LocalConfig
-	{
-		/// <summary>
-		/// The XML document with local configuration
-		/// </summary>
-		public System.Xml.Linq.XDocument xmlDoc;
-		public List<System.Xml.Linq.XElement> folderWatcherXmls = new List<System.Xml.Linq.XElement>();
-
-		public LocalConfig( System.Xml.Linq.XDocument xmlDoc )
-		{
-			this.xmlDoc = xmlDoc;
 		}
 	}
 }

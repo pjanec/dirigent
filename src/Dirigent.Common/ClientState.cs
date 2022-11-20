@@ -38,6 +38,9 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 4 )]
 		string? selectedPlanName; // in what plan is selected as the current one (applies to some GUIs)
 
+		[ProtoBuf.ProtoMember( 5 )]
+		public string? IP; // ip address of the client (determined by master from dirigent's TCP connection)
+
 		bool Is( FL value )
 		{
 			return ( flags & value ) == value;

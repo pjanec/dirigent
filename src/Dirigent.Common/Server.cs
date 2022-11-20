@@ -298,6 +298,15 @@ namespace Dirigent.Net
 			}
 		}
 
+		public Socket? GetClientSocket( string clientName )
+		{
+			if( _identifiedClients.TryGetValue( clientName, out var session ) )
+			{
+				return session.Socket;
+			}
+			return null;
+		}
+
 	}
 
 

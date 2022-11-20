@@ -30,6 +30,10 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
 		public ScriptDef? GetScriptDef( string Id ) { if( _scripts.Scripts.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return from x in _scripts.Scripts.Values select x.Def; }
+		public FileDef? GetFileDef( Guid guid ) { return _files.GetFileDef(guid); }
+		public IEnumerable<FileDef> GetAllFileDefs() { return _files.GetAllFileDefs(); }
+		public FilePackage? GetFilePackage( Guid guid ) { return _files.GetFilePackage(guid); }
+		public IEnumerable<FilePackage> GetAllFilePackage() { return _files.GetAllFilePackages(); }
 		public string Name => string.Empty;
 		public void Send( Net.Message msg ) { ProcessIncomingMessageAndHandleExceptions( msg ); }
 
@@ -55,6 +59,8 @@ namespace Dirigent
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
 		private ScriptRegistry _scripts;
+		private FileRegistry _files;
+		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
@@ -133,6 +139,15 @@ namespace Dirigent
 
 			_scripts = new ScriptRegistry( this );
 
+			_files = new FileRegistry( (string machineId) =>
+			{
+				if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
+				{
+					return state.IP;
+				}
+				return null;
+			});
+ 
 			_server = new Server( ac.MasterPort );
 			_swClientRefresh = new Stopwatch();
 			_swClientRefresh.Restart();
@@ -273,11 +288,21 @@ namespace Dirigent
 					// client connected!
 					OnClientIdentified( m );
 
-					// remember initial client state as conneted
+					// get its IP address  port
+					string ipAddress = String.Empty;
+					int port = 0;
+					var socket = _server.GetClientSocket( m.Name );
+					if( socket != null )
+					{
+						Tools.GetRemoteIpAndPort( socket, out ipAddress, out port );
+					}
+
+					// remember initial client state as connected
 					var cs = new ClientState();
 					cs.Ident = m;
 					cs.Connected = true;
 					cs.LastChange = DateTime.Now;
+					cs.IP = ipAddress;
 					_allClientStates.AddOrUpdate( m.Name, cs );
 
 					break;
@@ -564,6 +589,18 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
+			// send full list of files & packages
+			{
+				var m = new Net.FileDefsMessage( _files.Files.Values, _files.PackageDefs );
+				_server.SendToSingle( m, ident.Name );
+			}
+
+			// send full list of machines
+			{
+				var m = new Net.MachineDefsMessage( _machineDefs );
+				_server.SendToSingle( m, ident.Name );
+			}
+
 		}
 
 		void FeedAgent( ClientIdent ident )
@@ -649,6 +686,11 @@ namespace Dirigent
 
 			// import predefined scripts
 			_scripts.SetAll( sharedConfig.Scripts );
+
+			_files.SetFiles( sharedConfig.Files, sharedConfig.FilePackages );
+			_files.SetMachines( sharedConfig.Machines );
+
+			_machineDefs = new List<MachineDef>( sharedConfig.Machines );
 
 			// reset
 			var m = new Net.ResetMessage();

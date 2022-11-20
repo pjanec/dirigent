@@ -45,6 +45,9 @@ namespace Dirigent.Net
 			{ 130, typeof( ScriptStateMessage ) },
 			{ 131, typeof( ApplyPlanMessage ) },
 			{ 132, typeof( SetWindowStyleMessage ) },
+			{ 133, typeof( FileDefsMessage ) },
+			{ 134, typeof( MachineDefsMessage ) },
+			// WARNING: add newly added messages also to the list below!!
 		};
 	}
 
@@ -84,6 +87,8 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 130, typeof( ScriptStateMessage ) )]
 	[ProtoBuf.ProtoInclude( 131, typeof( ApplyPlanMessage ) )]
 	[ProtoBuf.ProtoInclude( 132, typeof( SetWindowStyleMessage ) )]
+	[ProtoBuf.ProtoInclude( 133, typeof( FileDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
 
 	public class Message
 	{
@@ -997,4 +1002,53 @@ namespace Dirigent.Net
 		}
 
 	}
+
+	/// <summary>
+	/// Master tells new client about existing files and file packages
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class FileDefsMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public List<FileDef> Files = new List<FileDef>();
+
+		[ProtoBuf.ProtoMember( 2 )]
+		public List<FilePackageDef> FilePackages = new List<FilePackageDef>();
+
+
+		public FileDefsMessage() { }
+		public FileDefsMessage( IEnumerable<FileDef> files, IEnumerable<FilePackageDef> packages)
+		{
+			this.Files = new List<FileDef>( files );
+			this.FilePackages = new List<FilePackageDef>( packages );
+		}
+		
+		public override string ToString()
+		{
+			return $"FileDefs ({Files.Count} files, {FilePackages.Count} packages)";
+		}
+	}
+
+	/// <summary>
+	/// Master tells new client about existing machine definitions
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class MachineDefsMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public List<MachineDef> Machines = new List<MachineDef>();
+
+
+		public MachineDefsMessage() { }
+		public MachineDefsMessage( IEnumerable<MachineDef> mdefs )
+		{
+			this.Machines = new List<MachineDef>( mdefs );
+		}
+		
+		public override string ToString()
+		{
+			return $"MachineDefs ({Machines.Count})";
+		}
+	}
+
 }

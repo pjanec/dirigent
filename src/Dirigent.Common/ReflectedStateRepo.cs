@@ -27,6 +27,11 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
 		public ScriptDef? GetScriptDef( string Id ) { return _scriptDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptDefs; }
+		public FileDef? GetFileDef( Guid guid ) { return _files.GetFileDef(guid); }
+		public IEnumerable<FileDef> GetAllFileDefs() { return _files.GetAllFileDefs(); }
+		public FilePackage? GetFilePackage( Guid guid ) { return _files.GetFilePackage(guid); }
+		public IEnumerable<FilePackage> GetAllFilePackage() { return _files.GetAllFilePackages(); }
+
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public string Name => _client.Ident.Name;
 
@@ -34,6 +39,8 @@ namespace Dirigent
 		public Action? OnAppsReceived;
 		public Action? OnPlansReceived;
 		public Action? OnScriptsReceived;
+		public Action? OnFilesReceived;
+		public Action? OnMachinesReceived;
 
 		// fired when reset is received
 		public Action? OnReset;
@@ -53,10 +60,21 @@ namespace Dirigent
 		private Dictionary<string, ScriptState> _scriptStates = new Dictionary<string, ScriptState>();
 		private List<ScriptDef> _scriptDefs = new List<ScriptDef>();
 
+		private FileRegistry _files;
+
 		public ReflectedStateRepo( Net.Client client )
 		{
 			_client = client;
 			_client.MessageReceived += OnMessage;
+
+			_files = new FileRegistry( (string machineId) =>
+			{
+				if( _clientStates.TryGetValue( machineId, out var state ) )
+				{
+					return state.IP;
+				}
+				return null;
+			});
 		}
 
 		void OnMessage( Net.Message msg )
@@ -168,6 +186,20 @@ namespace Dirigent
 						}
 					}
 					OnScriptsReceived?.Invoke();
+					break;
+				}
+
+				case Net.FileDefsMessage m:
+				{
+					_files.SetFiles( m.Files, m.FilePackages );
+					OnFilesReceived?.Invoke();
+					break;
+				}
+
+				case Net.MachineDefsMessage m:
+				{
+					_files.SetMachines( m.Machines );
+					OnMachinesReceived?.Invoke();
 					break;
 				}
 

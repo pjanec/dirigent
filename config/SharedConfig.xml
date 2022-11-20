@@ -182,7 +182,8 @@
 	    <!-- reference to application-specific file-->
 	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
 	    <!-- direct definition of independent file using UNC path-->
-	    <File Id="file1" Path="\\server\share\path\to\file.txt"/>
 	</FilePackage>
+
+	<File Id="global4" Path="\\server\share\path\to\file.txt"/>
 
 </Shared>

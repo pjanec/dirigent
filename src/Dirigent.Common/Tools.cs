@@ -557,6 +557,20 @@ namespace Dirigent
 			return IsAppInPlan( iDirig, appId, planDef );
 		}
 
+		public static bool GetRemoteIpAndPort( System.Net.Sockets.Socket s, out string ipAddress, out int port  )
+		{
+			var remoteIpEndPoint = s.RemoteEndPoint as System.Net.IPEndPoint;
+
+			if (remoteIpEndPoint != null)
+			{
+				ipAddress = remoteIpEndPoint.Address.ToString();
+				port = remoteIpEndPoint.Port;
+				return true;
+			}
+			ipAddress = String.Empty;
+			port = 0;
+			return false;
+		}
 	}
 
 }
