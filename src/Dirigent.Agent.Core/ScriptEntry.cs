@@ -44,7 +44,7 @@ namespace Dirigent
 
 			log.Debug( $"Launching script {Id} with args '{args}' (file: {scriptPath})" );
 
-			_script = ScriptCreator.CreateFromFile( Def.Id, scriptPath, args, _master );
+			_script = ScriptFactory.CreateFromFile( Def.Id, scriptPath, args, _master );
 			_script.OnRemoved += HandleScriptRemoved;
 
 			_master.Tickers.Install( _script );

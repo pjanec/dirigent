@@ -48,10 +48,6 @@
     <ProjectReference Include="..\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
     <ProjectReference Include="..\SyncableDict\SyncableDict.csproj" />
-  </ItemGroup>  
-
-  <ItemGroup>
-    <Folder Include="Scripts\" />
   </ItemGroup>
 
 </Project>

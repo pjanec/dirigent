@@ -34,6 +34,12 @@ namespace Dirigent
 
 		List<FolderWatcher> _folderWatchers = new List<FolderWatcher>();
 
+		private TickableCollection _tickers;
+		public TickableCollection Tickers => _tickers;
+		public TaskRegistryAgent _tasks;
+		public ScriptFactory ScriptFactory;
+		
+
         /// <summary>
 		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
 		/// </summary>
@@ -56,6 +62,8 @@ namespace Dirigent
 				_client
 			);
 
+			_tickers = new TickableCollection();
+
 			_localApps = new LocalAppsRegistry( _sharedContext );
 
 			_localConfig = LoadLocalConfig( localCfgFileName );
@@ -63,12 +71,17 @@ namespace Dirigent
 			{
 				InitFromLocalConfig();
 			}
+			
+			_tasks = new TaskRegistryAgent( this );
+
+			ScriptFactory = new ScriptFactory( null );
 
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+			_tickers.Dispose();
 			_client.Dispose();
 		}
 
@@ -77,6 +90,8 @@ namespace Dirigent
 			_client.Tick( OnMessage );
 
 			_localApps.Tick();
+
+			_tickers.Tick();
 
 			PublishAgentState();
 		}
@@ -181,6 +196,18 @@ namespace Dirigent
 				{
 					var la = _localApps.FindApp( m.AppIdTuple );
 					la.SetWindowStyle( m.WindowStyle );
+					break;
+				}
+
+				case Net.StartTaskWorkerMessage m:
+				{
+					_tasks.StartWorker( m.Sender, m.TaskInstance, m.Id, m.Args, m.ScriptName, m.ScriptCode );
+					break;
+				}
+
+				case Net.KillTaskWorkersMessage m:
+				{
+					_tasks.Kill( m.Sender, m.TaskInstance );
 					break;
 				}
 			}

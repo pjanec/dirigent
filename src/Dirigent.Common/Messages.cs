@@ -1299,9 +1299,15 @@ namespace Dirigent.Net
 		public Guid TaskInstance;
 
 		/// <summary>
-		/// MachineIds to start the worker part of the task on (empty = all agents)
+		/// Name of the task this worker belongs to (for debug display purposes)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
+		public string Id = string.Empty;
+
+		/// <summary>
+		/// MachineIds to start the worker part of the task on (empty = all agents)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 3 )]
 		public List<string> Workers = new List<string>();
 
 		/// <summary>
@@ -1313,33 +1319,33 @@ namespace Dirigent.Net
 		///   FileTools/DownloadFile
 		/// Some names are handled by built-in handlers (not requiring external script file).
 		/// </remarks>
-		[ProtoBuf.ProtoMember( 3 )]
-		public string Name = string.Empty;
+		[ProtoBuf.ProtoMember( 4 )]
+		public string ScriptName = string.Empty;
 
 		/// <summary>
 		/// Script code to instantiate (C#); empty for built-in tasks.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 4 )]
-		public string? Code;
+		[ProtoBuf.ProtoMember( 5 )]
+		public string? ScriptCode;
 
 		/// <summary>
 		/// Arguments to pass to the task worker
 		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
+		[ProtoBuf.ProtoMember( 6 )]
 		public string? Args;
 
 		public StartTaskWorkerMessage() {}
 
-		public StartTaskWorkerMessage( string requestorId, Guid taskInstance, string name, string? args )
+		public StartTaskWorkerMessage( string requestorId, Guid taskInstance, string id )
 		{
 			this.Sender = requestorId;
 			this.TaskInstance = taskInstance;
-			this.Args = args;
+			this.Id = id;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( $"StartTaskWorkerMessage {Name} [{string.Join(", ", from x in Workers select x)}]" );
+			return string.Format( $"StartTaskWorkerMessage {ScriptName} [{string.Join(", ", from x in Workers select x)}]" );
 		}
 
 	}

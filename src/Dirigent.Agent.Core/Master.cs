@@ -71,6 +71,7 @@ namespace Dirigent
 		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
 		CancellationTokenSource _webServerCTS;
 		private Task _webServerTask;
+		public ScriptFactory ScriptFactory;
 		
 		public class SynchronousOp
 		{
@@ -169,7 +170,9 @@ namespace Dirigent
 			_synchronousOps = new ConcurrentQueue<SynchronousOp>();
 
 			_webServerCTS = new CancellationTokenSource();
-			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token ); 
+			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
+
+			ScriptFactory = new ScriptFactory( rootForRelativePaths ); // FIXME: use script subfolder
 
 			//// FIXME: Just for testing the script! To be removed!
 			//var script = new DemoScript1();

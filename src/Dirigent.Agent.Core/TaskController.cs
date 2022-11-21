@@ -16,7 +16,7 @@ namespace Dirigent
 	/// Workers communicate with their controller via Request/Response messages (for example thay provides task state update for its part of the job).
 	/// Controller aggregates worker states, determines whole task status, removes the task instance when done.
 	/// </remarks>
-	public class DTaskMaster : Disposable
+	public class DTaskController : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -26,12 +26,12 @@ namespace Dirigent
 
 		public DTaskState State = new();
 
-		private Script? _controllerScript;
+		private Script? _script; // controller part
 
 
 		private Master _master;
 
-		public DTaskMaster( Master master )
+		public DTaskController( Master master )
 		{
 			Guid = Guid.NewGuid();
 			_master = master;
@@ -43,7 +43,7 @@ namespace Dirigent
 			if (!disposing) return;
 
 			// dispose managed resources
-			_controllerScript?.Dispose();
+			_script?.Dispose();
 		}
 
 		static Script LoadFromDef( DTaskDef def, string? args, Master master )
@@ -60,7 +60,7 @@ namespace Dirigent
 													
 			log.Debug( $"Launching script {def.Id} with args '{args}' (file: {scriptPath})" );
 
-			var script = ScriptCreator.CreateFromFile( def.Id, scriptPath, args, master );
+			var script = master.ScriptFactory.Create( def.Id, scriptPath, null, args, master );
 
 			return script;
 		}
@@ -82,21 +82,21 @@ namespace Dirigent
 		{
 			Id = id;
 
-			_controllerScript = script;
-			_controllerScript.OnRemoved += HandleScriptRemoved;	 // called on removal from from Tickers collection
+			_script = script;
+			_script.OnRemoved += HandleScriptRemoved;	 // called on removal from from Tickers collection
 
-			_master.Tickers.Install( _controllerScript );
+			_master.Tickers.Install( _script );
 
-			_controllerScript.Init();
+			_script.Init();
 		}
 
 		// Kills the controller part as well as anything still running on the clients
 		public void Kill()
 		{
-			if( _controllerScript is null ) // not running anumore?
+			if( _script is null ) // not running anumore?
 				return;
 
-			_master.Tickers.RemoveByInstance( _controllerScript ); // this calls script.OnRemoved => HandleScriptRemoved
+			_master.Tickers.RemoveByInstance( _script ); // this calls script.OnRemoved => HandleScriptRemoved
 
 			// tell clients to clean up after this task instance
 			_master.Send( new Net.KillTaskWorkersMessage( string.Empty, Guid ) );
@@ -105,18 +105,18 @@ namespace Dirigent
 		// called when the controller script is removed from the Tickers collection
 		void HandleScriptRemoved()
 		{
-			if( _controllerScript is null ) return;
+			if( _script is null ) return;
 
-			_controllerScript.OnRemoved -= HandleScriptRemoved;
+			_script.OnRemoved -= HandleScriptRemoved;
 			
-			_controllerScript.Dispose();
+			_script.Dispose();
 			
-			_controllerScript = null;
+			_script = null;
 		}
 
 		public void Tick()
 		{
-			State.StatusText = _controllerScript != null ? _controllerScript.StatusText : "None";
+			State.StatusText = _script != null ? _script.StatusText : "None";
 		}
 	}
 }

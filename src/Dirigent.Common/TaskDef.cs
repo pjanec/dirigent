@@ -22,7 +22,7 @@ namespace Dirigent
 		public string Id = string.Empty;
 
 		/// <summary>
-		/// C# script file to run for this task (must be all-in-one file). Must contain a class derived from UserTask.
+		/// C# script file to run for this task (the controller part). Must contain a class derived from Script.
 		/// </summary>
 		[ProtoBuf.ProtoMember(2)]
 		public string FileName = string.Empty;

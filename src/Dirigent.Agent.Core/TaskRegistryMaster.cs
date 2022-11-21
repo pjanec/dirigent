@@ -21,7 +21,7 @@ namespace Dirigent
 		public Dictionary<string, DTaskDef> TaskDefs { get; private set; } = new Dictionary<string, DTaskDef>();
 
 		// all currently running tasks
-		public Dictionary<Guid, DTaskMaster> Tasks { get; private set; } = new Dictionary<Guid, DTaskMaster>();
+		public Dictionary<Guid, DTaskController> Tasks { get; private set; } = new Dictionary<Guid, DTaskController>();
 																					
 		public Dictionary<string, DTaskState> TaskStates => Tasks.Values.ToDictionary( p => p.Id, p => p.State );
 
@@ -87,7 +87,7 @@ namespace Dirigent
 		public Guid Start( string requestorId, string id, string? args )
 		{
 			var def = FindTaskDef( id );
-			var task = new DTaskMaster( _master );
+			var task = new DTaskController( _master );
 			Tasks[task.Guid] = task;
 			task.Start( def, args );
 			return task.Guid;
