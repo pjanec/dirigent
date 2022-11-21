@@ -47,6 +47,14 @@ namespace Dirigent.Net
 			{ 132, typeof( SetWindowStyleMessage ) },
 			{ 133, typeof( FileDefsMessage ) },
 			{ 134, typeof( MachineDefsMessage ) },
+			{ 135, typeof( StartTaskMessage ) },
+			{ 136, typeof( KillTaskMessage ) },
+			{ 137, typeof( TaskDefsMessage ) },
+			{ 138, typeof( TaskStateMessage ) },
+			{ 139, typeof( TaskRequestMessage ) },
+			{ 140, typeof( TaskResponseMessage ) },
+			{ 141, typeof( StartTaskWorkerMessage ) },
+			{ 142, typeof( KillTaskWorkersMessage ) },
 			// WARNING: add newly added messages also to the list below!!
 		};
 	}
@@ -89,6 +97,14 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 132, typeof( SetWindowStyleMessage ) )]
 	[ProtoBuf.ProtoInclude( 133, typeof( FileDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 135, typeof( StartTaskMessage ) )]
+	[ProtoBuf.ProtoInclude( 136, typeof( KillTaskMessage ) )]
+	[ProtoBuf.ProtoInclude( 137, typeof( TaskDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 138, typeof( TaskStateMessage ) )]
+	[ProtoBuf.ProtoInclude( 139, typeof( TaskRequestMessage ) )]
+	[ProtoBuf.ProtoInclude( 140, typeof( TaskResponseMessage ) )]
+	[ProtoBuf.ProtoInclude( 141, typeof( StartTaskWorkerMessage ) )]
+	[ProtoBuf.ProtoInclude( 142, typeof( KillTaskWorkersMessage ) )]
 
 	public class Message
 	{
@@ -1051,4 +1067,304 @@ namespace Dirigent.Net
 		}
 	}
 
+
+	/// <summary>
+	/// Someone asking the Master to start given task
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class StartTaskMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public string? Id;
+
+		//[ProtoBuf.ProtoMember( 2 )]
+		//public string? FileName;
+
+		[ProtoBuf.ProtoMember( 3 )]
+		public string? Args;
+
+
+		public StartTaskMessage() {}
+
+		//public StartScriptMessage( string requestorId, string id, string? fileName, string?args )
+		//{
+		//	this.Sender = requestorId;
+		//	this.Id = id;
+		//	this.FileName = fileName;
+		//	this.Args = args;
+		//}
+
+		public StartTaskMessage( string requestorId, string id, string? args )
+		{
+			this.Sender = requestorId;
+			this.Id = id;
+			this.Args = args;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( $"StartTaskMessage {Id}" );
+		}
+
+	}
+
+	/// <summary>
+	/// Someone asking the Master to kill a running task.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class KillTaskMessage : Message
+	{
+		// the task instance to kill
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public Guid Guid;
+
+
+		public KillTaskMessage() {}
+		public KillTaskMessage( string requestorId, Guid guid )
+		{
+			this.Sender = requestorId;
+			this.Guid = guid;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( "KillTaskMessage {0}", Guid );
+		}
+
+	}
+
+	/// <summary>
+	/// Master tells new client about existing tasks
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class TaskDefsMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public List<DTaskDef> TaskDefs;
+
+		/// <summary>
+		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public bool Incremental;
+
+		public TaskDefsMessage() {}
+		public TaskDefsMessage( IEnumerable<DTaskDef> taskDefs, bool incremental )
+		{
+			this.TaskDefs = new List<DTaskDef>(taskDefs);
+			this.Incremental = incremental;
+		}
+
+		public override string ToString()
+		{
+			if( TaskDefs is null ) return "TaskDefs = null";
+			return $"TaskDefs [{string.Join(", ", from x in TaskDefs select x.Id)}], increm={Incremental}";
+		}
+	}
+
+	/// <summary>
+	/// Task controller agent tells other aboout the status of the tasks.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class TaskStateMessage : Message
+	{
+		public override bool IsFrequent { get { return true; } }
+
+		[ProtoBuf.ProtoMember( 1 )]
+		[MaybeNull]
+		public Dictionary<string, DTaskState> TasksState;
+
+		public TaskStateMessage() {}
+		public TaskStateMessage( Dictionary<string, DTaskState> tasksState )
+		{
+			this.TasksState = new Dictionary<string, DTaskState>( tasksState );
+		}
+	}
+
+	/// <summary>
+	/// Request sent from a task to the same task instance on controller another agent(s).
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class TaskRequestMessage : Message
+	{
+		//public override bool IsFrequent { get { return true; } }
+
+		/// <summary>
+		/// Task instance to receive this message
+		/// </summary>
+		[ProtoBuf.ProtoMember( 1 )]
+		public Guid TaskInstance;
+
+		/// <summary>
+		/// Who should handle the request.
+		///   Empty = task controller.
+		///   "[ALLWORKERS]" = all agents where the worker for this instance is instantiated.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public List<string> Recipients = new List<string>();
+
+		/// <summary>
+		/// Unique id of the request (might be used by responses to this particular request)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 3 )]
+		public Guid RequestId;
+
+		/// <summary>
+		/// Type id of the request; determines the expected format of the parameters.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 4 )]
+		public string RequestType = string.Empty;
+
+		/// <summary>
+		/// RequestType specific arguments for this request; any string, JSON by convention
+		/// </summary>
+		[ProtoBuf.ProtoMember( 5 )]
+		public string Args = string.Empty;
+
+		public TaskRequestMessage() {}
+		public TaskRequestMessage( Guid taskInstance, string requestType )
+		{
+			TaskInstance = taskInstance;
+			RequestId = Guid.NewGuid();
+			RequestType = requestType;
+		}
+	}
+
+	/// <summary>
+	/// Response from a task to another to the same task instance on another agent.
+	/// Used as worker status report to the controller, or for communicating among workers.
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class TaskResponseMessage : Message
+	{
+		//public override bool IsFrequent { get { return true; } }
+
+		/// <summary>
+		/// Task instance to this response belongs to
+		/// </summary>
+		[ProtoBuf.ProtoMember( 1 )]
+		public Guid TaskInstance;
+
+		/// <summary>
+		/// MachineIds to receive this message.
+		/// Empty = just the controller on the master.
+		/// Use Message.Sender value if you want to reply to the sender only.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public List<string> Recipients = new List<string>();
+
+		/// <summary>
+		/// Unique id of the request (might be used by responses to this particular request)
+		/// Use the value of the TaskInstance is this is the reponse to the task worker instantiation request.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 3 )]
+		public Guid RequestId;
+
+		/// <summary>
+		/// Type id of the request; determines the expected format of the parameters.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 4 )]
+		public string RequestType = string.Empty;
+
+		/// <summary>
+		/// RequestType specific arguments for this response; any string, JSON by convention
+		/// </summary>
+		[ProtoBuf.ProtoMember( 5 )]
+		public string Args = string.Empty;
+
+		public TaskResponseMessage() {}
+		public TaskResponseMessage( Guid taskInstance, Guid requestId )
+		{
+			TaskInstance = taskInstance;
+			RequestId = requestId;
+		}
+	}
+
+
+	/// <summary>
+	/// Master asking the worker clients to instantiate a task
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class StartTaskWorkerMessage : Message
+	{
+		/// <summary>
+		/// What task instance this worker belongs to.
+		/// This can be also used as RequestId in the first response from the worker to its controller
+		/// upon instantiating the worker part on the client. For example when the worker instantiation
+		/// fails, the TaskResponse might be sent to the controller with this Guid.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 1 )]
+		public Guid TaskInstance;
+
+		/// <summary>
+		/// MachineIds to start the worker part of the task on (empty = all agents)
+		/// </summary>
+		[ProtoBuf.ProtoMember( 2 )]
+		public List<string> Workers = new List<string>();
+
+		/// <summary>
+		/// Name of the worker part script or built-in handler.
+		/// </summary>
+		/// <remarks>
+		/// The name can contain a "subfolder part"
+		///   MyScript
+		///   FileTools/DownloadFile
+		/// Some names are handled by built-in handlers (not requiring external script file).
+		/// </remarks>
+		[ProtoBuf.ProtoMember( 3 )]
+		public string Name = string.Empty;
+
+		/// <summary>
+		/// Script code to instantiate (C#); empty for built-in tasks.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 4 )]
+		public string? Code;
+
+		/// <summary>
+		/// Arguments to pass to the task worker
+		/// </summary>
+		[ProtoBuf.ProtoMember( 5 )]
+		public string? Args;
+
+		public StartTaskWorkerMessage() {}
+
+		public StartTaskWorkerMessage( string requestorId, Guid taskInstance, string name, string? args )
+		{
+			this.Sender = requestorId;
+			this.TaskInstance = taskInstance;
+			this.Args = args;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( $"StartTaskWorkerMessage {Name} [{string.Join(", ", from x in Workers select x)}]" );
+		}
+
+	}
+
+	/// <summary>
+	/// Master asking the worker clients to remove everything beloning to given taks instance
+	/// </summary>
+	[ProtoBuf.ProtoContract]
+	public class KillTaskWorkersMessage : Message
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public Guid TaskInstance;
+
+		public KillTaskWorkersMessage() {}
+
+		public KillTaskWorkersMessage( string requestorId, Guid taskInstance )
+		{
+			this.Sender = requestorId;
+			this.TaskInstance = taskInstance;
+		}
+
+		public override string ToString()
+		{
+			return string.Format( $"KillTaskWorkersMessage {TaskInstance}" );
+		}
+
+	}
 }

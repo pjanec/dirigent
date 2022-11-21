@@ -59,6 +59,7 @@ namespace Dirigent
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
 		private ScriptRegistry _scripts;
+		private TaskRegistryMaster _tasks;
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
@@ -139,6 +140,8 @@ namespace Dirigent
 
 			_scripts = new ScriptRegistry( this );
 
+			_tasks = new TaskRegistryMaster( this );
+
 			_files = new FileRegistry( (string machineId) =>
 			{
 				if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
@@ -182,8 +185,9 @@ namespace Dirigent
 			_webServerCTS.Cancel();
 			Task.WaitAll( _webServerTask );
 
-			_tickers.Dispose();
+			_tasks.Dispose();
 			//_scripts.Dispose();
+			_tickers.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
 			_server.Dispose();
@@ -470,6 +474,23 @@ namespace Dirigent
 					_server.SendToAllSubscribed( m, EMsgRecipCateg.Agent );
 					break;
 				}
+
+				case StartTaskMessage m:
+				{
+					if( !string.IsNullOrEmpty(m.Id) )
+					{
+						StartTask( m.Sender, m.Id, m.Args );
+					}
+					break;
+				}
+
+				case KillTaskMessage m:
+				{
+					KillTask( m.Sender, m.Guid );
+					break;
+				}
+
+				
 			}
 
 		}
@@ -940,6 +961,16 @@ namespace Dirigent
 		public ScriptState? GetScriptState( string requestorId, string id )
 		{
 			return _scripts.GetScriptState( id );
+		}
+
+		public void StartTask( string requestorId, string id, string? args )
+		{
+			_tasks.Start( requestorId, id, args );
+		}
+
+		public void KillTask( string requestorId, Guid guid )
+		{
+			_tasks.Kill( requestorId, guid );
 		}
 
 		public void ApplyPlan( string requestorId, string planName, AppIdTuple appIdTuple )

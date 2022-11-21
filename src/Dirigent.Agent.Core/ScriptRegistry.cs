@@ -19,8 +19,8 @@ namespace Dirigent
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		// all currently running scripts
-		private Dictionary<string, Script> _scripts = new Dictionary<string, Script>();
-		public Dictionary<string, Script> Scripts => _scripts;
+		private Dictionary<string, ScriptEntry> _scripts = new Dictionary<string, ScriptEntry>();
+		public Dictionary<string, ScriptEntry> Scripts => _scripts;
 
 		public Dictionary<string, ScriptState> ScriptStates => Scripts.Values.ToDictionary( p => p.Id, p => p.State );
 
@@ -37,7 +37,7 @@ namespace Dirigent
 
 			foreach( var def in allDefs )
 			{
-				var script = new Script( def, _master );
+				var script = new ScriptEntry( def, _master );
 
 				_scripts[script.Id] = script;
 			}
@@ -47,7 +47,7 @@ namespace Dirigent
 		/// <summary>
 		/// Finds plan ba name. Throws if failed.
 		/// </summary>
-		public Script FindScript( string id )
+		public ScriptEntry FindScript( string id )
 		{
 			if( Scripts.TryGetValue( id, out var scr ) )
 			{

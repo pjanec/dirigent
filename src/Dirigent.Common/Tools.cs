@@ -571,6 +571,38 @@ namespace Dirigent
 			port = 0;
 			return false;
 		}
+
+		public static IEnumerable<string> ReadLines( Stream stream, Encoding encoding)
+		{
+			using (var reader = new StreamReader(stream, encoding))
+			{
+				string? line;
+				while ((line = reader.ReadLine()) != null)
+				{
+					yield return line;
+				}
+			}
+		}
+			
+		public static Stream GenerateStreamFromString(string s)
+		{
+			var stream = new MemoryStream();
+			var writer = new StreamWriter(stream);
+			writer.Write(s);
+			writer.Flush();
+			stream.Position = 0;
+			return stream;
+		}
+
+		public static string[] ReadAllLinesFromString( string fileContent )
+		{
+			using( var stream = GenerateStreamFromString( fileContent ) )
+			{
+				return ReadLines( stream, Encoding.UTF8 ).ToArray();
+			}
+		}
+			
+
 	}
 
 }

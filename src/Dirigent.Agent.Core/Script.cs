@@ -1,93 +1,165 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Dirigent
 {
 	/// <summary>
-	/// Script entry based of ScriptDef; loaded from SharedConfig; can be addressed via id.
+	/// Interface used for dynamic instantiation of scripts
 	/// </summary>
-	public class Script
+	public interface IScript : ITickable
 	{
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+		//string StatusText { get; set; }
+		//ScriptCtrl Ctrl { get; set; }
+		//string Args { get; set; }
+		//void Init();
+		//void Done();
+	}
 
-		public ScriptDef Def;
+	/// <summary>
+	/// Script instantiated dynamically from a C# source file
+	/// </summary>
+	public class Script : Disposable, IScript
+	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
+				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+		
+		public string Id { get; set; } = string.Empty;
 
-		public string Id => this.Def.Id;
+		public bool ShallBeRemoved { get; protected set; }
 
-		public ScriptState State = new();
+		public uint Flags => 0;
 
-		// instance of the script
-		private UserScript? _script;
+		public string StatusText { get; set; } = string.Empty;
 
-		Dictionary<string, string> _internalVars;
+		public string FileName { get; set; } = string.Empty;
 
-		private Master _master;
+		public string Args { get; set; } = string.Empty;
 
-		public Script( ScriptDef def, Master master )
+		public Action? OnRemoved { get; set; }
+
+		// initialized during installation
+		#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+		public IDirig Ctrl { get; set; }
+		#pragma warning restore CS8618
+
+
+		protected Coroutine? Coroutine;
+
+		protected override void Dispose( bool disposing )
 		{
-			Def = def;
-			_master = master;
+			base.Dispose( disposing );
+			if( !disposing ) return;
 
-			_internalVars = BuildVars( def, _master.InternalVars );
-		}
-
-		public void Start( string? args )
-		{
-			if( _script is not null ) // already running?
-				return;
-
-
-			if( args is null )
-				args = Def.Args;
-
-			var scriptPath = Tools.ExpandEnvAndInternalVars( Def.FileName, _internalVars );
-			scriptPath = PathUtils.BuildAbsolutePath( Def.FileName, _master.RootForRelativePaths );
-
-			log.Debug( $"Launching script {Id} with args '{args}' (file: {scriptPath})" );
-
-			_script = UserScript.CreateFromFile( Def.Id, scriptPath, args, _master );
-			_script.OnRemoved += HandleScriptRemoved;
-
-			_master.Tickers.Install( _script );
-		}
-
-		public void Kill()
-		{
-			if( _script is null ) // not running?
-				return;
-
-			_master.Tickers.RemoveByInstance( _script );
-
-
-		}
-
-		void HandleScriptRemoved()
-		{
-			if( _script is null ) return;
-
-			_script.OnRemoved -= HandleScriptRemoved;
-			_script = null;
-		}
-
-		public void Tick()
-		{
-			State.StatusText = _script != null ? _script.StatusText : "None";
-		}
-
-
-		Dictionary<string, string> BuildVars( ScriptDef scriptDef, Dictionary<string, string> internalVars )
-		{
-			// start wit externally defined (global) internal vars
-			var res = new Dictionary<string, string>( internalVars );
-
-			// add the local variables from appdef
-			foreach( var kv in scriptDef.LocalVarsToSet )
+			Done();
+			
+			if( Coroutine != null )
 			{
-				res[kv.Key] = kv.Value;
+				Coroutine.Dispose();
+				Coroutine = null;
+			}
+		}
+
+		/// <summary> called once when script gets instantiated </summary>
+		public virtual void Init()
+		{
+		}
+
+		/// <summary> called once when script gets destroyed </summary>
+		public virtual void Done()
+		{
+		}
+
+		/// <summary> called every frame </summary>
+		public virtual void Tick()
+		{
+		}
+
+		void ITickable.Tick()
+		{
+			// tick coroutine if exists; remove script when coroutine finishes
+			if( Coroutine != null )
+			{
+				Coroutine.Tick();
+				if( Coroutine.IsFinished )
+				{
+					Coroutine.Dispose();
+					Coroutine = null;
+					
+					ShallBeRemoved = true;
+				}
 			}
 
-			return res;
+			// call the virtual method
+			Tick();
+		}
+
+		public void StartApp( string id, string? planName, string? vars=null )
+		{
+			Ctrl.Send( new Net.StartAppMessage( string.Empty, new AppIdTuple(id), planName, flags:0, vars:Tools.ParseEnvVarList(vars) ) );
+		}
+
+		public void RestartApp( string id, string? vars=null )
+		{
+			Ctrl.Send( new Net.RestartAppMessage( string.Empty, new AppIdTuple(id), vars:Tools.ParseEnvVarList(vars) ) );
+		}
+
+		public void KillApp( string id )
+		{
+			Ctrl.Send( new Net.KillAppMessage( string.Empty, new AppIdTuple(id) ) );
+		}
+
+		public AppState? GetAppState( string id )
+		{
+			return Ctrl.GetAppState( new AppIdTuple( id ) );
+		}
+
+		// plans
+
+		public void StartPlan( string id, string? vars=null )
+		{
+			Ctrl.Send( new Net.StartPlanMessage( string.Empty, id, vars:Tools.ParseEnvVarList(vars) ) );
+		}
+
+		public void RestartPlan( string id, string? vars=null )
+		{
+			Ctrl.Send( new Net.RestartPlanMessage( string.Empty, id, vars:Tools.ParseEnvVarList(vars) ) );
+		}
+
+		public void KillPlan( string id )
+		{
+			Ctrl.Send( new Net.KillPlanMessage( string.Empty, id ) );
+		}
+
+		public PlanState? GetPlanState( string id )
+		{
+			return Ctrl.GetPlanState( id );
+		}
+
+		// clients
+
+		public ClientState? GetClientState( string id )
+		{
+			return Ctrl.GetClientState( id );
+		}
+
+		// scritps
+
+		public void StartScript( string idWithArgs )
+		{
+			(var id, var args) = Tools.ParseScriptIdArgs( idWithArgs );
+
+			Ctrl.Send( new Net.StartScriptMessage( string.Empty, id, args ) );
+		}
+
+		public void KillScript( string id )
+		{
+			Ctrl.Send( new Net.KillScriptMessage( string.Empty, id ) );
 		}
 
 	}
-}
 
+}

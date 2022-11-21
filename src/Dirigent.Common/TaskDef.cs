@@ -13,21 +13,27 @@ namespace Dirigent
 	/// Definition of a script in shared config
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	public class ScriptDef : IEquatable<ScriptDef>
+	public class DTaskDef : IEquatable<DTaskDef>
 	{
 		/// <summary>
-		/// Unique script name
+		/// Unique task def name
 		/// </summary>
 		[ProtoBuf.ProtoMember( 1 )]
 		public string Id = string.Empty;
 
+		/// <summary>
+		/// C# script file to run for this task (must be all-in-one file). Must contain a class derived from UserTask.
+		/// </summary>
 		[ProtoBuf.ProtoMember(2)]
 		public string FileName = string.Empty;
 
+		/// <summary>
+		/// Args passed to the task class instance
+		/// </summary>
 		[ProtoBuf.ProtoMember( 3 )]
 		public string Args = string.Empty;
 
-		// semicilon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
+		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
 		[ProtoBuf.ProtoMember( 4 )]
 		public string Groups = string.Empty;
 
@@ -38,7 +44,9 @@ namespace Dirigent
 		[DataMember]
 		public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
 
-		public bool Equals( ScriptDef? other )
+
+
+		public bool Equals( DTaskDef? other )
 		{
 			if( other is null )
 				return false;
@@ -48,6 +56,7 @@ namespace Dirigent
 				this.FileName == other.FileName &&
 				this.Args == other.Args &&
 				this.Groups == other.Groups &&
+				this.LocalVarsToSet.DictionaryEqual( other.LocalVarsToSet ) &&
 				true
 			)
 				return true;
@@ -60,7 +69,7 @@ namespace Dirigent
 			if( obj == null )
 				return false;
 
-			var typed = obj as ScriptDef;
+			var typed = obj as DTaskDef;
 			if( typed is null )
 				return false;
 			else
@@ -72,7 +81,7 @@ namespace Dirigent
 			return this.Id.GetHashCode();
 		}
 
-		public static bool operator ==( ScriptDef t1, ScriptDef t2 )
+		public static bool operator ==( DTaskDef t1, DTaskDef t2 )
 		{
 			if( ( object )t1 == null || ( ( object )t2 ) == null )
 				return Object.Equals( t1, t2 );
@@ -80,7 +89,7 @@ namespace Dirigent
 			return t1.Equals( t2 );
 		}
 
-		public static bool operator !=( ScriptDef t1, ScriptDef t2 )
+		public static bool operator !=( DTaskDef t1, DTaskDef t2 )
 		{
 			if( t1 is null || t2 is null )
 				return !Object.Equals( t1, t2 );
