@@ -2,9 +2,16 @@
 
 [IDEA] Allow for remote file access across dirigent-equipped stations. Get the machine IP address from client's connection.  Allow to define file share name per machine (use "C", "D" etc. as defaults). Add "Folders" to context menu in client tab, listing all predefined folders on the machines, the C root always.
 
+* https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
+* 
+
 [IDEA] Enable quick access to app files and folders. In the AppDef define where the app file(s) for each app are located - multiple per app; also app-specific folders. Add "Show files" command to app's context menu, listing the defined files, opening them via a network share using default associated app.
 
-[IDEA] Distributed Tasks.
+# [IDEA] App-bound tasks
+
+For an AppDef there can be some Tasks  defined. The tasks show up in the app context menu. Such an app task is actually a scripts (built-in or user defined) getting the AppIdTuple as a parameter.
+
+# [IDEA] Distributed Tasks.
 
 * A client issues a Task for multiple clients (either all or just listed).
 * Task logic consists of controller part and worker part. Worker part is running on affected clients. Controller part is running on master.
@@ -16,8 +23,6 @@
 * Both Controller and Worker runs asynchronously, syncing with main dirigent thread when calling dirigent framework functions (sending requests, querying information etc.)
 
 Maybe extending the existing Script implementation is the right way to go. Current Script can be implemented as just the Controller part of the task running on the master, no workers.
-
-Controller part and Worker part both reside in one single class?? InitController, InitWorker, TickController, etc?? Better to run both as two independent scripts? That would avoid false assumptions that the Controller and worker can share some member variables (they can't as they run in different instance on different machines). We could also reuse the one single script running infrastructure for both!
 
 Example of file download from one client to another:
 
@@ -44,6 +49,23 @@ Currently just the Script was cloned to DTask and task-management messages were 
 
 TODO:
 
+- Use ScriptDefs for distributed tasks as well.
+- Auto-construct the ScriptDef records by scanning the scripts in several fixed folders (binaryFolder/Scripts, sharedconfigFolder/Scripts).  Remember the full script path as part of ScriptDef. Derive the script name (used to identify the script) from the file name and path (take relative path from script root folder, remove .cs extension, strip the .Controller & .Worker postfixes from the name)
+- Get the script attributes from the script file itself (scan comment lines at the top, look for attributes like
+  - // [HIDDEN]
+  - // [SINGLE_INSTANCE] etc.
+- Initialize Script and Tasks from ScriptDefs.
+- Single-instance script are implemented as tasks having just the Controller part.
+- Script naming
+  - Non-distributed script name does not end with .Controller.cs or .Worker.cs
+    - MyMasterOnlyScript.cs
+  - Distributed task scripts exist as two files, starting with same name, ending with .Controller.cs and .Worker.cs
+    - MyDistribScript1.Controller.cs
+    - MyDistribScript1.Worker.cs
+- Single instance scripts show their running status in the one and only grid line, presenting both PLAY and KILL icons.
+- Multi-instance scripts show just the PLAY icon in their grid line. When started, a new line is added, showing just the KILL icon. The line disappears as soon as the script instance is terminates.
+- Worker parts of tasks are not shown. Only the controller part is presented in the same was as the instance of a multi-instance script.
+- Master to construct Script
 - Define a base task that serves as a base for internal built-in tasks not based on user scripts as well as for the script based.
 - Make sure the TaskRegistry is present on each client, not just on master. in response to InstantiateTaskMessage it starts executing the worker part when the task is instatiated on client (). When 
 - Analyze what would it take to run task scripts asynchronously and isolated from dirigent's tick to avoid affecting the dirigent functions if the script malfunctions.

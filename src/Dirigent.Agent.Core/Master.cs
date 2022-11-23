@@ -172,7 +172,7 @@ namespace Dirigent
 			_webServerCTS = new CancellationTokenSource();
 			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
 
-			ScriptFactory = new ScriptFactory( rootForRelativePaths ); // FIXME: use script subfolder
+			ScriptFactory = new ScriptFactory();
 
 			//// FIXME: Just for testing the script! To be removed!
 			//var script = new DemoScript1();

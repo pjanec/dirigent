@@ -28,6 +28,8 @@ namespace Dirigent
 
 		private Script? _script; // controller part
 
+		Guid TaskInstance = Guid.NewGuid();
+
 
 		private Master _master;
 
@@ -46,7 +48,7 @@ namespace Dirigent
 			_script?.Dispose();
 		}
 
-		static Script LoadFromDef( DTaskDef def, string? args, Master master )
+		static Script LoadFromDef( Guid taskInstance, DTaskDef def, string? args, Master master )
 		{
 			// add the local variables from appdef
 			var internalVars = new Dictionary<string, string>();
@@ -55,12 +57,12 @@ namespace Dirigent
 				internalVars[kv.Key] = kv.Value;
 			}
 
-			var scriptPath = Tools.ExpandEnvAndInternalVars( def.FileName, internalVars );
-			scriptPath = PathUtils.BuildAbsolutePath( def.FileName, master.RootForRelativePaths );
+			//var scriptPath = Tools.ExpandEnvAndInternalVars( def.FileName, internalVars );
+			//scriptPath = PathUtils.BuildAbsolutePath( def.FileName, master.RootForRelativePaths );
 													
-			log.Debug( $"Launching script {def.Id} with args '{args}' (file: {scriptPath})" );
+			//log.Debug( $"Launching script {def.Id} with args '{args}' (file: {scriptPath})" );
 
-			var script = master.ScriptFactory.Create( def.Id, scriptPath, null, args, master );
+			var script = master.ScriptFactory.Create( taskInstance, def.Id, def.ScriptName, def.ScriptFolder, null, args, master );
 
 			return script;
 		}
@@ -69,7 +71,7 @@ namespace Dirigent
 		// from TaskDef
 		public void Start( DTaskDef def, string? args )
 		{
-			var script = LoadFromDef( def, args, _master );
+			var script = LoadFromDef( TaskInstance, def, args, _master );
 			Start( def.Id, script, args );
 		}
 		
@@ -83,9 +85,6 @@ namespace Dirigent
 			Id = id;
 
 			_script = script;
-			_script.OnRemoved += HandleScriptRemoved;	 // called on removal from from Tickers collection
-
-			_master.Tickers.Install( _script );
 
 			_script.Init();
 		}
@@ -96,18 +95,15 @@ namespace Dirigent
 			if( _script is null ) // not running anumore?
 				return;
 
-			_master.Tickers.RemoveByInstance( _script ); // this calls script.OnRemoved => HandleScriptRemoved
+			Remove();			
 
 			// tell clients to clean up after this task instance
 			_master.Send( new Net.KillTaskWorkersMessage( string.Empty, Guid ) );
 		}
 
-		// called when the controller script is removed from the Tickers collection
-		void HandleScriptRemoved()
+		void Remove()
 		{
 			if( _script is null ) return;
-
-			_script.OnRemoved -= HandleScriptRemoved;
 			
 			_script.Dispose();
 			
@@ -116,6 +112,16 @@ namespace Dirigent
 
 		public void Tick()
 		{
+			if( _script != null )
+			{
+				_script.Tick();
+
+				if( _script.ShallBeRemoved )
+				{
+					Remove();
+				}
+			}
+
 			State.StatusText = _script != null ? _script.StatusText : "None";
 		}
 	}

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Dirigent
 {
@@ -22,6 +23,8 @@ namespace Dirigent
 
 		private Master _master;
 
+		Guid TaskInstance = Guid.NewGuid();
+
 		public ScriptEntry( ScriptDef def, Master master )
 		{
 			Def = def;
@@ -44,37 +47,36 @@ namespace Dirigent
 
 			log.Debug( $"Launching script {Id} with args '{args}' (file: {scriptPath})" );
 
-			_script = ScriptFactory.CreateFromFile( Def.Id, scriptPath, args, _master );
-			_script.OnRemoved += HandleScriptRemoved;
-
-			_master.Tickers.Install( _script );
+			_script = ScriptFactory.CreateFromFile( TaskInstance, Def.Id, scriptPath, args, _master );
 
 			_script.Init();
 		}
 
 		public void Kill()
 		{
-			if( _script is null ) // not running?
-				return;
-
-			_master.Tickers.RemoveByInstance( _script );
-
-
+			Remove();
 		}
 
-		void HandleScriptRemoved()
+		void Remove()
 		{
 			if( _script is null ) return;
 
-			_script.OnRemoved -= HandleScriptRemoved;
-
 			_script.Dispose();
-			
 			_script = null;
 		}
 
 		public void Tick()
 		{
+			if( _script != null )
+			{
+				_script.Tick();
+
+				if( _script.ShallBeRemoved )
+				{
+					Remove();
+				}
+			}
+
 			State.StatusText = _script != null ? _script.StatusText : "None";
 		}
 

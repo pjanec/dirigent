@@ -74,7 +74,7 @@ namespace Dirigent
 			
 			_tasks = new TaskRegistryAgent( this );
 
-			ScriptFactory = new ScriptFactory( null );
+			ScriptFactory = new ScriptFactory();
 
 		}
 

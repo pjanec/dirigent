@@ -10,13 +10,15 @@ namespace Dirigent
 	/// <summary>
 	/// Interface used for dynamic instantiation of scripts
 	/// </summary>
-	public interface IScript : ITickable
+	public interface IScript : IDisposable
 	{
 		//string StatusText { get; set; }
 		//ScriptCtrl Ctrl { get; set; }
 		//string Args { get; set; }
 		//void Init();
 		//void Done();
+		void Tick();
+		bool ShallBeRemoved { get; set; }
 	}
 
 	/// <summary>
@@ -29,17 +31,18 @@ namespace Dirigent
 		
 		public string Id { get; set; } = string.Empty;
 
-		public bool ShallBeRemoved { get; protected set; }
+		/// <summary>
+		/// What task this script belongs to
+		/// </summary>
+		public Guid TaskInstance { get; set; }
 
-		public uint Flags => 0;
+		public bool ShallBeRemoved { get; set; }
 
 		public string StatusText { get; set; } = string.Empty;
 
-		public string FileName { get; set; } = string.Empty;
+		public string Name { get; set; } = string.Empty;
 
 		public string Args { get; set; } = string.Empty;
-
-		public Action? OnRemoved { get; set; }
 
 		// initialized during installation
 		#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -47,7 +50,26 @@ namespace Dirigent
 		#pragma warning restore CS8618
 
 
-		protected Coroutine? Coroutine;
+		Coroutine? _run;
+		Coroutine? _onRequest;
+
+		List<Net.TaskRequestMessage> _requests = new List<Net.TaskRequestMessage>();
+
+		bool tickCoroutine( ref Coroutine? coro )
+		{
+			if( coro != null )
+			{
+				coro.Tick();
+				if( !coro.IsFinished )
+				{
+					return true;
+				}
+				coro.Dispose();
+				coro = null;
+			}
+			return false;
+		}
+
 
 		protected override void Dispose( bool disposing )
 		{
@@ -56,14 +78,41 @@ namespace Dirigent
 
 			Done();
 			
-			if( Coroutine != null )
-			{
-				Coroutine.Dispose();
-				Coroutine = null;
-			}
+			_run?.Dispose(); _run = null;
+			_onRequest?.Dispose(); _onRequest = null;
 		}
 
-		/// <summary> called once when script gets instantiated </summary>
+		public void Tick()
+		{
+			if( _run == null )
+			{
+				_run = new Coroutine( Run() );
+			}
+
+			if( !tickCoroutine( ref _run ) )
+				ShallBeRemoved = true;
+
+			// process next waiting request if the previous is finished
+			if( _onRequest == null )
+			{
+				if( _requests.Count > 0 )
+				{
+					var req = _requests.First();
+					_requests.Remove( req );
+
+					_onRequest = new Coroutine( OnRequest( req.RequestId, req.Type, req.Args ) );
+				}
+			}
+
+			tickCoroutine( ref _onRequest );
+		}
+
+		public void AddRequest( Net.TaskRequestMessage req )
+		{
+			_requests.Add( req );
+		}
+
+		/// <summary> called once when script gets instantiated, before first tick </summary>
 		public virtual void Init()
 		{
 		}
@@ -73,28 +122,25 @@ namespace Dirigent
 		{
 		}
 
-		/// <summary> called every frame </summary>
-		public virtual void Tick()
+		public virtual System.Collections.IEnumerable Run()
 		{
+			yield return null;
 		}
 
-		void ITickable.Tick()
-		{
-			// tick coroutine if exists; remove script when coroutine finishes
-			if( Coroutine != null )
-			{
-				Coroutine.Tick();
-				if( Coroutine.IsFinished )
-				{
-					Coroutine.Dispose();
-					Coroutine = null;
-					
-					ShallBeRemoved = true;
-				}
-			}
 
-			// call the virtual method
-			Tick();
+		public virtual System.Collections.IEnumerable OnRequest( Guid id, string type, string? args )
+		{
+			yield return null;
+		}
+
+		public void SendRequest( string type, string? args )
+		{
+			Ctrl.Send( new Net.TaskRequestMessage( TaskInstance, type, args ) );
+		}
+
+		public void SendResponse( Guid requestId, string type, string? args )
+		{
+			Ctrl.Send( new Net.TaskResponseMessage( TaskInstance, requestId, type, args ) );
 		}
 
 		public void StartApp( string id, string? planName, string? vars=null )

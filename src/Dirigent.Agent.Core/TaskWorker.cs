@@ -27,10 +27,10 @@ namespace Dirigent
 
 		private Agent _agent;
 					
-		public DTaskWorker( Agent master, Guid taskInstance, string taskId, string? args )
+		public DTaskWorker( Agent agent, Guid taskInstance, string taskId, string? args )
 		{
 			Guid = Guid.NewGuid();
-			_agent = master;
+			_agent = agent;
 			TaskInstance = taskInstance;
 			Id = taskId;
 		}
@@ -47,7 +47,7 @@ namespace Dirigent
 		
 		public void Start( string scriptCode, string? args, string? scriptOrigin )
 		{
-			var script = ScriptFactory.CreateFromString( Id, scriptCode, args, _agent, scriptOrigin	 );
+			var script = ScriptFactory.CreateFromString( TaskInstance, Id, scriptCode, args, _agent, scriptOrigin	 );
 			Start( script, args );
 		}
 		
@@ -59,9 +59,6 @@ namespace Dirigent
 		public void Start( Script script, string? args )
 		{
 			_script = script;
-			_script.OnRemoved += HandleScriptRemoved;	 // called on removal from from Tickers collection
-
-			_agent.Tickers.Install( _script );
 
 			_script.Init();
 		}
@@ -72,15 +69,12 @@ namespace Dirigent
 			if( _script is null ) // not running anumore?
 				return;
 
-			_agent.Tickers.RemoveByInstance( _script ); // this calls script.OnRemoved => HandleScriptRemoved
+			Remove();			
 		}
 
-		// called when the controller script is removed from the Tickers collection
-		void HandleScriptRemoved()
+		void Remove()
 		{
 			if( _script is null ) return;
-
-			_script.OnRemoved -= HandleScriptRemoved;
 			
 			_script.Dispose();
 			
@@ -89,6 +83,16 @@ namespace Dirigent
 
 		public void Tick()
 		{
+			if( _script != null )
+			{
+				_script.Tick();
+
+				if( _script.ShallBeRemoved )
+				{
+					Remove();
+				}
+			}
+
 			State.StatusText = _script != null ? _script.StatusText : "None";
 		}
 	}

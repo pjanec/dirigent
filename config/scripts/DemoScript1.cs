@@ -11,7 +11,6 @@ public class DemoScript1 : Script
 	public override void Init()
 	{
 		log.Info($"Init with args: '{Args}'");
-		Coroutine = new Coroutine( Run() );
 		StatusText = "Initialized";
 	}
 
@@ -28,7 +27,7 @@ public class DemoScript1 : Script
 		StatusText = "Finished";
 	}
 
-	System.Collections.IEnumerable Run()
+	public override System.Collections.IEnumerable Run()
 	{
 		log.Info("Run!");
 

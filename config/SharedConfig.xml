@@ -162,6 +162,7 @@
         <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt"/>
         <NewestFile Id="Log" Folder="C:\Logs\App1" Mask="*.txt" Recursive="1"/>
         <Folder Id="Docs" Path="%USERPROFILE%\Documents"/>
+        <Task Id="task1" DisplayName="Machine specific task" Script="MachineScripts/Test1" Args=""/>
     </Machine>
 
    	<App
@@ -174,6 +175,8 @@
 
         <File Id="xxx" Path="%USERPROFILE%\Documents\xxx.txt"/>
         <Folder Id="LocalData" Path="%AppData%\Local\AppWithFile"/>
+        <!-- task to be shown in the app's context menu !-->
+        <Task Id="task1" DisplayName="App-specific task nice name" Script="AppScripts/Test1" Args=""/>
 	</App>
 
 	<FilePackage Name="pack1">
@@ -182,8 +185,12 @@
 	    <!-- reference to application-specific file-->
 	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
 	    <!-- direct definition of independent file using UNC path-->
+
+        <Task Id="task1" DisplayName="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
 	</FilePackage>
 
-	<File Id="global4" Path="\\server\share\path\to\file.txt"/>
+	<File Id="global4" Path="\\server\share\path\to\file.txt">
+        <Task Id="task1" DisplayName="File-specific task nice name" Script="FileScripts/Test1" Args=""/>
+	</File>
 
 </Shared>

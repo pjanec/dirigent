@@ -57,7 +57,7 @@ namespace Dirigent
 			var task = new DTaskWorker( _agent, taskInstance, taskId, args );
 			TaskWorkers[task.Guid] = task;
 
-			var script = _agent.ScriptFactory.Create( taskId, scriptName, scriptCode, args, _agent );
+			var script = _agent.ScriptFactory.Create( taskInstance, taskId, scriptName, null, scriptCode, args, _agent );
 
 			task.Start( script, args );
 

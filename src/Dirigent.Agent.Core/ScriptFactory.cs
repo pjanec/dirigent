@@ -16,11 +16,8 @@ namespace Dirigent
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		
 
-		string? _scriptRootFolder;
-				
-		public ScriptFactory( string? scriptRootFolder )
+		public ScriptFactory()
 		{
-			_scriptRootFolder = scriptRootFolder;
 		}
 
 		private static string? GetScriptClassName( string[] scriptLines )
@@ -49,7 +46,7 @@ namespace Dirigent
 
 		}
 		
-		public static Script CreateFromLines( string id, string[] codeLines, string? args, IDirig ctrl, string? scriptOrigin )
+		public static Script CreateFromLines( Guid taskInstance, string id, string[] codeLines, string? args, IDirig ctrl, string? scriptOrigin )
 		{
 			string? scriptClassName = GetScriptClassName( codeLines );
 			if( string.IsNullOrEmpty( scriptClassName ) )
@@ -78,26 +75,27 @@ namespace Dirigent
 
 			script.Id = id;
 			script.Ctrl = ctrl;
-			script.FileName = scriptOrigin ?? string.Empty;
+			script.Name = scriptOrigin ?? string.Empty;
 			script.Args = args ?? string.Empty;
+			script.TaskInstance = taskInstance;
 
 			return script;
 		}
 
-		public static Script CreateFromFile( string id, string fileName, string? args, IDirig ctrl )
+		public static Script CreateFromFile( Guid taskInstance, string id, string fileName, string? args, IDirig ctrl )
 		{
 			var lines = File.ReadAllLines( fileName );
 
-			var script = CreateFromLines( id, lines, args, ctrl, fileName );
+			var script = CreateFromLines( taskInstance, id, lines, args, ctrl, fileName );
 
 			return script;
 		}
 
-		public static Script CreateFromString( string id, string scriptCode, string? args, IDirig ctrl, string? scriptOrigin )
+		public static Script CreateFromString( Guid taskInstance, string id, string scriptCode, string? args, IDirig ctrl, string? scriptOrigin )
 		{
 			var lines = Tools.ReadAllLinesFromString( scriptCode );
 
-			var script = CreateFromLines( id, lines, args, ctrl, scriptOrigin );
+			var script = CreateFromLines( taskInstance, id, lines, args, ctrl, scriptOrigin );
 
 			return script;
 		}
@@ -105,13 +103,13 @@ namespace Dirigent
 		static Script? TryBuiltIns( string scriptName )
 		{
 			if( scriptName == "BuiltIns/DownloadFileZipped/Controller" )
-				return new Scripts.DownloadFileZippedController();
+				return new Scripts.DownloadFileZipped.Controller();
 			if( scriptName == "BuiltIns/DownloadFileZipped/Worker" )
-				return new Scripts.DownloadFileZippedWorker();
+				return new Scripts.DownloadFileZipped.Worker();
 			return null;				
 		}
 		
-		public Script Create( string id, string scriptName, string? scriptCode, string? args, IDirig ctrl )
+		public Script Create( Guid taskInstance, string id, string scriptName, string? scriptRootFolder, string? scriptCode, string? args, IDirig ctrl )
 		{
 			Script? script = TryBuiltIns( scriptName );
 
@@ -119,7 +117,7 @@ namespace Dirigent
 				
 			if (!string.IsNullOrEmpty( scriptCode ))
 			{
-				script = CreateFromString( id, scriptCode, args, ctrl, scriptName );
+				script = CreateFromString( taskInstance, id, scriptCode, args, ctrl, scriptName );
 			}
 			else
 			// code not provided
@@ -133,9 +131,9 @@ namespace Dirigent
 
 				if (!Path.IsPathRooted( fileName ))
 				{
-					if (!string.IsNullOrEmpty( _scriptRootFolder ))
+					if (!string.IsNullOrEmpty( scriptRootFolder ))
 					{
-						fileName = Path.Combine( _scriptRootFolder, fileName );
+						fileName = Path.Combine( scriptRootFolder, fileName );
 					}
 					else
 					{
@@ -148,7 +146,7 @@ namespace Dirigent
 					fileName = fileName + ".cs";
 				}
 
-				script = CreateFromFile( id, fileName, args, ctrl );
+				script = CreateFromFile( taskInstance, id, fileName, args, ctrl );
 			}
 			else
 			{

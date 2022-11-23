@@ -1215,20 +1215,22 @@ namespace Dirigent.Net
 		/// Type id of the request; determines the expected format of the parameters.
 		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
-		public string RequestType = string.Empty;
+		public string Type = string.Empty;
 
 		/// <summary>
 		/// RequestType specific arguments for this request; any string, JSON by convention
 		/// </summary>
 		[ProtoBuf.ProtoMember( 5 )]
-		public string Args = string.Empty;
+		[MaybeNull]
+		public string? Args = string.Empty;
 
 		public TaskRequestMessage() {}
-		public TaskRequestMessage( Guid taskInstance, string requestType )
+		public TaskRequestMessage( Guid taskInstance, string type, string? args )
 		{
 			TaskInstance = taskInstance;
 			RequestId = Guid.NewGuid();
-			RequestType = requestType;
+			Type = type;
+			Args = args;
 		}
 	}
 
@@ -1263,22 +1265,25 @@ namespace Dirigent.Net
 		public Guid RequestId;
 
 		/// <summary>
-		/// Type id of the request; determines the expected format of the parameters.
+		/// Type id of the response; determines the expected format of the parameters.
 		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
-		public string RequestType = string.Empty;
+		public string Type = string.Empty;
 
 		/// <summary>
 		/// RequestType specific arguments for this response; any string, JSON by convention
 		/// </summary>
 		[ProtoBuf.ProtoMember( 5 )]
-		public string Args = string.Empty;
+		[MaybeNull]
+		public string? Args = string.Empty;
 
 		public TaskResponseMessage() {}
-		public TaskResponseMessage( Guid taskInstance, Guid requestId )
+		public TaskResponseMessage( Guid taskInstance, Guid requestId, string type, string? args )
 		{
 			TaskInstance = taskInstance;
 			RequestId = requestId;
+			Type = type;
+			Args = args;
 		}
 	}
 
