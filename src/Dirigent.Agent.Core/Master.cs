@@ -73,48 +73,7 @@ namespace Dirigent
 		private Task _webServerTask;
 		public ScriptFactory ScriptFactory;
 		
-		public class SynchronousOp
-		{
-			private SemaphoreSlim _mutex;
-			private Action _action;
-			private Exception? _except;
-			
-			public Exception? Exception => _except; // exception caught when executing the action
-			
-			public SynchronousOp( Action act )
-			{
-				this._mutex = new SemaphoreSlim(0);
-				this._action = act;
-				this._except = null;
-			}
-
-			public Task WaitAsync()
-			{
-				return _mutex.WaitAsync();
-			}
-			
-			// Gets called from master's tick
-			// Potential exception can't be propagated to the async code waiting for the op to execute as
-			// the action is processed from different context (master's tick) - so we need to save the exception
-			// and the caller needs to check it
-			public void Execute()
-			{
-				try
-				{
-					_action();
-				}
-				catch( Exception ex )
-				{
-					_except = ex;
-				}
-
-				// we expect max one thread to wait for this (one async method)
-				_mutex.Release();
-			}
-		}
-
-		private ConcurrentQueue<SynchronousOp> _synchronousOps; // operations waiting to be processed within master's tick
-
+		SynchronousOpProcessor _syncOpProc;
 		
 		#endregion
 
@@ -167,7 +126,7 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
-			_synchronousOps = new ConcurrentQueue<SynchronousOp>();
+			_syncOpProc = new SynchronousOpProcessor();
 
 			_webServerCTS = new CancellationTokenSource();
 			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
@@ -225,7 +184,7 @@ namespace Dirigent
 				_swClientRefresh.Restart();
 			}
 
-			ProcessSynchronousOps();
+			_syncOpProc.Tick();
 		}
 
 		// Adds CLI request to be processed by the master during its next tick(s).
@@ -234,29 +193,9 @@ namespace Dirigent
 		// Thread safe, can be called from async context.
 		public CLIRequest AddCliRequest( ICLIClient client, string cmdLine ) => _cliProc.AddRequest( client, cmdLine );
 
-		// Adds operation to be processed by the master during its next tick.
-		// Returns the operation object.
-		// The caller can asynchronously await the completion of the operation (using "await operation.WaitAsync();")
-		// Thread safe, can be called from async context.
 		public SynchronousOp AddSynchronousOp( Action act )
 		{
-			var op = new SynchronousOp(act);
-			_synchronousOps.Enqueue( op );	
-			return op;
-		}
-
-		void ProcessSynchronousOps()
-		{
-			var numToTake = _synchronousOps.Count;
-			while( numToTake-- > 0 )
-			{
-				if( _synchronousOps.TryDequeue( out var op ) )
-				{
-					// Execute the operation and release its semaphore
-					// Potential exception is stored to the operation object
-					op.Execute();
-				}
-			}
+			return _syncOpProc.AddSynchronousOp( act );
 		}
 
 		void HandleDisconnectedClients()

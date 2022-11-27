@@ -1,5 +1,9 @@
 [IDEA] Add "Install OpenSSH server" to Tools menu, setting up the SSH server on each computer where Dirigent is running.
 
+[IDEA] Show "service" icons in machines tab - take inspiration from Remoter. Services types configurable, services per machine defined in machineDef section of shared config; show icons for various service types. Available from any agent to any other (assuming the local network, no ssh)
+
+[IDEA] Connecting with dirigent GUI client to a master using SSH port forwarding. Use port forwarding also for direct access to individual machine services. (as Remoter is doing). Check why Dirigent TCP comm fails to go through the SSH gateway.
+
 [IDEA] Allow for remote file access across dirigent-equipped stations. Get the machine IP address from client's connection.  Allow to define file share name per machine (use "C", "D" etc. as defaults). Add "Folders" to context menu in client tab, listing all predefined folders on the machines, the C root always.
 
 * https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
@@ -72,7 +76,24 @@ TODO:
 - Instantiate task on all clients by sending its script file over network and storing it to a temp folder on target machine, in client-specific folder.
 - etc etc.
 
+[IDEA] Powershell scripts in addition to C# script.
 
+* Inherit from Dirigent's Script class in same way as C# script do?
+  * https://stackoverflow.com/questions/64485424/net-types-in-powershell-classes
+  * https://stackoverflow.com/questions/65134626/inheritance-from-net-class-in-powershell
+  * https://stackoverflow.com/questions/51218257/await-async-c-sharp-method-from-powershell
+
+[IDEA] Run scripts asynchronously
+
+* https://stackoverflow.com/questions/51218257/await-async-c-sharp-method-from-powershell
+* What if we want to kill a long running operation?
+  * Firstly we should prevent such operations from blocking out script. We need to be able to respond to a cancellation request. If long operation is needed, we wrap it inside a cancellable task that
+    * starts the long task (in a thread)
+    * periodically checks if the long task has finished
+    * periodically checks  if cancelled; if so, it performs proper cleanup (kills the thread...)
+* 
+
+[IDEA] Async script execution. Synchronize with Dirigent on calling its API
 
 [IDEA] In sharedConfig Define file packages, allow to download them easily. Files get zipped on their local machines to a temp folder, UNC paths to them are offered. Or they are downloaded to the Downloads folder (one per machine), repackaged to one single archive and the folder is opened in file explorer.
 
@@ -80,7 +101,9 @@ TODO:
 
 [IDEA] File Packages tab showing all the file packages defined. Allows downloading the packages. Grid is foldable [+], showing individual files within the package.
 
-[TODO] Monitor CPU GPU memory network stats on each station, show in Client tab.
+[IDEA] Bundle Dirigent with Double Commander. Call Double Commander from task scripts for file operations like viewing, editing, maybe also copying and packing.  Use VirtualFolders plugin for working with files inside Dirigent's file packages.
+
+[TODO] Monitor CPU GPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
 
 [TODO] Monitor memory, cpu, gpu usage per app. Add columns to the app grid.
 
