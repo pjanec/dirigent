@@ -46,13 +46,22 @@ namespace Dirigent
 
 		}
 		
-		public static Script CreateFromLines( Guid taskInstance, string id, string[] codeLines, string? args, IDirig ctrl, string? scriptOrigin )
+		static void SetupScript( Script script, Guid taskInstance, string id, string? args, SynchronousIDirig ctrl, string? scriptOrigin )
 		{
-			string? scriptClassName = GetScriptClassName( codeLines );
-			if( string.IsNullOrEmpty( scriptClassName ) )
-			{
-				throw new Exception($"Script does not contain a class derived from Script (class MyClass : Script). {scriptOrigin}");
-			}
+			script.Id = id;
+			script.Ctrl = ctrl;
+			script.Name = scriptOrigin ?? string.Empty;
+			script.Args = args ?? string.Empty;
+			script.TaskInstance = taskInstance;
+		}
+
+		public static Script CreateFromLines( Guid taskInstance, string id, string[] codeLines, string? args, SynchronousIDirig ctrl, string? scriptOrigin )
+		{
+			//string? scriptClassName = GetScriptClassName( codeLines );
+			//if( string.IsNullOrEmpty( scriptClassName ) )
+			//{
+			//	throw new Exception($"Script does not contain a class derived from Script (class MyClass : Script). {scriptOrigin}");
+			//}
 
 			IScript scriptIntf = CSScriptLib.CSScript.Evaluator
 								.ReferenceAssemblyByName("System")
@@ -70,19 +79,14 @@ namespace Dirigent
 			if( script is null )
 			{
 				scriptIntf.Dispose();
-				throw new Exception($"Script not derived from Script class!");
+				throw new Exception($"Script not derived from AsyncScript class!");
 			}
 
-			script.Id = id;
-			script.Ctrl = ctrl;
-			script.Name = scriptOrigin ?? string.Empty;
-			script.Args = args ?? string.Empty;
-			script.TaskInstance = taskInstance;
-
+			SetupScript( script, taskInstance, id, args, ctrl, scriptOrigin );
 			return script;
 		}
 
-		public static Script CreateFromFile( Guid taskInstance, string id, string fileName, string? args, IDirig ctrl )
+		public static Script CreateFromFile( Guid taskInstance, string id, string fileName, string? args, SynchronousIDirig ctrl )
 		{
 			var lines = File.ReadAllLines( fileName );
 
@@ -91,7 +95,7 @@ namespace Dirigent
 			return script;
 		}
 
-		public static Script CreateFromString( Guid taskInstance, string id, string scriptCode, string? args, IDirig ctrl, string? scriptOrigin )
+		public static Script CreateFromString( Guid taskInstance, string id, string scriptCode, string? args, SynchronousIDirig ctrl, string? scriptOrigin )
 		{
 			var lines = Tools.ReadAllLinesFromString( scriptCode );
 
@@ -106,14 +110,19 @@ namespace Dirigent
 				return new Scripts.DownloadFileZipped.Controller();
 			if( scriptName == "BuiltIns/DownloadFileZipped/Worker" )
 				return new Scripts.DownloadFileZipped.Worker();
+			if( scriptName == "Scripts/DemoScript1.cs" )
+				return new DemoScript1();
 			return null;				
 		}
 		
-		public Script Create( Guid taskInstance, string id, string scriptName, string? scriptRootFolder, string? scriptCode, string? args, IDirig ctrl )
+		public static Script Create( Guid taskInstance, string id, string scriptName, string? scriptRootFolder, string? scriptCode, string? args, SynchronousIDirig ctrl )
 		{
 			Script? script = TryBuiltIns( scriptName );
-
-			if( script != null ) return script;
+			if( script != null )
+			{
+				SetupScript( script, taskInstance, id, args, ctrl, null );
+				return script;
+			}
 				
 			if (!string.IsNullOrEmpty( scriptCode ))
 			{

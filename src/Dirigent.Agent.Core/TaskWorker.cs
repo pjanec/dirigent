@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dirigent
 {
@@ -24,8 +26,10 @@ namespace Dirigent
 
 		private Script? _script; // worker part
 
-
 		private Agent _agent;
+
+		Task? _runTask;
+		CancellationTokenSource? _runCTS;
 					
 		public DTaskWorker( Agent agent, Guid taskInstance, string taskId, string? args )
 		{
@@ -47,7 +51,7 @@ namespace Dirigent
 		
 		public void Start( string scriptCode, string? args, string? scriptOrigin )
 		{
-			var script = ScriptFactory.CreateFromString( TaskInstance, Id, scriptCode, args, _agent, scriptOrigin	 );
+			var script = ScriptFactory.CreateFromString( TaskInstance, Id, scriptCode, args, new SynchronousIDirig( _agent, _agent.SyncOps ), scriptOrigin	 );
 			Start( script, args );
 		}
 		
@@ -60,22 +64,57 @@ namespace Dirigent
 		{
 			_script = script;
 
-			_script.Init();
+			// run the script's Init+Run asynchronously
+			_runCTS = new CancellationTokenSource();
+			_runTask = Task.Run( async () => await ScriptLifeCycle( _runCTS.Token ) );
 		}
 
 		// Kills the worker script
 		public void Kill()
 		{
-			if( _script is null ) // not running anumore?
-				return;
+			if( _script is null ) return;
 
-			Remove();			
+			State.StatusText = "Cancelling";
+
+			// cancel and wait for task to finish
+			_runCTS?.Cancel();
+
+			if( _runTask != null )
+			{
+				_runTask.Wait();
+
+				if( _runTask.IsCanceled )
+				{
+					State.StatusText = "Cancelled";
+				}
+			}
+
+			Remove();
+		}
+
+		async Task ScriptLifeCycle( CancellationToken ct )
+		{
+			// note: we wait for termination of this task in Tick(), then we call Done() from Tick
+
+			if( _script == null ) return;
+			
+			try
+			{
+				await _script.CallInit();
+				await _script.CallRun( ct );
+			}
+			catch( TaskCanceledException )
+			{
+				// ignore...
+			}
+
 		}
 
 		void Remove()
 		{
 			if( _script is null ) return;
-			
+
+			// this calls Done() if not yet called
 			_script.Dispose();
 			
 			_script = null;
@@ -87,9 +126,18 @@ namespace Dirigent
 			{
 				_script.Tick();
 
-				if( _script.ShallBeRemoved )
+				if( _script.HasFinished )
 				{
 					Remove();
+				}
+				else
+				// check for Run finished in order to call Done
+				if( _runTask != null )
+				{
+					if( _runTask.IsCompleted )
+					{
+						Remove();
+					}
 				}
 			}
 

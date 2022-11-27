@@ -14,7 +14,7 @@ namespace Dirigent
 	/// List of currently known scripts including their current status
 	/// SharedConfig-predefined scripts
 	/// </summary>
-	public class ScriptRegistry
+	public class ScriptRegistry : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -30,9 +30,18 @@ namespace Dirigent
 		{
 			_master = master;
 		}
-		
+
+		protected override void Dispose( bool disposing )
+		{
+			base.Dispose( disposing );
+			if( !disposing ) return;
+			foreach (var x in _scripts.Values ) x.Dispose();
+			_scripts.Clear();
+		}
+
 		public void SetAll( IEnumerable<ScriptDef> allDefs )
 		{
+			foreach (var x in _scripts.Values ) x.Dispose();
 			_scripts.Clear();
 
 			foreach( var def in allDefs )

@@ -72,8 +72,7 @@ namespace Dirigent
 		CancellationTokenSource _webServerCTS;
 		private Task _webServerTask;
 		public ScriptFactory ScriptFactory;
-		
-		SynchronousOpProcessor _syncOpProc;
+		public SynchronousOpProcessor SyncOps { get; private set; }
 		
 		#endregion
 
@@ -126,7 +125,7 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
-			_syncOpProc = new SynchronousOpProcessor();
+			SyncOps = new SynchronousOpProcessor();
 
 			_webServerCTS = new CancellationTokenSource();
 			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
@@ -148,7 +147,7 @@ namespace Dirigent
 			Task.WaitAll( _webServerTask );
 
 			_tasks.Dispose();
-			//_scripts.Dispose();
+			_scripts.Dispose();
 			_tickers.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
@@ -184,7 +183,7 @@ namespace Dirigent
 				_swClientRefresh.Restart();
 			}
 
-			_syncOpProc.Tick();
+			SyncOps.Tick();
 		}
 
 		// Adds CLI request to be processed by the master during its next tick(s).
@@ -195,7 +194,7 @@ namespace Dirigent
 
 		public SynchronousOp AddSynchronousOp( Action act )
 		{
-			return _syncOpProc.AddSynchronousOp( act );
+			return SyncOps.AddSynchronousOp( act );
 		}
 
 		void HandleDisconnectedClients()

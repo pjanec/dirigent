@@ -23,7 +23,7 @@ namespace Dirigent
 			private Func<object?> _function;
 			private Exception? _except;
 			
-			public Exception Exception => _except; // exception caught when executing the action
+			public Exception? Exception => _except; // exception caught when executing the action
 
 			public object? Result;
 			
@@ -36,7 +36,7 @@ namespace Dirigent
 			}
 
 			// operation returning something (the result is saved to Result member)
-			public SynchronousOp( Func<object> func )
+			public SynchronousOp( Func<object?> func )
 			{
 				this._mutex = new SemaphoreSlim(0);
 				this._function = func;

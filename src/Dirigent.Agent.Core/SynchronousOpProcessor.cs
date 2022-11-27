@@ -29,7 +29,7 @@ namespace Dirigent
 			return op;
 		}
 
-		public SynchronousOp AddSynchronousOp( Func<object> func )
+		public SynchronousOp AddSynchronousOp( Func<object?> func )
 		{
 			var op = new SynchronousOp( func );
 			_synchronousOps.Enqueue( op );	

@@ -38,6 +38,7 @@ namespace Dirigent
 		public TickableCollection Tickers => _tickers;
 		public TaskRegistryAgent _tasks;
 		public ScriptFactory ScriptFactory;
+		public SynchronousOpProcessor SyncOps { get; private set; }
 		
 
         /// <summary>
@@ -76,6 +77,8 @@ namespace Dirigent
 
 			ScriptFactory = new ScriptFactory();
 
+			SyncOps = new SynchronousOpProcessor();
+
 		}
 
 		protected override void Dispose(bool disposing)
@@ -92,6 +95,8 @@ namespace Dirigent
 			_localApps.Tick();
 
 			_tickers.Tick();
+
+			SyncOps.Tick();
 
 			PublishAgentState();
 		}

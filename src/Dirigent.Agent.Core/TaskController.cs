@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Dirigent
 {
@@ -30,9 +32,11 @@ namespace Dirigent
 
 		Guid TaskInstance = Guid.NewGuid();
 
-
 		private Master _master;
 
+		Task? _runTask;
+		CancellationTokenSource? _runCTS;
+					
 		public DTaskController( Master master )
 		{
 			Guid = Guid.NewGuid();
@@ -62,8 +66,8 @@ namespace Dirigent
 													
 			//log.Debug( $"Launching script {def.Id} with args '{args}' (file: {scriptPath})" );
 
-			var script = master.ScriptFactory.Create( taskInstance, def.Id, def.ScriptName, def.ScriptFolder, null, args, master );
-
+			var script = ScriptFactory.Create( taskInstance, def.Id, def.ScriptName, def.ScriptFolder, null, args, new SynchronousIDirig( master, master.SyncOps ) );
+						
 			return script;
 		}
 		
@@ -86,16 +90,32 @@ namespace Dirigent
 
 			_script = script;
 
-			_script.Init();
+			// run the script's Init+Run asynchronously
+			_runCTS = new CancellationTokenSource();
+			_runTask = Task.Run( async () => await ScriptLifeCycle( _runCTS.Token ) );
 		}
 
 		// Kills the controller part as well as anything still running on the clients
 		public void Kill()
 		{
-			if( _script is null ) // not running anumore?
-				return;
+			if( _script is null ) return;
 
-			Remove();			
+			State.StatusText = "Cancelling";
+
+			// cancel and wait for task to finish
+			_runCTS?.Cancel();
+
+			if( _runTask != null )
+			{
+				_runTask.Wait();
+
+				if( _runTask.IsCanceled )
+				{
+					State.StatusText = "Cancelled";
+				}
+			}
+
+			Remove();
 
 			// tell clients to clean up after this task instance
 			_master.Send( new Net.KillTaskWorkersMessage( string.Empty, Guid ) );
@@ -110,15 +130,42 @@ namespace Dirigent
 			_script = null;
 		}
 
+		async Task ScriptLifeCycle( CancellationToken ct )
+		{
+			// note: we wait for termination of this task in Tick(), then we call Done() from Tick
+
+			if( _script == null ) return;
+			
+			try
+			{
+				await _script.CallInit();
+				await _script.CallRun( ct );
+			}
+			catch( TaskCanceledException )
+			{
+				// ignore...
+			}
+
+		}
+
 		public void Tick()
 		{
 			if( _script != null )
 			{
 				_script.Tick();
 
-				if( _script.ShallBeRemoved )
+				if( _script.HasFinished )
 				{
 					Remove();
+				}
+				else
+				// check for Run finished in order to call Done
+				if( _runTask != null )
+				{
+					if( _runTask.IsCompleted )
+					{
+						Remove();
+					}
 				}
 			}
 

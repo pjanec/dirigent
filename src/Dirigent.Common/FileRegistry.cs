@@ -38,7 +38,7 @@ namespace Dirigent
 		public class TMachine
 		{
 			public string Id = string.Empty;
-			public string IP = string.Empty;  // will be replaced with real IP once found
+			public string? IP = string.Empty;  // will be replaced with real IP once found
 			public Dictionary<string, string> Shares = new Dictionary<string, string>();
 		}
 
@@ -146,7 +146,10 @@ namespace Dirigent
 			// find machine IP
 			if( string.IsNullOrEmpty( m.IP ) )
 			{
-				m.IP = _machineIPDelegate( fdef.MachineId );
+				if( _machineIPDelegate != null && !string.IsNullOrEmpty( fdef.MachineId ) )
+				{
+					m.IP = _machineIPDelegate( fdef.MachineId );
+				}
 
 				if( string.IsNullOrEmpty( m.IP ) )
 					throw new Exception($"Could not find IP of machine {fdef.MachineId}");

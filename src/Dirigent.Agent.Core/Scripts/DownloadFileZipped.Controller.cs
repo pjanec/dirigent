@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dirigent.Scripts.DownloadFileZipped
@@ -10,23 +11,24 @@ namespace Dirigent.Scripts.DownloadFileZipped
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-		public override void Init()
+		protected override Task Init()
 		{
 			log.Info($"Init with args: '{Args}'");
 			StatusText = "Initialized";
+			return Task.CompletedTask;
 		}
 
-		public override void Done()
+		protected override void Done()
 		{
 			log.Info("Done!");
 
 			StatusText = "Finished";
 		}
 
-		public override System.Collections.IEnumerable Run()
+		protected async override Task Run( CancellationToken ct )
 		{
 			log.Info("Run!");
-			yield return null;
+			await WaitUntilCancelled(ct);
 		}
 	}
 

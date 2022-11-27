@@ -4,16 +4,28 @@
 
 [IDEA] Connecting with dirigent GUI client to a master using SSH port forwarding. Use port forwarding also for direct access to individual machine services. (as Remoter is doing). Check why Dirigent TCP comm fails to go through the SSH gateway.
 
-[IDEA] Allow for remote file access across dirigent-equipped stations. Get the machine IP address from client's connection.  Allow to define file share name per machine (use "C", "D" etc. as defaults). Add "Folders" to context menu in client tab, listing all predefined folders on the machines, the C root always.
-
 * https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
 * 
 
-[IDEA] Enable quick access to app files and folders. In the AppDef define where the app file(s) for each app are located - multiple per app; also app-specific folders. Add "Show files" command to app's context menu, listing the defined files, opening them via a network share using default associated app.
+# [IDEA] Enable quick access to app files and folders.
 
-# [IDEA] App-bound tasks
+* In the AppDef define where the app file(s) for each app are located - multiple per app; also app-specific folders. Add "Show files" command to app's context menu, listing the defined files, opening them via a network share using default associated app.
+* [IDEA] Allow for remote file access across dirigent-equipped stations. Get the machine IP address from client's connection.  Allow to define file share name per machine (use "C", "D" etc. as defaults). Add "Folders" to context menu in client tab, listing all predefined folders on the machines, the C root always.
+* [IDEA] In sharedConfig Define file packages, allow to download them easily. Files get zipped on their local machines to a temp folder, UNC paths to them are offered. Or they are downloaded to the Downloads folder (one per machine), repackaged to one single archive and the folder is opened in file explorer.
+  * Package can contains individual files, folders with file mask (and recursive flag)
 
-For an AppDef there can be some Tasks  defined. The tasks show up in the app context menu. Such an app task is actually a scripts (built-in or user defined) getting the AppIdTuple as a parameter.
+  * Package content can be defined by a script? Same for individual files, folders...
+
+
+* [IDEA] Files tab showing all the files defined. Allows viewing given file by opening the viewer - independent app accessing the file via its UNC path. Allows downloading the file (zipped).
+
+* [IDEA] File Packages tab showing all the file packages defined. Allows downloading the packages. Grid is foldable [+], showing individual files within the package.
+
+* From the package a tree of concrete local/UNC paths and virtual folders is created. From this tree a context menu can be generated, or it cane be used to generate def file for VirtualFolders in a file manager.
+
+* [IDEA] Bundle Dirigent with Double Commander. Call Double Commander from task scripts for file operations like viewing, editing, maybe also copying and packing.  Use VirtualFolders plugin for working with files inside Dirigent's file packages.
+
+  
 
 # [IDEA] Distributed Tasks.
 
@@ -91,17 +103,14 @@ TODO:
     * starts the long task (in a thread)
     * periodically checks if the long task has finished
     * periodically checks  if cancelled; if so, it performs proper cleanup (kills the thread...)
-* 
+
+[IDEA] App-bound tasks
+
+For an AppDef there can be some Tasks  defined. The tasks show up in the app context menu. Such an app task is actually a scripts (built-in or user defined) getting the AppIdTuple as a parameter.
+
+# 
 
 [IDEA] Async script execution. Synchronize with Dirigent on calling its API
-
-[IDEA] In sharedConfig Define file packages, allow to download them easily. Files get zipped on their local machines to a temp folder, UNC paths to them are offered. Or they are downloaded to the Downloads folder (one per machine), repackaged to one single archive and the folder is opened in file explorer.
-
-[IDEA] Files tab showing all the files defined. Allows viewing given file by opening the viewer - independent app accessing the file via its UNC path. Allows downloading the file (zipped).
-
-[IDEA] File Packages tab showing all the file packages defined. Allows downloading the packages. Grid is foldable [+], showing individual files within the package.
-
-[IDEA] Bundle Dirigent with Double Commander. Call Double Commander from task scripts for file operations like viewing, editing, maybe also copying and packing.  Use VirtualFolders plugin for working with files inside Dirigent's file packages.
 
 [TODO] Monitor CPU GPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
 
