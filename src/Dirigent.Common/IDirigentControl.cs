@@ -72,6 +72,11 @@ namespace Dirigent
 	/// </summary>
 	public interface IDirig
 	{
+		/// <summary> ident of the network client used as RequestorId </summary>
+		string Name { get; } 
+
+		void Send( Net.Message msg ) {}
+
 		/// <summary>
 		/// Returns the current state of an client as reported by the client at regular intervals
 		/// </summary>
@@ -138,10 +143,7 @@ namespace Dirigent
 		FilePackage? GetFilePackage( Guid guid ) { return null; }
 		IEnumerable<FilePackage> GetAllFilePackages() { return new List<FilePackage>(); }
 
-		/// <summary> ident of the network client used as RequestorId </summary>
-		string Name { get; } 
-
-		void Send( Net.Message msg ) {}
+		//public MachineDef? GetMachineDef( string Id ) { return null; }
 	}
 
 }

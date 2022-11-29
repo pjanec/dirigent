@@ -31,6 +31,8 @@ namespace Dirigent
 		public IEnumerable<FileDef> GetAllFileDefs() { return _files.GetAllFileDefs(); }
 		public FilePackage? GetFilePackage( Guid guid ) { return _files.GetFilePackage(guid); }
 		public IEnumerable<FilePackage> GetAllFilePackage() { return _files.GetAllFilePackages(); }
+		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
+
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public string Name => _client.Ident.Name;
@@ -48,6 +50,7 @@ namespace Dirigent
 		private Net.Client _client;
 		private Dictionary<AppIdTuple, AppState> _appStates = new Dictionary<AppIdTuple, AppState>();
 		private Dictionary<string, ClientState> _clientStates = new Dictionary<string, ClientState>();
+		public Dictionary<string, ClientState> ClientStates => _clientStates;
 		
 		/// <summary>
 		/// The most recent app defs
@@ -61,13 +64,16 @@ namespace Dirigent
 		private List<ScriptDef> _scriptDefs = new List<ScriptDef>();
 
 		private FileRegistry _files;
+		public FileRegistry FileRegistry => _files;
 
-		public ReflectedStateRepo( Net.Client client )
+		private List<MachineDef> _machineDefs = new List<MachineDef>();
+
+		public ReflectedStateRepo( Net.Client client, string localMachineId )
 		{
 			_client = client;
 			_client.MessageReceived += OnMessage;
 
-			_files = new FileRegistry( (string machineId) =>
+			_files = new FileRegistry( localMachineId, (string machineId) =>
 			{
 				if( _clientStates.TryGetValue( machineId, out var state ) )
 				{
@@ -198,7 +204,8 @@ namespace Dirigent
 
 				case Net.MachineDefsMessage m:
 				{
-					_files.SetMachines( m.Machines );
+					_machineDefs = m.Machines.ToList();
+					_files.SetMachines( _machineDefs );
 					OnMachinesReceived?.Invoke();
 					break;
 				}
@@ -226,6 +233,8 @@ namespace Dirigent
 					_appStates.Clear();
 					_planStates.Clear();
 					_scriptStates.Clear();
+					_machineDefs.Clear();
+					_files.Clear();
 					OnReset?.Invoke();
 					break;
 				}

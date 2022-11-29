@@ -28,7 +28,7 @@ namespace Dirigent
 		/// </summary>
 		[ProtoBuf.ProtoMember( 2 )]
 		[DataMember]
-		public string? Id;
+		public string Id = string.Empty;
 
 		/// <summary>
 		/// Machine the package belongs to. Null if global file.

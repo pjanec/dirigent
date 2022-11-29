@@ -38,6 +38,7 @@ namespace Dirigent.Gui.WinForms
 
 		public Net.Client Client { get; private set; }
 
+
 		public ReflectedStateRepo ReflStates { get; private set; }
 
 		public PlanDef CurrentPlan { get; set; }
@@ -48,7 +49,15 @@ namespace Dirigent.Gui.WinForms
 		private MainMachsTab _tabMachs;
 		private MainFilesTab _tabFiles;
 
-		ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
+		private ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
+
+        /// <summary>
+		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
+		/// </summary>
+		private Dictionary<string, string> _internalVars = new ();
+		private SharedContext _sharedContext; // necessary for launching tools
+		private ToolsRegistry _toolsReg;
+		public ToolsRegistry ToolsRegistry => _toolsReg;
 
 		public bool ShowJustAppFromCurrentPlan
 		{
@@ -88,7 +97,7 @@ namespace Dirigent.Gui.WinForms
 
 			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
 			Client.MessageReceived += OnMessage;
-			ReflStates = new ReflectedStateRepo( Client );
+			ReflStates = new ReflectedStateRepo( Client, machineId );
 			
 			bool firstGotPlans = true;
 			ReflStates.OnPlansReceived += () =>
@@ -113,6 +122,10 @@ namespace Dirigent.Gui.WinForms
 
 			Ctrl = ReflStates;
 
+			// load tools from local config
+			InitFromLocalConfig( machineId );			
+
+
 			_tabApps = new MainAppsTab( this, gridApps );
 			_tabPlans = new MainPlansTab( this, gridPlans );
 			_tabScripts = new MainScriptsTab( this, gridScripts );
@@ -135,6 +148,27 @@ namespace Dirigent.Gui.WinForms
 				Client.Dispose();
 				Client = null;
 			}
+		}
+
+		void InitFromLocalConfig( string machineId )
+		{
+			// load the local config file
+			if( string.IsNullOrEmpty( _ac.LocalCfgFileName ) )
+				return;
+
+			var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
+			log.DebugFormat( "Loading local config file '{0}'", fullPath );
+			var localConfig = new LocalXmlConfigReader( File.OpenText( fullPath ), machineId ).Config;
+
+			
+			_sharedContext = new SharedContext(
+				PathUtils.GetRootForRelativePaths( _ac.LocalCfgFileName, _ac.RootForRelativePaths ),
+				_internalVars,
+				new AppInitializedDetectorFactory(),
+				Client
+			);
+
+			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates.FileRegistry );
 		}
 
 		void OnMessage( Net.Message msg )
@@ -266,6 +300,7 @@ namespace Dirigent.Gui.WinForms
 			try
 			{
 				Client.Tick();
+				_toolsReg?.Tick();
 			}
 			catch( RemoteOperationErrorException ex ) // operation exception (not necesarily remote, could be also local
 				// as all operational requests always go through the network if

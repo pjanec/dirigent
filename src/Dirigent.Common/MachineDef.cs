@@ -55,6 +55,10 @@ namespace Dirigent
 		[DataMember]
 		public List<Guid> FilePackages = new List<Guid>();
 
+		[ProtoBuf.ProtoMember( 6 )]
+		[DataMember]
+		public List<ToolRef> Tools = new List<ToolRef>();
+
 
 		public bool Equals( MachineDef? other )
 		{
@@ -66,6 +70,7 @@ namespace Dirigent
 				this.FileShares.SequenceEqual( other.FileShares ) &&
 				this.Files.SequenceEqual( other.Files ) &&
 				this.FilePackages.SequenceEqual( other.FilePackages ) &&
+				this.Tools.SequenceEqual( other.Tools ) &&
 				true
 			)
 				return true;

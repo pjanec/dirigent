@@ -20,7 +20,8 @@ namespace Dirigent.Gui.WinForms
 		const int colId = 2;
 		const int colPath = 3;
 		const int colStatus = 4;
-		const int colMAX = 5;
+		const int colGuid = 5;
+		const int colMAX = 6;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -51,6 +52,7 @@ namespace Dirigent.Gui.WinForms
 			_dataTable.Columns.Add("Id", typeof(string));
 			_dataTable.Columns.Add("Path", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
+			_dataTable.Columns.Add("Guid", typeof(string));
 
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
@@ -86,6 +88,12 @@ namespace Dirigent.Gui.WinForms
 			_Status.ReadOnly = true;
 			_Status.Width = 175;
 
+			var _Guid = _grid.Columns[colGuid];
+			_Guid.HeaderText = "Guid";
+			_Guid.MinimumWidth = 9;
+			_Guid.ReadOnly = true;
+			_Guid.Width = 175;
+			_Guid.Visible = false;
 		}
 
 
@@ -113,6 +121,7 @@ namespace Dirigent.Gui.WinForms
 						fd.Id,
 						fd.Path,
 						"",
+						fd.Guid,
 					};
 					_dataTable.Rows.Add(newrow);
 				};
@@ -121,6 +130,13 @@ namespace Dirigent.Gui.WinForms
 
 		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
+		}
+
+		private Guid getGuidFromMachsDataRow( DataRow dataRow )
+		{
+			var dataItems = dataRow.ItemArray;
+			var guidStr = (string)dataItems[colGuid];
+			return Guid.Parse(guidStr);
 		}
 
 		public void MouseClick( object sender, MouseEventArgs e )
@@ -132,6 +148,40 @@ namespace Dirigent.Gui.WinForms
 			if( currentRow >= 0 ) // ignore header clicks
 			{
 				DataGridViewRow focusedGridRow = _grid.Rows[currentRow];
+				Guid guid = getGuidFromMachsDataRow( WFT.GetDataRowFromGridRow( focusedGridRow ) );
+
+				if( e.Button == MouseButtons.Right )
+				{
+					// build popup menu
+					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
+
+					{
+						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
+
+						var fileDef = ReflStates.GetFileDef( guid );
+						if( fileDef != null )
+						{
+							foreach( var tool in fileDef.Tools )
+							{
+								var title = tool.Title;
+								if (string.IsNullOrEmpty( title )) title = tool.Id;
+								var item = new System.Windows.Forms.ToolStripMenuItem( title );
+								item.Click += ( s, a ) => WFT.GuardedOp( () => {
+										_form.ToolsRegistry.StartFileBoundTool( tool, fileDef ) ;
+									}
+								);
+								toolsMenu.DropDownItems.Add( item );
+							}
+						}
+
+						if( toolsMenu.DropDownItems.Count > 0 )
+						{
+							popup.Items.Add( toolsMenu );
+						}
+					}
+
+					popup.Show( Cursor.Position );
+				}
 			}
 		}
 

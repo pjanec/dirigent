@@ -67,7 +67,7 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext );
 
-			_localConfig = LoadLocalConfig( localCfgFileName );
+			_localConfig = LoadLocalConfig( localCfgFileName, machineId );
 			if( _localConfig is not null )
 			{
 				InitFromLocalConfig();
@@ -336,14 +336,14 @@ namespace Dirigent
 			}
 		}
 
-		LocalConfig? LoadLocalConfig( string fileName )
+		LocalConfig? LoadLocalConfig( string fileName, string machineId )
 		{
 			if( string.IsNullOrEmpty( fileName ) )
 				return null;
 
 			var fullPath = Path.GetFullPath( fileName );
 			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			return new LocalXmlConfigReader( File.OpenText( fullPath ) ).cfg;
+			return new LocalXmlConfigReader( File.OpenText( fullPath ), machineId ).Config;
 		}
 
 		void InitFromLocalConfig()

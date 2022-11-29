@@ -12,46 +12,40 @@ using System.Diagnostics;
 namespace Dirigent
 {
 
+
 	public class SharedXmlConfigReader
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-		public SharedConfig cfg;
-		XDocument doc;
-		XElement root; // the top level XML element
+		public SharedConfig Config => _cfg;
 
-		/// <summary>
-		/// All FileDefs found across the SharedConfig file
-		/// </summary>
-		List<FileDef> _files = new List<FileDef>();
-		
-		/// <summary>
-		/// All FilePackageDefs found across the SharedConfig file
-		/// </summary>
-		List<FilePackageDef> _packages = new List<FilePackageDef>();
+		SharedConfig _cfg;
+		XDocument _doc;
+		XElement _root; // the top level XML element
+		FileDefReg _fdReg = new FileDefReg();
 
 
 		public SharedXmlConfigReader( System.IO.TextReader textReader )
 		{
-			cfg = new SharedConfig();
-			doc = XDocument.Load( textReader ); // null should never be returned, exception would be thrown insterad
+			_cfg = new SharedConfig();
+			_doc = XDocument.Load( textReader ); // null should never be returned, exception would be thrown insterad
 #pragma warning disable CS8601 // Possible null reference assignment.
-			root = doc.Element( "Shared" );
+			_root = _doc.Element( "Shared" );
 #pragma warning restore CS8601 // Possible null reference assignment.
-			if ( root is null ) throw new Exception("SharedConfig missing the root element");
+			if ( _root is null ) throw new Exception("SharedConfig missing the root element");
 
-			loadAppDefaults();
-			loadPlans();
+			LoadAppDefaults();
+			LoadPlans();
 			CheckDependencies();
-			loadScripts();
-			loadMachines();
-			loadUnboundFiles();
+			LoadScripts();
+			LoadMachines( _fdReg );
+			LoadUnboundFiles( _fdReg );
 
-			cfg.Files = _files;
+			_cfg.Files = _fdReg.Files.ToList();
 		}
 
-		AppDef readAppElement( XElement e )
+		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
 		{
 			AppDef a;
 
@@ -73,7 +67,7 @@ namespace Dirigent
 				}
 				else
 				{
-					a = readAppElement( te );
+					a = ReadAppElement( te, root, fdReg );
 				}
 			}
 			else
@@ -109,6 +103,7 @@ namespace Dirigent
 				Env = e.Element( "Env" ),
 				InitDetectors = e.Element( "InitDetectors" )?.Elements(),
 				Groups = e.Attribute( "Groups" )?.Value,
+				Tools = LoadTools( e ),
 			};
 
 			// then overwrite templated values with current content
@@ -243,16 +238,30 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
-			foreach( var fileDef in loadFiles( e, a.Id.MachineId, a.Id.AppId ) )
+			foreach( var fileDef in LoadFiles( e, a.Id.MachineId, a.Id.AppId ) )
 			{
-				var nonDuplFD = AddToAllFiles( fileDef ); // might return an already defined (if duplicate)
+				var nonDuplFD = fdReg.Add( fileDef ); // might return an already defined (if duplicate)
 				a.Files.Add( nonDuplFD.Guid );
+			}
+
+			// add/replace tools
+			foreach( var elem in x.Tools )
+			{
+				int found = a.Tools.FindIndex( i => i.Id == elem.Id );
+				if( found < 0 )
+				{
+					a.Tools.Add( elem );
+				}
+				else // replace
+				{
+					a.Tools[found] = elem;
+				}
 			}
 
 			return a;
 		}
 
-		FileDef readFileElement( XElement e, string? machineId=null, string? appId=null, EFLookupType lookupType=EFLookupType.Path )
+		static FileDef ReadFileElement( XElement e, string? machineId=null, string? appId=null, EFLookupType lookupType=EFLookupType.Path )
 		{
 			FileDef a = new FileDef();
 			a.Guid = Guid.NewGuid();
@@ -268,6 +277,7 @@ namespace Dirigent
 				Path = e.Attribute( "Path" )?.Value,
 				Folder = e.Attribute( "Folder" )?.Value,
 				Mask = e.Attribute( "Mask" )?.Value,
+				Tools = LoadTools( e ),
 			};
 
 			if( x.Id == null )
@@ -279,27 +289,71 @@ namespace Dirigent
 			a.Path = x.Path;
 			a.Folder = x.Folder;
 			a.Mask = x.Mask;
+			a.Tools = x.Tools;
 
 			return a;
 		}
 
-		void loadAppDefaults()
+		static ToolRef ReadToolRefElement( XElement e )
 		{
-			cfg.AppDefaults.Clear();
+			ToolRef a = new ToolRef();
 
-			var apps = from e in root.Elements( "App" )
+			var x = new 
+			{
+				Id = e.Attribute( "Id" )?.Value,
+				Title = e.Attribute( "Title" )?.Value,
+				CmdLineArgs = e.Attribute( "CmdLineArgs" )?.Value,
+			};
+
+			if( x.Id == null )
+				throw new Exception( $"Tool definition missing the Id attribute: {e}" );
+
+			a.Id = x.Id;
+			if( x.Title != null ) a.Title = x.Title;
+			if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
+
+			return a;
+		}
+
+		static FileShareDef ReadFileShareElement( XElement e )
+		{
+			FileShareDef a = new FileShareDef();
+
+			var x = new 
+			{
+				Name = e.Attribute( "Name" )?.Value,
+				Path = e.Attribute( "Path" )?.Value,
+			};
+
+			if( x.Name == null )
+				throw new Exception( $"File share definition missing the Name attribute: {e}" );
+
+			if( x.Path == null )
+				throw new Exception( $"File share definition missing the Path attribute: {e}" );
+
+			a.Name = x.Name;
+			a.Path = x.Path;
+
+			return a;
+		}
+
+		void LoadAppDefaults()
+		{
+			_cfg.AppDefaults.Clear();
+
+			var apps = from e in _root.Elements( "App" )
 						select e;
 
 			foreach( var p in apps )
 			{
-				var app = readAppElement( p );
-				cfg.AppDefaults.Add( app );
+				var app = ReadAppElement( p, _root, _fdReg );
+				_cfg.AppDefaults.Add( app );
 			}
 		}
 
-		void loadPlans()
+		void LoadPlans()
 		{
-			var plans = from e in root.Elements( "Plan" )
+			var plans = from e in _root.Elements( "Plan" )
 						select e;
 
 			int planIndex = 0;
@@ -310,7 +364,7 @@ namespace Dirigent
 				var startTimeout = X.getDoubleAttr( p, "StartTimeout", -1, true );
 
 				var apps = ( from e in p.Descendants( "App" )
-							 select readAppElement( e ) ).ToList();
+							 select ReadAppElement( e, _root, _fdReg ) ).ToList();
 
 				if( string.IsNullOrEmpty(planName) )
 					throw new ConfigurationErrorException( $"Missing plan name in plan #{planIndex}");
@@ -340,7 +394,7 @@ namespace Dirigent
 					index ++;
 				}
 
-				cfg.Plans.Add(
+				_cfg.Plans.Add(
 					new PlanDef()
 					{
 						Name = planName,
@@ -357,7 +411,7 @@ namespace Dirigent
 
 		bool AppExists( AppIdTuple id )
 		{
-			foreach( var pd in cfg.Plans )
+			foreach( var pd in _cfg.Plans )
 			{
 				foreach( var ad in pd.AppDefs )
 				{
@@ -366,7 +420,7 @@ namespace Dirigent
 				}
 			}
 
-			foreach( var ad in cfg.AppDefaults )
+			foreach( var ad in _cfg.AppDefaults )
 			{
 				if( ad.Id == id )
 					return true;
@@ -421,17 +475,17 @@ namespace Dirigent
 
 		void CheckDependencies()
 		{
-			CheckDependenciesExist( $"AppDefaults", cfg.AppDefaults );
+			CheckDependenciesExist( $"AppDefaults", _cfg.AppDefaults );
 
 			// check if all dependencies mentioned exists either in a plan or in app defaults
-			foreach( var pd in cfg.Plans )
+			foreach( var pd in _cfg.Plans )
 			{
 				CheckDependenciesExist( $"Plan {pd.Name}", pd.AppDefs );
 			}
 
 			// check circular dependency within a plan
 			// WARNING: does not find cross-plan circular dependencies.. not possible to tell if such dep is a real problem or not
-			foreach( var pd in cfg.Plans )
+			foreach( var pd in _cfg.Plans )
 			{
 				foreach( var ad in pd.AppDefs )
 				{
@@ -442,11 +496,11 @@ namespace Dirigent
 
 		}
 
-		void loadScripts()
+		void LoadScripts()
 		{
-			cfg.Scripts.Clear();
+			_cfg.Scripts.Clear();
 
-			var scripts = from e in root.Elements( "Script" )
+			var scripts = from e in _root.Elements( "Script" )
 						select e;
 
 			int index = 0;
@@ -461,7 +515,7 @@ namespace Dirigent
 				if( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing script name in script #{index}");
 
-				cfg.Scripts.Add(
+				_cfg.Scripts.Add(
 					new ScriptDef()
 					{
 						Id = id,
@@ -474,7 +528,7 @@ namespace Dirigent
 
 		}
 
-		List<FileDef> loadFiles( XElement root, string? machineId=null, string? appId=null )
+		static List<FileDef> LoadFiles( XElement root, string? machineId=null, string? appId=null )
 		{
 			var res = new List<FileDef>();
 
@@ -482,34 +536,48 @@ namespace Dirigent
 						select e;
 			foreach( var e in fileElems )
 			{
-				var fileDef = readFileElement( e, machineId, appId );
+				var fileDef = ReadFileElement( e, machineId, appId );
 				res.Add(fileDef);
 			}
 
 			return res;
 		}
 
-		FileDef AddToAllFiles( FileDef fileDef )
+		static List<ToolRef> LoadTools( XElement root )
 		{
-			// if already defined with same attribs, use the existing
-			foreach( var x in _files )
+			var res = new List<ToolRef>();
+
+			var elems = from e in root.Elements( "Tool" )
+						select e;
+			foreach( var e in elems )
 			{
-				if( x.SameAs( fileDef ) )
-				{
-					return x;
-				}
+				var def = ReadToolRefElement( e );
+				res.Add(def);
 			}
-			// add
-			_files.Add( fileDef );
-			return fileDef;;
+
+			return res;
 		}
 
-
-		void loadMachines()
+		static List<FileShareDef> LoadShares( XElement root )
 		{
-			cfg.Machines.Clear();
+			var res = new List<FileShareDef>();
 
-			var machines = from e in root.Elements( "Machine" )
+			var elems = from e in root.Elements( "Share" )
+						select e;
+			foreach( var e in elems )
+			{
+				var def = ReadFileShareElement( e );
+				res.Add(def);
+			}
+
+			return res;
+		}
+
+		void LoadMachines( FileDefReg fdReg )
+		{
+			_cfg.Machines.Clear();
+
+			var machines = from e in _root.Elements( "Machine" )
 						select e;
 
 			int index = 0;
@@ -518,36 +586,42 @@ namespace Dirigent
 				index++;
 				var id = X.getStringAttr( p, "Name", "" );
 				var ip = X.getStringAttr( p, "IP", "" );
+				var shares = LoadShares( p );
 
-				if( string.IsNullOrEmpty(id) )
+				if ( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing machine name in {p} #{index}");
 
 				var fileDefs = new List<FileDef>();
-				foreach( var fileDef in loadFiles( p, id, null ) )
+				foreach( var fileDef in LoadFiles( p, id, null ) )
 				{
 					// add to global list, possible reusing an already defined one if duplicated
-					fileDefs.Add( AddToAllFiles( fileDef ) );
+					fileDefs.Add( fdReg.Add( fileDef ) );
 				}
 
-				cfg.Machines.Add(
+				var tools = LoadTools( p );
+
+
+				_cfg.Machines.Add(
 					new MachineDef()
 					{
 						Id = id,
 						IP = ip,
-						Files = (from x in fileDefs select x.Guid).ToList()
+						FileShares = shares,
+						Files = (from x in fileDefs select x.Guid).ToList(),
+						Tools = tools
 					}
 				);;
 			}
 
 		}
 
-		void loadUnboundFiles()
+		void LoadUnboundFiles( FileDefReg fdReg )
 		{
 			var fileDefs = new List<FileDef>();
-			foreach( var fileDef in loadFiles( root, null, null ) )
+			foreach( var fileDef in LoadFiles( _root, null, null ) )
 			{
 				// add to global list, possible reusing an already defined one if duplicated
-				fileDefs.Add( AddToAllFiles( fileDef ) );
+				fileDefs.Add( fdReg.Add( fileDef ) );
 			}
 		}
 

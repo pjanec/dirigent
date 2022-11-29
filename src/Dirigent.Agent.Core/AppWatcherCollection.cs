@@ -6,7 +6,7 @@ namespace Dirigent
     /// <summary>
     /// A set IAppWatchers currently installed for a local app
     /// </summary>
-	public class AppWatcherCollection
+	public class AppWatcherCollection : Disposable
     {
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -16,11 +16,19 @@ namespace Dirigent
 
         private List<List<IAppWatcher>> _toReinstall = new List<List<IAppWatcher>>();
 
-        /// <summary>
-        /// Replaces watcher of the same type if existing, or adds a new one
-        /// </summary>
-        /// <param name="w">new watcher to install</param>
-        public void ReinstallWatcher( IAppWatcher w )
+		protected override void Dispose( bool disposing )
+		{
+			base.Dispose( disposing );
+			if (!disposing) return;
+			//foreach (var w in _watchers) w.Dispose(); // TODO: make watchers disposable
+			_watchers.Clear();
+		}
+
+		/// <summary>
+		/// Replaces watcher of the same type if existing, or adds a new one
+		/// </summary>
+		/// <param name="w">new watcher to install</param>
+		public void ReinstallWatcher( IAppWatcher w )
         {
             // postpone to a safe place outside of watcher's tick
             _toReinstall.Add( new List<IAppWatcher>() { w } );

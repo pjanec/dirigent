@@ -40,7 +40,7 @@ namespace Dirigent.Gui
 			_clientIdent = new Net.ClientIdent(	_ac.ClientId, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_client.MessageReceived += OnMessage;
-			_reflStates = new ReflectedStateRepo( _client );
+			_reflStates = new ReflectedStateRepo( _client, _ac.MachineId );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
 
 			_menuRenderer = new GuiWinMenuRenderer( _wnd, _reflStates );

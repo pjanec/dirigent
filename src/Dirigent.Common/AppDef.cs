@@ -208,6 +208,23 @@ namespace Dirigent
 		[DataMember]
 		public List<Guid> FilePackages = new List<Guid>();
 
+		/// <summary>
+		/// Name of the network service the app is using
+		/// </summary>
+		[ProtoBuf.ProtoMember( 32 )]
+		[DataMember]
+		public string Service = string.Empty;
+
+		/// <summary>
+		/// What icon to show for this app
+		/// </summary>
+		[ProtoBuf.ProtoMember( 33 )]
+		[DataMember]
+		public string IconFile = string.Empty;
+
+		[ProtoBuf.ProtoMember( 34 )]
+		[DataMember]
+		public List<ToolRef> Tools = new List<ToolRef>();
 
 		public bool Equals( AppDef? other )
 		{
@@ -251,6 +268,9 @@ namespace Dirigent
 				this.ReusePrevVars == other.ReusePrevVars &&
 				this.Files.SequenceEqual( other.Files ) &&
 				this.FilePackages.SequenceEqual( other.FilePackages ) &&
+				this.Service == other.Service &&
+				this.IconFile == other.IconFile &&
+				this.Tools.SequenceEqual( other.Tools ) &&
 				true
 			)
 				return true;
@@ -299,6 +319,16 @@ namespace Dirigent
 			else
 				return $"{Id}@{PlanName}";
 		}
+
+		public AppDef Clone()
+		{
+			var stream = new System.IO.MemoryStream( 16000 );
+			ProtoBuf.Serializer.Serialize( stream, this );
+			stream.Seek(0, System.IO.SeekOrigin.Begin);
+			return ProtoBuf.Serializer.Deserialize<AppDef>( stream );
+		}
+
+		
 	}
 
 }

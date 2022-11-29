@@ -10,7 +10,7 @@ namespace Dirigent
 	/// <summary>
 	/// Description of applications's current state and methods to control it (launch/kill/restart..)
 	/// </summary>
-	public class LocalApp
+	public class LocalApp : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -59,11 +59,23 @@ namespace Dirigent
             _sharedContext = sharedContext;
 		}
 
+		protected override void Dispose( bool disposing )
+        {
+			base.Dispose( disposing );
+			if (!disposing) return;
+
+			_watchers.Dispose();
+			_watchers = null!;
+
+			Launcher?.Dispose();
+			Launcher = null;
+		}
+
 		/// <summary>
-        /// Sets the app def to be usef for next launch
-        /// </summary>
-        /// <param name="ad"></param>
-        public void UpdateAppDef(AppDef ad)
+		/// Sets the app def to be usef for next launch
+		/// </summary>
+		/// <param name="ad"></param>
+		public void UpdateAppDef(AppDef ad)
 		{
 			UpcomingAppDef = ad;
 		}

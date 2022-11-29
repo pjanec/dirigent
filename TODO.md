@@ -2,7 +2,16 @@
 
 [IDEA] Show "service" icons in machines tab - take inspiration from Remoter. Services types configurable, services per machine defined in machineDef section of shared config; show icons for various service types. Available from any agent to any other (assuming the local network, no ssh)
 
-[IDEA] Connecting with dirigent GUI client to a master using SSH port forwarding. Use port forwarding also for direct access to individual machine services. (as Remoter is doing). Check why Dirigent TCP comm fails to go through the SSH gateway.
+[IDEA] Connecting with dirigent GUI client to a master using SSH port forwarding.
+
+* Use port forwarding also for direct access to individual machine services. (as Remoter is doing).
+* Check why Dirigent TCP comm fails to go through the SSH gateway.
+* Try tunelling SMB file sharing over SSH - that would allow for remote file access to any computer
+  * See https://sites.google.com/site/sbobovyc/home/windows-guides/tunnel-samba-over-ssh
+  * For each computer behind a gateway we need specific local port to address port 139 on given computer
+  * Requires installing Microsoft Loopback Adapter for each computer (to have one special IP per computer).
+  * Or we could 
+  * 
 
 * https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
 * 
@@ -20,23 +29,28 @@
 * [IDEA] Files tab showing all the files defined. Allows viewing given file by opening the viewer - independent app accessing the file via its UNC path. Allows downloading the file (zipped).
 
 * [IDEA] File Packages tab showing all the file packages defined. Allows downloading the packages. Grid is foldable [+], showing individual files within the package.
-
 * From the package a tree of concrete local/UNC paths and virtual folders is created. From this tree a context menu can be generated, or it cane be used to generate def file for VirtualFolders in a file manager.
-
 * [IDEA] Bundle Dirigent with Double Commander. Call Double Commander from task scripts for file operations like viewing, editing, maybe also copying and packing.  Use VirtualFolders plugin for working with files inside Dirigent's file packages.
-
-  
+* 
 
 # [IDEA] Distributed Tasks.
 
+* [EDIT] Is the following complicated stuff worth the effort? Can't we simply rely on powershell remoting???
+  * Maybe dirigent can just help with enabling the remoting on the machines (on of the tools in dirigent's menu)
+
 * A client issues a Task for multiple clients (either all or just listed).
-* Task logic consists of controller part and worker part. Worker part is running on affected clients. Controller part is running on master.
+* Task logic consists of controller part and worker part. Worker part is running on affected clients. Controller part is running on the client who invoked the task (gui client/agent or the master).
 * Controller and Worker parts are either built-in (hardcoded) or exist as a user script file residing on master.
 * The controller instantiate workers, sends requests to workers, keeps track of the task progress on workers (by listening to their status updates via TaskResponse messages) and decides task completion.
-* Each worker can provides task state update for its part of the job (In-Progress + estimated time, Success, Failure etc.)
+* Each worker can provides task state update for its part of the job via TaskResponse message. For example In-Progress + estimated time, Success, Failure etc.
 * Controller aggregates worker states, determines whole task status, removes the task instance when done.
 * Dirigent framework provides top level task management messages (RunTask, KillTask), whole task status update message (TaskStatus), low level messages for communication between controller and worker (TaskRequest, TaskResponse with string id, json payload), message forwarding through master. 
 * Both Controller and Worker runs asynchronously, syncing with main dirigent thread when calling dirigent framework functions (sending requests, querying information etc.)
+* Both the Controller part and the Worker parts run until the task is considered completed or cancelled. Task gets completed when its controller part finishes its Run method. Task gets cancelled when the user asks it to stop before it finishes.
+* The worker part can immediately start executing some logic using the arguments received from the InstantiateWorker message. The worker is either one-shot (having Run method) or is event driven (having OnRequest method), waiting for requests. When the request comes, the worker starts an async handler for the request. Processing of next request is delayed until the previous request handler finishes.
+* 
+* 
+* 
 
 Maybe extending the existing Script implementation is the right way to go. Current Script can be implemented as just the Controller part of the task running on the master, no workers.
 
@@ -46,11 +60,7 @@ Example of file download from one client to another:
 * Master instantiates the task on master and starts its Controller part.
 * The Controller part starts the Worker part on the client where the file resides (file provider) as well as on the client where the file should be downloaded to (file recipient). It does so by calling RunWorkers with client list containing one single MachineId of the client.
 * The Dirigent sends InstantiateWorker message to clients. The clients instantiate the Worker part of the task. The worker instances on each client are marked with the task instance guid so we can later (in the clean-up phase) kill the workers belonging to given task instance.
-* Both the Controller part and the Worker parts are ticked
-* The worker part can immediately start executing some logic (by starting a coroutine for example), using the arguments received from the InstantiateWorker message. is event driven, waiting for requests. When the request comes, the worker either responds immediately or starts a new coroutine handling the request.
-* 
-* 
-*  This message is considered an initial request so it is assigned a new guid to allow for sending responses back to the controller. Worker parts get instantiated, finds the FileDef, resolves the path to the (local) file, zips the file to a temporary folder and sends response to the controller. The response data contains the UNC path back to the Controller.
+* This message is considered an initial request so it is assigned a new guid to allow for sending responses back to the controller. Worker parts get instantiated, finds the FileDef, resolves the path to the (local) file, zips the file to a temporary folder and sends response to the controller. The response data contains the UNC path back to the Controller.
 * 
 * The Controller sends to the file provider a new request "please zip  the file and give me its UNC path" carrying the FileDef's guid in its data.
 * The Dirigent sends InstantiateTaskWorker message to the file provider client. This message is considered an initial request so it is assigned a new guid to allow for sending responses back to the controller. Worker parts get instantiated, finds the FileDef, resolves the path to the (local) file, zips the file to a temporary folder and sends response to the controller. The response data contains the UNC path back to the Controller.
@@ -94,6 +104,12 @@ TODO:
   * https://stackoverflow.com/questions/64485424/net-types-in-powershell-classes
   * https://stackoverflow.com/questions/65134626/inheritance-from-net-class-in-powershell
   * https://stackoverflow.com/questions/51218257/await-async-c-sharp-method-from-powershell
+* Steps
+  * Create runspace instance
+  * Create powershell instance, link with runspace, feed with script creating the pwsh class with methods and storing the instance of it to a variable, Invoke()
+  * Run async 2 independent methods:
+     - Create powershell instance, link with runspace, feed with script calling the method on the class instance variable, BeginInvoke() to run asynchronously
+     - Create another powershell instance, link to same runspace, run another script calling another mathod of that class instance, BeginInvoke() to run asynchronously
 
 [IDEA] Run scripts asynchronously
 
@@ -108,7 +124,7 @@ TODO:
 
 For an AppDef there can be some Tasks  defined. The tasks show up in the app context menu. Such an app task is actually a scripts (built-in or user defined) getting the AppIdTuple as a parameter.
 
-# 
+[IDEA] App-bound and machine-bound tools
 
 [IDEA] Async script execution. Synchronize with Dirigent on calling its API
 
@@ -165,3 +181,4 @@ For an AppDef there can be some Tasks  defined. The tasks show up in the app con
     {type:'planState', id='plan1', state={'code':'InProgress'}}
     
     {type:'appState', id='m1.a', state={'code':'SR'}}
+

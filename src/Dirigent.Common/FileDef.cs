@@ -79,6 +79,10 @@ namespace Dirigent
 		[DataMember]
 		public string? Mask = null;
 
+		[ProtoBuf.ProtoMember( 9 )]
+		[DataMember]
+		public List<ToolRef> Tools = new List<ToolRef>();
+
 
 		// use this to check for duplicates
 		public bool SameAs( FileDef? other )
@@ -95,6 +99,7 @@ namespace Dirigent
 				this.LookupType == other.LookupType &&
 				this.Folder == other.Folder &&
 				this.Mask == other.Mask &&
+				this.Tools.SequenceEqual( other.Tools ) &&
 				true
 			)
 				return true;

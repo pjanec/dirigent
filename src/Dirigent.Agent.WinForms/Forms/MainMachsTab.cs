@@ -173,16 +173,43 @@ namespace Dirigent.Gui.WinForms
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 
-					{
-						var item = new System.Windows.Forms.ToolStripMenuItem( "&Folders" );
-						// TODO: generate subitems
-						popup.Items.Add( item );
-					}
+					//{
+					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Folders" );
+					//	// TODO: generate subitems
+					//	popup.Items.Add( item );
+					//}
+
+					//{
+					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Files" );
+					//	// TODO: generate subitems
+					//	popup.Items.Add( item );
+					//}
 
 					{
-						var item = new System.Windows.Forms.ToolStripMenuItem( "&Files" );
+						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
 						// TODO: generate subitems
-						popup.Items.Add( item );
+						if( isMachineId( id ) )
+						{
+							var machDef = ReflStates.GetMachineDef( id );
+							if( machDef != null )
+							{
+								foreach( var tool in machDef.Tools )
+								{
+									var title = tool.Title;
+									if (string.IsNullOrEmpty( title )) title = tool.Id;
+									var item = new System.Windows.Forms.ToolStripMenuItem( title );
+									item.Click += ( s, a ) => WFT.GuardedOp( () => {
+											_form.ToolsRegistry.StartMachineBoundTool( tool, machDef ) ;
+										}
+									);
+									toolsMenu.DropDownItems.Add( item );
+								}
+							}
+						}
+						if( toolsMenu.DropDownItems.Count > 0 )
+						{
+							popup.Items.Add( toolsMenu );
+						}
 					}
 
 					popup.Show( Cursor.Position );

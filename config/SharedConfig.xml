@@ -18,6 +18,7 @@
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
 
             <File Id="aaa" Path="%USERPROFILE%\Documents\aaa.txt"/>
+
     	</App>
 
     	<App
@@ -159,11 +160,26 @@
 
     <Machine Name="m1">
         <Share Name="C" Path="C:\"/>
+        <Share Name="D$" Path="d:\"/>
         <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt"/>
         <NewestFile Id="Log" Folder="C:\Logs\App1" Mask="*.txt" Recursive="1"/>
         <Folder Id="Docs" Path="%USERPROFILE%\Documents"/>
-        <Task Id="task1" DisplayName="Machine specific task" Script="MachineScripts/Test1" Args=""/>
-    </Machine>
+
+        <!-- Tasks are shown in machine's context menu.
+             They are actually scripts running partly on the target machine and partly on the client
+             they were invoked from. -->
+        <Task Id="task1" Title="Machine specific task" Script="MachineScripts/Test1" Args=""/>
+
+        <!-- Tools are added to machine's Tools menu. Tools are always started on local machine.
+            Tools are defined in LocalConfig.xml file. -->
+		<Tool Id="VncViewer" Title="VNC to m1" CmdLineArgs="%MACHINE_IP%"/>
+
+		<!-- Network services available on the machine.
+    		 In case of connecting via SSH dirigent sets up the port forwarding for these. -->
+		<Service Name="VNC" Port="5900"/>
+
+
+     </Machine>
 
    	<App
 	    AppIdTuple = "m1.appWithFile"
@@ -176,7 +192,9 @@
         <File Id="xxx" Path="%USERPROFILE%\Documents\xxx.txt"/>
         <Folder Id="LocalData" Path="%AppData%\Local\AppWithFile"/>
         <!-- task to be shown in the app's context menu !-->
-        <Task Id="task1" DisplayName="App-specific task nice name" Script="AppScripts/Test1" Args=""/>
+        <Task Id="task1" Title="App-specific task nice name" Script="AppScripts/Test1" Args=""/>
+
+        <Tool Id="Notepad" Title="Open some file in Notepad" CmdLineArgs="somefile.txt"/>
 	</App>
 
 	<FilePackage Name="pack1">
@@ -186,11 +204,42 @@
 	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
 	    <!-- direct definition of independent file using UNC path-->
 
-        <Task Id="task1" DisplayName="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
-	</FilePackage>
+        <Task Id="task1" Title="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
 
+	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%FILEPACKAGE_LIST_FILE%"/>
+    </FilePackage>
+
+
+	<!-- global files specification -->
 	<File Id="global4" Path="\\server\share\path\to\file.txt">
-        <Task Id="task1" DisplayName="File-specific task nice name" Script="FileScripts/Test1" Args=""/>
+	    <!-- Tasks appear in the file's context menu -->
+        <Task Id="task1" Title="File-specific task nice name" Script="FileScripts/Test1" Args=""/>
+        <!-- Tools appear in the file's context menu -->
+        <Tool Id="Notepad" Title="Notepad++"/>
 	</File>
+
+	<File Id="local1" MachineId="m1" Path="D:\TEMP\file.txt">
+        <!-- Tools appear in the file's context menu -->
+        <Tool Id="Notepad" Title="Notepad++"/>
+	</File>
+
+	<!-- This is a default item which does not need to be defined explicitly unless you need some special tools for it;
+	     the path is provided automatically -->
+	<File Id="DirigentSharedConfig" Title="SharedConfig">
+        <Tool Id="Notepad" Title="Notepad++" CmdLineArgs="%FILE_PATH%"/>
+	</File>
+
+	<!-- Gateway network settings for tunelling network service ports in case we connect via SSH.
+         This actually makes no sense here as the shared config is not available until connected.
+         It might be read by not yet connected Dirigent if the shared config
+	<SshGateway
+		ExternalIP = "10.0.102.5"
+		InternalIP =  "192.168.0.150"
+		Port = "22"
+		UserName = "user"
+		Password = "password"
+	/> --> 
+
+
 
 </Shared>

@@ -48,10 +48,11 @@ namespace Dirigent
 		public Dictionary<Guid, FilePackage> Packages { get; private set; } = new Dictionary<Guid, FilePackage>();
 		public Dictionary<string, TMachine> Machines { get; private set; } = new Dictionary<string, TMachine>();
 
+		private string _localMachineId = string.Empty;
 
-
-		public FileRegistry( GetMachineIPDelegate machineIdDelegate )
+		public FileRegistry( string localMachineId, GetMachineIPDelegate machineIdDelegate )
 		{
+			_localMachineId = localMachineId;
 			_machineIPDelegate = machineIdDelegate;
 		}
 		
@@ -98,6 +99,13 @@ namespace Dirigent
 			}
 		}
 
+		public void Clear()
+		{
+			Machines.Clear();
+			Files.Clear();
+			Packages.Clear();
+		}
+
 		public void SetMachines( IEnumerable<MachineDef> machines )
 		{
 			Machines.Clear();
@@ -120,8 +128,35 @@ namespace Dirigent
 			}
 		}
 
-		
-		public string GetFileUNCPath( FileDef fdef )
+		public string GetMachineIP( string machineId, string whatFor )
+		{
+			// find machine
+			if( !Machines.TryGetValue( machineId, out var m ) )
+				throw new Exception($"Machine {machineId} not found for {whatFor}");
+
+			// find machine IP
+			if( string.IsNullOrEmpty( m.IP ) )
+			{
+				if( _machineIPDelegate != null && !string.IsNullOrEmpty( machineId ) )
+				{
+					m.IP = _machineIPDelegate( machineId );
+				}
+
+				if( string.IsNullOrEmpty( m.IP ) )
+					throw new Exception($"Could not find IP of machine {machineId}");
+			}
+
+			return m.IP;
+		}
+
+		/// <summary>
+		/// Returns direct path to the file, with all variables and file path resolution mechanism already evaluated.
+		/// If we are on the machine where the file is, returns local path, otherwise returns remote path.
+		/// </summary>
+		/// <param name="fdef"></param>
+		/// <returns></returns>
+		/// <exception cref="Exception"></exception>
+		public string GetFilePath( FileDef fdef )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -139,21 +174,19 @@ namespace Dirigent
 				throw new Exception($"FileDef path empty: {fdef}");
 			}
 
+			// if the file on local machine, return local path
+			if (fdef.MachineId == _localMachineId)
+			{
+				return fdef.Path;
+			}
+
+			// construct UNC path using file shares defined for machine
+
 			// find machine
-			if( !Machines.TryGetValue( fdef.MachineId, out var m ) )
+			if ( !Machines.TryGetValue( fdef.MachineId, out var m ) )
 				throw new Exception($"Machine {fdef.MachineId} not found for FileDef {fdef}");
 
-			// find machine IP
-			if( string.IsNullOrEmpty( m.IP ) )
-			{
-				if( _machineIPDelegate != null && !string.IsNullOrEmpty( fdef.MachineId ) )
-				{
-					m.IP = _machineIPDelegate( fdef.MachineId );
-				}
-
-				if( string.IsNullOrEmpty( m.IP ) )
-					throw new Exception($"Could not find IP of machine {fdef.MachineId}");
-			}
+			var IP = GetMachineIP( fdef.MachineId, $"FileDef {fdef}" );
 
 			foreach( var (shName, shPath) in m.Shares )
 			{
@@ -161,11 +194,11 @@ namespace Dirigent
 				if( fdef.Path.StartsWith( shPath, StringComparison.OrdinalIgnoreCase ) )
 				{
 					var pathRelativeToShare = fdef.Path.Substring( shPath.Length );
-					return $"\\{m.IP}\\{shName}\\{pathRelativeToShare}";
+					return $"\\\\{IP}\\{shName}\\{pathRelativeToShare}";
 				}
 			}
 
-			throw new Exception($"No file share matching FileDef {fdef}");
+			throw new Exception($"No file share matching FileDef {fdef}, can't construct UNC path");
 		}
 	}
 }

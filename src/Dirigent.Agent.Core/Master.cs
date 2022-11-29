@@ -101,14 +101,17 @@ namespace Dirigent
 
 			_tasks = new TaskRegistryMaster( this );
 
-			_files = new FileRegistry( (string machineId) =>
-			{
-				if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
+			_files = new FileRegistry(
+				ac.MachineId, // empty if we run master standalone on an unidentified machine
+				(string machineId) =>
 				{
-					return state.IP;
+					if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
+					{
+						return state.IP;
+					}
+					return null;
 				}
-				return null;
-			});
+			);
  
 			_server = new Server( ac.MasterPort );
 			_swClientRefresh = new Stopwatch();
@@ -615,7 +618,7 @@ namespace Dirigent
 		{
 			SharedConfig sharedConfig;
 			log.DebugFormat( "Loading shared config file '{0}'", fileName );
-			sharedConfig = new SharedXmlConfigReader( System.IO.File.OpenText( fileName ) ).cfg;
+			sharedConfig = new SharedXmlConfigReader( System.IO.File.OpenText( fileName ) ).Config;
 			_sharedConfigFileName = fileName;
 			return sharedConfig;
 		}

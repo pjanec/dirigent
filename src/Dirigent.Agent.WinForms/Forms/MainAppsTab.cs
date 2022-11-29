@@ -398,6 +398,7 @@ namespace Dirigent.Gui.WinForms
 				DataGridViewRow focused = _grid.Rows[currentRow];
 				var id = getAppTupleFromAppGridRow( focused );
 
+				var appDef = Ctrl.GetAppDef( id );
 				var st = Ctrl.GetAppState( id );
 				bool connected = Client.IsConnected;
 				//bool isLocalApp = id.MachineId == this._machineId;
@@ -470,6 +471,27 @@ namespace Dirigent.Gui.WinForms
 					{
 						var item = new System.Windows.Forms.ToolStripSeparator();
 						popup.Items.Add( item );
+					}
+
+					{
+						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
+						foreach( var tool in appDef.Tools )
+						{
+							var title = tool.Title;
+							if (string.IsNullOrEmpty( title )) title = tool.Id;
+							var item = new ToolStripMenuItem( title );
+							item.Click += ( s, a ) => WFT.GuardedOp( () => {
+									_form.ToolsRegistry.StartAppBoundTool( tool, appDef ) ;
+								}
+							);
+							toolsMenu.DropDownItems.Add( item );
+						}
+
+						if( toolsMenu.DropDownItems.Count > 0 )
+						{
+							popup.Items.Add( toolsMenu );
+							popup.Items.Add( new ToolStripSeparator() );
+						}
 					}
 
 					{

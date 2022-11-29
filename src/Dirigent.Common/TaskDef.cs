@@ -35,10 +35,16 @@ namespace Dirigent
 		[DataMember]
 		public string? AppId;
 
+		/// <summary>
+		/// File the task belongs to. Used only if the task is bound to a file.
+		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
 		[DataMember]
 		public string? FileId;
 
+		/// <summary>
+		/// File package the task belongs to. Used only if the task is bound to a file package.
+		/// </summary>
 		[ProtoBuf.ProtoMember( 5 )]
 		[DataMember]
 		public string? FilePackageId;
@@ -47,7 +53,7 @@ namespace Dirigent
 		/// Display name for a task (to be shown in menus etc.)
 		/// </summary>
 		[ProtoBuf.ProtoMember( 6 )]
-		public string DisplayName = string.Empty;
+		public string Title = string.Empty;
 
 		/// <summary>
 		/// What script to run for this task.
@@ -95,7 +101,11 @@ namespace Dirigent
 
 			if(
 				this.Id == other.Id &&
-				this.DisplayName == other.DisplayName &&
+				this.MachineId == other.MachineId &&
+				this.AppId == other.AppId &&
+				this.FileId == other.FileId &&
+				this.FilePackageId == other.FilePackageId &&
+				this.Title == other.Title &&
 				this.ScriptName == other.ScriptName &&
 				this.ScriptFolder == other.ScriptFolder &&
 				this.Args == other.Args &&
