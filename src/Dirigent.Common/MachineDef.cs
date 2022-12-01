@@ -39,26 +39,13 @@ namespace Dirigent
 		[DataMember]
 		public List<FileShareDef> FileShares = new List<FileShareDef>();
 
-		/// <summary>
-		/// Files associated with the machine only (not associated with an application).
-		/// References to a global table of files.
-		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
 		[DataMember]
-		public List<Guid> Files = new List<Guid>();
-
-		/// <summary>
-		/// Machine-specific file packages.
-		/// References to a global table of file packages.
-		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
-		public List<Guid> FilePackages = new List<Guid>();
+		public List<VfsNodeDef> VFSNodes = new List<VfsNodeDef>();
 
 		[ProtoBuf.ProtoMember( 6 )]
 		[DataMember]
 		public List<ToolRef> Tools = new List<ToolRef>();
-
 
 		public bool Equals( MachineDef? other )
 		{
@@ -68,8 +55,7 @@ namespace Dirigent
 			if(
 				this.Id == other.Id &&
 				this.FileShares.SequenceEqual( other.FileShares ) &&
-				this.Files.SequenceEqual( other.Files ) &&
-				this.FilePackages.SequenceEqual( other.FilePackages ) &&
+				this.VFSNodes.SequenceEqual( other.VFSNodes ) &&
 				this.Tools.SequenceEqual( other.Tools ) &&
 				true
 			)

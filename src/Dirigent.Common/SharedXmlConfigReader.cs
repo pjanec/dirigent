@@ -42,7 +42,7 @@ namespace Dirigent
 			LoadMachines( _fdReg );
 			LoadUnboundFiles( _fdReg );
 
-			_cfg.Files = _fdReg.Files.ToList();
+			_cfg.VfsNodes = _fdReg.VfsNodes;
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
@@ -238,11 +238,12 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
-			foreach( var fileDef in LoadFiles( e, a.Id.MachineId, a.Id.AppId ) )
+			foreach ( var vfsNode in LoadVFSNodeElements( e, a.Id.MachineId, a.Id.AppId ) )
 			{
-				var nonDuplFD = fdReg.Add( fileDef ); // might return an already defined (if duplicate)
-				a.Files.Add( nonDuplFD.Guid );
+				fdReg.Add( vfsNode );
+				a.VfsNodes.Add( vfsNode );
 			}
+			
 
 			// add/replace tools
 			foreach( var elem in x.Tools )
@@ -261,37 +262,105 @@ namespace Dirigent
 			return a;
 		}
 
-		static FileDef ReadFileElement( XElement e, string? machineId=null, string? appId=null, EFLookupType lookupType=EFLookupType.Path )
+		static void ReadVFSNodeBaseElement( ref VfsNodeDef a, XElement e, string? machineId=null, string? appId=null )
 		{
-			FileDef a = new FileDef();
 			a.Guid = Guid.NewGuid();
 			a.MachineId = machineId;
 			a.AppId = appId;
-			a.LookupType = lookupType;
 
 			var x = new 
 			{
 				Id = e.Attribute( "Id" )?.Value,
+				Title = e.Attribute( "Title" )?.Value,
 				MachineId = e.Attribute( "MachineId" )?.Value,
 				AppId = e.Attribute( "AppId" )?.Value,
 				Path = e.Attribute( "Path" )?.Value,
-				Folder = e.Attribute( "Folder" )?.Value,
-				Mask = e.Attribute( "Mask" )?.Value,
 				Tools = LoadTools( e ),
 			};
 
 			if( x.Id == null )
-				throw new Exception( $"File definition missing the Id attribute: {e}" );
+				throw new Exception( $"Id attribute is missing: {e}" );
 
 			a.Id = x.Id;
+			if( x.Title != null ) a.Title = x.Title;
 			if( x.MachineId != null ) a.MachineId = x.MachineId;
 			if( x.AppId != null ) a.AppId = x.AppId;
 			a.Path = x.Path;
-			a.Folder = x.Folder;
-			a.Mask = x.Mask;
 			a.Tools = x.Tools;
+			a.Children = LoadVFSNodeElements( e, a.MachineId, a.AppId );
+		}
 
-			return a;
+		static VfsNodeDef? TryReadVFSNodeElement( XElement e, string? machineId=null, string? appId=null )
+		{
+			if (e.Name == "File")
+			{
+				var a = new FileDef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				return a;
+			}
+			else
+			if (e.Name == "FileRef")
+			{
+				var a = new FileDef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				return a;
+			}
+			else
+			if (e.Name == "Folder")
+			{
+				var a = new FolderDef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				a.Mask = e.Attribute( "Mask" )?.Value;
+				a.IsContainer = true;
+				return a;
+			}
+			else
+			if (e.Name == "VFolder")
+			{
+				var a = new VFolderDef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				a.IsContainer = true;
+				return a;
+			}
+			else
+			if (e.Name == "FilePackage")
+			{
+				var a = new FilePackageDef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				a.IsContainer = true;
+				return a;
+			}
+			else
+			if (e.Name == "FilePackageRef")
+			{
+				var a = new FilePackageRef();
+				var vfsNode = (VfsNodeDef) a;
+				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				return a;
+			}
+			else
+			return null;
+		}
+
+
+		static List<VfsNodeDef> LoadVFSNodeElements( XElement e, string? machineId=null, string? appId=null )
+		{
+			var res = new List<VfsNodeDef>();
+			foreach (var elem in e.Elements())
+			{
+				var x = TryReadVFSNodeElement( elem, machineId, appId );
+				if( x is not null )
+				{
+					res.Add( x );
+				}
+			}
+			return res;
+
 		}
 
 		static ToolRef ReadToolRefElement( XElement e )
@@ -528,21 +597,6 @@ namespace Dirigent
 
 		}
 
-		static List<FileDef> LoadFiles( XElement root, string? machineId=null, string? appId=null )
-		{
-			var res = new List<FileDef>();
-
-			var fileElems = from e in root.Elements( "File" )
-						select e;
-			foreach( var e in fileElems )
-			{
-				var fileDef = ReadFileElement( e, machineId, appId );
-				res.Add(fileDef);
-			}
-
-			return res;
-		}
-
 		static List<ToolRef> LoadTools( XElement root )
 		{
 			var res = new List<ToolRef>();
@@ -591,12 +645,12 @@ namespace Dirigent
 				if ( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing machine name in {p} #{index}");
 
-				var fileDefs = new List<FileDef>();
-				foreach( var fileDef in LoadFiles( p, id, null ) )
+				var vfsNodes = LoadVFSNodeElements( p, id, null );
+				foreach( var vfsNode in vfsNodes )
 				{
-					// add to global list, possible reusing an already defined one if duplicated
-					fileDefs.Add( fdReg.Add( fileDef ) );
+					fdReg.Add( vfsNode );
 				}
+				
 
 				var tools = LoadTools( p );
 
@@ -607,7 +661,7 @@ namespace Dirigent
 						Id = id,
 						IP = ip,
 						FileShares = shares,
-						Files = (from x in fileDefs select x.Guid).ToList(),
+						VFSNodes = vfsNodes,
 						Tools = tools
 					}
 				);;
@@ -617,11 +671,10 @@ namespace Dirigent
 
 		void LoadUnboundFiles( FileDefReg fdReg )
 		{
-			var fileDefs = new List<FileDef>();
-			foreach( var fileDef in LoadFiles( _root, null, null ) )
+			// just feed them to the registry
+			foreach ( var vfsNode in LoadVFSNodeElements( _root, null, null ) )
 			{
-				// add to global list, possible reusing an already defined one if duplicated
-				fileDefs.Add( fdReg.Add( fileDef ) );
+				fdReg.Add( vfsNode );
 			}
 		}
 

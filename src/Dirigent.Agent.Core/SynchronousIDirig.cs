@@ -74,10 +74,8 @@ namespace Dirigent
 		public async Task<IEnumerable<KeyValuePair<string, ScriptState>>?> GetAllScriptStates() => await GuardedFunc( () => _ctrl.GetAllScriptStates().ToList() );
 		public async Task<ScriptDef?> GetScriptDef( string Id ) => await GuardedFunc( () => _ctrl.GetScriptDef( Id ) );
 		public async Task<IEnumerable<ScriptDef>?> GetAllScriptDefs() => await GuardedFunc( () => _ctrl.GetAllScriptDefs().ToList() );
-		public async Task<FileDef?> GetFileDef( Guid guid ) => await GuardedFunc( () => _ctrl.GetFileDef( guid ) );
-		public async Task<IEnumerable<FileDef>?> GetAllFileDefs() => await GuardedFunc( () => _ctrl.GetAllFileDefs().ToList() );
-		public async Task<FilePackage?> GetFilePackage( Guid guid ) => await GuardedFunc( () => _ctrl.GetFilePackage( guid ) );
-		public async Task<IEnumerable<FilePackage>?> GetAllFilePackages() => await GuardedFunc( () => _ctrl.GetAllFilePackages().ToList() );
+		public async Task<VfsNodeDef?> GetFileDef( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
+		public async Task<IEnumerable<VfsNodeDef>?> GetAllVfsNodeDefs() => await GuardedFunc( () => _ctrl.GetAllVfsNodeDefs().ToList() );
 		public string Name => _ctrl.Name;
 		public async Task Send( Net.Message msg ) => await GuardedAct( () => _ctrl.Send( msg ) );
 	}

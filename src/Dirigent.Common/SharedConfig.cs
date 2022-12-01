@@ -11,7 +11,6 @@ namespace Dirigent
 		public List<PlanDef> Plans = new List<PlanDef>();
 		public List<ScriptDef> Scripts = new List<ScriptDef>();
 		public List<MachineDef> Machines = new List<MachineDef>();
-		public List<FileDef> Files = new List<FileDef>(); // all files defined as part of machine, app or globally
-		public List<FilePackageDef> FilePackages = new List<FilePackageDef>(); // all file packages defined as part of machine, app or globally
+		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>(); // all Vfs nodes defined throughout the SharedConfig
 	}
 }

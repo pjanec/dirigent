@@ -212,6 +212,7 @@ namespace Dirigent.Gui.WinForms
 						}
 					}
 
+
 					popup.Show( Cursor.Position );
 				}
 			}

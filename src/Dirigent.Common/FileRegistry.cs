@@ -5,24 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 using System;
+using System.IO;
 
 namespace Dirigent
 {
-
-	public class FilePackage
-	{
-		public FilePackageDef Def;
-		public string? Id => Def.Id;
-		public string? MachineId => Def.MachineId;
-		public string? AppId => Def.AppId;
-		public List<FileDef> Files = new List<FileDef>();
-
-		public FilePackage( FilePackageDef def )
-		{
-			Def = def;
-		}
-	}
-
 
 	/// <summary>
 	/// List of registered files and packages
@@ -44,8 +30,9 @@ namespace Dirigent
 
 		public List<FilePackageDef> PackageDefs { get; private set; } = new List<FilePackageDef>();
 
-		public Dictionary<Guid, FileDef> Files { get; private set; } = new Dictionary<Guid, FileDef>();
-		public Dictionary<Guid, FilePackage> Packages { get; private set; } = new Dictionary<Guid, FilePackage>();
+		// all VfsNodes found when traversing SharedDefs
+		public Dictionary<Guid, VfsNodeDef> VfsNodes { get; private set; } = new Dictionary<Guid, VfsNodeDef>();
+		
 		public Dictionary<string, TMachine> Machines { get; private set; } = new Dictionary<string, TMachine>();
 
 		private string _localMachineId = string.Empty;
@@ -56,54 +43,25 @@ namespace Dirigent
 			_machineIPDelegate = machineIdDelegate;
 		}
 		
-		public FileDef? GetFileDef( Guid guid )
+		public VfsNodeDef? GetVfsNodeDef( Guid guid )
 		{
-			if( Files.TryGetValue( guid, out var fdef ) ) return fdef;
+			if( VfsNodes.TryGetValue( guid, out var def ) ) return def;
 			return null;
 		}
 
-		public IEnumerable<FileDef> GetAllFileDefs() => Files.Values;
+		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() => VfsNodes.Values;
 
-		public FilePackage? GetFilePackage( Guid guid )
+
+		public void SetVfsNodes( IEnumerable<VfsNodeDef> vfsNodes )
 		{
-			if( Packages.TryGetValue( guid, out var pkg ) ) return pkg;
-			return null;
+			VfsNodes = vfsNodes.ToDictionary( n => n.Guid );
 		}
 
-		public IEnumerable<FilePackage> GetAllFilePackages() => Packages.Values;
-
-
-		public void SetFiles( IEnumerable<FileDef> fileDefs, IEnumerable<FilePackageDef> pkgDefs )
-		{
-			Files.Clear();
-			foreach( var file in fileDefs )
-			{
-				Files[file.Guid] = file;
-			}
-
-			PackageDefs = new List<FilePackageDef>( pkgDefs );
-			
-			Packages.Clear();
-			foreach( var pkg in pkgDefs )
-			{
-				var p = new FilePackage(pkg);
-				foreach( var fileGuid in pkg.Files )
-				{
-					if( Files.TryGetValue( fileGuid, out var fdef ) )
-					{
-						p.Files.Add( fdef );
-					}
-					else throw new Exception( $"Package {pkg}: file reference invalid!");
-				}
-				Packages[pkg.Guid] = p;
-			}
-		}
 
 		public void Clear()
 		{
 			Machines.Clear();
-			Files.Clear();
-			Packages.Clear();
+			VfsNodes.Clear();
 		}
 
 		public void SetMachines( IEnumerable<MachineDef> machines )
@@ -156,7 +114,7 @@ namespace Dirigent
 		/// <param name="fdef"></param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public string GetFilePath( FileDef fdef )
+		public string GetFilePath( VfsNodeDef fdef )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -199,6 +157,106 @@ namespace Dirigent
 			}
 
 			throw new Exception($"No file share matching FileDef {fdef}, can't construct UNC path");
+		}
+
+		VfsNodeDef? FindById( string Id, string? machineId, string? appId )
+		{
+			foreach( var node in VfsNodes.Values )
+			{
+				if(	node.Id == Id &&
+					node.MachineId == machineId &&
+					node.AppId == appId )
+					return node;
+			}
+			return null;	
+		}
+
+		/// <summary>
+		/// Resolve all links, expands all widcards etc. Produces a tree of VfsNodes.
+		/// </summary>
+		/// <param name="machineId">Tree of definitions (descendants of VfsNodeDef)</param>
+		/// <param name="defs">Tree of definitions (descendants of VfsNodeDef)</param>
+		/// <returns>A tree of plain VfsNodeDef instances containing just files (leave nodes) and folders (intermediate nodes).
+		/// Folders having just Title, files having Title and Path.
+		/// Path is resolved from the perspective of the local machine - remote paths are UNC.
+		/// </returns>
+		public VfsNodeDef Resolve( VfsNodeDef nodeDef, List<Guid>? usedGuids )
+		{
+			if (usedGuids == null) usedGuids = new List<Guid>();
+			if (usedGuids.Contains( nodeDef.Guid ))
+				throw new Exception( $"Circular reference in VFS tree: {nodeDef}" );
+			
+			usedGuids.Add( nodeDef.Guid );
+
+			if ( nodeDef is FileDef fileDef )
+			{
+				return new VfsNodeDef
+				{
+					Title = !string.IsNullOrEmpty(fileDef.Title) ? fileDef.Title : fileDef.Id,
+					Path = GetFilePath( fileDef )
+				};
+			}
+			else
+			if( nodeDef is FileRef fref )
+			{
+				var def = FindById( fref.Id, fref.MachineId, fref.AppId ) as FileDef;
+				if( def is null )
+					throw new Exception( $"{fref} points to non-existing FileDef" );
+
+				return Resolve( def, usedGuids );
+			}
+			else
+			if (nodeDef is VFolderDef vfolderDef)
+			{
+				var ret = new VfsNodeDef
+				{
+					IsContainer = true
+				};
+
+				foreach( var child in vfolderDef.Children )
+				{
+					var resolved = Resolve( child, usedGuids );
+					ret.Children.Add( resolved );
+				}
+
+				return ret;
+			}
+			else
+			if( nodeDef is FolderDef folderDef )
+			{
+				return ResolveFolder( folderDef );
+			}
+			else
+			if( nodeDef is FilePackageRef fpref )
+			{
+				var def = FindById( fpref.Id, fpref.MachineId, fpref.AppId ) as FilePackageDef;
+				if( def is null )
+					throw new Exception( $"{fpref} points to non-existing FilePackage" );
+
+				return Resolve( def, usedGuids );
+			}
+			else
+			{
+				throw new Exception( $"Unknown VfsNodeDef type: {nodeDef}" );
+			}
+		}
+
+		VfsNodeDef ResolveFolder( FolderDef folderDef )
+		{
+			var rootNode = new VfsNodeDef
+			{
+				IsContainer = true,
+				Title = !string.IsNullOrEmpty(folderDef.Title) ? folderDef.Title : folderDef.Id,
+			};
+			
+			// FIXME:
+			// traverse all files & folders 
+			// filter by glob-style mask
+			// convert into vfs tree structure
+			var basePath = GetFilePath( folderDef );
+			// ....
+
+			return rootNode;
 		}
 	}
 }

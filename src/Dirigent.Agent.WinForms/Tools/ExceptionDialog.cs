@@ -31,7 +31,7 @@ namespace Dirigent.Gui.WinForms
 					string.Format(
 						"{0}\n" +
 						"\n" +
-						"Exception: [{1}]\n" +
+						"Exception: [{1}]\n\n" +
 						"{2}",
 						messageText,
 						ex.GetType().ToString(),
@@ -49,7 +49,7 @@ namespace Dirigent.Gui.WinForms
 				string.Format(
 					"{0}\n" +
 					"\n" +
-					"Exception: [{1}]\n" +
+					"Exception: [{1}]\n\n" +
 					"{2}\n" +
 					"\n" +
 					"Stack Trace:\n{3}",

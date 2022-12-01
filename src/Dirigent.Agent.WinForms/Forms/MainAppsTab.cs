@@ -474,6 +474,22 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
+						var filesMenu = ContextMenuFiles( from x in appDef.VfsNodes where x is FileDef select x as FileDef );
+						if ( filesMenu.DropDownItems.Count > 0 )
+						{
+							popup.Items.Add( filesMenu );
+						}
+					}
+
+					{
+						var fpackMenu = ContextMenuFilePackages( from x in appDef.VfsNodes where x is FilePackageDef select x as FilePackageDef );
+						if( fpackMenu.DropDownItems.Count > 0 )
+						{
+							popup.Items.Add( fpackMenu );
+						}
+					}
+
+					{
 						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
 						foreach( var tool in appDef.Tools )
 						{

@@ -27,10 +27,8 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
 		public ScriptDef? GetScriptDef( string Id ) { return _scriptDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptDefs; }
-		public FileDef? GetFileDef( Guid guid ) { return _files.GetFileDef(guid); }
-		public IEnumerable<FileDef> GetAllFileDefs() { return _files.GetAllFileDefs(); }
-		public FilePackage? GetFilePackage( Guid guid ) { return _files.GetFilePackage(guid); }
-		public IEnumerable<FilePackage> GetAllFilePackage() { return _files.GetAllFilePackages(); }
+		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
 
 
@@ -63,8 +61,8 @@ namespace Dirigent
 		private Dictionary<string, ScriptState> _scriptStates = new Dictionary<string, ScriptState>();
 		private List<ScriptDef> _scriptDefs = new List<ScriptDef>();
 
-		private FileRegistry _files;
-		public FileRegistry FileRegistry => _files;
+		private FileRegistry _fileReg;
+		public FileRegistry FileRegistry => _fileReg;
 
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 
@@ -73,7 +71,7 @@ namespace Dirigent
 			_client = client;
 			_client.MessageReceived += OnMessage;
 
-			_files = new FileRegistry( localMachineId, (string machineId) =>
+			_fileReg = new FileRegistry( localMachineId, (string machineId) =>
 			{
 				if( _clientStates.TryGetValue( machineId, out var state ) )
 				{
@@ -195,9 +193,9 @@ namespace Dirigent
 					break;
 				}
 
-				case Net.FileDefsMessage m:
+				case Net.VfsNodesMessage m:
 				{
-					_files.SetFiles( m.Files, m.FilePackages );
+					_fileReg.SetVfsNodes( m.VfsNodes );
 					OnFilesReceived?.Invoke();
 					break;
 				}
@@ -205,7 +203,7 @@ namespace Dirigent
 				case Net.MachineDefsMessage m:
 				{
 					_machineDefs = m.Machines.ToList();
-					_files.SetMachines( _machineDefs );
+					_fileReg.SetMachines( _machineDefs );
 					OnMachinesReceived?.Invoke();
 					break;
 				}
@@ -234,7 +232,7 @@ namespace Dirigent
 					_planStates.Clear();
 					_scriptStates.Clear();
 					_machineDefs.Clear();
-					_files.Clear();
+					_fileReg.Clear();
 					OnReset?.Invoke();
 					break;
 				}

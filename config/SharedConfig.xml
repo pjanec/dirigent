@@ -189,24 +189,68 @@
 		CmdLineArgs = "xxx.txt"
 	    >
 
-        <File Id="xxx" Path="%USERPROFILE%\Documents\xxx.txt"/>
+        <File Id="xxx" Title="xxx file" Path="%USERPROFILE%\Documents\xxx.txt">
+          <Tool Id="Notepad" Title="Open in Notepad"/>
+        </File>
+
         <Folder Id="LocalData" Path="%AppData%\Local\AppWithFile"/>
         <!-- task to be shown in the app's context menu !-->
         <Task Id="task1" Title="App-specific task nice name" Script="AppScripts/Test1" Args=""/>
 
         <Tool Id="Notepad" Title="Open some file in Notepad" CmdLineArgs="somefile.txt"/>
+
+    	<FilePackage Id="appFilePack">
+    	    <!-- reference to machine-specific file-->
+    	    <FileRef Id="Greetings" Machine="m1" />
+
+    	    <!-- reference to file defined within another app -->
+    	    <FileRef Id="xxx" AppIdTuple="m1.a" />
+
+    	    <!-- direct definition of independent file using UNC path-->
+    	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
+        	
+        	<!-- global files specification -->
+        	<File Id="inPackFile" Path="D:\TEMP\file.txt">
+                <Tool Id="Notepad" Title="Notepad++"/>
+        	</File>
+
+            <Task Id="task1" Title="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
+
+    	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%FILEPACKAGE_LIST_FILE%"/>
+        </FilePackage>
+	
 	</App>
 
-	<FilePackage Name="pack1">
+	<!-- FilePackage is a collection of file and folders available for some operation (browse, download...) -->
+	<!-- Note: FilePackage and VFolder can include the same stuff -->
+	<FilePackage Id="pack1">
 	    <!-- reference to machine-specific file-->
 	    <FileRef Machine="m1" Id="Greetings"/>
 	    <!-- reference to application-specific file-->
 	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
 	    <!-- direct definition of independent file using UNC path-->
+   	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
 
         <Task Id="task1" Title="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
 
-	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%FILEPACKAGE_LIST_FILE%"/>
+	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%PACKAGE_LIST_FILE%"/>
+
+	    <!-- real folder in the filesystem using glob-style globbing; empty mask means "**"-->
+	    <Folder Id="fold1" Path="D:\TEMP" Mask="**/logs/**/*.{log,txt}" />
+
+	    <!-- virtual folder is just like a sub-package containing real files, real folders, or virtual subfolders -->
+	    <VFolder Id="vfold1">
+            <File Id="global3" Path="\\server\share\path\to\file.txt"/>
+    	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
+    	    <Folder Id="fold2" Path="D:\TEMP" />
+    	    <VFolder Id="vsubfold2">
+    	        <!-- resolves to the tree of files/filerefs/folders/vfolders provided by given script -->
+    	        <ScriptedContent Script="PackageScripts/Test1" Args=""/>
+
+            	<File Id="inPackFile" Path="D:\TEMP\file.txt"/>
+    	    </VFolder>
+	    </VFolder>
+
     </FilePackage>
 
 

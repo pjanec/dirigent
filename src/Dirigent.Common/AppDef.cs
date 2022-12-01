@@ -195,20 +195,6 @@ namespace Dirigent
 		public bool ReusePrevVars;
 
 		/// <summary>
-		/// App-specific files. Reference to the list of all files sent in separate message.
-		/// </summary>
-		[ProtoBuf.ProtoMember( 30 )]
-		[DataMember]
-		public List<Guid> Files = new List<Guid>();
-
-		/// <summary>
-		/// App-specific file packages. Reference to the list of all file packages send in separate message.
-		/// </summary>
-		[ProtoBuf.ProtoMember( 31 )]
-		[DataMember]
-		public List<Guid> FilePackages = new List<Guid>();
-
-		/// <summary>
 		/// Name of the network service the app is using
 		/// </summary>
 		[ProtoBuf.ProtoMember( 32 )]
@@ -225,6 +211,13 @@ namespace Dirigent
 		[ProtoBuf.ProtoMember( 34 )]
 		[DataMember]
 		public List<ToolRef> Tools = new List<ToolRef>();
+
+		/// <summary>
+		/// Files/folders/packages associated with the app
+		/// </summary>
+		[ProtoBuf.ProtoMember( 35 )]
+		[DataMember]
+		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
 		public bool Equals( AppDef? other )
 		{
@@ -266,11 +259,10 @@ namespace Dirigent
 				//this.Watchers.SequenceEqual(other.Watchers) &&
 				this.LeaveRunningWithPrevVars == other.LeaveRunningWithPrevVars &&
 				this.ReusePrevVars == other.ReusePrevVars &&
-				this.Files.SequenceEqual( other.Files ) &&
-				this.FilePackages.SequenceEqual( other.FilePackages ) &&
 				this.Service == other.Service &&
 				this.IconFile == other.IconFile &&
 				this.Tools.SequenceEqual( other.Tools ) &&
+				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				true
 			)
 				return true;

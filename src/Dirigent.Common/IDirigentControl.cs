@@ -137,11 +137,8 @@ namespace Dirigent
 		ScriptDef? GetScriptDef( string Id ) { return null; }
 		IEnumerable<ScriptDef> GetAllScriptDefs() { return new List<ScriptDef>(); }
 
-		FileDef? GetFileDef( Guid guid ) { return null; }
-		IEnumerable<FileDef> GetAllFileDefs() { return new List<FileDef>(); }
-
-		FilePackage? GetFilePackage( Guid guid ) { return null; }
-		IEnumerable<FilePackage> GetAllFilePackages() { return new List<FilePackage>(); }
+		VfsNodeDef? GetVfsNodeDef( Guid guid ) { return null; }
+		IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return new List<VfsNodeDef>(); }
 
 		//public MachineDef? GetMachineDef( string Id ) { return null; }
 	}

@@ -89,12 +89,23 @@ namespace Dirigent
 			return StartTool( tool, vars );
 		}
 
-		public Guid StartFileBoundTool( ToolRef tool, FileDef boundTo )
+		public Guid StartFileBoundTool( ToolRef tool, VfsNodeDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
 				{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
+			};
+			return StartTool( tool, vars );
+		}
+
+		public Guid StartFilePackageBoundTool( ToolRef tool, VfsNodeDef boundTo )
+		{
+			// FIXME: generate package content description file to a temp folder and put its full name to the vars
+			var vars = new Dictionary<string,string>()
+			{
+				//{ "FILE_ID", boundTo.Id },
+				//{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
 			};
 			return StartTool( tool, vars );
 		}

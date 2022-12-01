@@ -45,7 +45,7 @@ namespace Dirigent.Net
 			{ 130, typeof( ScriptStateMessage ) },
 			{ 131, typeof( ApplyPlanMessage ) },
 			{ 132, typeof( SetWindowStyleMessage ) },
-			{ 133, typeof( FileDefsMessage ) },
+			{ 133, typeof( VfsNodesMessage ) },
 			{ 134, typeof( MachineDefsMessage ) },
 			{ 135, typeof( StartTaskMessage ) },
 			{ 136, typeof( KillTaskMessage ) },
@@ -95,7 +95,7 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 130, typeof( ScriptStateMessage ) )]
 	[ProtoBuf.ProtoInclude( 131, typeof( ApplyPlanMessage ) )]
 	[ProtoBuf.ProtoInclude( 132, typeof( SetWindowStyleMessage ) )]
-	[ProtoBuf.ProtoInclude( 133, typeof( FileDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 133, typeof( VfsNodesMessage ) )]
 	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 135, typeof( StartTaskMessage ) )]
 	[ProtoBuf.ProtoInclude( 136, typeof( KillTaskMessage ) )]
@@ -1020,28 +1020,23 @@ namespace Dirigent.Net
 	}
 
 	/// <summary>
-	/// Master tells new client about existing files and file packages
+	/// Master tells new client about existing VfsNodes
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	public class FileDefsMessage : Message
+	public class VfsNodesMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		public List<FileDef> Files = new List<FileDef>();
+		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
-		[ProtoBuf.ProtoMember( 2 )]
-		public List<FilePackageDef> FilePackages = new List<FilePackageDef>();
-
-
-		public FileDefsMessage() { }
-		public FileDefsMessage( IEnumerable<FileDef> files, IEnumerable<FilePackageDef> packages)
+		public VfsNodesMessage() { }
+		public VfsNodesMessage( IEnumerable<VfsNodeDef> vfsNodes )
 		{
-			this.Files = new List<FileDef>( files );
-			this.FilePackages = new List<FilePackageDef>( packages );
+			this.VfsNodes = new List<VfsNodeDef>( vfsNodes );
 		}
 		
 		public override string ToString()
 		{
-			return $"FileDefs ({Files.Count} files, {FilePackages.Count} packages)";
+			return $"VfsNodes ({VfsNodes.Count})";
 		}
 	}
 

@@ -30,10 +30,8 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
 		public ScriptDef? GetScriptDef( string Id ) { if( _scripts.Scripts.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return from x in _scripts.Scripts.Values select x.Def; }
-		public FileDef? GetFileDef( Guid guid ) { return _files.GetFileDef(guid); }
-		public IEnumerable<FileDef> GetAllFileDefs() { return _files.GetAllFileDefs(); }
-		public FilePackage? GetFilePackage( Guid guid ) { return _files.GetFilePackage(guid); }
-		public IEnumerable<FilePackage> GetAllFilePackage() { return _files.GetAllFilePackages(); }
+		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
 		public string Name => string.Empty;
 		public void Send( Net.Message msg ) { ProcessIncomingMessageAndHandleExceptions( msg ); }
 
@@ -554,9 +552,9 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
-			// send full list of files & packages
+			// send full list of VFS nodes
 			{
-				var m = new Net.FileDefsMessage( _files.Files.Values, _files.PackageDefs );
+				var m = new Net.VfsNodesMessage( _files.VfsNodes.Values );
 				_server.SendToSingle( m, ident.Name );
 			}
 
@@ -652,7 +650,7 @@ namespace Dirigent
 			// import predefined scripts
 			_scripts.SetAll( sharedConfig.Scripts );
 
-			_files.SetFiles( sharedConfig.Files, sharedConfig.FilePackages );
+			_files.SetVfsNodes( sharedConfig.VfsNodes );
 			_files.SetMachines( sharedConfig.Machines );
 
 			_machineDefs = new List<MachineDef>( sharedConfig.Machines );

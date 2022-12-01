@@ -29,7 +29,7 @@ namespace Dirigent
 		/// </summary>
 		/// <param name="path"></param>
 		/// <param name="payload"></param>
-		/// <param name="constructor"></param>
+		/// <param name="constructor">if not null, called to create new tree nodes </param>
 		public void InsertNode( string path, bool isFolder, object? payload, ConstructorDeleg? constructor )
 		{
 			var parts = path.Split( seps, 2 );

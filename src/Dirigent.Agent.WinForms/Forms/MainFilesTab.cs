@@ -106,7 +106,7 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			// check for new plans and update local copy/menu if they are different
-			var newFiles = Ctrl.GetAllFileDefs();
+			var newFiles = from x in Ctrl.GetAllVfsNodeDefs() where x is FileDef select x as FileDef;
 			if( !newFiles.SequenceEqual( _allFiles ) )
 			{
 				_allFiles.Clear();
@@ -156,27 +156,14 @@ namespace Dirigent.Gui.WinForms
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 
 					{
-						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-
-						var fileDef = ReflStates.GetFileDef( guid );
-						if( fileDef != null )
+						var fileDef = ReflStates.GetVfsNodeDef( guid ) as FileDef;
+						if ( fileDef != null )
 						{
-							foreach( var tool in fileDef.Tools )
+							var toolsMenu = ContextMenuFile( fileDef );
+							if (toolsMenu != null)
 							{
-								var title = tool.Title;
-								if (string.IsNullOrEmpty( title )) title = tool.Id;
-								var item = new System.Windows.Forms.ToolStripMenuItem( title );
-								item.Click += ( s, a ) => WFT.GuardedOp( () => {
-										_form.ToolsRegistry.StartFileBoundTool( tool, fileDef ) ;
-									}
-								);
-								toolsMenu.DropDownItems.Add( item );
+								popup.Items.Add( toolsMenu );
 							}
-						}
-
-						if( toolsMenu.DropDownItems.Count > 0 )
-						{
-							popup.Items.Add( toolsMenu );
 						}
 					}
 

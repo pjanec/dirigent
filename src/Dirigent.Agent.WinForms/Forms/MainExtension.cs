@@ -36,5 +36,88 @@ namespace Dirigent.Gui.WinForms
 			_form = form;
 		}
 
+		protected ToolStripMenuItem ContextMenuFile( FileDef fileDef )
+		{
+			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
+			foreach( var tool in fileDef.Tools )
+			{
+				var title = tool.Title;
+				if (string.IsNullOrEmpty( title )) title = tool.Id;
+				var item = new System.Windows.Forms.ToolStripMenuItem( title );
+				item.Click += ( s, a ) => WFT.GuardedOp( () => {
+						var resolved = ReflStates.FileRegistry.Resolve( fileDef, null );
+						_form.ToolsRegistry.StartFileBoundTool( tool, resolved ) ;
+					}
+				);
+				toolsMenu.DropDownItems.Add( item );
+			}
+			if( toolsMenu.DropDownItems.Count > 0 )
+			{
+				return toolsMenu;
+			}
+			return null;
+		}
+
+		protected ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
+		{
+			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
+			foreach( var tool in fpack.Tools )
+			{
+				var title = tool.Title;
+				if (string.IsNullOrEmpty( title )) title = tool.Id;
+				var item = new System.Windows.Forms.ToolStripMenuItem( title );
+				item.Click += ( s, a ) => WFT.GuardedOp( () => {
+						var resolved = ReflStates.FileRegistry.Resolve( fpack, null );
+						_form.ToolsRegistry.StartFilePackageBoundTool( tool, resolved ) ;
+					}
+				);
+				toolsMenu.DropDownItems.Add( item );
+			}
+			if( toolsMenu.DropDownItems.Count > 0 )
+			{
+				return toolsMenu;
+			}
+			return null;
+		}
+
+		protected ToolStripMenuItem ContextMenuFiles( IEnumerable<FileDef> fileDefs )
+		{
+			var filesMenu = new System.Windows.Forms.ToolStripMenuItem( "&Files" );
+			foreach( var fileDef in fileDefs )
+			{
+				var title = fileDef.Title;
+				if (string.IsNullOrEmpty( title )) title = fileDef.Id;
+				var fileMenu = new ToolStripMenuItem( title );
+				var toolsSubmenu = ContextMenuFile( fileDef );
+				if( toolsSubmenu != null )
+				{
+					//fileMenu.DropDownItems.Add ( toolsSubmenu );
+					fileMenu.DropDownItems.AddRange( toolsSubmenu.DropDownItems );
+				}
+				filesMenu.DropDownItems.Add( fileMenu );
+			}
+			return filesMenu;
+		}
+		
+		protected ToolStripMenuItem ContextMenuFilePackages( IEnumerable<FilePackageDef> fpackDefs )
+		{
+			var fpacksMenu = new System.Windows.Forms.ToolStripMenuItem( "&Packages" );
+			foreach( var fpack in fpackDefs )
+			{
+				var title = fpack.Title;
+				if (string.IsNullOrEmpty( title )) title = fpack.Id;
+				var fpackMenu = new ToolStripMenuItem( title );
+				var toolsSubmenu = ContextMenuFilePackage( fpack );
+				if( toolsSubmenu != null )
+				{
+					//fileMenu.DropDownItems.Add ( toolsSubmenu );
+					fpackMenu.DropDownItems.AddRange( toolsSubmenu.DropDownItems );
+				}
+				fpacksMenu.DropDownItems.Add( fpackMenu );
+			}
+			return fpacksMenu;
+		}
+		
+
 	}
 }
