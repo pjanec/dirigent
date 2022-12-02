@@ -458,7 +458,7 @@ namespace Dirigent.Commands
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
 			(var id, var par) = Tools.ParseScriptIdArgs( args[0] );
-			ctrl.StartScript( _requestorId, id, par );
+			ctrl.StartScript( _requestorId, Guid.Parse(id), par );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -473,7 +473,7 @@ namespace Dirigent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
-			ctrl.KillScript( _requestorId, args[0] );
+			ctrl.KillScript( _requestorId, Guid.Parse(args[0]) );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -489,20 +489,17 @@ namespace Dirigent.Commands
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
 
-			var state = ctrl.GetScriptState( _requestorId, args[0] );
+			var state = ctrl.GetScriptState( _requestorId, Guid.Parse(args[0]) );
 
-			var stateStr = string.Empty;
-
-			if( state == null )
+			if( state is null )
 			{
-				stateStr = "None";
+				WriteResponse( "" );
 			}
 			else
 			{
-				stateStr = state.StatusText;
+				WriteResponse( $"{state.Status}:{state.Text??""}");
 			}
 
-			WriteResponse( stateStr );
 		}
 	}
 

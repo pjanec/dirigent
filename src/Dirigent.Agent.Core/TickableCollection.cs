@@ -6,7 +6,7 @@ namespace Dirigent
     // something to be ticked each frame
     public interface ITickable : IDisposable
     {
-        string Id { get; set; }
+        string Id { get; }
 
         void Tick();
 

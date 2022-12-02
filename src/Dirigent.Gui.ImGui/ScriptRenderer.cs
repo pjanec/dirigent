@@ -10,7 +10,8 @@ namespace Dirigent.Gui
 {
 	public class ScriptRenderer
 	{
-		private string _id;
+		private Guid _id;
+		private string _title;
 		IDirig _ctrl;
 		private string _uniqueUiId = Guid.NewGuid().ToString();
 		private ImGuiWindow _wnd;
@@ -18,10 +19,11 @@ namespace Dirigent.Gui
 		private ImageInfo _txStart;
 		private ImageInfo _txKill;
 
-		public ScriptRenderer( ImGuiWindow wnd, string id, IDirig ctrl )
+		public ScriptRenderer( ImGuiWindow wnd, Guid id, string title, IDirig ctrl )
 		{
 			_wnd = wnd;
 			_id = id;
+			_title = title;
 			_ctrl = ctrl;
 
 			_txStart = _wnd.GetImage("Resources/play.png");
@@ -35,10 +37,10 @@ namespace Dirigent.Gui
 			ScriptState? scriptState = _ctrl.GetScriptState( _id );
 			ScriptDef? scriptDef = _ctrl.GetScriptDef( _id );
 
-			string statusText = scriptState != null ? Tools.GetScriptStateText( scriptState ) : string.Empty;
+			string statusText = scriptState is not null ? Tools.GetScriptStateText( scriptState ) : string.Empty;
 
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1f,1f,0f,1f) );
-			bool opened = ImGui.TreeNodeEx( _id, ImGuiTreeNodeFlags.FramePadding);
+			bool opened = ImGui.TreeNodeEx( _title, ImGuiTreeNodeFlags.FramePadding);
 			ImGui.PopStyleColor();
 			if (ImGui.BeginPopupContextItem())
 			{

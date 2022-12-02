@@ -195,7 +195,7 @@ namespace Dirigent
 
 		public static string GetScriptStateText( ScriptState st )
 		{
-			return st.StatusText;
+			return st.Text ?? "";
 		}
 
 		// returs first line without CR/LF
@@ -601,7 +601,24 @@ namespace Dirigent
 				return ReadLines( stream, Encoding.UTF8 ).ToArray();
 			}
 		}
-			
+
+		public static byte[] ProtoSerialize<T>( T data )	
+		{
+			using (var stream = new MemoryStream())
+			{
+				ProtoBuf.Serializer.Serialize( stream, data );
+				return stream.ToArray();
+			}
+		}
+
+		public static T? ProtoDeserialize<T>( byte[]? data )	
+		{
+			if (data is null) return default( T );
+			using (var stream = new MemoryStream( data ))
+			{
+				return ProtoBuf.Serializer.Deserialize<T>( stream );
+			}
+		}
 
 	}
 

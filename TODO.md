@@ -64,7 +64,67 @@
 * They are extracted from all different places like Apps, Machines and put to a global list of individual files/folders and packages.
 * The definitions are published to all clients, unresolved. Meaning that each clients knows all defs, but needs to resolve them before using.
 
-# [IDEA] Distributed Tasks.
+# Async Scripts
+
+Script is a class having a Run() method returning a result value. The script runs asynchronously. When the Run method ends, the script ends.
+
+A script can call dirigent's API using await.
+
+The script can be cancelled but not forcefully killed. Cancellation can happen within the call to dirigent's API. In other places the cancellation needs to be supported by actively checking the cancellation token.
+
+### Tracking script status
+
+Script can be in one of the following states Starting, Running, Success, Failed, Cancelling, Cancelled.
+
+Script status is described by a triplet 1. status code (see the states above), 2. status text 3. status user data (arbitrary serializable data struct).
+
+The script result (the value returned from Run method) is automatically saved to the status user data once the script successfully finishes. If the script fails, the status text contains the reason code (for example "Exception") and the status user data contains additional info. The format of the status user data is reason-specific.
+
+Script can update its status info (status text and status user data) at any time during its Running phase.
+
+The status of the script is published to all other nodes whenever the status changes.
+
+Each node keeps track of the status of all scripts running on any node. Once the script finishes, its final status is kept in memory for a while before removal to be available for whoever is polling it.
+
+### Singleton scripts
+
+Scripts that are permanently available to the user to run, presented in a menu. Such scripts are defined in shared config.
+
+There can be up to one single instance of each of these scripts, always having same GUID as defined in the shared config.
+
+The script can be run on any dirigent node named in the script definition (agent, master, GUI...)
+
+### Further implementation details
+
+Calls to dirigent API are dispatched to dirigent's main thread so the script  block until the API call gets executed in dirigent's main thread.
+
+## Remote script calls
+
+Scripts can be started on any node like client, agent or master.
+
+Script start request carries the client id where to run the script, the GUID of the upcoming script instance, script name (optionally also script code) and arguments.
+
+Script code (if not provided in the start request) is loaded from a script library. The library contains built-in scripts (hardcoded within dirigent) as well as the script files found in dirigent's script folder.
+
+Dirigent's async API includes running a script on given node and waiting for it to finish.
+
+`var result = await RunScriptWait<TResult>( scriptName: "scripts/myscrip1", args: "myarg", timeout: 20);`
+
+If script finishes successfully, its result is returned.
+
+If the script executions fails, the exception that happened in the script will be re-thrown locally.
+
+# GUI async actions
+
+Some actions need to be performed on multiple machines different than the one from where the request comes from.
+
+GUI action is an async method.
+
+It can call async dirigent API, including starting scripts & waiting for their termination. GUI action can then easily using the result returned from the script for some local UI operation.
+
+# [IDEA] Distributed Tasks
+
+EDIT: no longer interesting, replaced with a more generic awaitable Remote Script calls.
 
 * [EDIT] Is the following complicated stuff worth the effort? Can't we simply rely on powershell remoting???
   * Maybe dirigent can just help with enabling the remoting on the machines (on of the tools in dirigent's menu)
@@ -82,6 +142,20 @@
 * 
 * 
 * 
+
+### TODO
+
+ * ask IDirig for the status of script with given guid
+ * ReflStates catches the status of any script (something like TaskRegistryClient but for scripts - ScriptStateRegistry or something)
+ * status updates are sent for any script, the same way for permanent scripts as well as for distributed tasks (both controller and workers)
+ * ScriptStateRegistry catches ScriptState messages
+ * we publish task state as a script state (they use same state struct anyway)
+ * ScriptStateRegistry monitors every script state no matter if it a task or not
+ * IDirig.GetScriptState returns the state struct
+ * old dead scripts are removed from the registry automatically after some time
+ * StartTask carrie new GUID for the new task
+
+
 
 Maybe extending the existing Script implementation is the right way to go. Current Script can be implemented as just the Controller part of the task running on the master, no workers.
 

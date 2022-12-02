@@ -15,10 +15,11 @@ namespace Dirigent.Gui.WinForms
 {
 	public class MainScriptsTab : MainExtension
 	{
-		const int colName = 0;
-		const int colStatus = 1;
-		const int colIconStart = 2;
-		const int colIconKill = 3;
+		const int colId = 0;
+		const int colName = 1;
+		const int colStatus = 2;
+		const int colIconStart = 3;
+		const int colIconKill = 4;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -44,6 +45,7 @@ namespace Dirigent.Gui.WinForms
 			_grid.DataSource = _bindingSource;
 
 	        _dataTable = _dataSet.Tables.Add("ScriptsTable");
+			_dataTable.Columns.Add("Id", typeof(Guid));
 			_dataTable.Columns.Add("Name", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
 			_dataTable.Columns.Add("IconStart", typeof(Bitmap));
@@ -52,6 +54,13 @@ namespace Dirigent.Gui.WinForms
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
 			// fix columns appearance
+
+			var _hdrScriptId = _grid.Columns[colId];
+			_hdrScriptId.HeaderText = "Script Id";
+			_hdrScriptId.MinimumWidth = 9;
+			_hdrScriptId.ReadOnly = true;
+			_hdrScriptId.Width = 100;
+			_hdrScriptId.Visible = false;
 
 			var _hdrScriptName = _grid.Columns[colName];
 			_hdrScriptName.HeaderText = "Script Name";
@@ -114,7 +123,8 @@ namespace Dirigent.Gui.WinForms
 			{
 				object[] newrow = new object[] {
 					script.Id,
-					"",
+					script.Title,
+					"", // status
 					_iconStart,
 					_iconKill,
 				};
@@ -130,12 +140,25 @@ namespace Dirigent.Gui.WinForms
 				var drv = r.DataBoundItem as DataRowView;
 				var rowItems = drv.Row.ItemArray;
 
-				string scriptId = (string)rowItems[colName];
-
+				var scriptId = (Guid)rowItems[colId];
+					
 				var scriptState = Ctrl.GetScriptState( scriptId );
 				if (scriptState != null)
 				{
-					drv.Row.SetField(colStatus, scriptState.StatusText);
+					var statusText = scriptState.Status.ToString();
+					if (scriptState.Status == EScriptStatus.Running)
+					{
+						statusText += "; " + scriptState.Text;
+					}
+					else
+					if (scriptState.Status == EScriptStatus.Failed)
+					{
+						var scriptError = Tools.ProtoDeserialize<ScriptError>( scriptState.Data );
+						statusText += "; " + scriptError.Message;
+					}
+					
+
+					drv.Row.SetField(colStatus, statusText);
 
 					//// mark currently running scripts with different background color
 					//var color = scriptState.StatusText == "Running" ? Color.LightGoldenrodYellow : Color.White;
@@ -149,7 +172,7 @@ namespace Dirigent.Gui.WinForms
 				}
 				else
 				{
-					r.Cells[colStatus].Value = string.Empty;
+					drv.Row.SetField(colStatus, string.Empty);
 					r.DefaultCellStyle.BackColor = Color.White;
 				}
 			}
@@ -168,7 +191,7 @@ namespace Dirigent.Gui.WinForms
 			if( currentRow >= 0 ) // ignore header clicks
 			{
 				DataGridViewRow focused = _grid.Rows[currentRow];
-				string scriptId = focused.Cells[0].Value as string;
+				Guid scriptId = (Guid)focused.Cells[colId].Value;
 				bool connected = Client.IsConnected;
 
 				var script = ScriptRepo.FirstOrDefault( p => p.Id == scriptId );
@@ -243,7 +266,7 @@ namespace Dirigent.Gui.WinForms
 			if( currentRow >= 0 ) // ignore header clicks
 			{
 				DataGridViewRow focused = _grid.Rows[currentRow];
-				string scriptId = focused.Cells[0].Value as string;
+				Guid scriptId = (Guid)focused.Cells[colId].Value;
 				bool connected = Client.IsConnected;
 
 				if( e.Button == MouseButtons.Left )

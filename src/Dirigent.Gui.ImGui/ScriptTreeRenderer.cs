@@ -17,8 +17,8 @@ namespace Dirigent.Gui
 		
 		FolderTreeRenderer _treeRend;
 		FolderTree _treeRoot;
-		Dictionary<string, ScriptRenderer> _nodeRenderers;
-
+		Dictionary<Guid, ScriptRenderer> _nodeRenderers;
+					
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 		public ScriptTreeRenderer( ImGuiWindow wnd, IDirig ctrl )
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -78,12 +78,13 @@ namespace Dirigent.Gui
 			foreach( var def in _ctrl.GetAllScriptDefs() )
 			{
 				var id = def.Id;
+				var title = def.Title;
 
 				// get renderer for a single script
 				ScriptRenderer? r;
 				if( !_nodeRenderers.TryGetValue( id, out r ) )
 				{
-					r = new ScriptRenderer( _wnd, id, _ctrl );	// will render the effective ones
+					r = new ScriptRenderer( _wnd, id, title, _ctrl );	// will render the effective ones
 					_nodeRenderers[id] = r;
 				}
 
@@ -94,12 +95,12 @@ namespace Dirigent.Gui
 				{
 					foreach ( var g in groups )
 					{
-						root.InsertNode( $"{g.Trim()}/{id}", false, r, null );
+						root.InsertNode( $"{g.Trim()}/{title}", false, r, null );
 					}
 				}
 				else // no groups defined => put to the root
 				{
-					root.InsertNode( id, false, r, null );
+					root.InsertNode( title, false, r, null );
 				}
 			}
 

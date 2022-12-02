@@ -10,7 +10,7 @@ namespace Dirigent
 {
 
 	/// <summary>
-	/// Definition of a script in shared config
+	/// Definition of a single-instance script in shared config
 	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ScriptDef : IEquatable<ScriptDef>
@@ -19,24 +19,29 @@ namespace Dirigent
 		/// Unique script name
 		/// </summary>
 		[ProtoBuf.ProtoMember( 1 )]
-		public string Id = string.Empty;
+		public Guid Id;
 
-		[ProtoBuf.ProtoMember(2)]
-		public string FileName = string.Empty;
+		[ProtoBuf.ProtoMember( 2 )]
+		public string Title = String.Empty;
 
-		[ProtoBuf.ProtoMember( 3 )]
+		/// <summary>
+		/// Name in the script library
+		/// </summary>
+		[ProtoBuf.ProtoMember(3)]
+		public string Name = string.Empty;
+
+		[ProtoBuf.ProtoMember( 4 )]
 		public string Args = string.Empty;
 
 		// semicilon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
-		[ProtoBuf.ProtoMember( 4 )]
+		[ProtoBuf.ProtoMember( 5 )]
 		public string Groups = string.Empty;
 
 		/// <summary>
-		/// list of script-local vars to set (can be used in expansions for example in process exe path or command line)
+		/// On which node (client/agent/master) to run this script. empty=master.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
-		public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
+		[ProtoBuf.ProtoMember( 6 )]
+		public string MachineId = string.Empty;
 
 		public bool Equals( ScriptDef? other )
 		{
@@ -45,9 +50,11 @@ namespace Dirigent
 
 			if(
 				this.Id == other.Id &&
-				this.FileName == other.FileName &&
+				this.Title == other.Title &&
+				this.Name == other.Name &&
 				this.Args == other.Args &&
 				this.Groups == other.Groups &&
+				this.MachineId == other.MachineId &&
 				true
 			)
 				return true;

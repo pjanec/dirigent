@@ -29,13 +29,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="..\..\config\scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CS-Script.Core" Version="2.0.0" />
     <PackageReference Include="EmbedIO" Version="3.4.3" />
     <PackageReference Include="log4net" Version="2.0.12" />
   </ItemGroup>

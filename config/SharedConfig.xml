@@ -118,7 +118,7 @@
     </Plan>
 
 
-    <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" Groups="Examples;;Common/Demo"/>
+    <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1" Name="Scripts/DemoScript1.cs" Args="" Groups="Examples;;Common/Demo"/>
 
     <AppTemplate Name="apps.notepad"
     		Template = ""

@@ -67,9 +67,16 @@ namespace Dirigent.Gui.WinForms
 				if (string.IsNullOrEmpty( title )) title = tool.Id;
 				var item = new System.Windows.Forms.ToolStripMenuItem( title );
 				item.Click += ( s, a ) => WFT.GuardedOp( () => {
-						var resolved = ReflStates.FileRegistry.Resolve( fpack, null );
-						_form.ToolsRegistry.StartFilePackageBoundTool( tool, resolved ) ;
-					}
+					var resolved = ReflStates.FileRegistry.Resolve( fpack, null );
+					_form.ToolsRegistry.StartFilePackageBoundTool( tool, resolved );
+					//_form.TaskRegistry.StartTaskWithWatcher(
+					//	Scripts.ResolveVfsTree.Controller._Name,
+					//	Tools.ProtoSerialize( new Scripts.ResolveVfsTree.Controller.TArgs { VfsNodes = new List<VfsNodeDef> { fpack } } ),
+					//	$"[FPack] '{fpack.Title}' Resolver",
+					//	new ScriptFinishedWatcher( Ctrl.Name, () => MessageBox.Show( "Task Finished" ) )
+					//);
+
+				}
 				);
 				toolsMenu.DropDownItems.Add( item );
 			}

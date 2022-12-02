@@ -141,6 +141,7 @@ namespace Dirigent.Gui.WinForms
 
 		void myDispose()
 		{
+			
 			tmrTick.Enabled = false;
 			if( Client is not null )
 			{

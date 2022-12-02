@@ -36,7 +36,6 @@ namespace Dirigent
 
 		private TickableCollection _tickers;
 		public TickableCollection Tickers => _tickers;
-		public TaskRegistryAgent _tasks;
 		public ScriptFactory ScriptFactory;
 		public SynchronousOpProcessor SyncOps { get; private set; }
 		
@@ -56,6 +55,8 @@ namespace Dirigent
 			_client = new Net.Client( _clientIdent, masterIP, masterPort, autoConn: true );
 			_rootForRelativePaths = rootForRelativePaths;
 
+			ScriptFactory = new ScriptFactory();
+
 			_sharedContext = new SharedContext(
 				rootForRelativePaths,
 				_internalVars,
@@ -73,9 +74,6 @@ namespace Dirigent
 				InitFromLocalConfig();
 			}
 			
-			_tasks = new TaskRegistryAgent( this );
-
-			ScriptFactory = new ScriptFactory();
 
 			SyncOps = new SynchronousOpProcessor();
 
@@ -204,17 +202,6 @@ namespace Dirigent
 					break;
 				}
 
-				case Net.StartTaskWorkerMessage m:
-				{
-					_tasks.StartWorker( m.Sender, m.TaskInstance, m.Id, m.Args, m.ScriptName, m.ScriptCode );
-					break;
-				}
-
-				case Net.KillTaskWorkersMessage m:
-				{
-					_tasks.Kill( m.Sender, m.TaskInstance );
-					break;
-				}
 			}
 		}
 

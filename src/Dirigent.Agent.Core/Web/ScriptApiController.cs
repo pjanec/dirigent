@@ -54,7 +54,7 @@ namespace Dirigent.Web
 
 		public ScriptDef( Dirigent.ScriptDef sd )
 		{
-			id = sd.Id;
+			id = sd.Id.ToString();
 			groups = sd.Groups;
 		}
 
@@ -90,7 +90,7 @@ namespace Dirigent.Web
 			ScriptDef res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				var pd = _master.GetScriptDef( id );
+				var pd = _master.GetScriptDef( Guid.Parse(id) );
 
 				if( pd is null )
 					throw HttpException.NotFound();
@@ -108,7 +108,7 @@ namespace Dirigent.Web
 			ScriptState res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				var ps = _master.GetScriptState( id );
+				var ps = _master.GetScriptState( Guid.Parse(id) );
 
 				if( ps is null )
 					throw HttpException.NotFound();
@@ -126,7 +126,7 @@ namespace Dirigent.Web
 			List<ScriptState> res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from kv in _master.GetAllScriptStates() select new ScriptState( kv.Key, kv.Value )).ToList();
+				res = (from kv in _master.GetAllScriptStates() select new ScriptState( kv.Key.ToString(), kv.Value )).ToList();
 			} );
 			await op.WaitAsync();
 			return res;

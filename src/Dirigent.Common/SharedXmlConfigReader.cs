@@ -576,19 +576,21 @@ namespace Dirigent
 			foreach( var p in scripts )
 			{
 				index++;
-				var id = X.getStringAttr( p, "Name", "" );
-				var file = X.getStringAttr( p, "File", "" );
+				var id = X.getStringAttr( p, "Id", "" ); // actually a GUID
+				var title = X.getStringAttr( p, "Title", "" );
+				var name = X.getStringAttr( p, "Name", "" );
 				var args = X.getStringAttr( p, "Args", "" );
 				var groups = X.getStringAttr( p, "Groups", "" );
 
 				if( string.IsNullOrEmpty(id) )
-					throw new ConfigurationErrorException( $"Missing script name in script #{index}");
+					throw new ConfigurationErrorException( $"Missing script Id in script #{index}");
 
 				_cfg.Scripts.Add(
 					new ScriptDef()
 					{
-						Id = id,
-						FileName = file,
+						Id = Guid.Parse(id),
+						Title = title,
+						Name = name,
 						Args = args,
 						Groups = groups
 					}

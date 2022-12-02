@@ -19,14 +19,14 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
-		public ScriptState? GetScriptState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _scriptStates.TryGetValue(Id, out var st)) return st; else return null; }
-		public IEnumerable<KeyValuePair<string, ScriptState>> GetAllScriptStates() { return _scriptStates; }
+		public ScriptState? GetScriptState( Guid Id ) { return _scripts.GetScriptState(Id); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scripts.GetAllScriptStates(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
-		public ScriptDef? GetScriptDef( string Id ) { return _scriptDefs.Find((x) => x.Id==Id); }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptDefs; }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _scripts.ScriptDefs.Find((x) => x.Id==Id); }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scripts.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
@@ -58,8 +58,10 @@ namespace Dirigent
 		private Dictionary<string, PlanState> _planStates = new Dictionary<string, PlanState>();
 		private List<PlanDef> _planDefs = new List<PlanDef>();
 
-		private Dictionary<string, ScriptState> _scriptStates = new Dictionary<string, ScriptState>();
-		private List<ScriptDef> _scriptDefs = new List<ScriptDef>();
+		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
+
+		public ReflectedScriptRegistry _scripts;
+		public ReflectedScriptRegistry Scripts => _scripts;
 
 		private FileRegistry _fileReg;
 		public FileRegistry FileRegistry => _fileReg;
@@ -70,6 +72,8 @@ namespace Dirigent
 		{
 			_client = client;
 			_client.MessageReceived += OnMessage;
+
+			_scripts = new ReflectedScriptRegistry( this );
 
 			_fileReg = new FileRegistry( localMachineId, (string machineId) =>
 			{
@@ -157,38 +161,13 @@ namespace Dirigent
 
 				case Net.ScriptStateMessage m:
 				{
-					//Debug.Assert( m.PlansState != null );
-					_scriptStates = m.ScriptsState ?? new Dictionary<string, ScriptState>();
+					_scripts.UpdateScriptState( m.Instance, m.State );
 					break;
 				}
 
 				case Net.ScriptDefsMessage m:
 				{
-					if( !m.Incremental ) // replace
-					{
-						if( m.ScriptDefs is not null )
-							_scriptDefs = new List<ScriptDef>( m.ScriptDefs );
-						else
-							_scriptDefs = new List<ScriptDef>();
-					}
-					else // add/update
-					{
-						if( m.ScriptDefs is not null )
-						{
-							foreach( var pd in m.ScriptDefs )
-							{
-								int idx = _scriptDefs.FindIndex( (x) => x.Id == pd.Id );
-								if( idx < 0 )
-								{
-									_scriptDefs.Add( pd );
-								}
-								else
-								{
-									_scriptDefs[idx] = pd;
-								}
-							}
-						}
-					}
+					_scripts.SetScriptDefs( m.ScriptDefs, m.Incremental );
 					OnScriptsReceived?.Invoke();
 					break;
 				}
@@ -230,7 +209,7 @@ namespace Dirigent
 					_planDefs.Clear();
 					_appStates.Clear();
 					_planStates.Clear();
-					_scriptStates.Clear();
+					_scripts.Clear();
 					_machineDefs.Clear();
 					_fileReg.Clear();
 					OnReset?.Invoke();

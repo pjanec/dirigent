@@ -22,14 +22,14 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
-		public ScriptState? GetScriptState( string Id ) { if( _scripts.Scripts.TryGetValue(Id, out var x)) return x.State; else return null; }
-		public IEnumerable<KeyValuePair<string, ScriptState>> GetAllScriptStates() { return from x in _scripts.Scripts.Values select new KeyValuePair<string, ScriptState>( x.Id, x.State ); }
+		public ScriptState? GetScriptState( Guid Id ) { return _reflScripts.GetScriptState( Id ); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _reflScripts.GetAllScriptStates(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
-		public ScriptDef? GetScriptDef( string Id ) { if( _scripts.Scripts.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return from x in _scripts.Scripts.Values select x.Def; }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Id==Id); }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _reflScripts.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
 		public string Name => string.Empty;
@@ -56,8 +56,10 @@ namespace Dirigent
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
 		private PlanRegistry _plans;
-		private ScriptRegistry _scripts;
-		private TaskRegistryMaster _tasks;
+		private ReflectedScriptRegistry _reflScripts;
+		private LocalScriptRegistry _localScripts;
+		private SingletonScriptRegistry _singlScripts;
+		//private TaskRegistryMaster _tasks;
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
@@ -83,6 +85,9 @@ namespace Dirigent
 
 			_rootForRelativePaths = rootForRelativePaths;
 
+			ScriptFactory = new ScriptFactory();
+			SyncOps = new SynchronousOpProcessor();
+
 			_allAppStates = new AllAppsStateRegistry();
 			_allClientStates = new AllClientStateRegistry();
 
@@ -95,9 +100,9 @@ namespace Dirigent
 			_plans = new PlanRegistry( this );
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
-			_scripts = new ScriptRegistry( this );
-
-			_tasks = new TaskRegistryMaster( this );
+			_reflScripts = new ReflectedScriptRegistry( this );
+			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps );
+			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
 
 			_files = new FileRegistry(
 				ac.MachineId, // empty if we run master standalone on an unidentified machine
@@ -126,12 +131,9 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
-			SyncOps = new SynchronousOpProcessor();
-
 			_webServerCTS = new CancellationTokenSource();
 			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
 
-			ScriptFactory = new ScriptFactory();
 
 			//// FIXME: Just for testing the script! To be removed!
 			//var script = new DemoScript1();
@@ -147,8 +149,7 @@ namespace Dirigent
 			_webServerCTS.Cancel();
 			Task.WaitAll( _webServerTask );
 
-			_tasks.Dispose();
-			_scripts.Dispose();
+			_singlScripts.Dispose();
 			_tickers.Dispose();
 			_telnetServer?.Dispose();
 			_cliProc.Dispose();
@@ -161,7 +162,9 @@ namespace Dirigent
 		{
 			_tickers.Tick();
 
-			_scripts.Tick();
+			_singlScripts.Tick();
+			_localScripts.Tick();
+			_reflScripts.Tick();
 
 			_plans.Tick();
 
@@ -365,19 +368,13 @@ namespace Dirigent
 
 				case StartScriptMessage m:
 				{
-					if( !string.IsNullOrEmpty(m.Id) )
-					{
-						StartScript( m.Sender, m.Id, m.Args );
-					}
+					StartScript( m.Sender, m.Instance, Tools.ProtoDeserialize<string>(m.Args) );
 					break;
 				}
 
 				case KillScriptMessage m:
 				{
-					if( !string.IsNullOrEmpty(m.Id) )
-					{
-						KillScript( m.Sender, m.Id );
-					}
+					KillScript( m.Sender, m.Id );
 					break;
 				}
 
@@ -413,22 +410,17 @@ namespace Dirigent
 
 				case SetWindowStyleMessage m:
 				{
+					// forward to all
 					_server.SendToAllSubscribed( m, EMsgRecipCateg.Agent );
 					break;
 				}
 
-				case StartTaskMessage m:
+				case ScriptStateMessage m:
 				{
-					if( !string.IsNullOrEmpty(m.Id) )
-					{
-						StartTask( m.Sender, m.Id, m.Args );
-					}
-					break;
-				}
-
-				case KillTaskMessage m:
-				{
-					KillTask( m.Sender, m.Guid );
+					_reflScripts.UpdateScriptState( m.Instance, m.State );
+						
+					// forward to all
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.Agent );
 					break;
 				}
 
@@ -445,7 +437,7 @@ namespace Dirigent
 			}
 			catch( Exception ex )
 			{
-				var errText = $"Exception '{ex.Message}' when processing message '{msg}'";
+				var errText = $"Exception\n\n'{ex.Message}'\n\nwhen processing message '{msg}'";
 				log.Error(errText, ex);
 					
 				// send error back to the sender
@@ -542,14 +534,17 @@ namespace Dirigent
 
 			// send the full list of scripts
 			{
-				var m = new Net.ScriptDefsMessage( from p in _scripts.Scripts.Values select p.Def, incremental: false );
+				var m = new Net.ScriptDefsMessage( from p in _singlScripts.Scripts.Values select p.Def, incremental: false );
 				_server.SendToSingle( m, ident.Name );
 			}
 
 			// send the full list of script states
 			{
-				var m = new Net.ScriptStateMessage( _scripts.ScriptStates );
-				_server.SendToSingle( m, ident.Name );
+				foreach (var (inst, state) in _localScripts.ScriptStates)
+				{
+					var m = new Net.ScriptStateMessage( inst, state );
+					_server.SendToSingle( m, ident.Name );
+				}
 			}
 
 			// send full list of VFS nodes
@@ -607,8 +602,11 @@ namespace Dirigent
 
 			// scripts
 			{
-				var m = new Net.ScriptStateMessage( _scripts.ScriptStates );
-				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				foreach (var (inst, state) in _localScripts.ScriptStates)
+				{
+					var m = new Net.ScriptStateMessage( inst, state );
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				}
 			}
 		}
 
@@ -648,7 +646,8 @@ namespace Dirigent
 
 
 			// import predefined scripts
-			_scripts.SetAll( sharedConfig.Scripts );
+			_reflScripts.SetScriptDefs( sharedConfig.Scripts );
+			_singlScripts.SetAll( sharedConfig.Scripts );
 
 			_files.SetVfsNodes( sharedConfig.VfsNodes );
 			_files.SetMachines( sharedConfig.Machines );
@@ -880,9 +879,9 @@ namespace Dirigent
 		}
 
 
-		public void StartScript( string requestorId, string id, string? args )
+		public void StartScript( string requestorId, Guid id, string? args )
 		{
-			_scripts.StartScript( requestorId, id, args );
+			_singlScripts.StartScript( requestorId, id, args );
 		}
 
 		public void StartScript( string requestorId, string scriptIdWithArgs )
@@ -892,27 +891,17 @@ namespace Dirigent
 			var (id, args) = Tools.ParseScriptIdArgs( scriptIdWithArgs );
 			if ( string.IsNullOrEmpty( id ) ) return;
 
-			StartScript( requestorId, id, args );
+			StartScript( requestorId, Guid.Parse(id), args );
 		}
 
-		public void KillScript( string requestorId, string id )
+		public void KillScript( string requestorId, Guid id )
 		{
-			_scripts.KillScript( requestorId, id );
+			_singlScripts.KillScript( requestorId, id );
 		}
 
-		public ScriptState? GetScriptState( string requestorId, string id )
+		public ScriptState? GetScriptState( string requestorId, Guid id )
 		{
-			return _scripts.GetScriptState( id );
-		}
-
-		public void StartTask( string requestorId, string id, string? args )
-		{
-			_tasks.Start( requestorId, id, args );
-		}
-
-		public void KillTask( string requestorId, Guid guid )
-		{
-			_tasks.Kill( requestorId, guid );
+			return _reflScripts.GetScriptState( id );
 		}
 
 		public void ApplyPlan( string requestorId, string planName, AppIdTuple appIdTuple )
