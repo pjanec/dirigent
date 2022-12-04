@@ -409,31 +409,31 @@ namespace Dirigent.Gui.WinForms
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 					popup.Enabled = connected || _form.AllowLocalIfDisconnected;
+					
+					//{
+					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
+					//	item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+					//		Ctrl.Name,
+					//		id,
+					//		Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
+					//	)));
+					//	item.Enabled = isAccessible && !st.Running;
+					//	popup.Items.Add( item );
+					//}
 
-					{
-						var item = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
-							Ctrl.Name,
-							id,
-							Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
-						)));
-						item.Enabled = isAccessible && !st.Running;
-						popup.Items.Add( item );
-					}
+					//{
+					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
+					//	item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.KillAppMessage( Ctrl.Name, id ) ) );
+					//	item.Enabled = isAccessible && ( st.Running || st.Restarting );
+					//	popup.Items.Add( item );
+					//}
 
-					{
-						var item = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.KillAppMessage( Ctrl.Name, id ) ) );
-						item.Enabled = isAccessible && ( st.Running || st.Restarting );
-						popup.Items.Add( item );
-					}
-
-					{
-						var item = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
-						item.Enabled = isAccessible; // && st.Running;
-						popup.Items.Add( item );
-					}
+					//{
+					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Restart" );
+					//	item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
+					//	item.Enabled = isAccessible; // && st.Running;
+					//	popup.Items.Add( item );
+					//}
 
 					if( plan != null )
 					{
@@ -449,6 +449,7 @@ namespace Dirigent.Gui.WinForms
 						popup.Items.Add( item );
 					}
 
+					if( plan != null ) // if no plan then no items above and no need for a separator 
 					{
 						var item = new System.Windows.Forms.ToolStripSeparator();
 						popup.Items.Add( item );
@@ -469,15 +470,16 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
-						var item = new System.Windows.Forms.ToolStripSeparator();
-						popup.Items.Add( item );
-					}
-
-					{
 						var filesMenu = ContextMenuFiles( from x in appDef.VfsNodes where x is FileDef select x as FileDef );
 						if ( filesMenu.DropDownItems.Count > 0 )
 						{
-							popup.Items.Add( filesMenu );
+							popup.Items.Add( new ToolStripSeparator() );
+						//	popup.Items.Add( filesMenu );
+						}
+						var fileMenuItems = filesMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
+						foreach ( ToolStripMenuItem item in fileMenuItems )
+						{
+							popup.Items.Add( item );
 						}
 					}
 
@@ -485,7 +487,13 @@ namespace Dirigent.Gui.WinForms
 						var fpackMenu = ContextMenuFilePackages( from x in appDef.VfsNodes where x is FilePackageDef select x as FilePackageDef );
 						if( fpackMenu.DropDownItems.Count > 0 )
 						{
-							popup.Items.Add( fpackMenu );
+							popup.Items.Add( new ToolStripSeparator() );
+						//	popup.Items.Add( fpackMenu );
+						}
+						var fpackMenuItems = fpackMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
+						foreach ( ToolStripMenuItem item in fpackMenuItems )
+						{
+							popup.Items.Add( item );
 						}
 					}
 
@@ -505,12 +513,18 @@ namespace Dirigent.Gui.WinForms
 
 						if( toolsMenu.DropDownItems.Count > 0 )
 						{
-							popup.Items.Add( toolsMenu );
+							//popup.Items.Add( toolsMenu );
 							popup.Items.Add( new ToolStripSeparator() );
+						}
+						var toolsMenuItems = toolsMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
+						foreach ( var item in toolsMenuItems )
+						{
+							popup.Items.Add( item );
 						}
 					}
 
 					{
+						popup.Items.Add( new ToolStripSeparator() );
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
 						item.Click += ( s, a ) => WFT.GuardedOp( () => 
 						{

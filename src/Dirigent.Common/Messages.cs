@@ -866,7 +866,8 @@ namespace Dirigent.Net
 		public string Title = string.Empty;
 
 		/// <summary>
-		/// Name of the worker part script.
+		/// Name of the script as known to the script library.
+		/// If empty, the script is taken via from the script defs loaded from the shared config (Def.Id == Instance).
 		/// </summary>
 		/// <remarks>
 		/// The name can contain a "subfolder part"
@@ -879,14 +880,22 @@ namespace Dirigent.Net
 
 		/// <summary>
 		/// Script code to instantiate (C#); empty for built-in tasks or file-based scripts.
-		/// If ScriptCode is empty, the script is loaded from the script library.
+		/// If empty, the script is loaded from the script library.
 		/// </summary>
 		[ProtoBuf.ProtoMember( 4 )]
-		public string? ScriptCode;
+		public string? SourceCode;
 
 
 		[ProtoBuf.ProtoMember( 5 )]
 		public byte[]? Args;
+
+		/// <summary>
+		/// Client where the script shall be started.
+		/// </summary>
+		[ProtoBuf.ProtoMember( 6 )]
+		public string HostClientId = "";
+
+		
 
 		public StartScriptMessage() {}
 
@@ -898,45 +907,53 @@ namespace Dirigent.Net
 			this.Args = Tools.ProtoSerialize( args );
 		}
 
-		///// <summary> Starts any script on given machine </summary>
-		//public StartScriptMessage( ... )
-		//{
-		//}
+		/// <summary> Starts script on given client </summary>
+		public StartScriptMessage( string requestorId, Guid instance, string scriptName, string? scriptCode, byte[]? args, string title, string hostClientId )
+		{
+			this.Sender = requestorId;
+			this.Instance = instance;
+			this.Title = title;
+			this.ScriptName = scriptName;
+			this.SourceCode = scriptCode;
+			this.Args = args;
+			this.HostClientId = hostClientId;
+		}
 
 
 		public override string ToString()
 		{
-			return string.Format( $"StartScriptMessage {Instance} {Title} {ScriptName}" );
+			return string.Format( $"StartScriptMessage [{Instance}] {Title} {ScriptName} @ {HostClientId}" );
 		}
 
 	}
 
 	/// <summary>
-	/// Someone asking the Master to kill a running script.
+	/// Asking to kill an instance of a running script (wherever it is running)
 	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class KillScriptMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		public Guid Id;
+		public Guid Instance;
 
 
 		public KillScriptMessage() {}
-		public KillScriptMessage( string requestorId, Guid id )
+		public KillScriptMessage( string requestorId, Guid instance )
 		{
 			this.Sender = requestorId;
-			this.Id = id;
+			this.Instance = instance;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "KillScript {0}", Id );
+			return string.Format( "KillScript {0}", Instance );
 		}
 
 	}
 
 	/// <summary>
-	/// Master tells new client about existing scripts
+	/// Master tells new client about existing script definitions
+	/// (they are used for single-instance scripts presented on GUI)
 	/// </summary>
 	[ProtoBuf.ProtoContract]
 	public class ScriptDefsMessage : Message

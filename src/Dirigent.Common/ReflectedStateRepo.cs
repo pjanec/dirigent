@@ -60,7 +60,7 @@ namespace Dirigent
 
 		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
 
-		public ReflectedScriptRegistry _scripts;
+		private ReflectedScriptRegistry _scripts;
 		public ReflectedScriptRegistry Scripts => _scripts;
 
 		private FileRegistry _fileReg;

@@ -458,7 +458,7 @@ namespace Dirigent.Commands
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
 			(var id, var par) = Tools.ParseScriptIdArgs( args[0] );
-			ctrl.StartScript( _requestorId, Guid.Parse(id), par );
+			ctrl.StartSingletonScript( _requestorId, Guid.Parse(id), par );
 			WriteResponse( "ACK" );
 		}
 	}

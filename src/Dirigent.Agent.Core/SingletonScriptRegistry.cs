@@ -44,7 +44,7 @@ namespace Dirigent
 			{
 				if (args is null) args = Def.Args;
 				// create a new instance of the script; it will be disposed when it dies
-				_localScriptRegistry.Start( Def.Id, Def.Name, Tools.ProtoSerialize( args ), Def.Title );
+				_localScriptRegistry.Start( Def.Id, Def.Name, null, Tools.ProtoSerialize( args ), Def.Title );
 			}
 
 			public void Stop()
@@ -98,6 +98,11 @@ namespace Dirigent
 			{
 				throw new Exception($"Unknown script {id}");
 			}
+		}
+							
+		public bool Contains( Guid id )
+		{
+			return Scripts.ContainsKey( id );
 		}
 
 		public void Tick()

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 using System;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Dirigent
 {
@@ -120,7 +121,7 @@ namespace Dirigent
 			_scripts.Remove( taskInfo.Guid );
 		}
 
-		public void AttachWatcher( Guid scriptInstance, ScriptWatcher watcher )
+		public void AttachWatcher( Guid scriptInstance, ScriptStatusWatcher watcher )
 		{
 			if (!_scripts.TryGetValue( scriptInstance, out var entry ))
 			{
@@ -132,7 +133,7 @@ namespace Dirigent
 			entry.Watchers.Add( watcher );
 		}
 
-		public void DetachWatcher( Guid scriptInstance, ScriptWatcher watcher )
+		public void DetachWatcher( Guid scriptInstance, ScriptStatusWatcher watcher )
 		{
 			if( !_scripts.TryGetValue( scriptInstance, out var taskInfo ))
 			{
@@ -157,25 +158,67 @@ namespace Dirigent
 			entry.OnScriptState( state );
 		}
 
-		///// <summary>
-		///// Starts given script and install its watcher. If the script fails to start, it gets removed automatically.
-		///// </summary>
-		//public Guid StartScriptWithWatcher( string scriptName, byte[]? args, string title, ScriptWatcher watcher )
-		//{
-		//	var instance = Guid.NewGuid();
+		/// <summary>
+		/// Starts script on given client and install its watcher. If the script fails to start, watcher gets removed automatically.
+		/// </summary>
+		public Guid StartScriptWithWatcher( string clientId, string scriptName, string? sourceCode, byte[]? args, string title, ScriptStatusWatcher watcher )
+		{
+			var instance = Guid.NewGuid();
 
-		//	// send a request
-		//	_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, args, title ) );
+			// send a request
+			_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, sourceCode, args, title, clientId ) );
 
-		//	// add task record with "Starting" status; it will get removed if fails to start in some time
-		//	var entry = new ReflectedScript { Guid=instance };
-		//	entry.State.Status = EScriptStatus.Starting;
-		//	entry.Watchers.Add( watcher );
-		//	_scripts[instance] = entry;
+			// add task record with "Starting" status; it will get removed if fails to start in some time
+			var entry = new ReflectedScript { Guid = instance };
+			entry.State.Status = EScriptStatus.Starting;
+			entry.Watchers.Add( watcher );
+			_scripts[instance] = entry;
 
-		//	return instance;
+			return instance;
+		}
 
-		//}
+		// runs script on given machine and wait for its termination
+		// throws ScriptException on failure
+		// throws TimeoutException on timeout
+		// otherwise returns the proto-decoded value that was proto-encoded by the script
+		public async Task<TResult?> RunScriptAndWait<TResult>( string clientId, string scriptName, string? sourceCode, byte[]? args, string title, CancellationToken ct, int timeoutMs=-1 )
+		{
+			var tcs = new TaskCompletionSource<TResult?>();
+			
+			var watcher = new ScriptStatusWatcher( _clientId, ( state ) =>
+			{
+				if( state.Status == EScriptStatus.Failed )
+				{
+					// we throw a task failure exception to the task
+					var exception = Tools.ProtoDeserialize<ScriptException>(state.Data)!;
+					//var exc = new ScriptException( error.Message, error.StackTrace );
+					//tcs.SetException( new Exception( $"Script {scriptName} failed: {error.Message}" )  );
+					tcs.SetException( exception );
+				}
+				else if( state.Status == EScriptStatus.Cancelled )
+				{
+					// this throws classic TaskCancelledException
+					tcs.SetCanceled();
+				}
+				else if (state.Status == EScriptStatus.Finished)
+				{
+					var resultByteArray = Tools.ProtoDeserialize<byte[]?>(state.Data);
+					var result = Tools.ProtoDeserialize<TResult>(resultByteArray);
+					tcs.SetResult( result );
+				}
+			} );
+			
+			StartScriptWithWatcher( clientId, scriptName, sourceCode, args, title, watcher );
+			
+			if( timeoutMs < 0 )
+			{
+				return await tcs.Task.WaitAsync( ct );
+			}
+			else
+			{
+				return await tcs.Task.WaitAsync( new TimeSpan(0,0,0,0,timeoutMs), ct );
+			}
+		}
 
 
 		class ReflectedScript : Disposable
@@ -184,7 +227,7 @@ namespace Dirigent
 
 			public ScriptState State = new ScriptState();
 			
-			public List<ScriptWatcher> Watchers = new List<ScriptWatcher>();
+			public List<ScriptStatusWatcher> Watchers = new List<ScriptStatusWatcher>();
 
 			// when we first time detected the existence of a script
 			public DateTime LastAliveTime = DateTime.Now;
@@ -204,7 +247,7 @@ namespace Dirigent
 			public void Tick()
 			{
 				// tick watchers, remove once complete
-				var toRemove = new List<ScriptWatcher>(10);
+				var toRemove = new List<ScriptStatusWatcher>(10);
 				foreach ( var i in Watchers )
 				{
 					i.Tick();
@@ -216,7 +259,7 @@ namespace Dirigent
 				}
 			}
 
-			void Remove( ScriptWatcher w )
+			void Remove( ScriptStatusWatcher w )
 			{
 				Watchers.Remove( w );
 				w.Dispose();

@@ -9,6 +9,17 @@ public class DemoScript1 : Script
 {
 	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
+	[ProtoBuf.ProtoContract]
+	public class Result
+	{
+		[ProtoBuf.ProtoMember( 1 )]
+		public int Code;
+
+		public override string ToString() => Code.ToString();
+		public byte[] Serialize() => Tools.ProtoSerialize( this );
+		public static Result? Deserialize( byte[] data ) => Tools.ProtoDeserialize<Result>( data );
+	}
+
 	protected async override Task<byte[]?> Run( CancellationToken ct )
 	{
 		if( Args is not null )
@@ -18,8 +29,8 @@ public class DemoScript1 : Script
 
 		SetStatus("Waiting for m1 to boot");
 
-		// wait for agent m1 to boot
-		while( await Dirig.GetClientStateAsync("m1") is null ) await Task.Delay(100, ct);
+		//// wait for agent m1 to boot
+		//while( await Dirig.GetClientStateAsync("m1") is null ) await Task.Delay(100, ct);
 
 		// start app "m1.a" defined within "plan1"
 		await StartApp( "m1.a", "plan1" );
@@ -31,7 +42,6 @@ public class DemoScript1 : Script
 		// start app "m1.b" defined within "plan1"
 		await StartApp( "m1.b", "plan1" );
 
-		// both apps are killed from Done() once this method terminates and the script gets disposed
 
 		//SetStatus("Waiting before throwing exception");
 		//await Task.Delay(4000, ct);
@@ -43,6 +53,6 @@ public class DemoScript1 : Script
 		await KillApp( "m1.a" );
 		await KillApp( "m1.b" );
 
-		return null;
+		return new Result { Code = 17 }.Serialize();
 	}
 }

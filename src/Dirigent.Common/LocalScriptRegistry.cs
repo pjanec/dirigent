@@ -14,6 +14,7 @@ namespace Dirigent
 	/// Starts scripts locally.
 	/// Maintains running instances of local scripts, provides their state and allows to kill them.
 	/// Removes the instance shortly after it dies.
+	/// The status of the runnign scripts is sent on change (done by the ScriptRunner).
 	/// </summary>
 	public class LocalScriptRegistry : Disposable
 	{
@@ -81,13 +82,13 @@ namespace Dirigent
 			_scripts.Remove( entry.Instance );
 		}
 
-		public void Start( Guid instance, string scriptName, byte[]? args, string title )
+		public void Start( Guid instance, string scriptName, string? sourceCode, byte[]? args, string title )
 		{
 			if( _scripts.TryGetValue( instance, out var entry ) )
 			{
 				if( entry.State.IsAlive )
 				{
-					log.Warn( $"Script {title} [{instance}] already running on {_clientId}. Ignoring start request." );
+					//log.Warn( $"Script {title} [{instance}] already running on {_clientId}. Ignoring start request." );
 					return;
 				}
 				else
@@ -99,40 +100,19 @@ namespace Dirigent
 			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance );
 			_scripts.Add( instance, entry );
 
-			entry.Start( scriptName, args, title );
+			entry.Start( scriptName, sourceCode, args, title );
 		}
 
 		public void Stop( Guid instance )
 		{
 			if (!_scripts.TryGetValue( instance, out var entry ))
 			{
-				log.Warn( $"Script [{instance}] not running on {_clientId}. Ignoring stop request." );
+				//log.Warn( $"Script [{instance}] not running on {_clientId}. Ignoring stop request." );
 				return;
 			}
 
 			entry.Stop();
 		}
-
-
-		///// <summary>
-		///// Starts given task and install its watcher. If the task fails to start, it gets removed automatically.
-		///// </summary>
-		//public Guid StartTaskWithWatcher( string scriptName, byte[]? args, string title, ScriptWatcher watcher )
-		//{
-		//	var taskInstance = Guid.NewGuid();
-
-		//	// send a request
-		//	_ctrl.Send( new Net.StartTaskMessage( _ctrl.Name, taskInstance, scriptName, args, title ) );
-
-		//	// add task record with "Starting" status; it will get removed if fails to start in some time
-		//	var taskInfo = new LocalScript { Guid=taskInstance };
-		//	taskInfo.State.Status = EScriptStatus.Starting;
-		//	taskInfo.Watchers.Add( watcher );
-		//	LocalScripts[taskInstance] = taskInfo;
-
-		//	return taskInstance;
-
-		//}
 
 
 		/// <summary>
@@ -162,9 +142,9 @@ namespace Dirigent
 				Runner.Dispose();
 			}
 
-			public void Start( string scriptName, byte[]? args, string title )
+			public void Start( string scriptName, string? sourceCode, byte[]? args, string title )
 			{
-				Runner.Start( scriptName, args, title );
+				Runner.Start( scriptName, sourceCode, args, title );
 			}
 
 			public void Stop()

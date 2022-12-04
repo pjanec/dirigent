@@ -199,6 +199,8 @@
 
         <Tool Id="Notepad" Title="Open some file in Notepad" CmdLineArgs="somefile.txt"/>
 
+		<Tool Id="VncViewer" Title="VNC to where the app runs" CmdLineArgs="%MACHINE_IP%"/>
+
     	<FilePackage Id="appFilePack">
     	    <!-- reference to machine-specific file-->
     	    <FileRef Id="Greetings" Machine="m1" />

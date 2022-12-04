@@ -208,7 +208,12 @@ namespace Dirigent.Gui.WinForms
 						}
 						if( toolsMenu.DropDownItems.Count > 0 )
 						{
-							popup.Items.Add( toolsMenu );
+							//popup.Items.Add( toolsMenu );
+						}
+						var toolsMenuItems = toolsMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
+						foreach ( var item in toolsMenuItems )
+						{
+							popup.Items.Add( item );
 						}
 					}
 

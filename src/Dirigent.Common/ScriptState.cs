@@ -20,20 +20,30 @@ namespace Dirigent
 	}
 
 	[ProtoBuf.ProtoContract]
-	public class ScriptError
+	public class ScriptException : Exception
 	{
 		[ProtoBuf.ProtoMember( 1 )]
-		public string? Message { get; set; }
-		
+		public override string Message { get; }
+
 		[ProtoBuf.ProtoMember( 2 )]
-		public string? StackTrace { get; set; }
+		public override string? StackTrace { get; }
 
-		public ScriptError() {}
+		public ScriptException()
+		{
+			Message = "";
+			StackTrace = null;
+		}
 
-		public ScriptError( Exception ex )
+		public ScriptException( Exception ex )
 		{
 			Message = ex.Message;
 			StackTrace = ex.StackTrace;
+		}
+
+		public ScriptException( string message, string? stackTrace )
+		{
+			Message = message;
+			StackTrace = stackTrace;
 		}
 	}
 

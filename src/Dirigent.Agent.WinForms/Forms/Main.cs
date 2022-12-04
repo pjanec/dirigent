@@ -59,6 +59,11 @@ namespace Dirigent.Gui.WinForms
 		private ToolsRegistry _toolsReg;
 		public ToolsRegistry ToolsRegistry => _toolsReg;
 
+		public ScriptFactory ScriptFactory;
+		public SynchronousOpProcessor SyncOps { get; private set; }
+		private LocalScriptRegistry _localScripts;
+		
+
 		public bool ShowJustAppFromCurrentPlan
 		{
 			get { return btnShowJustAppsFromCurrentPlan.Checked; }
@@ -125,6 +130,10 @@ namespace Dirigent.Gui.WinForms
 			// load tools from local config
 			InitFromLocalConfig( machineId );			
 
+			ScriptFactory = new ScriptFactory();
+			SyncOps = new SynchronousOpProcessor();
+			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps );
+			
 
 			_tabApps = new MainAppsTab( this, gridApps );
 			_tabPlans = new MainPlansTab( this, gridPlans );
@@ -141,6 +150,7 @@ namespace Dirigent.Gui.WinForms
 
 		void myDispose()
 		{
+			_localScripts.Dispose();
 			
 			tmrTick.Enabled = false;
 			if( Client is not null )
@@ -181,6 +191,20 @@ namespace Dirigent.Gui.WinForms
 					MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 					break;
 				}
+
+				case Net.StartScriptMessage m:
+				{
+					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+					break;
+				}
+
+				case Net.KillScriptMessage m:
+				{
+					_localScripts.Stop( m.Instance );
+					break;
+				}
+
+				// note: ScriptStateMessage handling is done in ReflectedStateRepo
 			}
 		}
 

@@ -38,6 +38,7 @@ namespace Dirigent
 		public TickableCollection Tickers => _tickers;
 		public ScriptFactory ScriptFactory;
 		public SynchronousOpProcessor SyncOps { get; private set; }
+		private LocalScriptRegistry _localScripts;
 		
 
         /// <summary>
@@ -77,11 +78,14 @@ namespace Dirigent
 
 			SyncOps = new SynchronousOpProcessor();
 
+			_localScripts = new LocalScriptRegistry( this, ScriptFactory, SyncOps );
+
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+			_localScripts.Dispose();
 			_tickers.Dispose();
 			_client.Dispose();
 		}
@@ -95,6 +99,8 @@ namespace Dirigent
 			_tickers.Tick();
 
 			SyncOps.Tick();
+
+			_localScripts.Tick();
 
 			PublishAgentState();
 		}
@@ -128,7 +134,6 @@ namespace Dirigent
 				_client.Send( msg );
 			}
 		}
-
 
 
 		void ProcessIncomingMessage( Net.Message msg )
@@ -199,6 +204,18 @@ namespace Dirigent
 				{
 					var la = _localApps.FindApp( m.AppIdTuple );
 					la.SetWindowStyle( m.WindowStyle );
+					break;
+				}
+
+				case Net.StartScriptMessage m:
+				{
+					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+					break;
+				}
+
+				case Net.KillScriptMessage m:
+				{
+					_localScripts.Stop( m.Instance );
 					break;
 				}
 

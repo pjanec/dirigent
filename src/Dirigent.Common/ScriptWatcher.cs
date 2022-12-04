@@ -6,21 +6,24 @@ using System.Threading.Tasks;
 namespace Dirigent
 {
 	/// <summary>
-	/// Monitors a running script, gets notified when it finished.
+	/// Monitors a running script, gets notified when its status changes.
 	/// Periodically ticked from main thread.
 	/// </summary>
-	public class ScriptWatcher : Disposable
+	public class ScriptStatusWatcher : Disposable
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		protected string _localClientId;
 
+		Action<ScriptState> _onStatusChanged;
+
 		public bool ShallBeRemoved { get; set; }
 
 
-		public ScriptWatcher( string localClientId )
+		public ScriptStatusWatcher( string localClientId, Action<ScriptState> onStatusChanged )
 		{
 			_localClientId = localClientId;
+			_onStatusChanged = onStatusChanged;
 		}
 
 		/// <summary>
@@ -28,8 +31,10 @@ namespace Dirigent
 		/// </summary>
 		public virtual void OnStatusChanged( ScriptState state )
 		{
+			_onStatusChanged( state );
+		
 			// be default just quit if task has died
-			if( !state.IsAlive )
+			if ( !state.IsAlive )
 			{
 				ShallBeRemoved = true;
 			}
@@ -40,29 +45,6 @@ namespace Dirigent
 		}
 	}
 
-	/// <summary>
-	/// Calls given action when task finishes
-	/// </summary>
-	public class ScriptFinishedWatcher : ScriptWatcher
-	{
-		Action _onFinished;
-
-		public ScriptFinishedWatcher( string localClientId, Action onFinished )
-			: base( localClientId )
-		{
-			_onFinished = onFinished;
-		}
-
-		public override void OnStatusChanged( ScriptState state )
-		{
-			base.OnStatusChanged( state );
-
-			if( state.Status == EScriptStatus.Finished )
-			{
-				_onFinished?.Invoke();
-			}
-		}
-	}
 	
 }
 

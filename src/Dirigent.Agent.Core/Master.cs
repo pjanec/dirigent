@@ -59,7 +59,6 @@ namespace Dirigent
 		private ReflectedScriptRegistry _reflScripts;
 		private LocalScriptRegistry _localScripts;
 		private SingletonScriptRegistry _singlScripts;
-		//private TaskRegistryMaster _tasks;
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
@@ -133,14 +132,6 @@ namespace Dirigent
 
 			_webServerCTS = new CancellationTokenSource();
 			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
-
-
-			//// FIXME: Just for testing the script! To be removed!
-			//var script = new DemoScript1();
-			//Script.InitScriptInstance( script, "Demo1", this );
-			//_tickers.Install( script );
-			//RunScript("DemoScript1", "Scripts/DemoScript1.cs");
-			//RunScript("DemoScript1");
 
 		}
 
@@ -368,13 +359,29 @@ namespace Dirigent
 
 				case StartScriptMessage m:
 				{
-					StartScript( m.Sender, m.Instance, Tools.ProtoDeserialize<string>(m.Args) );
+					if( string.IsNullOrEmpty(m.HostClientId) ) // request for us (master)
+					{
+						if( string.IsNullOrEmpty(m.ScriptName) ) // is it a ScriptDef based single-instance script?
+						{
+							StartSingletonScript( m.Sender, m.Instance, Tools.ProtoDeserialize<string?>(m.Args) );
+						}
+						else // it is a generic script
+						{
+							_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+						}
+					}
+					else // forward to the target client
+					{
+						_server.SendToSingle( m, m.HostClientId );
+					}
 					break;
 				}
 
 				case KillScriptMessage m:
 				{
-					KillScript( m.Sender, m.Id );
+					KillScript( m.Sender, m.Instance );
+					// msg not saying where the script runs, send to everyone
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
 					break;
 				}
 
@@ -420,7 +427,7 @@ namespace Dirigent
 					_reflScripts.UpdateScriptState( m.Instance, m.State );
 						
 					// forward to all
-					_server.SendToAllSubscribed( m, EMsgRecipCateg.Agent );
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
 					break;
 				}
 
@@ -879,24 +886,31 @@ namespace Dirigent
 		}
 
 
-		public void StartScript( string requestorId, Guid id, string? args )
+		public void StartSingletonScript( string requestorId, Guid id, string? args )
 		{
 			_singlScripts.StartScript( requestorId, id, args );
 		}
 
-		public void StartScript( string requestorId, string scriptIdWithArgs )
+		public void StartSingletonScript( string requestorId, string scriptIdWithArgs )
 		{
 			if ( string.IsNullOrEmpty( scriptIdWithArgs ) ) return;
 
 			var (id, args) = Tools.ParseScriptIdArgs( scriptIdWithArgs );
 			if ( string.IsNullOrEmpty( id ) ) return;
 
-			StartScript( requestorId, Guid.Parse(id), args );
+			StartSingletonScript( requestorId, Guid.Parse(id), args );
 		}
 
 		public void KillScript( string requestorId, Guid id )
 		{
-			_singlScripts.KillScript( requestorId, id );
+			if( _singlScripts.Contains( id ) )
+			{
+				_singlScripts.KillScript( requestorId, id );
+			}
+			else
+			{
+				_localScripts.Stop( id );
+			}
 		}
 
 		public ScriptState? GetScriptState( string requestorId, Guid id )

@@ -16,7 +16,7 @@
 * https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
 * 
 
-# [IDEA] Enable quick access to app files and folders.
+# Quick access to app files and folders.
 
 * In the AppDef define where the app file(s) for each app are located - multiple per app; also app-specific folders. Add "Show files" command to app's context menu, listing the defined files, opening them via a network share using default associated app.
 * [IDEA] Allow for remote file access across dirigent-equipped stations. Get the machine IP address from client's connection.  Allow to define file share name per machine (use "C", "D" etc. as defaults). Add "Folders" to context menu in client tab, listing all predefined folders on the machines, the C root always.
@@ -74,11 +74,11 @@ The script can be cancelled but not forcefully killed. Cancellation can happen w
 
 ### Tracking script status
 
-Script can be in one of the following states Starting, Running, Success, Failed, Cancelling, Cancelled.
+Script can be in one of the following states Starting, Running, Finished, Failed, Cancelling, Cancelled.
 
 Script status is described by a triplet 1. status code (see the states above), 2. status text 3. status user data (arbitrary serializable data struct).
 
-The script result (the value returned from Run method) is automatically saved to the status user data once the script successfully finishes. If the script fails, the status text contains the reason code (for example "Exception") and the status user data contains additional info. The format of the status user data is reason-specific.
+The script result (the value returned from Run method) is automatically saved to the status user data once the script successfully finishes. If the script fails (throws an exception), the status text contains the reason code (for example "Exception") and the status user data contains exception details.
 
 Script can update its status info (status text and status user data) at any time during its Running phase.
 
@@ -121,87 +121,6 @@ Some actions need to be performed on multiple machines different than the one fr
 GUI action is an async method.
 
 It can call async dirigent API, including starting scripts & waiting for their termination. GUI action can then easily using the result returned from the script for some local UI operation.
-
-# [IDEA] Distributed Tasks
-
-EDIT: no longer interesting, replaced with a more generic awaitable Remote Script calls.
-
-* [EDIT] Is the following complicated stuff worth the effort? Can't we simply rely on powershell remoting???
-  * Maybe dirigent can just help with enabling the remoting on the machines (on of the tools in dirigent's menu)
-
-* A client issues a Task for multiple clients (either all or just listed).
-* Task logic consists of controller part and worker part. Worker part is running on affected clients. Controller part is running on the client who invoked the task (gui client/agent or the master).
-* Controller and Worker parts are either built-in (hardcoded) or exist as a user script file residing on master.
-* The controller instantiate workers, sends requests to workers, keeps track of the task progress on workers (by listening to their status updates via TaskResponse messages) and decides task completion.
-* Each worker can provides task state update for its part of the job via TaskResponse message. For example In-Progress + estimated time, Success, Failure etc.
-* Controller aggregates worker states, determines whole task status, removes the task instance when done.
-* Dirigent framework provides top level task management messages (RunTask, KillTask), whole task status update message (TaskStatus), low level messages for communication between controller and worker (TaskRequest, TaskResponse with string id, json payload), message forwarding through master. 
-* Both Controller and Worker runs asynchronously, syncing with main dirigent thread when calling dirigent framework functions (sending requests, querying information etc.)
-* Both the Controller part and the Worker parts run until the task is considered completed or cancelled. Task gets completed when its controller part finishes its Run method. Task gets cancelled when the user asks it to stop before it finishes.
-* The worker part can immediately start executing some logic using the arguments received from the InstantiateWorker message. The worker is either one-shot (having Run method) or is event driven (having OnRequest method), waiting for requests. When the request comes, the worker starts an async handler for the request. Processing of next request is delayed until the previous request handler finishes.
-* 
-* 
-* 
-
-### TODO
-
- * ask IDirig for the status of script with given guid
- * ReflStates catches the status of any script (something like TaskRegistryClient but for scripts - ScriptStateRegistry or something)
- * status updates are sent for any script, the same way for permanent scripts as well as for distributed tasks (both controller and workers)
- * ScriptStateRegistry catches ScriptState messages
- * we publish task state as a script state (they use same state struct anyway)
- * ScriptStateRegistry monitors every script state no matter if it a task or not
- * IDirig.GetScriptState returns the state struct
- * old dead scripts are removed from the registry automatically after some time
- * StartTask carrie new GUID for the new task
-
-
-
-Maybe extending the existing Script implementation is the right way to go. Current Script can be implemented as just the Controller part of the task running on the master, no workers.
-
-Example of file download from one client to another:
-
-* Built-in task start request is sent from the client where the file should be downloaded to (file recipient). Arguments = guid of the FileDef to download.
-* Master instantiates the task on master and starts its Controller part.
-* The Controller part starts the Worker part on the client where the file resides (file provider) as well as on the client where the file should be downloaded to (file recipient). It does so by calling RunWorkers with client list containing one single MachineId of the client.
-* The Dirigent sends InstantiateWorker message to clients. The clients instantiate the Worker part of the task. The worker instances on each client are marked with the task instance guid so we can later (in the clean-up phase) kill the workers belonging to given task instance.
-* This message is considered an initial request so it is assigned a new guid to allow for sending responses back to the controller. Worker parts get instantiated, finds the FileDef, resolves the path to the (local) file, zips the file to a temporary folder and sends response to the controller. The response data contains the UNC path back to the Controller.
-* 
-* The Controller sends to the file provider a new request "please zip  the file and give me its UNC path" carrying the FileDef's guid in its data.
-* The Dirigent sends InstantiateTaskWorker message to the file provider client. This message is considered an initial request so it is assigned a new guid to allow for sending responses back to the controller. Worker parts get instantiated, finds the FileDef, resolves the path to the (local) file, zips the file to a temporary folder and sends response to the controller. The response data contains the UNC path back to the Controller.
-* Controller call RunWorkers again, this time instantiating the worker 
-
-- StartTaskMessage makes the master to instantiate the task controller
-- The controller sends the InstantiateTaskMessage to clients.
-- 
-- 
-
-Currently just the Script was cloned to DTask and task-management messages were defined (not sent nor handled). Further 
-
-TODO:
-
-- Use ScriptDefs for distributed tasks as well.
-- Auto-construct the ScriptDef records by scanning the scripts in several fixed folders (binaryFolder/Scripts, sharedconfigFolder/Scripts).  Remember the full script path as part of ScriptDef. Derive the script name (used to identify the script) from the file name and path (take relative path from script root folder, remove .cs extension, strip the .Controller & .Worker postfixes from the name)
-- Get the script attributes from the script file itself (scan comment lines at the top, look for attributes like
-  - // [HIDDEN]
-  - // [SINGLE_INSTANCE] etc.
-- Initialize Script and Tasks from ScriptDefs.
-- Single-instance script are implemented as tasks having just the Controller part.
-- Script naming
-  - Non-distributed script name does not end with .Controller.cs or .Worker.cs
-    - MyMasterOnlyScript.cs
-  - Distributed task scripts exist as two files, starting with same name, ending with .Controller.cs and .Worker.cs
-    - MyDistribScript1.Controller.cs
-    - MyDistribScript1.Worker.cs
-- Single instance scripts show their running status in the one and only grid line, presenting both PLAY and KILL icons.
-- Multi-instance scripts show just the PLAY icon in their grid line. When started, a new line is added, showing just the KILL icon. The line disappears as soon as the script instance is terminates.
-- Worker parts of tasks are not shown. Only the controller part is presented in the same was as the instance of a multi-instance script.
-- Master to construct Script
-- Define a base task that serves as a base for internal built-in tasks not based on user scripts as well as for the script based.
-- Make sure the TaskRegistry is present on each client, not just on master. in response to InstantiateTaskMessage it starts executing the worker part when the task is instatiated on client (). When 
-- Analyze what would it take to run task scripts asynchronously and isolated from dirigent's tick to avoid affecting the dirigent functions if the script malfunctions.
-- Instantiate task on all clients by sending its script file over network and storing it to a temp folder on target machine, in client-specific folder.
-- etc etc.
 
 [IDEA] Powershell scripts in addition to C# script.
 

@@ -73,8 +73,10 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "APP_IDTUPLE", boundTo.Id.ToString() },
-				{ "APP_MACHINEID", boundTo.Id.MachineId },
-				{ "APP_APPID", boundTo.Id.AppId },
+				{ "MACHINE_ID", boundTo.Id.MachineId },
+				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id.MachineId, $"tool {tool}" ) },
+				{ "APP_ID", boundTo.Id.AppId },
+				// TODO: resolve app workdir etc. on app's-local computer?
 			};
 			return StartTool( tool, vars );
 		}

@@ -174,7 +174,7 @@ namespace Dirigent
 			}
 			else
 			{
-				throw new Exception( $"Script name not script code specified." );
+				throw new Exception( $"Script name nor script code specified." );
 			}
 
 			return script;

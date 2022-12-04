@@ -50,7 +50,7 @@ namespace Dirigent
 			_script?.Dispose();
 		}
 
-		public void Start( string scriptName, byte[]? args, string title )
+		public void Start( string scriptName, string? sourceCode, byte[]? args, string title )
 		{
 			// one runner can run max one script at a time
 			if( _script is not null ) // already started?
@@ -59,7 +59,7 @@ namespace Dirigent
 			State.Status = EScriptStatus.Starting;
 			SendStatus();
 
-			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, null, args, new SynchronousIDirig( _ctrl, _syncOps ) );
+			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ) );
 
 			Start( script, args );
 		}
@@ -137,13 +137,13 @@ namespace Dirigent
 			catch( Exception ex )
 			{
 				State.Status = EScriptStatus.Failed;
-				State.Data = Tools.ProtoSerialize( new ScriptError( ex ) );
+				State.Data = Tools.ProtoSerialize( new ScriptException( ex ) );
 				await SendStatusAsync();
 			}
 
 		}
 
-		void SendStatus()
+		public void SendStatus()
 		{
 			if( _script == null ) return;
 			_ctrl.Send( new Net.ScriptStateMessage(
@@ -152,7 +152,7 @@ namespace Dirigent
 			));
 		}
 
-		Task SendStatusAsync()
+		public Task SendStatusAsync()
 		{
 			if( _script == null ) return Task.CompletedTask;
 			return _script.Dirig.SendAsync( new Net.ScriptStateMessage(

@@ -66,7 +66,7 @@ namespace Dirigent
 						_ac,
 						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
 					);
-					if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartScript( _ac.MachineId, _ac.StartupScript );
+					if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartSingletonScript( _ac.MachineId, _ac.StartupScript );
 				}
 				else
 				{

@@ -69,13 +69,14 @@ namespace Dirigent.Gui.WinForms
 				item.Click += ( s, a ) => WFT.GuardedOp( () => {
 					var resolved = ReflStates.FileRegistry.Resolve( fpack, null );
 					_form.ToolsRegistry.StartFilePackageBoundTool( tool, resolved );
-					//_form.TaskRegistry.StartTaskWithWatcher(
-					//	Scripts.ResolveVfsTree.Controller._Name,
-					//	Tools.ProtoSerialize( new Scripts.ResolveVfsTree.Controller.TArgs { VfsNodes = new List<VfsNodeDef> { fpack } } ),
-					//	$"[FPack] '{fpack.Title}' Resolver",
-					//	new ScriptFinishedWatcher( Ctrl.Name, () => MessageBox.Show( "Task Finished" ) )
-					//);
-
+					//try{
+					//	var result = await _form.ReflStates.Scripts.RunScriptAndWait<DemoScript1.Result>( "m1", "Scripts/DemoScript1.cs", null, null, "Demo1", System.Threading.CancellationToken.None, -1 );
+					//	MessageBox.Show( result.ToString() );
+					//}
+					//catch (Exception e)
+					//{
+					//	MessageBox.Show( e.ToString() );
+					//}
 				}
 				);
 				toolsMenu.DropDownItems.Add( item );
