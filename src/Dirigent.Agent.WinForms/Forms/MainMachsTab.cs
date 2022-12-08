@@ -173,17 +173,26 @@ namespace Dirigent.Gui.WinForms
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 
-					//{
-					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Folders" );
-					//	// TODO: generate subitems
-					//	popup.Items.Add( item );
-					//}
-
-					//{
-					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Files" );
-					//	// TODO: generate subitems
-					//	popup.Items.Add( item );
-					//}
+					{
+						if( isMachineId( id ) )
+						{
+							var machDef = ReflStates.GetMachineDef( id );
+							if( machDef != null )
+							{
+								var vfsNodesMenu = ContextMenuVfsNodes( machDef.VfsNodes );
+								if ( vfsNodesMenu.DropDownItems.Count > 0 )
+								{
+									popup.Items.Add( new ToolStripSeparator() );
+								//	popup.Items.Add( filesMenu );
+								}
+								var fileMenuItems = vfsNodesMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
+								foreach ( ToolStripMenuItem item in fileMenuItems )
+								{
+									popup.Items.Add( item );
+								}
+							}
+						}
+					}
 
 					{
 						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
@@ -193,13 +202,13 @@ namespace Dirigent.Gui.WinForms
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
 							{
-								foreach( var tool in machDef.Tools )
+								foreach( var action in machDef.Actions )
 								{
-									var title = tool.Title;
-									if (string.IsNullOrEmpty( title )) title = tool.Id;
+									var title = action.Title;
+									if (string.IsNullOrEmpty( title )) title = action.Name;
 									var item = new System.Windows.Forms.ToolStripMenuItem( title );
 									item.Click += ( s, a ) => WFT.GuardedOp( () => {
-											_form.ToolsRegistry.StartMachineBoundTool( tool, machDef ) ;
+											_form.ToolsRegistry.StartMachineBoundAction( action, machDef ) ;
 										}
 									);
 									toolsMenu.DropDownItems.Add( item );

@@ -13,7 +13,7 @@ namespace Dirigent
 {
 
 
-	public class SharedXmlConfigReader
+	public class SharedConfigReader
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -26,7 +26,7 @@ namespace Dirigent
 		FileDefReg _fdReg = new FileDefReg();
 
 
-		public SharedXmlConfigReader( System.IO.TextReader textReader )
+		public SharedConfigReader( System.IO.TextReader textReader )
 		{
 			_cfg = new SharedConfig();
 			_doc = XDocument.Load( textReader ); // null should never be returned, exception would be thrown insterad
@@ -38,11 +38,11 @@ namespace Dirigent
 			LoadAppDefaults();
 			LoadPlans();
 			CheckDependencies();
-			LoadScripts();
 			LoadMachines( _fdReg );
 			LoadUnboundFiles( _fdReg );
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
+			_cfg.Scripts = LoadSingleInstScripts(_root);
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
@@ -103,7 +103,7 @@ namespace Dirigent
 				Env = e.Element( "Env" ),
 				InitDetectors = e.Element( "InitDetectors" )?.Elements(),
 				Groups = e.Attribute( "Groups" )?.Value,
-				Tools = LoadTools( e ),
+				Actions = new List<ActionDef>(),
 			};
 
 			// then overwrite templated values with current content
@@ -238,65 +238,118 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
-			foreach ( var vfsNode in LoadVFSNodeElements( e, a.Id.MachineId, a.Id.AppId ) )
+			foreach ( var vfsNode in LoadVfsNodes( e, a.Id.MachineId, a.Id.AppId ) )
 			{
 				fdReg.Add( vfsNode );
 				a.VfsNodes.Add( vfsNode );
 			}
-			
 
-			// add/replace tools
-			foreach( var elem in x.Tools )
+
+			var actions = LoadActions( e, a.Id.MachineId, a.Id.AppId );
+
+			// add/replace actions
+			foreach( var item in actions )
 			{
-				int found = a.Tools.FindIndex( i => i.Id == elem.Id );
+				int found = a.Actions.FindIndex( i => i.Id == item.Id );
 				if( found < 0 )
 				{
-					a.Tools.Add( elem );
+					a.Actions.Add( item );
 				}
 				else // replace
 				{
-					a.Tools[found] = elem;
+					a.Actions[found] = item;
 				}
 			}
 
 			return a;
 		}
 
-		static void ReadVFSNodeBaseElement( ref VfsNodeDef a, XElement e, string? machineId=null, string? appId=null )
+		static void FillAssocItem( ref AssocItemDef a, XElement e, string? machineId=null, string? appId=null )
 		{
-			a.Guid = Guid.NewGuid();
 			a.MachineId = machineId;
 			a.AppId = appId;
 
 			var x = new 
 			{
+				Guid = e.Attribute( "Guid" )?.Value,
 				Id = e.Attribute( "Id" )?.Value,
 				Title = e.Attribute( "Title" )?.Value,
 				MachineId = e.Attribute( "MachineId" )?.Value,
 				AppId = e.Attribute( "AppId" )?.Value,
-				Path = e.Attribute( "Path" )?.Value,
-				Tools = LoadTools( e ),
+				Groups = e.Attribute( "Groups" )?.Value,
+				IconFile = e.Attribute( "IconFile" )?.Value,
+				Actions = LoadActions( e, machineId, appId ),
 			};
 
-			if( x.Id == null )
-				throw new Exception( $"Id attribute is missing: {e}" );
+			// if Guid present, use it, otherwise generate unique one
+			if( x.Guid is not null )
+			{
+				if (!Guid.TryParse( x.Guid, out a.Guid ))
+				{
+					throw new Exception( $"Invalid Guid in {e}" );
+				}
+			}
+			else
+			{
+				a.Guid = Guid.NewGuid();
+			}
 
-			a.Id = x.Id;
+			// string Id by default matches the Guid, can be overridden by Id attribute
+			a.Id = a.Guid.ToString();
+			if( x.Id is not null ) a.Id = x.Id;
+			
 			if( x.Title != null ) a.Title = x.Title;
 			if( x.MachineId != null ) a.MachineId = x.MachineId;
 			if( x.AppId != null ) a.AppId = x.AppId;
-			a.Path = x.Path;
-			a.Tools = x.Tools;
-			a.Children = LoadVFSNodeElements( e, a.MachineId, a.AppId );
+			if( x.IconFile != null ) a.IconFile = x.IconFile;
+			if( x.Groups != null ) a.Groups = x.Groups;
+
+			// add/replace actions
+			foreach( var item in x.Actions )
+			{
+				int found = a.Actions.FindIndex( i => i.Id == item.Id );
+				if( found < 0 )
+				{
+					a.Actions.Add( item );
+				}
+				else // replace
+				{
+					a.Actions[found] = item;
+				}
+			}
+
+		}
+		
+		static void FillVfsNodeBase( ref VfsNodeDef a, XElement e, string? machineId=null, string? appId=null )
+		{
+			var assocItemDef = (AssocItemDef)a;
+			FillAssocItem( ref assocItemDef, e, machineId, appId );
+
+			var xml = new XElement(e.Name);
+			foreach( var attr in e.Attributes() )
+				xml.SetAttributeValue(attr.Name, attr.Value);
+
+			var x = new 
+			{
+				Path = e.Attribute( "Path" )?.Value,
+				Filter = e.Attribute( "Filter" )?.Value,
+				Children = LoadVfsNodes( e, a.MachineId, a.AppId ),
+			};
+
+			if( x.Path is not null ) a.Path = x.Path;
+			if( x.Filter is not null ) a.Filter = x.Filter;
+			a.Xml = xml.ToString();
+			a.Children.AddRange( x.Children );
 		}
 
-		static VfsNodeDef? TryReadVFSNodeElement( XElement e, string? machineId=null, string? appId=null )
+		static VfsNodeDef? LoadVfsNode( XElement e, string? machineId=null, string? appId=null )
 		{
 			if (e.Name == "File")
 			{
 				var a = new FileDef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
+				if( string.IsNullOrEmpty(a.Path) ) throw new Exception($"Path missing or empty in {e}");
 				return a;
 			}
 			else
@@ -304,7 +357,7 @@ namespace Dirigent
 			{
 				var a = new FileDef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				return a;
 			}
 			else
@@ -312,7 +365,7 @@ namespace Dirigent
 			{
 				var a = new FolderDef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				a.Mask = e.Attribute( "Mask" )?.Value;
 				a.IsContainer = true;
 				return a;
@@ -322,7 +375,7 @@ namespace Dirigent
 			{
 				var a = new VFolderDef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				a.IsContainer = true;
 				return a;
 			}
@@ -331,7 +384,7 @@ namespace Dirigent
 			{
 				var a = new FilePackageDef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				a.IsContainer = true;
 				return a;
 			}
@@ -340,7 +393,7 @@ namespace Dirigent
 			{
 				var a = new FilePackageRef();
 				var vfsNode = (VfsNodeDef) a;
-				ReadVFSNodeBaseElement( ref vfsNode, e, machineId, appId );
+				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				return a;
 			}
 			else
@@ -348,12 +401,12 @@ namespace Dirigent
 		}
 
 
-		static List<VfsNodeDef> LoadVFSNodeElements( XElement e, string? machineId=null, string? appId=null )
+		static List<VfsNodeDef> LoadVfsNodes( XElement e, string? machineId=null, string? appId=null )
 		{
 			var res = new List<VfsNodeDef>();
 			foreach (var elem in e.Elements())
 			{
-				var x = TryReadVFSNodeElement( elem, machineId, appId );
+				var x = LoadVfsNode( elem, machineId, appId );
 				if( x is not null )
 				{
 					res.Add( x );
@@ -363,28 +416,95 @@ namespace Dirigent
 
 		}
 
-		static ToolRef ReadToolRefElement( XElement e )
+
+		static void FillActionBase( ref ActionDef a, XElement e, string? machineId=null, string? appId=null )
 		{
-			ToolRef a = new ToolRef();
+			var assocItemDef = (AssocItemDef)a;
+			FillAssocItem( ref assocItemDef, e, machineId, appId );
 
 			var x = new 
 			{
-				Id = e.Attribute( "Id" )?.Value,
-				Title = e.Attribute( "Title" )?.Value,
-				CmdLineArgs = e.Attribute( "CmdLineArgs" )?.Value,
+				Name = e.Attribute( "Name" )?.Value,
+				Args = e.Attribute( "Args" )?.Value,
+				HostId = e.Attribute( "HostId" )?.Value,
 			};
 
-			if( x.Id == null )
-				throw new Exception( $"Tool definition missing the Id attribute: {e}" );
+			
+			if( x.Name != null ) a.Name = x.Name;
+			if( x.Args != null ) a.Args = x.Args;
+			if( x.HostId != null ) a.HostId = x.HostId;
+		}
 
-			a.Id = x.Id;
-			if( x.Title != null ) a.Title = x.Title;
-			if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
+		static void FillToolAction( ref ToolActionDef a, XElement e, string? machineId = null, string? appId = null )
+		{
+			var act = (ActionDef) a;
+			FillActionBase( ref act, e, machineId, appId );
+		}
+
+		static void FillScriptAction( ref ScriptActionDef a, XElement e, string? machineId = null, string? appId = null )
+		{
+			var act = (ActionDef) a;
+			FillActionBase( ref act, e, machineId, appId );
+			//var hostId = e.Attribute( "HostId" )?.Value;
+			//if (hostId != null) a.HostId = hostId;
+		}
+
+		static ActionDef? LoadAction( XElement e, string? machineId=null, string? appId=null )
+		{
+			if (e.Name == "Tool")
+			{
+				var a = new ToolActionDef();
+				FillToolAction( ref a, e, machineId, appId );
+				return a;
+			}
+			else
+			if (e.Name == "Script")
+			{
+				var a = new ScriptActionDef();
+				FillScriptAction( ref a, e, machineId, appId );
+				return a;
+			}
+			else
+			return null;
+		}
+
+		static List<ActionDef> LoadActions( XElement e, string? machineId=null, string? appId=null )
+		{
+			var res = new List<ActionDef>();
+			foreach (var elem in e.Elements())
+			{
+				var x = LoadAction( elem, machineId, appId );
+				if( x is not null )
+				{
+					res.Add( x );
+				}
+			}
+			return res;
+
+		}
+
+
+		// the single-instance scripts identified by a GUID Id
+		static ScriptDef LoadSingleInstScript( XElement e )
+		{
+			var a = new ScriptDef();
+			var act = (ScriptActionDef) a;
+			FillScriptAction( ref act, e );
+
+			// we read the Guid Id attribute
+			if( string.IsNullOrEmpty(a.Id) )
+				throw new ConfigurationErrorException( $"Id missing in {e}" );
+
+			if( !Guid.TryParse( a.Id, out a.Guid ) )
+				throw new ConfigurationErrorException( $"Id must be a GUID in {e}" );
+
+			if ( string.IsNullOrEmpty(a.Name) )
+				throw new ConfigurationErrorException( $"Missing Name in {e}");
 
 			return a;
 		}
-
-		static FileShareDef ReadFileShareElement( XElement e )
+					
+		static FileShareDef LoadFileShare( XElement e )
 		{
 			FileShareDef a = new FileShareDef();
 
@@ -565,49 +685,15 @@ namespace Dirigent
 
 		}
 
-		void LoadScripts()
+		static List<ScriptDef> LoadSingleInstScripts( XElement root )
 		{
-			_cfg.Scripts.Clear();
+			var res = new List<ScriptDef>();
 
-			var scripts = from e in _root.Elements( "Script" )
-						select e;
-
-			int index = 0;
-			foreach( var p in scripts )
-			{
-				index++;
-				var id = X.getStringAttr( p, "Id", "" ); // actually a GUID
-				var title = X.getStringAttr( p, "Title", "" );
-				var name = X.getStringAttr( p, "Name", "" );
-				var args = X.getStringAttr( p, "Args", "" );
-				var groups = X.getStringAttr( p, "Groups", "" );
-
-				if( string.IsNullOrEmpty(id) )
-					throw new ConfigurationErrorException( $"Missing script Id in script #{index}");
-
-				_cfg.Scripts.Add(
-					new ScriptDef()
-					{
-						Id = Guid.Parse(id),
-						Title = title,
-						Name = name,
-						Args = args,
-						Groups = groups
-					}
-				);
-			}
-
-		}
-
-		static List<ToolRef> LoadTools( XElement root )
-		{
-			var res = new List<ToolRef>();
-
-			var elems = from e in root.Elements( "Tool" )
+			var elems = from e in root.Elements( "Script" )
 						select e;
 			foreach( var e in elems )
 			{
-				var def = ReadToolRefElement( e );
+				var def = LoadSingleInstScript( e );
 				res.Add(def);
 			}
 
@@ -622,7 +708,7 @@ namespace Dirigent
 						select e;
 			foreach( var e in elems )
 			{
-				var def = ReadFileShareElement( e );
+				var def = LoadFileShare( e );
 				res.Add(def);
 			}
 
@@ -647,24 +733,20 @@ namespace Dirigent
 				if ( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing machine name in {p} #{index}");
 
-				var vfsNodes = LoadVFSNodeElements( p, id, null );
+				var vfsNodes = LoadVfsNodes( p, id, null );
 				foreach( var vfsNode in vfsNodes )
 				{
 					fdReg.Add( vfsNode );
 				}
 				
-
-				var tools = LoadTools( p );
-
-
 				_cfg.Machines.Add(
 					new MachineDef()
 					{
 						Id = id,
 						IP = ip,
 						FileShares = shares,
-						VFSNodes = vfsNodes,
-						Tools = tools
+						VfsNodes = vfsNodes,
+						Actions = LoadActions( p, id, null ),
 					}
 				);;
 			}
@@ -674,7 +756,7 @@ namespace Dirigent
 		void LoadUnboundFiles( FileDefReg fdReg )
 		{
 			// just feed them to the registry
-			foreach ( var vfsNode in LoadVFSNodeElements( _root, null, null ) )
+			foreach ( var vfsNode in LoadVfsNodes( _root, null, null ) )
 			{
 				fdReg.Add( vfsNode );
 			}

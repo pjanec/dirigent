@@ -15,11 +15,12 @@ namespace Dirigent.Gui.WinForms
 {
 	public class MainScriptsTab : MainExtension
 	{
-		const int colId = 0;
-		const int colName = 1;
-		const int colStatus = 2;
-		const int colIconStart = 3;
-		const int colIconKill = 4;
+		const int colName = 0;
+		const int colStatus = 1;
+		const int colIconStart = 2;
+		const int colIconKill = 3;
+		const int colId = 4;
+		const int colMAX = 5;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -45,22 +46,15 @@ namespace Dirigent.Gui.WinForms
 			_grid.DataSource = _bindingSource;
 
 	        _dataTable = _dataSet.Tables.Add("ScriptsTable");
-			_dataTable.Columns.Add("Id", typeof(Guid));
 			_dataTable.Columns.Add("Name", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
 			_dataTable.Columns.Add("IconStart", typeof(Bitmap));
 			_dataTable.Columns.Add("IconKill", typeof(Bitmap));
+			_dataTable.Columns.Add("Id", typeof(Guid));
 
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
 			// fix columns appearance
-
-			var _hdrScriptId = _grid.Columns[colId];
-			_hdrScriptId.HeaderText = "Script Id";
-			_hdrScriptId.MinimumWidth = 9;
-			_hdrScriptId.ReadOnly = true;
-			_hdrScriptId.Width = 100;
-			_hdrScriptId.Visible = false;
 
 			var _hdrScriptName = _grid.Columns[colName];
 			_hdrScriptName.HeaderText = "Script Name";
@@ -85,6 +79,13 @@ namespace Dirigent.Gui.WinForms
 			_hdrScriptKill.MinimumWidth = 9;
 			_hdrScriptKill.ReadOnly = true;
 			_hdrScriptKill.Width = 24;
+
+			var _hdrScriptId = _grid.Columns[colId];
+			_hdrScriptId.HeaderText = "Script Id";
+			_hdrScriptId.MinimumWidth = 9;
+			_hdrScriptId.ReadOnly = true;
+			_hdrScriptId.Width = 100;
+			_hdrScriptId.Visible = false;
 
 			if( Common.Properties.Settings.Default.GridButtonSpacing > 0 ) 
 			{
@@ -121,13 +122,14 @@ namespace Dirigent.Gui.WinForms
 
 			foreach (var script in ScriptRepo)
 			{
-				object[] newrow = new object[] {
-					script.Id,
-					script.Title,
-					"", // status
-					_iconStart,
-					_iconKill,
-				};
+				object[] newrow = new object[colMAX];
+				
+				newrow[colName] = script.Title;
+				newrow[colStatus] = "";
+				newrow[colIconStart] = _iconStart;
+				newrow[colIconKill] = _iconKill;
+				newrow[colId] = script.Id;
+				
 	            _dataTable.Rows.Add(newrow);
 			};
 		}
@@ -153,7 +155,7 @@ namespace Dirigent.Gui.WinForms
 					else
 					if (scriptState.Status == EScriptStatus.Failed)
 					{
-						var scriptError = Tools.ProtoDeserialize<ScriptException>( scriptState.Data );
+						var scriptError = Tools.Deserialize<ScriptException>( scriptState.Data );
 						statusText += "; " + scriptError.Message;
 					}
 					
@@ -194,7 +196,7 @@ namespace Dirigent.Gui.WinForms
 				Guid scriptId = (Guid)focused.Cells[colId].Value;
 				bool connected = Client.IsConnected;
 
-				var script = ScriptRepo.FirstOrDefault( p => p.Id == scriptId );
+				var script = ScriptRepo.FirstOrDefault( p => p.Guid == scriptId );
 
 				if( e.Button == MouseButtons.Left )
 				{
@@ -202,11 +204,11 @@ namespace Dirigent.Gui.WinForms
 					// icon clicks
 					if( currentCol == colIconStart ) // start
 					{
-						WFT.GuardedOp( () => Ctrl.Send( new Net.StartScriptMessage( Ctrl.Name, script.Id, script.Args )  ) );
+						WFT.GuardedOp( () => Ctrl.Send( new Net.StartScriptMessage( Ctrl.Name, script.Guid, script.Args )  ) );
 					}
 					else if( currentCol == colIconKill ) // kill
 					{
-						WFT.GuardedOp( () => Ctrl.Send( new Net.KillScriptMessage( Ctrl.Name, script.Id )  ) );
+						WFT.GuardedOp( () => Ctrl.Send( new Net.KillScriptMessage( Ctrl.Name, script.Guid )  ) );
 					}
 				}
 
@@ -220,7 +222,7 @@ namespace Dirigent.Gui.WinForms
 						var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
 						launchItem.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.StartScriptMessage(
 							Ctrl.Name,
-							script.Id,
+							script.Guid,
 							script.Args
 						)));
 						//launchItem.Enabled = isAccessible && !st.Running;
@@ -229,7 +231,7 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var killItem = new System.Windows.Forms.ToolStripMenuItem( "&Kill" );
-						killItem.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.KillScriptMessage( Ctrl.Name, script.Id ) ) );
+						killItem.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.KillScriptMessage( Ctrl.Name, script.Guid ) ) );
 						//killItem.Enabled = isAccessible && ( st.Running || st.Restarting );
 						popup.Items.Add( killItem );
 					}
@@ -243,7 +245,7 @@ namespace Dirigent.Gui.WinForms
 						var propsWindowItem = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
 						propsWindowItem.Click += ( s, a ) => WFT.GuardedOp( () => 
 						{
-							var scriptDef = Ctrl.GetScriptDef( script.Id );
+							var scriptDef = Ctrl.GetScriptDef( script.Guid );
 							var frm = new frmScriptProperties( scriptDef );
 							frm.Show();
 						});
@@ -271,10 +273,10 @@ namespace Dirigent.Gui.WinForms
 
 				if( e.Button == MouseButtons.Left )
 				{
-					var script = ScriptRepo.FirstOrDefault( p => p.Id == scriptId );
+					var script = ScriptRepo.FirstOrDefault( p => p.Guid == scriptId );
 
 					// start clicked script
-					WFT.GuardedOp( () => Ctrl.Send( new Net.StartScriptMessage( Ctrl.Name, script.Id, script.Args )  ) );
+					WFT.GuardedOp( () => Ctrl.Send( new Net.StartScriptMessage( Ctrl.Name, script.Guid, script.Args )  ) );
 				}
 			}
 		}

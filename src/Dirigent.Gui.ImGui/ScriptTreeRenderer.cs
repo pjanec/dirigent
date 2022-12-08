@@ -77,7 +77,7 @@ namespace Dirigent.Gui
 			var root = new FolderTree();
 			foreach( var def in _ctrl.GetAllScriptDefs() )
 			{
-				var id = def.Id;
+				var id = def.Guid;
 				var title = def.Title;
 
 				// get renderer for a single script

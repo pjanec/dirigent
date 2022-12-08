@@ -904,7 +904,7 @@ namespace Dirigent.Net
 		{
 			this.Sender = requestorId;
 			this.Instance = singletonScriptId;
-			this.Args = Tools.ProtoSerialize( args );
+			this.Args = Tools.Serialize( args );
 		}
 
 		/// <summary> Starts script on given client </summary>
@@ -1221,6 +1221,11 @@ namespace Dirigent.Net
 		{
 			this.Instance = instance;
 			this.State = state;
+		}
+
+		public override string ToString()
+		{
+			return $"ScriptState [{Instance}] {State}";
 		}
 	}
 

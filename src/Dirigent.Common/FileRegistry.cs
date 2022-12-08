@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 using System;
 using System.IO;
+using System.Xml.Linq;
+using System.Threading;
 
 namespace Dirigent
 {
@@ -88,20 +90,33 @@ namespace Dirigent
 
 		public string GetMachineIP( string machineId, string whatFor )
 		{
-			// find machine
-			if( !Machines.TryGetValue( machineId, out var m ) )
-				throw new Exception($"Machine {machineId} not found for {whatFor}");
+			string? ip = null;
 
-			// find machine IP
-			if( string.IsNullOrEmpty( m.IP ) )
+			// find machine
+			if( Machines.TryGetValue( machineId, out var m ) )
+				ip = m.IP;
+				
+				// find machine IP
+			if( string.IsNullOrEmpty( ip ) )
 			{
 				if( _machineIPDelegate != null && !string.IsNullOrEmpty( machineId ) )
 				{
-					m.IP = _machineIPDelegate( machineId );
+					ip = _machineIPDelegate( machineId );
 				}
+			}
 
-				if( string.IsNullOrEmpty( m.IP ) )
-					throw new Exception($"Could not find IP of machine {machineId}");
+			if( string.IsNullOrEmpty( ip ) )
+				throw new Exception($"Could not find IP of machine {machineId}.");
+
+			// remember the machine if not yet
+			if( m is null )
+			{
+				m = new TMachine(); 
+			}
+
+			if( string.IsNullOrEmpty(m.IP) )
+			{
+				m.IP = ip;
 			}
 
 			return m.IP;
@@ -135,7 +150,9 @@ namespace Dirigent
 			// if the file on local machine, return local path
 			if (fdef.MachineId == _localMachineId)
 			{
-				return fdef.Path;
+				// TODO: for app-bound files, expand also local vars and define var for app working dir etc.
+				var expanded = Tools.ExpandEnvVars( fdef.Path );
+				return expanded;
 			}
 
 			// construct UNC path using file shares defined for machine
@@ -168,8 +185,19 @@ namespace Dirigent
 					node.AppId == appId )
 					return node;
 			}
-			return null;	
+			return null;
 		}
+
+		static T EmptyFrom<T>( VfsNodeDef x ) where T: VfsNodeDef, new()
+		{
+			return new T {
+				Guid = x.Guid,
+				Id = x.Id,
+				Title = x.Title,
+				MachineId = x.MachineId,
+			};
+		}
+
 
 		/// <summary>
 		/// Resolve all links, expands all widcards etc. Produces a tree of VfsNodes.
@@ -180,21 +208,74 @@ namespace Dirigent
 		/// Folders having just Title, files having Title and Path.
 		/// Path is resolved from the perspective of the local machine - remote paths are UNC.
 		/// </returns>
-		public VfsNodeDef Resolve( VfsNodeDef nodeDef, List<Guid>? usedGuids )
+		public async Task<VfsNodeDef> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, List<Guid>? usedGuids, CancellationToken ct, int timeoutMs=-1 )
 		{
+			if (nodeDef is null)
+				throw new ArgumentNullException( nameof( nodeDef ) );
+				
 			if (usedGuids == null) usedGuids = new List<Guid>();
 			if (usedGuids.Contains( nodeDef.Guid ))
 				throw new Exception( $"Circular reference in VFS tree: {nodeDef}" );
 			
 			usedGuids.Add( nodeDef.Guid );
 
-			if ( nodeDef is FileDef fileDef )
+			// non-local stuff to be always resolved on machine where local - via remote script call
+			if( nodeDef.MachineId != _localMachineId )
 			{
-				return new VfsNodeDef
+				// check if required machine is available
+				if( !string.IsNullOrEmpty(nodeDef.MachineId) &&  _machineIPDelegate( nodeDef.MachineId ) is null )
+					throw new Exception($"Machine {nodeDef.MachineId} not connected.");
+				// await script	to resolve remotely
+				var args = new Scripts.BuiltIn.ResolveVfsPath.TArgs
 				{
-					Title = !string.IsNullOrEmpty(fileDef.Title) ? fileDef.Title : fileDef.Id,
-					Path = GetFilePath( fileDef )
+					VfsNode = nodeDef
 				};
+
+				var result = await iDirig.RunScriptAndWaitAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
+					nodeDef.MachineId ?? "",
+					Scripts.BuiltIn.ResolveVfsPath._Name,
+					"",	// sourceCode
+					args,
+					$"Resolve {nodeDef.Xml}",
+					ct,
+					timeoutMs
+				);
+
+				return result!.VfsNode!;
+
+			}
+
+			// from here on, we are on local machine
+
+			if( nodeDef is FileDef fileDef )
+			{
+				if( string.IsNullOrEmpty(fileDef.Path) ) throw new Exception($"FileDef.Path is empty. {fileDef.Xml}");
+
+
+				//if( fileDef.Path.Contains('%') )
+
+				if( string.IsNullOrEmpty(fileDef.Filter ) )
+				{
+					var r = EmptyFrom<VfsNodeDef>( fileDef );
+					r.Path = GetFilePath( fileDef );
+					return r;
+				}
+
+				if( fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ) )
+				{
+					var folder = GetFilePath( fileDef );
+
+					if( string.IsNullOrEmpty(fileDef.Xml) ) throw new Exception($"FileDef.Xml is empty. {fileDef.Xml}");
+					var xel = XElement.Parse(fileDef.Xml);
+					string? mask = xel.Attribute( "Mask" )?.Value;
+					if( mask is null ) mask = "*.*";
+
+					var r = EmptyFrom<FileDef>( fileDef );
+					r.Path = GetNewestFileInFolder( folder, mask );
+					return r;
+				}
+
+				throw new Exception($"Unsupported filter. {fileDef.Xml}");
 			}
 			else
 			if( nodeDef is FileRef fref )
@@ -203,7 +284,7 @@ namespace Dirigent
 				if( def is null )
 					throw new Exception( $"{fref} points to non-existing FileDef" );
 
-				return Resolve( def, usedGuids );
+				return await ResolveAsync( iDirig, def, usedGuids, ct, timeoutMs );
 			}
 			else
 			if (nodeDef is VFolderDef vfolderDef)
@@ -213,9 +294,10 @@ namespace Dirigent
 					IsContainer = true
 				};
 
+				// FIXME: group children by machineId, resolve whole group by single remote script call
 				foreach( var child in vfolderDef.Children )
 				{
-					var resolved = Resolve( child, usedGuids );
+					var resolved = await ResolveAsync( iDirig, child, usedGuids, ct, timeoutMs );
 					ret.Children.Add( resolved );
 				}
 
@@ -224,7 +306,7 @@ namespace Dirigent
 			else
 			if( nodeDef is FolderDef folderDef )
 			{
-				return ResolveFolder( folderDef );
+				return ResolveFolder( folderDef, false ); // just that one folder, not the content
 			}
 			else
 			if( nodeDef is FilePackageRef fpref )
@@ -233,7 +315,7 @@ namespace Dirigent
 				if( def is null )
 					throw new Exception( $"{fpref} points to non-existing FilePackage" );
 
-				return Resolve( def, usedGuids );
+				return await ResolveAsync( iDirig, def, usedGuids, ct, timeoutMs );
 			}
 			else
 			{
@@ -241,22 +323,93 @@ namespace Dirigent
 			}
 		}
 
-		VfsNodeDef ResolveFolder( FolderDef folderDef )
+		VfsNodeDef ResolveFolder( FolderDef folderDef, bool includeContent )
 		{
-			var rootNode = new VfsNodeDef
-			{
-				IsContainer = true,
-				Title = !string.IsNullOrEmpty(folderDef.Title) ? folderDef.Title : folderDef.Id,
-			};
+			var rootNode = EmptyFrom<FolderDef>( folderDef );
+			rootNode.IsContainer = true;
+			rootNode.Path = GetFilePath( folderDef );
 			
-			// FIXME:
-			// traverse all files & folders 
-			// filter by glob-style mask
-			// convert into vfs tree structure
-			var basePath = GetFilePath( folderDef );
-			// ....
+			if( includeContent )
+			{
+				// FIXME:
+				// traverse all files & folders 
+				// filter by glob-style mask
+				// convert into vfs tree structure
+				var folderName = GetFilePath( folderDef );
+				// ....
 
+				var mask = folderDef.Mask;
+				if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
+
+				var dirs = FindDirectories( folderName );
+				foreach (var dir in dirs)
+				{
+					var dirDef = new FolderDef
+					{
+						//Id = dir.Name,
+						Path = dir.FullName,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = true,
+						Title = dir.Name,
+					};
+					var vfsFolder = ResolveFolder( dirDef, includeContent );
+					rootNode.Children.Add( vfsFolder );
+				}
+
+				var files = FindMatchingFileInfos( folderName, mask, false );
+				foreach (var file in files)
+				{
+					var fileDef = new FileDef
+					{
+						//Id = file.Name,
+						Path = file.FullName,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = false,
+						Title = file.Name,
+					};
+					rootNode.Children.Add( fileDef );
+				}
+			}
+			
 			return rootNode;
+		}
+
+		string? GetNewestFileInFolder( string folderName, string mask )
+		{
+			var files = FindMatchingFileInfos( folderName, mask, false );
+			var newest = GetNewest( files );
+			return newest;
+		}
+
+		static FileInfo[] FindMatchingFileInfos( string folderName, string mask, bool recursive )
+		{
+			if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
+			if( string.IsNullOrEmpty( folderName ) ) folderName = Directory.GetCurrentDirectory();
+			var dirInfo = new DirectoryInfo(folderName);
+			var enumOpts = new EnumerationOptions()
+			{
+				MatchType = MatchType.Win32,
+				RecurseSubdirectories = recursive,
+				ReturnSpecialDirectories = false
+			};
+			FileInfo[] files = dirInfo.GetFiles( mask, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+			return files;
+		}
+
+		static DirectoryInfo[] FindDirectories( string folderName )
+		{
+			var dirInfo = new DirectoryInfo(folderName);
+			DirectoryInfo[] dirs = dirInfo.GetDirectories();
+			return dirs;
+		}
+
+		static string? GetNewest( FileInfo[] files )
+		{
+			if( files.Length == 0 ) return null;
+			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
+			return files[files.Length-1].FullName;
 		}
 	}
 }

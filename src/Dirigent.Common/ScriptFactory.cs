@@ -107,6 +107,8 @@ namespace Dirigent
 		{
 			if( scriptName == "Scripts/DemoScript1.cs" )
 				return new DemoScript1();
+			if( scriptName == Scripts.BuiltIn.ResolveVfsPath._Name )
+				return new Scripts.BuiltIn.ResolveVfsPath();
 			//if( scriptName == "BuiltIns/DownloadFileZipped/Controller" )
 			//	return new Scripts.DownloadFileZipped.Controller();
 			//if( scriptName == "BuiltIns/DownloadFileZipped/Worker" )

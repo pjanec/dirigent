@@ -28,6 +28,7 @@ namespace Dirigent.Gui.WinForms
 		public System.ComponentModel.IContainer Components => components;
 
 		public IDirig Ctrl { get; private set; }
+		public IDirigAsync CtrlAsync { get; private set; }
 
 		private string _machineId; // empty if GUI not running as part of local agent
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
@@ -125,13 +126,15 @@ namespace Dirigent.Gui.WinForms
 			{
 			};
 
+			SyncOps = new SynchronousOpProcessor();
+
 			Ctrl = ReflStates;
+			CtrlAsync = new SynchronousIDirig( Ctrl, SyncOps );
 
 			// load tools from local config
 			InitFromLocalConfig( machineId );			
 
 			ScriptFactory = new ScriptFactory();
-			SyncOps = new SynchronousOpProcessor();
 			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps );
 			
 
@@ -169,7 +172,7 @@ namespace Dirigent.Gui.WinForms
 
 			var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
 			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			var localConfig = new LocalXmlConfigReader( File.OpenText( fullPath ), machineId ).Config;
+			var localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
 
 			
 			_sharedContext = new SharedContext(
@@ -179,7 +182,7 @@ namespace Dirigent.Gui.WinForms
 				Client
 			);
 
-			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates.FileRegistry );
+			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates.FileRegistry, ReflStates.Scripts );
 		}
 
 		void OnMessage( Net.Message msg )

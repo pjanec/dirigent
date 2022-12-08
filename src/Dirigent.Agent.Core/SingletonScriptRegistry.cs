@@ -20,7 +20,7 @@ namespace Dirigent
 
 		public class Entry : Disposable
 		{
-			public Guid Id => Def.Id;
+			public Guid Guid => Def.Guid;
 
 			public ScriptDef Def { get; private set; }
 			LocalScriptRegistry _localScriptRegistry;
@@ -44,12 +44,12 @@ namespace Dirigent
 			{
 				if (args is null) args = Def.Args;
 				// create a new instance of the script; it will be disposed when it dies
-				_localScriptRegistry.Start( Def.Id, Def.Name, null, Tools.ProtoSerialize( args ), Def.Title );
+				_localScriptRegistry.Start( Def.Guid, Def.Name, null, Tools.Serialize( args ), Def.Title );
 			}
 
 			public void Stop()
 			{
-				_localScriptRegistry.Stop( Def.Id );
+				_localScriptRegistry.Stop( Def.Guid );
 			}
 		}
 		
@@ -83,7 +83,7 @@ namespace Dirigent
 			{
 				var script = new Entry( def, _master.ScriptFactory, _localScriptRegistry );
 
-				_scripts[script.Id] = script;
+				_scripts[script.Guid] = script;
 			}
 
 		}

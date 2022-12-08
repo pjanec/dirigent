@@ -17,7 +17,9 @@
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
 
-            <File Id="aaa" Path="%USERPROFILE%\Documents\aaa.txt"/>
+            <File Path="%USERPROFILE%\Documents\aaa.txt"/>
+
+            <Folder Title="my folder" Path="D:\TEMP\BIST"/>
 
     	</App>
 
@@ -118,7 +120,7 @@
     </Plan>
 
 
-    <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1" Name="Scripts/DemoScript1.cs" Args="" Groups="Examples;;Common/Demo"/>
+    <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
 
     <AppTemplate Name="apps.notepad"
     		Template = ""
@@ -161,18 +163,23 @@
     <Machine Name="m1">
         <Share Name="C" Path="C:\"/>
         <Share Name="D$" Path="d:\"/>
-        <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt"/>
-        <NewestFile Id="Log" Folder="C:\Logs\App1" Mask="*.txt" Recursive="1"/>
-        <Folder Id="Docs" Path="%USERPROFILE%\Documents"/>
-
-        <!-- Tasks are shown in machine's context menu.
-             They are actually scripts running partly on the target machine and partly on the client
-             they were invoked from. -->
-        <Task Id="task1" Title="Machine specific task" Script="MachineScripts/Test1" Args=""/>
+        <File Id="Greetings file" Path="%USERPROFILE%\Documents\Greetings.txt">
+          <Tool Title="Open in Notepad" Name="Notepad" />
+        </File>
+        <File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest">
+          <Tool Title="Open in Notepad" Name="Notepad" />
+        </File>
+        <Folder Id="Docs folder" Path="%USERPROFILE%\Documents">
+          <Tool Title="Open in Explorer" Name="Explorer"/>
+        </Folder>
 
         <!-- Tools are added to machine's Tools menu. Tools are always started on local machine.
             Tools are defined in LocalConfig.xml file. -->
-		<Tool Id="VncViewer" Title="VNC to m1" CmdLineArgs="%MACHINE_IP%"/>
+		<Tool Title="VNC to m1" Name="VncViewer" Args="%MACHINE_IP%"/>
+
+        <!-- Scripts are added to machine's Tools menu too. Scripts might run on any machine.
+            Scripts are wither BuiltIn or loaded from file. -->
+        <Script Title="Notepad++" Name="Scripts/DemoScript1.cs" Args="φιλοξενία"/>
 
 		<!-- Network services available on the machine.
     		 In case of connecting via SSH dirigent sets up the port forwarding for these. -->
@@ -190,16 +197,22 @@
 	    >
 
         <File Id="xxx" Title="xxx file" Path="%USERPROFILE%\Documents\xxx.txt">
-          <Tool Id="Notepad" Title="Open in Notepad"/>
+          <Tool Title="Open in Notepad" Name="Notepad"/>
         </File>
 
-        <Folder Id="LocalData" Path="%AppData%\Local\AppWithFile"/>
-        <!-- task to be shown in the app's context menu !-->
-        <Task Id="task1" Title="App-specific task nice name" Script="AppScripts/Test1" Args=""/>
+        <File Id="yyy" Title="xxx file" Path="C:\Logs" Mask="*.log" Filter="Newest" >
+          <Tool Title="Open in Notepad" Name="Notepad" />
+        </File>
 
-        <Tool Id="Notepad" Title="Open some file in Notepad" CmdLineArgs="somefile.txt"/>
+        <Folder Id="LocalData folder" Path="%AppData%\Notepad++">
+          <Tool Title="Open in Explorer" Name="Explorer"/>
+        </Folder>
 
-		<Tool Id="VncViewer" Title="VNC to where the app runs" CmdLineArgs="%MACHINE_IP%"/>
+        <Tool Title="Open some file in Notepad" Name="Notepad" Args="somefile.txt"/>
+
+        <Script Title="Run some script" Name="Scripts/DemoScript1.cs" Args="somefile.txt"/>
+
+		<Tool Title="VNC to where the app runs" Name="VncViewer" Args="%MACHINE_IP%"/>
 
     	<FilePackage Id="appFilePack">
     	    <!-- reference to machine-specific file-->
@@ -213,12 +226,10 @@
         	
         	<!-- global files specification -->
         	<File Id="inPackFile" Path="D:\TEMP\file.txt">
-                <Tool Id="Notepad" Title="Notepad++"/>
+                <Tool Title="Notepad++" Name="Notepad"/>
         	</File>
 
-            <Task Id="task1" Title="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
-
-    	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%FILEPACKAGE_LIST_FILE%"/>
+    	    <Tool Title="Browse files in package" Name="FileCmd" Args="%FILEPACKAGE_LIST_FILE%"/>
         </FilePackage>
 	
 	</App>
@@ -233,9 +244,7 @@
 	    <!-- direct definition of independent file using UNC path-->
    	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
 
-        <Task Id="task1" Title="FilePackage-specific task nice name" Script="PackageScripts/Test1" Args=""/>
-
-	    <Tool Id="FileCmd" Title="Browse files in package" CmdLineArgs="%PACKAGE_LIST_FILE%"/>
+	    <Tool Title="Browse files in package" Name="FileCmd" CmdLineArgs="%PACKAGE_LIST_FILE%"/>
 
 	    <!-- real folder in the filesystem using glob-style globbing; empty mask means "**"-->
 	    <Folder Id="fold1" Path="D:\TEMP" Mask="**/logs/**/*.{log,txt}" />
@@ -258,21 +267,19 @@
 
 	<!-- global files specification -->
 	<File Id="global4" Path="\\server\share\path\to\file.txt">
-	    <!-- Tasks appear in the file's context menu -->
-        <Task Id="task1" Title="File-specific task nice name" Script="FileScripts/Test1" Args=""/>
         <!-- Tools appear in the file's context menu -->
-        <Tool Id="Notepad" Title="Notepad++"/>
+        <Tool Title="Notepad++" Name="Notepad" />
 	</File>
 
 	<File Id="local1" MachineId="m1" Path="D:\TEMP\file.txt">
         <!-- Tools appear in the file's context menu -->
-        <Tool Id="Notepad" Title="Notepad++"/>
+        <Tool Title="Notepad++" Name="Notepad" />
 	</File>
 
 	<!-- This is a default item which does not need to be defined explicitly unless you need some special tools for it;
 	     the path is provided automatically -->
-	<File Id="DirigentSharedConfig" Title="SharedConfig">
-        <Tool Id="Notepad" Title="Notepad++" CmdLineArgs="%FILE_PATH%"/>
+	<File Title="SharedConfig" Id="DirigentSharedConfig" Path="x:\y\SharedConfig.xml">
+        <Tool Title="Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
 	</File>
 
 	<!-- Gateway network settings for tunelling network service ports in case we connect via SSH.

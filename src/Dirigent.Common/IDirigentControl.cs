@@ -5,6 +5,7 @@ using System.Text;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Dirigent
 {
@@ -140,6 +141,10 @@ namespace Dirigent
 
 		VfsNodeDef? GetVfsNodeDef( Guid guid ) { return null; }
 		IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return new List<VfsNodeDef>(); }
+
+		Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 );
+		Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs );
+
 	}
 
 
@@ -234,6 +239,8 @@ namespace Dirigent
 		Task<IEnumerable<ScriptDef>> GetAllScriptDefsAsync();
 		Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid );
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync();
-		Task<TResult> RunScriptWaitAsync<TArgs, TResult>( string scriptName, string machineId, TArgs args );
+		Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 );
+		Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs );
+
 	}
 }

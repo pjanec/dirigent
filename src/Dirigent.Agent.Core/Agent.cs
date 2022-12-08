@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Threading;
 
 namespace Dirigent
 {
@@ -21,6 +22,10 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return from x in _localApps.Apps select new KeyValuePair<AppIdTuple, AppDef>(x.Key, x.Value.RecentAppDef); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
+		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
+			=> _reflStates.Scripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
+			=> _reflStates.FileRegistry.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
 
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;
@@ -37,8 +42,10 @@ namespace Dirigent
 		private TickableCollection _tickers;
 		public TickableCollection Tickers => _tickers;
 		public ScriptFactory ScriptFactory;
-		public SynchronousOpProcessor SyncOps { get; private set; }
+		private SynchronousOpProcessor _syncOps;
+		private SynchronousIDirig _syncIDirig;
 		private LocalScriptRegistry _localScripts;
+		ReflectedStateRepo _reflStates;
 		
 
         /// <summary>
@@ -55,6 +62,11 @@ namespace Dirigent
 			_clientIdent = new Net.ClientIdent() { Sender = machineId, SubscribedTo = Net.EMsgRecipCateg.Agent };
 			_client = new Net.Client( _clientIdent, masterIP, masterPort, autoConn: true );
 			_rootForRelativePaths = rootForRelativePaths;
+
+			_reflStates = new ReflectedStateRepo( _client, machineId );
+
+			_syncOps = new SynchronousOpProcessor();
+			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
 			ScriptFactory = new ScriptFactory();
 
@@ -76,9 +88,8 @@ namespace Dirigent
 			}
 			
 
-			SyncOps = new SynchronousOpProcessor();
 
-			_localScripts = new LocalScriptRegistry( this, ScriptFactory, SyncOps );
+			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps );
 
 		}
 
@@ -98,7 +109,7 @@ namespace Dirigent
 
 			_tickers.Tick();
 
-			SyncOps.Tick();
+			_syncOps.Tick();
 
 			_localScripts.Tick();
 
@@ -347,7 +358,7 @@ namespace Dirigent
 
 			var fullPath = Path.GetFullPath( fileName );
 			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			return new LocalXmlConfigReader( File.OpenText( fullPath ), machineId ).Config;
+			return new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
 		}
 
 		void InitFromLocalConfig()

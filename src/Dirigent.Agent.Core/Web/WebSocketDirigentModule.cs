@@ -11,8 +11,8 @@ namespace Dirigent.Web
     /// </summary>
     public class WebSocketDirigentModule : WebSocketModule
     {
-        CancellationTokenSource _taskCancelSrc;
-        Task _task;
+        //CancellationTokenSource _taskCancelSrc;
+        //Task _task;
 
         public class PlanStateNotifMessage
         {
@@ -27,13 +27,13 @@ namespace Dirigent.Web
         public WebSocketDirigentModule(string urlPath)
             : base(urlPath, true)
         {
-            _taskCancelSrc = new CancellationTokenSource();
-            _task = Task.Run(() =>
-                {
-                    SimulatePeriodicalStatusPush( _taskCancelSrc.Token );
-                }
-             );
-             _task.ConfigureAwait(false);
+            //_taskCancelSrc = new CancellationTokenSource();
+            //_task = Task.Run(() =>
+            //    {
+            //        SimulatePeriodicalStatusPush( _taskCancelSrc.Token );
+            //    }
+            // );
+            // _task.ConfigureAwait(false);
         }
 
 
@@ -68,11 +68,11 @@ namespace Dirigent.Web
             base.Dispose(disposing);
             if( !disposing ) return;
 
-            "Cancelling the looping...".Info();
-            _taskCancelSrc.Cancel();
-            "Waiting to finish...".Info();
-            _task.Wait();
-            "Wait finished.".Info();
+            //"Cancelling the looping...".Info();
+            //_taskCancelSrc.Cancel();
+            //"Waiting to finish...".Info();
+            //_task.Wait();
+            //"Wait finished.".Info();
         }
 
 

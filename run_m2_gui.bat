@@ -1,0 +1,1 @@
+start /Dconfig src\Dirigent.Agent.WinForms\bin\Debug\net6.0-windows\Dirigent.Agent.exe --machineId m2 --mode trayGui

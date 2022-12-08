@@ -14,7 +14,13 @@ namespace Dirigent
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-		public ScriptState State = new();
+		// Current status of the script. Set by the Runner (can't be not from script, script sets just status Text/Data)
+		EScriptStatus _status;
+
+		/// <summary>
+		/// Gets a snapshot of script status
+		/// </summary>
+		public ScriptState State => GetStateLocked();
 
 		private Script? _script;
 
@@ -50,14 +56,31 @@ namespace Dirigent
 			_script?.Dispose();
 		}
 
+
+		// this has to be locked as the status can change either from Tick or from async ScriptLifeCycle
+		ScriptState GetStateLocked()
+		{
+			if( _script == null )
+				return new ScriptState();
+
+			lock( _script )
+			{
+				return new ScriptState(
+					_status,
+					(_script as IScript).StatusText,
+					(_script as IScript).StatusData
+				);
+			}
+		}
+
 		public void Start( string scriptName, string? sourceCode, byte[]? args, string title )
 		{
 			// one runner can run max one script at a time
 			if( _script is not null ) // already started?
 				throw new Exception( $"Script {title} [{ScriptInstance}] already started." );
 
-			State.Status = EScriptStatus.Starting;
-			SendStatus();
+			_status = EScriptStatus.Starting;
+			SendStatus( new ScriptState(_status) );
 
 			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ) );
 
@@ -78,8 +101,10 @@ namespace Dirigent
 			script.Instance = ScriptInstance;
 			_script = script;
 
-			State.Status = EScriptStatus.Running;
-			SendStatus();
+			log.Debug( $"Starting script \"{_script.Title}\"{_script.Origin} [{_script.Instance}]" );
+
+			_status = EScriptStatus.Running;
+			SendStatus( new ScriptState(_status) );
 
 			// run the script's Init+Run asynchronously
 			_runCTS = new CancellationTokenSource();
@@ -91,8 +116,17 @@ namespace Dirigent
 		{
 			if( _script is null ) return;
 
-			State.Status = EScriptStatus.Cancelling;
-			SendStatus();
+			log.Debug( $"Cancelling script \"{_script.Title}\"{_script.Origin} [{_script.Instance}]" );
+
+			
+			// note: the script can be still running there, possibly overwriting the status when it finished etc, needs locking
+			var state = new ScriptState();
+			lock( _script )
+			{
+				_status = EScriptStatus.Cancelling;
+				state.Status = _status;
+			}
+			SendStatus( state );
 
 			// cancel and wait for task to finish
 			_runCTS?.Cancel();
@@ -124,40 +158,55 @@ namespace Dirigent
 			{
 				//await _script.CallInit();
 				var result = await _script.CallRun( ct );
-				State.Status = EScriptStatus.Finished;
-				State.Data = Tools.ProtoSerialize( result );
-				await SendStatusAsync();
+
+				var state = new ScriptState();
+				lock( _script )
+				{
+					_status = EScriptStatus.Finished;
+					state.Status = _status;
+					state.Data = result;
+				}
+				await SendStatusAsync( state );
 			}
 			catch( TaskCanceledException )
 			{
-				State.Status = EScriptStatus.Cancelled;
-				//SendStatus();
-				await SendStatusAsync();
+				var state = new ScriptState();
+				lock( _script )
+				{
+					_status = EScriptStatus.Cancelled;
+					state.Status = _status;
+				}
+				await SendStatusAsync( state );
 			}
 			catch( Exception ex )
 			{
-				State.Status = EScriptStatus.Failed;
-				State.Data = Tools.ProtoSerialize( new ScriptException( ex ) );
-				await SendStatusAsync();
+				var state = new ScriptState();
+				lock( _script )
+				{
+					_status = EScriptStatus.Failed;
+					state.Status = _status;
+					state.Data = Tools.Serialize( new ScriptException( ex ) );
+				}
+				await SendStatusAsync( state );
 			}
 
 		}
 
-		public void SendStatus()
+		public void SendStatus( ScriptState state )
 		{
 			if( _script == null ) return;
 			_ctrl.Send( new Net.ScriptStateMessage(
 				ScriptInstance,
-				new ScriptState( State.Status, State.Text, State.Data )
+				state
 			));
 		}
 
-		public Task SendStatusAsync()
+		public Task SendStatusAsync( ScriptState state )
 		{
 			if( _script == null ) return Task.CompletedTask;
 			return _script.Dirig.SendAsync( new Net.ScriptStateMessage(
 				ScriptInstance,
-				new ScriptState( State.Status, State.Text, State.Data )
+				state
 			));
 		}
 		
@@ -168,23 +217,17 @@ namespace Dirigent
 		{
 			if( _script != null )
 			{
-				// get status from script and send if changed
-				var currStatusText = (_script as IScript).StatusText;	// FIXME: possible race condition, script is async, needs locking!
-				var currStatusData = (_script as IScript).StatusData;	// FIXME: possible race condition, script is async, needs locking!
+				var state = GetStateLocked();
 
-				if (currStatusText != _lastSentState.Text
-						||
-				    currStatusData != _lastSentState.Data	// reference equality should be enough as serializer always produces new instance
-				)
+				// while the script is running, we send the Text and Data as set by the script
+				if( state.Status == EScriptStatus.Running )
 				{
-					State.Text = currStatusText;
-					State.Data = currStatusData;
-					
-					SendStatus();
-					
-					_lastSentState.Status = State.Status;
-					_lastSentState.Text = State.Text;
-					_lastSentState.Data = State.Data;
+					if( state != _lastSentState )
+					{
+						SendStatus( state );
+
+						_lastSentState = state;
+					}
 				}
 			}
 

@@ -11,6 +11,7 @@ using System.Reflection;
 
 using System.IO;
 using Dirigent.Gui.WinForms.Properties;
+using System.Threading;
 
 namespace Dirigent.Gui.WinForms
 {
@@ -19,6 +20,7 @@ namespace Dirigent.Gui.WinForms
 		protected frmMain _form;
 		protected Net.Client Client => _form.Client;
 		protected IDirig Ctrl => _form.Ctrl;
+		protected IDirigAsync CtrlAsync => _form.CtrlAsync;
 		protected ReflectedStateRepo ReflStates => _form.ReflStates;
 		protected List<PlanDef> PlanRepo => _form.PlanRepo;
 		protected PlanDef CurrentPlan { get { return _form.CurrentPlan; } set { _form.CurrentPlan = value; } }
@@ -36,17 +38,17 @@ namespace Dirigent.Gui.WinForms
 			_form = form;
 		}
 
-		protected ToolStripMenuItem ContextMenuFile( FileDef fileDef )
+		protected ToolStripMenuItem ContextMenuVfsNode( VfsNodeDef vfsNodeDef )
 		{
-			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-			foreach( var tool in fileDef.Tools )
+			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&File/Folder" );
+			foreach( var action in vfsNodeDef.Actions )
 			{
-				var title = tool.Title;
-				if (string.IsNullOrEmpty( title )) title = tool.Id;
+				var title = action.Title;
+				if (string.IsNullOrEmpty( title )) title = action.Name;
 				var item = new System.Windows.Forms.ToolStripMenuItem( title );
-				item.Click += ( s, a ) => WFT.GuardedOp( () => {
-						var resolved = ReflStates.FileRegistry.Resolve( fileDef, null );
-						_form.ToolsRegistry.StartFileBoundTool( tool, resolved ) ;
+				item.Click += async ( s, a ) => await WFT.GuardedOpAsync( async () => {
+						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
+						_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
 					}
 				);
 				toolsMenu.DropDownItems.Add( item );
@@ -61,14 +63,14 @@ namespace Dirigent.Gui.WinForms
 		protected ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
 		{
 			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-			foreach( var tool in fpack.Tools )
+			foreach( var action in fpack.Actions )
 			{
-				var title = tool.Title;
-				if (string.IsNullOrEmpty( title )) title = tool.Id;
+				var title = action.Title;
+				if (string.IsNullOrEmpty( title )) title = action.Name;
 				var item = new System.Windows.Forms.ToolStripMenuItem( title );
-				item.Click += ( s, a ) => WFT.GuardedOp( () => {
-					var resolved = ReflStates.FileRegistry.Resolve( fpack, null );
-					_form.ToolsRegistry.StartFilePackageBoundTool( tool, resolved );
+				item.Click += async ( s, a ) => await WFT.GuardedOpAsync( async () => {
+					var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
+					_form.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
 					//try{
 					//	var result = await _form.ReflStates.Scripts.RunScriptAndWait<DemoScript1.Result>( "m1", "Scripts/DemoScript1.cs", null, null, "Demo1", System.Threading.CancellationToken.None, -1 );
 					//	MessageBox.Show( result.ToString() );
@@ -88,15 +90,15 @@ namespace Dirigent.Gui.WinForms
 			return null;
 		}
 
-		protected ToolStripMenuItem ContextMenuFiles( IEnumerable<FileDef> fileDefs )
+		protected ToolStripMenuItem ContextMenuVfsNodes( IEnumerable<VfsNodeDef> vfsNodeDefs )
 		{
-			var filesMenu = new System.Windows.Forms.ToolStripMenuItem( "&Files" );
-			foreach( var fileDef in fileDefs )
+			var filesMenu = new System.Windows.Forms.ToolStripMenuItem( "&Files/Folders" );
+			foreach( var vfsNodeDef in vfsNodeDefs )
 			{
-				var title = fileDef.Title;
-				if (string.IsNullOrEmpty( title )) title = fileDef.Id;
+				var title = vfsNodeDef.Title;
+				if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
 				var fileMenu = new ToolStripMenuItem( title );
-				var toolsSubmenu = ContextMenuFile( fileDef );
+				var toolsSubmenu = ContextMenuVfsNode( vfsNodeDef );
 				if( toolsSubmenu != null )
 				{
 					//fileMenu.DropDownItems.Add ( toolsSubmenu );

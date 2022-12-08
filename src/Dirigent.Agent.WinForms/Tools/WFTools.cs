@@ -38,6 +38,20 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		// this one properly handles exception in async code
+		public async static Task GuardedOpAsync( Func<Task> asyncAction )
+		{
+			try
+			{
+				await asyncAction();
+			}
+			catch( Exception ex )
+			{
+				log.Error( ex );
+				ExceptionDialog.showExceptionWithStackTrace( ex, "Exception", "" );
+			}
+		}
+
 		public static Bitmap ResizeImage( Bitmap imgToResize, Size size )
 		{
 			try

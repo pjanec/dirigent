@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dirigent
@@ -88,10 +89,9 @@ namespace Dirigent
 		public async Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStatesAsync() => await GuardedFunc( () => _ctrl.GetAllPlanStates().ToList() );
 		public async Task<PlanDef?> GetPlanDef( string Id ) => await GuardedFunc( () => _ctrl.GetPlanDef( Id ) );
 		public async Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
-		public Task<TResult> RunScriptWaitAsync<TArgs, TResult>( string scriptName, string machineId, TArgs args )
-		{
-			throw new NotImplementedException();
-		}
+		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 ) => _ctrl.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs ) => _ctrl.ResolveAsync( nodeDef, ct, timeoutMs );
+
 #pragma warning restore CS8603 // Possible null reference return.
 	}
 }

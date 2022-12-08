@@ -16,14 +16,15 @@ public class DemoScript1 : Script
 		public int Code;
 
 		public override string ToString() => Code.ToString();
-		public byte[] Serialize() => Tools.ProtoSerialize( this );
-		public static Result? Deserialize( byte[] data ) => Tools.ProtoDeserialize<Result>( data );
 	}
 
 	protected async override Task<byte[]?> Run( CancellationToken ct )
 	{
 		if( Args is not null )
-			log.Info($"Init with args: '{Encoding.UTF8.GetString(Args)}'");
+		{
+			var strArgs = GetArgs<string>();
+			log.Info($"Init with args: '{strArgs}'");
+		}
 
 		log.Info("Run!");
 
@@ -53,6 +54,6 @@ public class DemoScript1 : Script
 		await KillApp( "m1.a" );
 		await KillApp( "m1.b" );
 
-		return new Result { Code = 17 }.Serialize();
+		return MakeResult( new Result { Code = 17 } );
 	}
 }

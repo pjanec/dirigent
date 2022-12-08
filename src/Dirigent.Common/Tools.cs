@@ -602,7 +602,7 @@ namespace Dirigent
 			}
 		}
 
-		public static byte[] ProtoSerialize<T>( T data )	
+		public static byte[] Serialize<T>( T data )	
 		{
 			using (var stream = new MemoryStream())
 			{
@@ -611,13 +611,20 @@ namespace Dirigent
 			}
 		}
 
-		public static T? ProtoDeserialize<T>( byte[]? data )	
+		public static T? Deserialize<T>( byte[]? data )	
 		{
 			if (data is null) return default( T );
 			using (var stream = new MemoryStream( data ))
 			{
 				return ProtoBuf.Serializer.Deserialize<T>( stream );
 			}
+		}
+
+		/// <summary> Protobuf-based cloning </summary>
+		public static T? Clone<T>( T? data )	
+		{
+			if (data is null) return default(T);
+			return Deserialize<T>( Serialize( data ) );
 		}
 
 	}

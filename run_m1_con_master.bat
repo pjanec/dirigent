@@ -1,0 +1,1 @@
+start /Dconfig src\Dirigent.Agent.Console\bin\Debug\net6.0-windows\Dirigent.Agent.exe --machineId m1 --isMaster 1 

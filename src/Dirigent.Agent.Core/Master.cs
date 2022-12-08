@@ -28,13 +28,31 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
-		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Id==Id); }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Guid == Id); }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _reflScripts.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
 		public string Name => string.Empty;
-		public void Send( Net.Message msg ) { ProcessIncomingMessageAndHandleExceptions( msg ); }
-
+		public void Send( Net.Message msg )
+		{
+			// send to everyone else
+			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+			// process also on master
+			ProcessIncomingMessageAndHandleExceptions( msg );
+		}
+		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
+			=> _reflScripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
+		{
+			// if node not associated with any machine, resolve on master's machine
+			if( string.IsNullOrEmpty(nodeDef.MachineId) )
+			{
+				nodeDef = Tools.Clone( nodeDef )!;
+				nodeDef.MachineId = _machineId;	
+			}
+			return _files.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
+		}
+					
 		#endregion
 
 		public bool WantsQuit { get; set; }
@@ -71,8 +89,11 @@ namespace Dirigent
 		CancellationTokenSource _webServerCTS;
 		private Task _webServerTask;
 		public ScriptFactory ScriptFactory;
-		public SynchronousOpProcessor SyncOps { get; private set; }
-		
+		public SynchronousOpProcessor SyncOps => _syncOps;
+		public SynchronousOpProcessor _syncOps;
+		private SynchronousIDirig _syncIDirig;
+		private string _machineId; // empty if we run master standalone on an unidentified machine (this never happens as we always run master as part of some agent on a machine with a known id)
+
 		#endregion
 
 		public Master( AppConfig ac, string rootForRelativePaths )
@@ -85,7 +106,8 @@ namespace Dirigent
 			_rootForRelativePaths = rootForRelativePaths;
 
 			ScriptFactory = new ScriptFactory();
-			SyncOps = new SynchronousOpProcessor();
+			_syncOps = new SynchronousOpProcessor();
+			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
 			_allAppStates = new AllAppsStateRegistry();
 			_allClientStates = new AllClientStateRegistry();
@@ -103,8 +125,11 @@ namespace Dirigent
 			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps );
 			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
 
+			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id
+			if (string.IsNullOrEmpty( _machineId )) throw new Exception($"MachineId not specified for Master!");
+
 			_files = new FileRegistry(
-				ac.MachineId, // empty if we run master standalone on an unidentified machine
+				_machineId, // empty if we run master standalone on an unidentified machine
 				(string machineId) =>
 				{
 					if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
@@ -363,7 +388,7 @@ namespace Dirigent
 					{
 						if( string.IsNullOrEmpty(m.ScriptName) ) // is it a ScriptDef based single-instance script?
 						{
-							StartSingletonScript( m.Sender, m.Instance, Tools.ProtoDeserialize<string?>(m.Args) );
+							StartSingletonScript( m.Sender, m.Instance, Tools.Deserialize<string?>(m.Args) );
 						}
 						else // it is a generic script
 						{
@@ -426,8 +451,11 @@ namespace Dirigent
 				{
 					_reflScripts.UpdateScriptState( m.Instance, m.State );
 						
-					// forward to all
-					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+					// forward to others (if it was sent from non-master)
+					if( m.Sender != "" )
+					{
+						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+					}
 					break;
 				}
 
@@ -607,21 +635,22 @@ namespace Dirigent
 				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
 			}
 
-			// scripts
-			{
-				foreach (var (inst, state) in _localScripts.ScriptStates)
-				{
-					var m = new Net.ScriptStateMessage( inst, state );
-					_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
-				}
-			}
+			// we are sending script state on change only, from the async script execution
+			//// scripts
+			//{
+			//	foreach (var (inst, state) in _localScripts.ScriptStates)
+			//	{
+			//		var m = new Net.ScriptStateMessage( inst, state );
+			//		_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+			//	}
+			//}
 		}
 
 		SharedConfig LoadSharedConfig( string fileName )
 		{
 			SharedConfig sharedConfig;
 			log.DebugFormat( "Loading shared config file '{0}'", fileName );
-			sharedConfig = new SharedXmlConfigReader( System.IO.File.OpenText( fileName ) ).Config;
+			sharedConfig = new SharedConfigReader( System.IO.File.OpenText( fileName ) ).Config;
 			_sharedConfigFileName = fileName;
 			return sharedConfig;
 		}

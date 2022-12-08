@@ -21,43 +21,8 @@ namespace Dirigent
 	[ProtoBuf.ProtoInclude( 103, typeof( FolderDef ) )]
 	[ProtoBuf.ProtoInclude( 104, typeof( VFolderDef ) )]
 	[ProtoBuf.ProtoInclude( 105, typeof( FilePackageDef ) )]
-	public class VfsNodeDef : IEquatable<VfsNodeDef>
+	public class VfsNodeDef : AssocItemDef, IEquatable<VfsNodeDef>
 	{
-		/// <summary>
-		/// Unique id within the system (generated when loading the item from config)
-		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
-		public Guid Guid;
-
-		/// <summary>
-		/// Display name of the item
-		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
-		public string Title = String.Empty;
-
-		/// <summary>
-		/// Human readable file id
-		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
-		public string Id = String.Empty;
-
-		/// <summary>
-		/// Machine the file belongs to. Null if global file.
-		/// </summary>
-		[ProtoBuf.ProtoMember( 4 )]
-		[DataMember]
-		public string? MachineId = String.Empty;
-
-		/// <summary>
-		/// App the file belongs to. Used only if the file is bouond to an app.
-		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
-		public string? AppId = null;
-
 		/// <summary>
 		/// Full file path in the real file system, local to the machine where the file/folder resides.
 		/// Paths is already resolved, not containing any macros.
@@ -82,11 +47,19 @@ namespace Dirigent
 		public List<VfsNodeDef> Children = new List<VfsNodeDef>();
 
 		/// <summary>
-		/// What tools are predefined for this item.
+		/// Name of the filter script to resolve this item 
 		/// </summary>
-		[ProtoBuf.ProtoMember( 9 )]
+		[ProtoBuf.ProtoMember( 10 )]
 		[DataMember]
-		public List<ToolRef> Tools = new List<ToolRef>();
+		public string? Filter;
+
+		/// <summary>
+		/// Xml node with attributes passed to filter scripts 
+		/// </summary>
+		[ProtoBuf.ProtoMember( 11 )]
+		[DataMember]
+		public string? Xml;
+
 
 		public override string ToString()
 		{
@@ -94,15 +67,12 @@ namespace Dirigent
 		}
 
 		public bool ThisEquals( VfsNodeDef other ) =>
-			this.Guid == other.Guid &&
-			this.Id == other.Id &&
-			this.Title == other.Title &&
-			this.MachineId == other.MachineId &&
-			this.AppId == other.AppId &&
+			base.ThisEquals( other ) &&
 			this.Path == other.Path &&
-			this.Children.SequenceEqual( other.Children ) &&
-			this.Tools.SequenceEqual( other.Tools ) &&
 			this.IsContainer == other.IsContainer &&
+			this.Children.SequenceEqual( other.Children ) &&
+			this.Filter == other.Filter &&
+			this.Xml == other.Xml &&
 			true;
 
 		// boilerplate

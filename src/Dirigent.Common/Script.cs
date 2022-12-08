@@ -36,6 +36,9 @@ namespace Dirigent
 
 		public byte[]? Args { get; set; }
 
+		public T? GetArgs<T>() => Tools.Deserialize<T>(Args);
+		public byte[] MakeResult<T>(T result) => Tools.Serialize<T>(result);
+
 		// initialized during installation
 		#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 		public IDirigAsync Dirig { get; set; }
@@ -79,9 +82,12 @@ namespace Dirigent
 
 		protected virtual void SetStatus( string? text=null, byte[]? data=null )
 		{
-			// we do not allow setting the Status field directly from script; only the script controller can do that based on what is just happening to the script (init/run/finish...)
-			_statusText = text;
-			_statusData = data;
+			lock( this )
+			{
+				// we do not allow setting the Status field directly from script; only the script controller can do that based on what is just happening to the script (init/run/finish...)
+				_statusText = text;
+				_statusData = data;
+			}
 		}
 
 

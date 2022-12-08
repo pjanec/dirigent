@@ -12,7 +12,7 @@ using System.Diagnostics;
 namespace Dirigent
 {
 
-	public class LocalXmlConfigReader
+	public class LocalConfigReader
 	{
 		public LocalConfig Config => _cfg;
 		LocalConfig _cfg;
@@ -22,7 +22,7 @@ namespace Dirigent
 		string _machineId = string.Empty; // what machine we are loading the config for; empty if unidentified (non-agent) machine
 		
 
-		public LocalXmlConfigReader( System.IO.TextReader textReader, string machineId )
+		public LocalConfigReader( System.IO.TextReader textReader, string machineId )
 		{
 			_machineId = machineId ?? string.Empty;
 			_doc = XDocument.Load( textReader );
@@ -62,7 +62,7 @@ namespace Dirigent
 
 			foreach( var p in tools )
 			{
-				var toolDef = SharedXmlConfigReader.ReadAppElement( p, _root, _fdReg );
+				var toolDef = SharedConfigReader.ReadAppElement( p, _root, _fdReg );
 				_cfg.Tools.Add( toolDef );
 			}
 		}

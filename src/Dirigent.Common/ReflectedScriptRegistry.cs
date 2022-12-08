@@ -177,11 +177,20 @@ namespace Dirigent
 			return instance;
 		}
 
+		public void RunScriptNoWait<TArgs>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title )
+		{
+			var instance = Guid.NewGuid();
+			var argsBytes = args is null ? null : Tools.Serialize( args );
+
+			// send a request
+			_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, sourceCode, argsBytes, title, clientId ) );
+		}
+
 		// runs script on given machine and wait for its termination
 		// throws ScriptException on failure
 		// throws TimeoutException on timeout
 		// otherwise returns the proto-decoded value that was proto-encoded by the script
-		public async Task<TResult?> RunScriptAndWait<TResult>( string clientId, string scriptName, string? sourceCode, byte[]? args, string title, CancellationToken ct, int timeoutMs=-1 )
+		public async Task<TResult?> RunScriptAndWaitAsync<TArgs,TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
 		{
 			var tcs = new TaskCompletionSource<TResult?>();
 			
@@ -190,9 +199,7 @@ namespace Dirigent
 				if( state.Status == EScriptStatus.Failed )
 				{
 					// we throw a task failure exception to the task
-					var exception = Tools.ProtoDeserialize<ScriptException>(state.Data)!;
-					//var exc = new ScriptException( error.Message, error.StackTrace );
-					//tcs.SetException( new Exception( $"Script {scriptName} failed: {error.Message}" )  );
+					var exception = Tools.Deserialize<ScriptException>(state.Data)!;
 					tcs.SetException( exception );
 				}
 				else if( state.Status == EScriptStatus.Cancelled )
@@ -202,13 +209,12 @@ namespace Dirigent
 				}
 				else if (state.Status == EScriptStatus.Finished)
 				{
-					var resultByteArray = Tools.ProtoDeserialize<byte[]?>(state.Data);
-					var result = Tools.ProtoDeserialize<TResult>(resultByteArray);
+					var result = Tools.Deserialize<TResult>(state.Data);
 					tcs.SetResult( result );
 				}
 			} );
 			
-			StartScriptWithWatcher( clientId, scriptName, sourceCode, args, title, watcher );
+			StartScriptWithWatcher( clientId, scriptName, sourceCode, Tools.Serialize(args), title, watcher );
 			
 			if( timeoutMs < 0 )
 			{

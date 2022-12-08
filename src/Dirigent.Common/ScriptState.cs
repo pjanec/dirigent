@@ -80,6 +80,11 @@ namespace Dirigent
 		/// </summary>
 		public bool IsAlive => Status == EScriptStatus.Starting || Status == EScriptStatus.Running || Status == EScriptStatus.Cancelling;
 
+		public override string ToString()
+		{
+			return $"{Status} \"{Text}\" {Data?.Length} bytes";
+		}
+
 		public bool ThisEquals( ScriptState other ) =>
 			this.Status == other.Status &&
 			this.Text == other.Text &&

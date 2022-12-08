@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dirigent
@@ -25,11 +26,14 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
-		public ScriptDef? GetScriptDef( Guid Id ) { return _scripts.ScriptDefs.Find((x) => x.Id==Id); }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _scripts.ScriptDefs.Find((x) => x.Guid==Id); }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scripts.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
+		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
+		  => _scripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
 
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
@@ -65,6 +69,10 @@ namespace Dirigent
 
 		private FileRegistry _fileReg;
 		public FileRegistry FileRegistry => _fileReg;
+		SynchronousOpProcessor _syncOps;
+		SynchronousIDirig _syncIDirig;
+
+		
 
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 
@@ -73,6 +81,9 @@ namespace Dirigent
 			_client = client;
 			_client.MessageReceived += OnMessage;
 
+			_syncOps = new SynchronousOpProcessor();
+			_syncIDirig = new SynchronousIDirig( this, _syncOps );
+			
 			_scripts = new ReflectedScriptRegistry( this );
 
 			_fileReg = new FileRegistry( localMachineId, (string machineId) =>

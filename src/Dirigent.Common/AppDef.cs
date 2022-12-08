@@ -210,7 +210,7 @@ namespace Dirigent
 
 		[ProtoBuf.ProtoMember( 34 )]
 		[DataMember]
-		public List<ToolRef> Tools = new List<ToolRef>();
+		public List<ActionDef> Actions = new List<ActionDef>();
 
 		/// <summary>
 		/// Files/folders/packages associated with the app
@@ -219,12 +219,8 @@ namespace Dirigent
 		[DataMember]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
-		public bool Equals( AppDef? other )
-		{
-			if( other is null )
-				return false;
 
-			if(
+		public bool ThisEquals( AppDef other ) =>
 				this.Id == other.Id &&
 				this.PlanName == other.PlanName &&
 				this.ExeFullPath == other.ExeFullPath &&
@@ -261,47 +257,17 @@ namespace Dirigent
 				this.ReusePrevVars == other.ReusePrevVars &&
 				this.Service == other.Service &&
 				this.IconFile == other.IconFile &&
-				this.Tools.SequenceEqual( other.Tools ) &&
+				this.Actions.SequenceEqual( other.Actions ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				true
-			)
-				return true;
-			else
-				return false;
-		}
+				;
 
-		public override bool Equals( Object? obj )
-		{
-			if( obj == null )
-				return false;
-
-			var typed = obj as AppDef;
-			if( typed is null )
-				return false;
-			else
-				return Equals( typed );
-		}
-
-		public override int GetHashCode()
-		{
-			return this.Id.GetHashCode() ^ this.ExeFullPath.GetHashCode();
-		}
-
-		public static bool operator ==( AppDef t1, AppDef t2 )
-		{
-			if( ( object )t1 == null || ( ( object )t2 ) == null )
-				return Object.Equals( t1, t2 );
-
-			return t1.Equals( t2 );
-		}
-
-		public static bool operator !=( AppDef t1, AppDef t2 )
-		{
-			if( t1 is null || t2 is null )
-				return !Object.Equals( t1, t2 );
-
-			return !( t1.Equals( t2 ) );
-		}
+		// boilerplate
+		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
+		public bool Equals(AppDef? o) => object.Equals(this, o);
+		public static bool operator ==(AppDef o1, AppDef o2) => object.Equals(o1, o2);
+		public static bool operator !=(AppDef o1, AppDef o2) => !object.Equals(o1, o2);
+		public override int GetHashCode() => Id.GetHashCode();
 
 
 		public override string ToString()

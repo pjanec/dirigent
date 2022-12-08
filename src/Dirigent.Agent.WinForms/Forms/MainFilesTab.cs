@@ -156,10 +156,10 @@ namespace Dirigent.Gui.WinForms
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
 
 					{
-						var fileDef = ReflStates.GetVfsNodeDef( guid ) as FileDef;
-						if ( fileDef != null )
+						var vfsNodeDef = ReflStates.GetVfsNodeDef( guid );
+						if ( vfsNodeDef != null )
 						{
-							var toolsMenu = ContextMenuFile( fileDef );
+							var toolsMenu = ContextMenuVfsNode( vfsNodeDef );
 							if (toolsMenu != null)
 							{
 								popup.Items.Add( toolsMenu );
