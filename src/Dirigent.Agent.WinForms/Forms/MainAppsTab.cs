@@ -471,7 +471,7 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
-						var vfsNodesMenu = ContextMenuVfsNodes( appDef.VfsNodes );
+						var vfsNodesMenu = _menuBuilder.ContextMenuVfsNodes( appDef.VfsNodes );
 						if ( vfsNodesMenu.DropDownItems.Count > 0 )
 						{
 							popup.Items.Add( new ToolStripSeparator() );

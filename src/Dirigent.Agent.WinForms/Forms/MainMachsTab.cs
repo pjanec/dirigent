@@ -180,7 +180,7 @@ namespace Dirigent.Gui.WinForms
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
 							{
-								var vfsNodesMenu = ContextMenuVfsNodes( machDef.VfsNodes );
+								var vfsNodesMenu = _menuBuilder.ContextMenuVfsNodes( machDef.VfsNodes );
 								if ( vfsNodesMenu.DropDownItems.Count > 0 )
 								{
 									popup.Items.Add( new ToolStripSeparator() );

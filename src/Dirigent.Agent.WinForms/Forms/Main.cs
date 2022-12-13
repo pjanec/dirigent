@@ -35,7 +35,7 @@ namespace Dirigent.Gui.WinForms
 
 		private ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
-		MainExtension _mainExt;
+		MenuBuilder _menuBuilder;
 		
 		IDirig Ctrl => _core.Ctrl;
 
@@ -84,7 +84,7 @@ namespace Dirigent.Gui.WinForms
 			tmrTick.Interval = ac.TickPeriod;
 			tmrTick.Enabled = true;
 
-			_mainExt = new MainExtension( this, _core );
+			_menuBuilder = new MenuBuilder( _core );
 
 			_core.IncomingMessage += OnMessage;
 
@@ -230,71 +230,78 @@ namespace Dirigent.Gui.WinForms
 			myDispose();
 		}
 
+
+		void OnHotKey( int keyId )
+		{
+			switch ( keyId )
+			{
+				case HotKeysRegistrator.HOTKEY_ID_START_CURRENT_PLAN:
+				{
+					var currPlan = _core.CurrentPlan;
+					if( currPlan != null )
+					{
+						Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, currPlan.Name ) );
+					}
+					break;
+				}
+
+				case HotKeysRegistrator.HOTKEY_ID_KILL_CURRENT_PLAN:
+				{
+					var currPlan = _core.CurrentPlan;
+					if( currPlan != null )
+					{
+						Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, currPlan.Name ) );
+					}
+					break;
+				}
+
+				case HotKeysRegistrator.HOTKEY_ID_RESTART_CURRENT_PLAN:
+				{
+					var currPlan = _core.CurrentPlan;
+					if( currPlan != null )
+					{
+						Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, currPlan.Name ) );
+					}
+					break;
+				}
+
+
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_0:
+				{
+					_core.SelectPlan( null );
+					break;
+				}
+
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_2:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_3:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_4:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_5:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_6:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_7:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_8:
+				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_9:
+				{
+					int i = keyId - HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
+					List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlanDefs() );
+					if( i < plans.Count )
+					{
+						var planName = plans[i].Name;
+						this._notifyIcon.ShowBalloonTip( 1000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
+						_core.SelectPlan( planName );
+					}
+					break;
+				}
+			}
+		}
+		
+
 		protected override void WndProc( ref Message m )
 		{
 			if( m.Msg == 0x0312 )
 			{
 				var keyId = m.WParam.ToInt32();
-				switch( keyId )
-				{
-					case HotKeysRegistrator.HOTKEY_ID_START_CURRENT_PLAN:
-					{
-						var currPlan = _core.CurrentPlan;
-						if( currPlan != null )
-						{
-							Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, currPlan.Name ) );
-						}
-						break;
-					}
-
-					case HotKeysRegistrator.HOTKEY_ID_KILL_CURRENT_PLAN:
-					{
-						var currPlan = _core.CurrentPlan;
-						if( currPlan != null )
-						{
-							Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, currPlan.Name ) );
-						}
-						break;
-					}
-
-					case HotKeysRegistrator.HOTKEY_ID_RESTART_CURRENT_PLAN:
-					{
-						var currPlan = _core.CurrentPlan;
-						if( currPlan != null )
-						{
-							Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, currPlan.Name ) );
-						}
-						break;
-					}
-
-
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_0:
-					{
-						_core.SelectPlan( null );
-						break;
-					}
-
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_2:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_3:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_4:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_5:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_6:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_7:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_8:
-					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_9:
-					{
-						int i = keyId - HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
-						List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlanDefs() );
-						if( i < plans.Count )
-						{
-							var planName = plans[i].Name;
-							this._notifyIcon.ShowBalloonTip( 1000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
-							_core.SelectPlan( planName );
-						}
-						break;
-					}
-				}
+				OnHotKey( keyId );
 			}
 			base.WndProc( ref m );
 		}
@@ -616,7 +623,7 @@ namespace Dirigent.Gui.WinForms
 
 			foreach( var item in _core.ReflStates.MenuItems )
 			{
-				var menuItem = _mainExt.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( x, _core.MachineId ));
+				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( x, _core.MachineId ));
 				tree.InsertNode( item.Title, false, menuItem, null);
 				
 			}

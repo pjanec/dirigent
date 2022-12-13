@@ -79,5 +79,10 @@ namespace Dirigent
 			var parts = path.Split( seps, 2 );
 			return parts[0];
 		}
+
+		public override string ToString()
+		{
+			return $"[{(IsFolder?"Tree":"Leaf")}] {Name}";
+		}
 	}
 }
