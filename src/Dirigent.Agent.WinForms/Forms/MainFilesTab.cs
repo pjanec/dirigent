@@ -154,15 +154,14 @@ namespace Dirigent.Gui.WinForms
 				{
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
-
 					{
 						var vfsNodeDef = ReflStates.GetVfsNodeDef( guid );
 						if ( vfsNodeDef != null )
 						{
-							var toolsMenu = ContextMenuVfsNode( vfsNodeDef );
-							if (toolsMenu != null)
+							var submenus = MenuVfsNodeActions( vfsNodeDef );
+							foreach (var submenu in submenus)
 							{
-								popup.Items.Add( toolsMenu );
+								popup.Items.Add( submenu );
 							}
 						}
 					}

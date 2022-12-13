@@ -220,7 +220,8 @@ namespace Dirigent
 			usedGuids.Add( nodeDef.Guid );
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
-			if( nodeDef.MachineId != _localMachineId )
+			if( !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
+				&& nodeDef.MachineId != _localMachineId )
 			{
 				// check if required machine is available
 				if( !string.IsNullOrEmpty(nodeDef.MachineId) &&  _machineIPDelegate( nodeDef.MachineId ) is null )
@@ -245,7 +246,7 @@ namespace Dirigent
 
 			}
 
-			// from here on, we are on local machine
+			// from here on, we are on local machine (or master)
 
 			if( nodeDef is FileDef fileDef )
 			{

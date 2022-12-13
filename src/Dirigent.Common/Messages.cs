@@ -49,7 +49,7 @@ namespace Dirigent.Net
 			{ 134, typeof( MachineDefsMessage ) },
 			//{ 135, typeof( StartTaskMessage ) },
 			//{ 136, typeof( KillTaskMessage ) },
-			{ 137, typeof( ActionDefsMessage ) },
+			{ 137, typeof( MenuItemDefsMessage ) },
 			{ 138, typeof( ScriptStateMessage ) },
 			// WARNING: add newly added messages also to the list below!!
 		};
@@ -95,7 +95,7 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
 	//[ProtoBuf.ProtoInclude( 135, typeof( StartTaskMessage ) )]
 	//[ProtoBuf.ProtoInclude( 136, typeof( KillTaskMessage ) )]
-	[ProtoBuf.ProtoInclude( 137, typeof( ActionDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 137, typeof( MenuItemDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 138, typeof( ScriptStateMessage ) )]
 	//[ProtoBuf.ProtoInclude( 139, typeof( TaskRequestMessage ) )]
 	//[ProtoBuf.ProtoInclude( 140, typeof( TaskResponseMessage ) )]
@@ -1173,11 +1173,11 @@ namespace Dirigent.Net
 	/// Master tells new client about existing actions
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	public class ActionDefsMessage : Message
+	public class MenuItemDefsMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[MaybeNull]
-		public List<ActionDef> ActionDefs;
+		public List<AssocMenuItemDef> MenuItemDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
@@ -1185,17 +1185,17 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 2 )]
 		public bool Incremental;
 
-		public ActionDefsMessage() {}
-		public ActionDefsMessage( IEnumerable<ActionDef> actionDefs, bool incremental )
+		public MenuItemDefsMessage() {}
+		public MenuItemDefsMessage( IEnumerable<AssocMenuItemDef> miDefs, bool incremental )
 		{
-			this.ActionDefs = new List<ActionDef>(actionDefs);
+			this.MenuItemDefs = new List<AssocMenuItemDef>(miDefs);
 			this.Incremental = incremental;
 		}
 
 		public override string ToString()
 		{
-			if( ActionDefs is null ) return "ActionDef = null";
-			return $"ActionDef [{string.Join(", ", from x in ActionDefs select x.Id)}], increm={Incremental}";
+			if( MenuItemDefs is null ) return "MenuItemDefs = null";
+			return $"MenuItemDefs [{string.Join(", ", from x in MenuItemDefs select x.Id)}], increm={Incremental}";
 		}
 	}
 

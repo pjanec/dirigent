@@ -43,7 +43,7 @@ namespace Dirigent
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
 			_cfg.SinglScripts = LoadSingleInstScripts(_root);
-			_cfg.ToolActions = LoadToolActions(_root);
+			_cfg.ToolMenuItems = LoadToolMenuItems(_root);
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
@@ -356,7 +356,7 @@ namespace Dirigent
 			else
 			if (e.Name == "FileRef")
 			{
-				var a = new FileDef();
+				var a = new FileRef();
 				var vfsNode = (VfsNodeDef) a;
 				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				return a;
@@ -721,9 +721,9 @@ namespace Dirigent
 			return null;
 		}
 
-		static List<ActionDef> LoadToolActions( XElement root )
+		static List<AssocMenuItemDef> LoadToolMenuItems( XElement root )
 		{
-			var res = new List<ActionDef>();
+			var res = new List<AssocMenuItemDef>();
 
 			foreach( var toolMenuRoot in root.Elements("ToolsMenu") )
 			{
@@ -735,11 +735,12 @@ namespace Dirigent
 						res.Add( action );
 						continue;
 					}
-					//var vfsNode = LoadVfsNode( elem );
-					//if( vfsNode is not null )
-					//{
-					//	res.Add( vfsNode );
-					//}
+
+					var vfsNode = LoadVfsNode( elem );
+					if( vfsNode is not null )
+					{
+						res.Add( vfsNode );
+					}
 				}
 			}
 			return res;

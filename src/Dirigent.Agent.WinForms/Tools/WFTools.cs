@@ -132,7 +132,7 @@ namespace Dirigent.Gui.WinForms
 			return res.ToArray();
 		}
 
-		public static ToolStripMenuItem ActionDefToMenuItem( ActionDef adef, Action onClick )
+		public static ToolStripMenuItem ActionDefToMenuItem( ActionDef adef, Action<ActionDef> onClick )
 		{
 			var title = adef.Title;
 			if (string.IsNullOrEmpty( title )) title = adef.Name;
@@ -141,9 +141,10 @@ namespace Dirigent.Gui.WinForms
 			return new ToolStripMenuItem(
 				FolderTree.GetNamePart( title ),
 				WFT.GetBitmapFromFile( adef.IconFile ),
-				(sender, args ) => onClick()
+				(sender, args ) => onClick( adef )
 			);
 		}
-		
+
+
 	}
 }

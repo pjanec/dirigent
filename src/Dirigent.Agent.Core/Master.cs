@@ -44,12 +44,12 @@ namespace Dirigent
 			=> _reflScripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
 		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
 		{
-			// if node not associated with any machine, resolve on master's machine
-			if( string.IsNullOrEmpty(nodeDef.MachineId) )
-			{
-				nodeDef = Tools.Clone( nodeDef )!;
-				nodeDef.MachineId = _machineId;	
-			}
+			//// if node not associated with any machine, resolve on master's machine
+			//if( string.IsNullOrEmpty(nodeDef.MachineId) )
+			//{
+			//	nodeDef = Tools.Clone( nodeDef )!;
+			//	nodeDef.MachineId = _machineId;	
+			//}
 			return _files.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
 		}
 					
@@ -79,7 +79,7 @@ namespace Dirigent
 		private SingletonScriptRegistry _singlScripts;
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
-		private List<ActionDef> _actionDefs = new List<ActionDef>();
+		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
@@ -597,7 +597,7 @@ namespace Dirigent
 
 			// send full list of actions
 			{
-				var m = new Net.ActionDefsMessage( _actionDefs, false );
+				var m = new Net.MenuItemDefsMessage( _menuItemDefs, false );
 				_server.SendToSingle( m, ident.Name );
 			}
 
@@ -696,7 +696,7 @@ namespace Dirigent
 			_files.SetMachines( sharedConfig.Machines );
 
 			_machineDefs = sharedConfig.Machines;
-			_actionDefs = sharedConfig.ToolActions;
+			_menuItemDefs = sharedConfig.ToolMenuItems;
 
 			// reset
 			var m = new Net.ResetMessage();

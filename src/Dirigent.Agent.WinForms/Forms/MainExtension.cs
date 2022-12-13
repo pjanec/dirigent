@@ -39,13 +39,13 @@ namespace Dirigent.Gui.WinForms
 		}
 
 		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
-		ToolStripMenuItem[] GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
+		public ToolStripMenuItem[] GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
 		{
 			var tree = new FolderTree();
 
 			foreach( var a in actions )
 			{
-				var menuItem = WFT.ActionDefToMenuItem(a, () => onClick(a) );
+				var menuItem = WFT.ActionDefToMenuItem(a, (x) => onClick(x) );
 				tree.InsertNode( a.Title, false, menuItem, null);
 			}
 
@@ -56,29 +56,19 @@ namespace Dirigent.Gui.WinForms
 
 		}
 
-		protected ToolStripMenuItem ContextMenuVfsNode( VfsNodeDef vfsNodeDef )
+		public ToolStripMenuItem[] MenuVfsNodeActions( VfsNodeDef vfsNodeDef )
 		{
-			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem(
-				"&File/Folder",
-				null,
-				GetMenuItemsFromActions(
-					vfsNodeDef.Actions,
-					async (action) => await WFT.GuardedOpAsync( async () => {
-							var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
-							_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
-						}
-					)
+			return GetMenuItemsFromActions(
+				vfsNodeDef.Actions,
+				async (action) => await WFT.GuardedOpAsync( async () => {
+						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
+						_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
+					}
 				)
 			);
-				
-			if( toolsMenu.DropDownItems.Count > 0 )
-			{
-				return toolsMenu;
-			}
-			return null;
 		}
 
-		protected ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
+		public ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
 		{
 			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem(
 				"&Tools",
@@ -100,21 +90,31 @@ namespace Dirigent.Gui.WinForms
 			return null;
 		}
 
+		public ToolStripMenuItem MenuVfsNode( VfsNodeDef vfsNodeDef )
+		{
+			var title = vfsNodeDef.Title;
+			if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
+			var fileMenu = new ToolStripMenuItem( title );
+			var submenus = MenuVfsNodeActions( vfsNodeDef );
+			if( submenus.Length > 0 )
+			{
+				//fileMenu.DropDownItems.Add ( toolsSubmenu );
+				fileMenu.DropDownItems.AddRange( submenus );
+				return fileMenu;
+			}
+			return null;
+		}
+
 		protected ToolStripMenuItem ContextMenuVfsNodes( IEnumerable<VfsNodeDef> vfsNodeDefs )
 		{
 			var filesMenu = new System.Windows.Forms.ToolStripMenuItem( "&Files/Folders" );
 			foreach( var vfsNodeDef in vfsNodeDefs )
 			{
-				var title = vfsNodeDef.Title;
-				if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
-				var fileMenu = new ToolStripMenuItem( title );
-				var toolsSubmenu = ContextMenuVfsNode( vfsNodeDef );
-				if( toolsSubmenu != null )
+				var item =  MenuVfsNode(vfsNodeDef);
+				if( item != null )
 				{
-					//fileMenu.DropDownItems.Add ( toolsSubmenu );
-					fileMenu.DropDownItems.AddRange( toolsSubmenu.DropDownItems );
+					filesMenu.DropDownItems.Add( item );
 				}
-				filesMenu.DropDownItems.Add( fileMenu );
 			}
 			return filesMenu;
 		}
@@ -138,6 +138,19 @@ namespace Dirigent.Gui.WinForms
 			return fpacksMenu;
 		}
 		
+		public ToolStripMenuItem AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
+		{
+			if( mitem is ActionDef action)
+			{
+				return WFT.ActionDefToMenuItem( action, onClick );
+			}
+			if( mitem is VfsNodeDef vsfNode )
+			{
+				return MenuVfsNode( vsfNode );
+			}
+			
+			throw new Exception( $"Unsupported AssocMenuItem type {mitem.GetType().Name}" );
+		}
 
 	}
 }

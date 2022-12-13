@@ -63,6 +63,8 @@ namespace Dirigent.Gui.WinForms
 		public ScriptFactory ScriptFactory;
 		public SynchronousOpProcessor SyncOps { get; private set; }
 		private LocalScriptRegistry _localScripts;
+
+		MainExtension _mainExt;
 		
 
 		public bool ShowJustAppFromCurrentPlan
@@ -151,6 +153,8 @@ namespace Dirigent.Gui.WinForms
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
 			tmrTick.Interval = ac.TickPeriod;
 			tmrTick.Enabled = true;
+
+			_mainExt = new MainExtension( this );
 
 		}
 
@@ -807,11 +811,11 @@ namespace Dirigent.Gui.WinForms
 			tree.InsertNode("Power/Reboot All", false, rebootAllToolStripMenuItem1, null);
 			tree.InsertNode("Power/Shutdown All", false, shutdownAllToolStripMenuItem1, null);
 
-			foreach( var a in this.ReflStates.Actions )
+			foreach( var item in this.ReflStates.MenuItems )
 			{
-				var menuItem = WFT.ActionDefToMenuItem(a, () => _toolsReg.StartMachineBoundAction( a, _machineId ));
+				var menuItem = _mainExt.AssocMenuItemDefToMenuItem(item, (x) => _toolsReg.StartMachineBoundAction( x, _machineId ));
+				tree.InsertNode( item.Title, false, menuItem, null);
 				
-				tree.InsertNode( a.Title, false, menuItem, null);
 			}
 
 			// convert the actions to menu items

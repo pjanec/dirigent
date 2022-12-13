@@ -66,8 +66,8 @@ namespace Dirigent
 		/// <summary>
 		/// tool menu actions
 		/// </summary>
-		private List<ActionDef> _actionDefs = new List<ActionDef>();
-		public List<ActionDef> Actions => _actionDefs;
+		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
+		public List<AssocMenuItemDef> MenuItems => _menuItemDefs;
 
 		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
 
@@ -190,9 +190,9 @@ namespace Dirigent
 					break;
 				}
 
-				case Net.ActionDefsMessage m:
+				case Net.MenuItemDefsMessage m:
 				{
-					_actionDefs = m.ActionDefs ?? new List<ActionDef>();
+					_menuItemDefs = m.MenuItemDefs ?? new();
 					OnActionsReceived?.Invoke();
 					break;
 				}
