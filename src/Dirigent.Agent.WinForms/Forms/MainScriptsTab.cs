@@ -29,8 +29,9 @@ namespace Dirigent.Gui.WinForms
 
 		public MainScriptsTab(
 			frmMain form,
+			GuiCore core,
 			Zuby.ADGV.AdvancedDataGridView grid
-			) : base(form)
+			) : base(form, core)
 		{
 			_grid = grid;
 		}
@@ -216,7 +217,7 @@ namespace Dirigent.Gui.WinForms
 				{
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
-					popup.Enabled = connected || _form.AllowLocalIfDisconnected;
+					popup.Enabled = connected || _core.AllowLocalIfDisconnected;
 
 					{
 						var launchItem = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );

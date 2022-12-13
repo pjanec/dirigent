@@ -22,27 +22,10 @@ namespace Dirigent.Gui.WinForms
 				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
 
 		private NotifyIcon _notifyIcon;
-		public bool AllowLocalIfDisconnected { get; private set; }
-		private AppConfig _ac;
 
 		public System.ComponentModel.IContainer Components => components;
 
-		public IDirig Ctrl { get; private set; }
-		public IDirigAsync CtrlAsync { get; private set; }
-
-		private string _machineId; // empty if GUI not running as part of local agent
-		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
-
-		public List<PlanDef> PlanRepo { get; private set; }
-
-		public List<ScriptDef> ScriptRepo { get; private set; }
-
-		public Net.Client Client { get; private set; }
-
-
-		public ReflectedStateRepo ReflStates { get; private set; }
-
-		public PlanDef CurrentPlan { get; set; }
+		GuiCore _core;
 
 		private MainAppsTab _tabApps;
 		private MainPlansTab _tabPlans;
@@ -52,20 +35,9 @@ namespace Dirigent.Gui.WinForms
 
 		private ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
-        /// <summary>
-		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
-		/// </summary>
-		private Dictionary<string, string> _internalVars = new ();
-		private SharedContext _sharedContext; // necessary for launching tools
-		private ToolsRegistry _toolsReg;
-		public ToolsRegistry ToolsRegistry => _toolsReg;
-
-		public ScriptFactory ScriptFactory;
-		public SynchronousOpProcessor SyncOps { get; private set; }
-		private LocalScriptRegistry _localScripts;
-
 		MainExtension _mainExt;
 		
+		IDirig Ctrl => _core.Ctrl;
 
 		public bool ShowJustAppFromCurrentPlan
 		{
@@ -79,13 +51,9 @@ namespace Dirigent.Gui.WinForms
 			string machineId // empty if no local agent was started with the GUI
 		)
 		{
-			_ac = ac;
-			_machineId = machineId; // FIXME: this is only valid if we are running a local agent! How do we know??
-			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
+			_core = new GuiCore( ac, machineId );
+		
 			_notifyIcon = notifyIcon;
-			AllowLocalIfDisconnected = true;
-
-			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
 			InitializeComponent();
 
@@ -96,100 +64,39 @@ namespace Dirigent.Gui.WinForms
 			}
 
 
-			registerHotKeys();
+			HotKeysRegistrator.RegisterHotKeys( this.Handle );
 
 			ShowJustAppFromCurrentPlan = Tools.BoolFromString( Common.Properties.Settings.Default.ShowJustAppsFromCurrentPlan );
 
-			PlanRepo = new List<PlanDef>();
-			ScriptRepo = new List<ScriptDef>();
-
-			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
-			Client.MessageReceived += OnMessage;
-			ReflStates = new ReflectedStateRepo( Client, machineId );
-			
-			bool firstGotPlans = true;
-			ReflStates.OnPlansReceived += () =>
-			{
-				if( firstGotPlans )
-				{
-					selectPlan( ac.StartupPlan );
-				}
-				firstGotPlans = false;
-
-				// udate current plan reference in case the plan def has changed
-				if( CurrentPlan is not null )
-				{
-					CurrentPlan = ReflStates.GetPlanDef( CurrentPlan.Name );
-				}
-			};
-
-
-			ReflStates.OnScriptsReceived += () =>
-			{
-			};
 
 			UpdateToolsMenu(); // initial menus
-			ReflStates.OnActionsReceived += () => UpdateToolsMenu(); // when Action arrived from master, we rebuild the menu
+			_core.ReflStates.OnActionsReceived += () => UpdateToolsMenu(); // when Action arrived from master, we rebuild the menu
 
-			SyncOps = new SynchronousOpProcessor();
 
-			Ctrl = ReflStates;
-			CtrlAsync = new SynchronousIDirig( Ctrl, SyncOps );
-
-			// load tools from local config
-			InitFromLocalConfig( machineId );			
-
-			ScriptFactory = new ScriptFactory();
-			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps );
-			
-
-			_tabApps = new MainAppsTab( this, gridApps );
-			_tabPlans = new MainPlansTab( this, gridPlans );
-			_tabScripts = new MainScriptsTab( this, gridScripts );
-			_tabMachs = new MainMachsTab( this, gridMachs );
-			_tabFiles = new MainFilesTab( this, gridFiles );
+			_tabApps = new MainAppsTab( this, _core, gridApps );
+			_tabPlans = new MainPlansTab( this, _core, gridPlans );
+			_tabScripts = new MainScriptsTab( this, _core, gridScripts );
+			_tabMachs = new MainMachsTab( this, _core, gridMachs );
+			_tabFiles = new MainFilesTab( this, _core, gridFiles );
 
 			// start ticking
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
 			tmrTick.Interval = ac.TickPeriod;
 			tmrTick.Enabled = true;
 
-			_mainExt = new MainExtension( this );
+			_mainExt = new MainExtension( this, _core );
+
+			_core.IncomingMessage += OnMessage;
 
 		}
 
 		void myDispose()
 		{
-			_localScripts.Dispose();
-			
+			_core.IncomingMessage -= OnMessage;
+
 			tmrTick.Enabled = false;
-			if( Client is not null )
-			{
-				Client.MessageReceived -= OnMessage;
-				Client.Dispose();
-				Client = null;
-			}
-		}
 
-		void InitFromLocalConfig( string machineId )
-		{
-			// load the local config file
-			if( string.IsNullOrEmpty( _ac.LocalCfgFileName ) )
-				return;
-
-			var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
-			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			var localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
-
-			
-			_sharedContext = new SharedContext(
-				PathUtils.GetRootForRelativePaths( _ac.LocalCfgFileName, _ac.RootForRelativePaths ),
-				_internalVars,
-				new AppInitializedDetectorFactory(),
-				Client
-			);
-
-			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates.FileRegistry, ReflStates.Scripts );
+			_core.Dispose();
 		}
 
 		void OnMessage( Net.Message msg )
@@ -201,126 +108,29 @@ namespace Dirigent.Gui.WinForms
 					MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 					break;
 				}
-
-				case Net.StartScriptMessage m:
-				{
-					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
-					break;
-				}
-
-				case Net.KillScriptMessage m:
-				{
-					_localScripts.Stop( m.Instance );
-					break;
-				}
-
 				// note: ScriptStateMessage handling is done in ReflectedStateRepo
 			}
 		}
+		
 
 
-		const int HOTKEY_ID_START_CURRENT_PLAN = 1;
-		const int HOTKEY_ID_KILL_CURRENT_PLAN = 2;
-		const int HOTKEY_ID_RESTART_CURRENT_PLAN = 3;
-		const int HOTKEY_ID_SELECT_PLAN_0 = 4; 
-		const int HOTKEY_ID_SELECT_PLAN_1 = HOTKEY_ID_SELECT_PLAN_0 + 1;
-		const int HOTKEY_ID_SELECT_PLAN_2 = HOTKEY_ID_SELECT_PLAN_0 + 2;
-		const int HOTKEY_ID_SELECT_PLAN_3 = HOTKEY_ID_SELECT_PLAN_0 + 3;
-		const int HOTKEY_ID_SELECT_PLAN_4 = HOTKEY_ID_SELECT_PLAN_0 + 4;
-		const int HOTKEY_ID_SELECT_PLAN_5 = HOTKEY_ID_SELECT_PLAN_0 + 5;
-		const int HOTKEY_ID_SELECT_PLAN_6 = HOTKEY_ID_SELECT_PLAN_0 + 6;
-		const int HOTKEY_ID_SELECT_PLAN_7 = HOTKEY_ID_SELECT_PLAN_0 + 7;
-		const int HOTKEY_ID_SELECT_PLAN_8 = HOTKEY_ID_SELECT_PLAN_0 + 8;
-		const int HOTKEY_ID_SELECT_PLAN_9 = HOTKEY_ID_SELECT_PLAN_0 + 9;
-
-		// DLL libraries used to manage hotkeys
-		[DllImport( "user32.dll" )]
-		public static extern bool RegisterHotKey( IntPtr hWnd, int id, int fsModifiers, int vlc );
-		[DllImport( "user32.dll" )]
-		public static extern bool UnregisterHotKey( IntPtr hWnd, int id );
-
-		void registerHotKeys()
-		{
-			var exeConfigFileName = System.Reflection.Assembly.GetEntryAssembly().Location + ".config";
-			XDocument document = XDocument.Load( exeConfigFileName );
-			var templ = "/configuration/userSettings/Dirigent.Common.Properties.Settings/setting[@name='{0}']/value";
-			{
-				var x = document.XPathSelectElement( String.Format( templ, "StartPlanHotKey" ) );
-				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + S";
-				if( !String.IsNullOrEmpty( hotKeyStr ) )
-				{
-					var key = ( HotKeys.Keys )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 1 );
-					var modifier = ( HotKeys.Modifiers )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 0 );
-					RegisterHotKey( this.Handle, HOTKEY_ID_START_CURRENT_PLAN, ( int )modifier, ( int )key );
-				}
-			}
-			{
-				var x = document.XPathSelectElement( String.Format( templ, "KillPlanPlanHotKey" ) );
-				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + K";
-				if( !String.IsNullOrEmpty( hotKeyStr ) )
-				{
-					var key = ( HotKeys.Keys )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 1 );
-					var modifier = ( HotKeys.Modifiers )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 0 );
-					RegisterHotKey( this.Handle, HOTKEY_ID_KILL_CURRENT_PLAN, ( int )modifier, ( int )key );
-				}
-			}
-
-			{
-				var x = document.XPathSelectElement( String.Format( templ, "RestartPlanPlanHotKey" ) );
-				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + R";
-				if( !String.IsNullOrEmpty( hotKeyStr ) )
-				{
-					var key = ( HotKeys.Keys )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 1 );
-					var modifier = ( HotKeys.Modifiers )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 0 );
-					RegisterHotKey( this.Handle, HOTKEY_ID_RESTART_CURRENT_PLAN, ( int )modifier, ( int )key );
-				}
-			}
-
-			for( int i = 0; i <= 9; i++ )
-			{
-				var x = document.XPathSelectElement( String.Format( templ, String.Format( "SelectPlan{0}HotKey", i ) ) );
-				string hotKeyStr = ( x != null ) ? x.Value : String.Format( "Control + Shift + Alt + {0}", i );
-				if( !String.IsNullOrEmpty( hotKeyStr ) )
-				{
-					var key = ( HotKeys.Keys )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 1 );
-					var modifier = ( HotKeys.Modifiers )HotKeys.HotKeyShared.ParseShortcut( hotKeyStr ).GetValue( 0 );
-					RegisterHotKey( this.Handle, HOTKEY_ID_SELECT_PLAN_0 + i, ( int )modifier, ( int )key );
-				}
-			}
-
-			//var hk = HotKeys.HotKeyShared.CombineShortcut(HotKeys.Modifiers.Control | HotKeys.Modifiers.Alt | HotKeys.Modifiers.Shift, HotKeys.Keys.B);
-
-			//string shortcut = "Shift + Alt + H";
-			//Keys Key = (Keys)HotKeys.HotKeyShared.ParseShortcut(shortcut).GetValue(1);
-			//HotKeys.Modifiers Modifier = (HotKeys.Modifiers)HotKeys.HotKeyShared.ParseShortcut(shortcut).GetValue(0);
-
-
-			//if (hotKeysEnabled)
-			//{
-
-			//	// Modifier keys codes: Alt = 1, Ctrl = 2, Shift = 4, Win = 8
-			//	// Compute the addition of each combination of the keys you want to be pressed
-			//	// ALT+CTRL = 1 + 2 = 3 , CTRL+SHIFT = 2 + 4 = 6...
-			//	RegisterHotKey(this.Handle, HOTKEY_ID_START_CURRENT_PLAN, 1+2+4, (int)Keys.R); // CTRL+SHIFT+ALT+R
-			//	RegisterHotKey(this.Handle, HOTKEY_ID_KILL_CURRENT_PLAN, 1 + 2 + 4, (int)Keys.K); // CTRL+SHIFT+ALT+K
-			//}
-		}
 
 		void setTitle()
 		{
 			string planName = "<no plan>";
 
-			var currPlan = CurrentPlan;
+			var currPlan = _core.CurrentPlan;
 			if( currPlan != null )
 			{
 				planName = currPlan.Name;
 			}
 
-			this.Text = string.Format( "Dirigent [{0}] - {1}", _machineId, planName );
+			this.Text = string.Format( "Dirigent [{0}] - {1}", _core.MachineId, planName );
 			if( this._notifyIcon != null )
 			{
-				this._notifyIcon.Text = string.Format( "Dirigent [{0}] - {1}", _machineId, planName );
+				this._notifyIcon.Text = string.Format( "Dirigent [{0}] - {1}", _core.MachineId, planName );
 			}
+
 		}
 
 
@@ -334,15 +144,14 @@ namespace Dirigent.Gui.WinForms
 		{
 			try
 			{
-				Client.Tick();
-				_toolsReg?.Tick();
+				_core.Tick();
 			}
 			catch( RemoteOperationErrorException ex ) // operation exception (not necesarily remote, could be also local
 				// as all operational requests always go through the network if
 				// connected to master
 			{
 				// if this GUI was the requestor of the operation that failed
-				if( ex.Requestor == _clientIdent.Sender )
+				if( ex.Requestor == _core.Client.Ident.Sender )
 				{
 					handleOperationError( ex );
 				}
@@ -355,7 +164,7 @@ namespace Dirigent.Gui.WinForms
 			refreshGui();
 		}
 
-		public bool IsConnected => Client.IsConnected;
+		public bool IsConnected => _core.Client.IsConnected;
 
 		void refreshStatusBar()
 		{
@@ -374,8 +183,8 @@ namespace Dirigent.Gui.WinForms
 		void refreshMenu()
 		{
 			bool isConnected = IsConnected;
-			bool hasPlan = CurrentPlan != null;
-			planToolStripMenuItem.Enabled = isConnected || AllowLocalIfDisconnected;
+			bool hasPlan = _core.CurrentPlan != null;
+			planToolStripMenuItem.Enabled = isConnected || _core.AllowLocalIfDisconnected;
 			startPlanToolStripMenuItem.Enabled = hasPlan;
 			stopPlanToolStripMenuItem.Enabled = hasPlan;
 			killPlanToolStripMenuItem.Enabled = hasPlan;
@@ -392,12 +201,6 @@ namespace Dirigent.Gui.WinForms
 			refreshStatusBar();
 			refreshMenu();
 			setTitle();
-		}
-
-		void selectPlan( string planName )
-		{
-			CurrentPlan = Ctrl.GetPlanDef( planName );
-			Ctrl.Send( new Net.SelectPlanMessage( Ctrl.Name, CurrentPlan is null ? string.Empty : CurrentPlan.Name ) );
 		}
 
 		private void frmMain_Resize( object sender, EventArgs e )
@@ -434,9 +237,9 @@ namespace Dirigent.Gui.WinForms
 				var keyId = m.WParam.ToInt32();
 				switch( keyId )
 				{
-					case HOTKEY_ID_START_CURRENT_PLAN:
+					case HotKeysRegistrator.HOTKEY_ID_START_CURRENT_PLAN:
 					{
-						var currPlan = CurrentPlan;
+						var currPlan = _core.CurrentPlan;
 						if( currPlan != null )
 						{
 							Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, currPlan.Name ) );
@@ -444,9 +247,9 @@ namespace Dirigent.Gui.WinForms
 						break;
 					}
 
-					case HOTKEY_ID_KILL_CURRENT_PLAN:
+					case HotKeysRegistrator.HOTKEY_ID_KILL_CURRENT_PLAN:
 					{
-						var currPlan = CurrentPlan;
+						var currPlan = _core.CurrentPlan;
 						if( currPlan != null )
 						{
 							Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, currPlan.Name ) );
@@ -454,9 +257,9 @@ namespace Dirigent.Gui.WinForms
 						break;
 					}
 
-					case HOTKEY_ID_RESTART_CURRENT_PLAN:
+					case HotKeysRegistrator.HOTKEY_ID_RESTART_CURRENT_PLAN:
 					{
-						var currPlan = CurrentPlan;
+						var currPlan = _core.CurrentPlan;
 						if( currPlan != null )
 						{
 							Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, currPlan.Name ) );
@@ -465,29 +268,29 @@ namespace Dirigent.Gui.WinForms
 					}
 
 
-					case HOTKEY_ID_SELECT_PLAN_0:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_0:
 					{
-						selectPlan( null );
+						_core.SelectPlan( null );
 						break;
 					}
 
-					case HOTKEY_ID_SELECT_PLAN_1:
-					case HOTKEY_ID_SELECT_PLAN_2:
-					case HOTKEY_ID_SELECT_PLAN_3:
-					case HOTKEY_ID_SELECT_PLAN_4:
-					case HOTKEY_ID_SELECT_PLAN_5:
-					case HOTKEY_ID_SELECT_PLAN_6:
-					case HOTKEY_ID_SELECT_PLAN_7:
-					case HOTKEY_ID_SELECT_PLAN_8:
-					case HOTKEY_ID_SELECT_PLAN_9:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_2:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_3:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_4:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_5:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_6:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_7:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_8:
+					case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_9:
 					{
-						int i = keyId - HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
+						int i = keyId - HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
 						List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlanDefs() );
 						if( i < plans.Count )
 						{
 							var planName = plans[i].Name;
 							this._notifyIcon.ShowBalloonTip( 1000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
-							selectPlan( planName );
+							_core.SelectPlan( planName );
 						}
 						break;
 					}
@@ -725,42 +528,42 @@ namespace Dirigent.Gui.WinForms
 
 		private void startPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( CurrentPlan is null )
+			if( _core.CurrentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+			WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, _core.CurrentPlan.Name ) ) );
 		}
 
 		private void stopPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( CurrentPlan is null )
+			if( _core.CurrentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			WFT.GuardedOp( () => Ctrl.Send( new Net.StopPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+			WFT.GuardedOp( () => Ctrl.Send( new Net.StopPlanMessage( Ctrl.Name, _core.CurrentPlan.Name ) ) );
 		}
 
 		private void killPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( CurrentPlan is null )
+			if( _core.CurrentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			WFT.GuardedOp( () => Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+			WFT.GuardedOp( () => Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, _core.CurrentPlan.Name ) ) );
 		}
 
 		private void restartPlanMenuItem_Click( object sender, EventArgs e )
 		{
-			if( CurrentPlan is null )
+			if( _core.CurrentPlan is null )
 			{
 				ShowNoPlanSelectedError();
 				return;
 			}
-			WFT.GuardedOp( () => Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, CurrentPlan.Name ) ) );
+			WFT.GuardedOp( () => Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, _core.CurrentPlan.Name ) ) );
 		}
 
 		private void selectPlanMenuItem_Click( object sender, EventArgs e )
@@ -774,7 +577,7 @@ namespace Dirigent.Gui.WinForms
 
 		void addPlanSelectionMenuItem( int index, string planName )
 		{
-			EventHandler clickHandler = ( sender, args ) => WFT.GuardedOp( () => { selectPlan( planName); } );
+			EventHandler clickHandler = ( sender, args ) => WFT.GuardedOp( () => { _core.SelectPlan( planName); } );
 
 			var itemText = String.Format( "&{0}: {1}", index, string.IsNullOrEmpty(planName)?"<no plan>":planName );
 			var menuItem = new System.Windows.Forms.ToolStripMenuItem( itemText, null, clickHandler );
@@ -794,7 +597,7 @@ namespace Dirigent.Gui.WinForms
 			int index = 0;
 			addPlanSelectionMenuItem( index++, string.Empty ); // no plan
 
-			foreach( var plan in PlanRepo )
+			foreach( var plan in _core.PlanRepo )
 			{
 				addPlanSelectionMenuItem( index++, plan.Name );
 			}
@@ -811,9 +614,9 @@ namespace Dirigent.Gui.WinForms
 			tree.InsertNode("Power/Reboot All", false, rebootAllToolStripMenuItem1, null);
 			tree.InsertNode("Power/Shutdown All", false, shutdownAllToolStripMenuItem1, null);
 
-			foreach( var item in this.ReflStates.MenuItems )
+			foreach( var item in _core.ReflStates.MenuItems )
 			{
-				var menuItem = _mainExt.AssocMenuItemDefToMenuItem(item, (x) => _toolsReg.StartMachineBoundAction( x, _machineId ));
+				var menuItem = _mainExt.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( x, _core.MachineId ));
 				tree.InsertNode( item.Title, false, menuItem, null);
 				
 			}

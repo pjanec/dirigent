@@ -30,8 +30,9 @@ namespace Dirigent.Gui.WinForms
 
 		public MainFilesTab(
 			frmMain form,
+			GuiCore core,
 			Zuby.ADGV.AdvancedDataGridView grid
-			) : base( form )
+			) : base( form, core )
 		{
 			_grid = grid;
 		}

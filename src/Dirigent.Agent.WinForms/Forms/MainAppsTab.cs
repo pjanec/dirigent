@@ -32,8 +32,9 @@ namespace Dirigent.Gui.WinForms
 
 		public MainAppsTab(
 			frmMain form,
+			GuiCore core,
 			Zuby.ADGV.AdvancedDataGridView grid
-			) : base(form)
+			) : base(form, core)
 		{
 			_grid = grid;
 		}
@@ -408,7 +409,7 @@ namespace Dirigent.Gui.WinForms
 				{
 					// build popup menu
 					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
-					popup.Enabled = connected || _form.AllowLocalIfDisconnected;
+					popup.Enabled = connected || _core.AllowLocalIfDisconnected;
 					
 					//{
 					//	var item = new System.Windows.Forms.ToolStripMenuItem( "&Launch" );
@@ -505,7 +506,7 @@ namespace Dirigent.Gui.WinForms
 							if (string.IsNullOrEmpty( title )) title = action.Name;
 							var item = new ToolStripMenuItem( title );
 							item.Click += ( s, a ) => WFT.GuardedOp( () => {
-									_form.ToolsRegistry.StartAppBoundAction( action, appDef ) ;
+									_core.ToolsRegistry.StartAppBoundAction( action, appDef ) ;
 								}
 							);
 							toolsMenu.DropDownItems.Add( item );

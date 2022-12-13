@@ -28,8 +28,9 @@ namespace Dirigent.Gui.WinForms
 
 		public MainPlansTab(
 			frmMain form,
+			GuiCore core,
 			Zuby.ADGV.AdvancedDataGridView grid
-			) : base(form)
+			) : base(form, core )
 		{
 			_grid = grid;
 		}

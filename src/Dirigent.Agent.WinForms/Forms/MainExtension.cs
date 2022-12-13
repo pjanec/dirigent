@@ -18,13 +18,15 @@ namespace Dirigent.Gui.WinForms
 	public class MainExtension
 	{
 		protected frmMain _form;
-		protected Net.Client Client => _form.Client;
-		protected IDirig Ctrl => _form.Ctrl;
-		protected IDirigAsync CtrlAsync => _form.CtrlAsync;
-		protected ReflectedStateRepo ReflStates => _form.ReflStates;
-		protected List<PlanDef> PlanRepo => _form.PlanRepo;
-		protected PlanDef CurrentPlan { get { return _form.CurrentPlan; } set { _form.CurrentPlan = value; } }
-		protected List<ScriptDef> ScriptRepo => _form.ScriptRepo;
+		protected GuiCore _core;
+		protected Net.Client Client => _core.Client;
+		protected IDirig Ctrl => _core.Ctrl;
+		protected IDirigAsync CtrlAsync => _core.CtrlAsync;
+		protected ReflectedStateRepo ReflStates => _core.ReflStates;
+		protected List<PlanDef> PlanRepo => _core.PlanRepo;
+		protected PlanDef CurrentPlan { get { return _core.CurrentPlan; } set { _core.CurrentPlan = value; } }
+		protected List<ScriptDef> ScriptRepo => _core.ScriptRepo;
+
 
 
 		protected readonly Bitmap _iconStart = WFT.ResizeImage( new Bitmap( Resources.play ), new Size( 20, 20 ) );
@@ -33,9 +35,10 @@ namespace Dirigent.Gui.WinForms
 		protected readonly Bitmap _iconRestart = WFT.ResizeImage( new Bitmap( Resources.refresh ), new Size( 20, 20 ) );
 
 
-		public MainExtension( frmMain form )
+		public MainExtension( frmMain form, GuiCore core )
 		{
 			_form = form;
+			_core = core;
 		}
 
 		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
@@ -62,7 +65,7 @@ namespace Dirigent.Gui.WinForms
 				vfsNodeDef.Actions,
 				async (action) => await WFT.GuardedOpAsync( async () => {
 						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
-						_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
+						_core.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
 					}
 				)
 			);
@@ -77,7 +80,7 @@ namespace Dirigent.Gui.WinForms
 					fpack.Actions,
 					async (action) => await WFT.GuardedOpAsync( async () => {
 						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
-						_form.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
+						_core.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
 						}
 					)
 				)

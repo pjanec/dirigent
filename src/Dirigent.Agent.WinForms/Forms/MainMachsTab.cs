@@ -27,8 +27,9 @@ namespace Dirigent.Gui.WinForms
 
 		public MainMachsTab(
 			frmMain form,
+			GuiCore core,
 			Zuby.ADGV.AdvancedDataGridView grid
-			) : base( form )
+			) : base( form, core )
 		{
 			_grid = grid;
 		}
@@ -208,7 +209,7 @@ namespace Dirigent.Gui.WinForms
 									if (string.IsNullOrEmpty( title )) title = action.Name;
 									var item = new System.Windows.Forms.ToolStripMenuItem( title );
 									item.Click += ( s, a ) => WFT.GuardedOp( () => {
-											_form.ToolsRegistry.StartMachineBoundAction( action, machDef ) ;
+											_core.ToolsRegistry.StartMachineBoundAction( action, machDef ) ;
 										}
 									);
 									toolsMenu.DropDownItems.Add( item );
