@@ -49,12 +49,8 @@ namespace Dirigent.Net
 			{ 134, typeof( MachineDefsMessage ) },
 			//{ 135, typeof( StartTaskMessage ) },
 			//{ 136, typeof( KillTaskMessage ) },
-			{ 137, typeof( TaskDefsMessage ) },
+			{ 137, typeof( ActionDefsMessage ) },
 			{ 138, typeof( ScriptStateMessage ) },
-			//{ 139, typeof( TaskRequestMessage ) },
-			//{ 140, typeof( TaskResponseMessage ) },
-			//{ 141, typeof( StartTaskWorkerMessage ) },
-			//{ 142, typeof( KillTaskWorkersMessage ) },
 			// WARNING: add newly added messages also to the list below!!
 		};
 	}
@@ -99,7 +95,7 @@ namespace Dirigent.Net
 	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
 	//[ProtoBuf.ProtoInclude( 135, typeof( StartTaskMessage ) )]
 	//[ProtoBuf.ProtoInclude( 136, typeof( KillTaskMessage ) )]
-	[ProtoBuf.ProtoInclude( 137, typeof( TaskDefsMessage ) )]
+	[ProtoBuf.ProtoInclude( 137, typeof( ActionDefsMessage ) )]
 	[ProtoBuf.ProtoInclude( 138, typeof( ScriptStateMessage ) )]
 	//[ProtoBuf.ProtoInclude( 139, typeof( TaskRequestMessage ) )]
 	//[ProtoBuf.ProtoInclude( 140, typeof( TaskResponseMessage ) )]
@@ -1174,14 +1170,14 @@ namespace Dirigent.Net
 	//}
 
 	/// <summary>
-	/// Master tells new client about existing tasks
+	/// Master tells new client about existing actions
 	/// </summary>
 	[ProtoBuf.ProtoContract]
-	public class TaskDefsMessage : Message
+	public class ActionDefsMessage : Message
 	{
 		[ProtoBuf.ProtoMember( 1 )]
 		[MaybeNull]
-		public List<DTaskDef> TaskDefs;
+		public List<ActionDef> ActionDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
@@ -1189,17 +1185,17 @@ namespace Dirigent.Net
 		[ProtoBuf.ProtoMember( 2 )]
 		public bool Incremental;
 
-		public TaskDefsMessage() {}
-		public TaskDefsMessage( IEnumerable<DTaskDef> taskDefs, bool incremental )
+		public ActionDefsMessage() {}
+		public ActionDefsMessage( IEnumerable<ActionDef> actionDefs, bool incremental )
 		{
-			this.TaskDefs = new List<DTaskDef>(taskDefs);
+			this.ActionDefs = new List<ActionDef>(actionDefs);
 			this.Incremental = incremental;
 		}
 
 		public override string ToString()
 		{
-			if( TaskDefs is null ) return "TaskDefs = null";
-			return $"TaskDefs [{string.Join(", ", from x in TaskDefs select x.Id)}], increm={Incremental}";
+			if( ActionDefs is null ) return "ActionDef = null";
+			return $"ActionDef [{string.Join(", ", from x in ActionDefs select x.Id)}], increm={Incremental}";
 		}
 	}
 

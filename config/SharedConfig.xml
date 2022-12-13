@@ -119,9 +119,23 @@
     <Plan Name="empty">
     </Plan>
 
-
+    <!-- single instance scripts in the Scripts tab -->
     <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
 
+    <ToolsMenu>
+        <!-- script invoked on defined machine -->
+        <Script Title="Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>
+        
+        <!-- tool invoked on the machine where the menu was clicked -->
+    	<Tool Title="Demo tool menu item - VNC to self" Name="VncViewer" Args="%MACHINE_IP%"/>
+
+        <!-- tool invoked on the machine where the menu was clicked, started in context of given file -->
+    	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
+            <Tool Title="Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
+    	</FileRef>
+    </ToolsMenu>
+
+    
     <AppTemplate Name="apps.notepad"
     		Template = ""
     		ExeFullPath = "c:\windows\notepad.exe"

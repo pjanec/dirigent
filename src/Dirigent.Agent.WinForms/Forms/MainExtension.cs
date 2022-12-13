@@ -38,21 +38,39 @@ namespace Dirigent.Gui.WinForms
 			_form = form;
 		}
 
+		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
+		ToolStripMenuItem[] GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
+		{
+			var tree = new FolderTree();
+
+			foreach( var a in actions )
+			{
+				var menuItem = WFT.ActionDefToMenuItem(a, () => onClick(a) );
+				tree.InsertNode( a.Title, false, menuItem, null);
+			}
+
+			// convert the actions to menu items
+			var menuItems = WFT.GetMenuTreeItems( tree );
+
+			return menuItems;
+
+		}
+
 		protected ToolStripMenuItem ContextMenuVfsNode( VfsNodeDef vfsNodeDef )
 		{
-			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&File/Folder" );
-			foreach( var action in vfsNodeDef.Actions )
-			{
-				var title = action.Title;
-				if (string.IsNullOrEmpty( title )) title = action.Name;
-				var item = new System.Windows.Forms.ToolStripMenuItem( title );
-				item.Click += async ( s, a ) => await WFT.GuardedOpAsync( async () => {
-						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
-						_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
-					}
-				);
-				toolsMenu.DropDownItems.Add( item );
-			}
+			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem(
+				"&File/Folder",
+				null,
+				GetMenuItemsFromActions(
+					vfsNodeDef.Actions,
+					async (action) => await WFT.GuardedOpAsync( async () => {
+							var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
+							_form.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
+						}
+					)
+				)
+			);
+				
 			if( toolsMenu.DropDownItems.Count > 0 )
 			{
 				return toolsMenu;
@@ -62,27 +80,19 @@ namespace Dirigent.Gui.WinForms
 
 		protected ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
 		{
-			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-			foreach( var action in fpack.Actions )
-			{
-				var title = action.Title;
-				if (string.IsNullOrEmpty( title )) title = action.Name;
-				var item = new System.Windows.Forms.ToolStripMenuItem( title );
-				item.Click += async ( s, a ) => await WFT.GuardedOpAsync( async () => {
-					var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
-					_form.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
-					//try{
-					//	var result = await _form.ReflStates.Scripts.RunScriptAndWait<DemoScript1.Result>( "m1", "Scripts/DemoScript1.cs", null, null, "Demo1", System.Threading.CancellationToken.None, -1 );
-					//	MessageBox.Show( result.ToString() );
-					//}
-					//catch (Exception e)
-					//{
-					//	MessageBox.Show( e.ToString() );
-					//}
-				}
-				);
-				toolsMenu.DropDownItems.Add( item );
-			}
+			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem(
+				"&Tools",
+				null,
+				GetMenuItemsFromActions(
+					fpack.Actions,
+					async (action) => await WFT.GuardedOpAsync( async () => {
+						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
+						_form.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
+						}
+					)
+				)
+			);
+
 			if( toolsMenu.DropDownItems.Count > 0 )
 			{
 				return toolsMenu;

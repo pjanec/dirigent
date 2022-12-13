@@ -79,6 +79,7 @@ namespace Dirigent
 		private SingletonScriptRegistry _singlScripts;
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
+		private List<ActionDef> _actionDefs = new List<ActionDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
@@ -594,6 +595,12 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
+			// send full list of actions
+			{
+				var m = new Net.ActionDefsMessage( _actionDefs, false );
+				_server.SendToSingle( m, ident.Name );
+			}
+
 		}
 
 		void FeedAgent( ClientIdent ident )
@@ -682,13 +689,14 @@ namespace Dirigent
 
 
 			// import predefined scripts
-			_reflScripts.SetScriptDefs( sharedConfig.Scripts );
-			_singlScripts.SetAll( sharedConfig.Scripts );
+			_reflScripts.SetScriptDefs( sharedConfig.SinglScripts );
+			_singlScripts.SetAll( sharedConfig.SinglScripts );
 
 			_files.SetVfsNodes( sharedConfig.VfsNodes );
 			_files.SetMachines( sharedConfig.Machines );
 
-			_machineDefs = new List<MachineDef>( sharedConfig.Machines );
+			_machineDefs = sharedConfig.Machines;
+			_actionDefs = sharedConfig.ToolActions;
 
 			// reset
 			var m = new Net.ResetMessage();

@@ -15,7 +15,7 @@ namespace Dirigent
 	[ProtoBuf.ProtoContract]
 	[ProtoBuf.ProtoInclude( 101, typeof( ToolActionDef ) )]
 	[ProtoBuf.ProtoInclude( 102, typeof( ScriptActionDef ) )]
-	public class ActionDef : AssocItemDef, IEquatable<ActionDef>
+	public class ActionDef : AssocMenuItemDef, IEquatable<ActionDef>
 	{
 		/// Name in the library of scripts, tools etc.
 		/// </summary>

@@ -77,5 +77,73 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		public static Bitmap GetBitmapFromFile( string fileName )
+		{
+			if (string.IsNullOrEmpty( fileName ))
+				return null;
+				
+			try
+			{
+				if (System.IO.Path.IsPathRooted( fileName ))
+				{
+					return new Bitmap( fileName );
+				}
+				else
+				{
+					return new Bitmap( System.IO.Path.Combine( Tools.GetExeDir(), fileName ) );
+				}
+			}
+			catch (Exception)
+			{
+				return null;
+			}
+		}
+
+		/// <summary>
+		///	Builds menu items from the children of given folder tree node.
+		/// FolderTree payload needs to be a ToolStripMenuItem.
+		/// </summary>
+		public static ToolStripMenuItem[] GetMenuTreeItems( FolderTree parent )
+		{
+			var res = new List<ToolStripMenuItem>();
+			
+			//empty tree?
+			if( parent.Children is null )
+				return res.ToArray();
+			
+			foreach( var node in parent.Children )
+			{
+				if( node.IsFolder )
+				{
+					var item = new ToolStripMenuItem( node.Name );
+					item.DropDownItems.AddRange( GetMenuTreeItems( node ) );
+					res.Add( item );
+				}
+				else
+				if(node.Payload is ToolStripMenuItem menuItem )
+				{
+					res.Add( menuItem );
+				}
+				else
+				{
+					throw new Exception( "GetMenuItems called with non-menuitem payload" );
+				}
+			}
+			return res.ToArray();
+		}
+
+		public static ToolStripMenuItem ActionDefToMenuItem( ActionDef adef, Action onClick )
+		{
+			var title = adef.Title;
+			if (string.IsNullOrEmpty( title )) title = adef.Name;
+			if (string.IsNullOrEmpty( title )) title = adef.Guid.ToString();
+
+			return new ToolStripMenuItem(
+				FolderTree.GetNamePart( title ),
+				WFT.GetBitmapFromFile( adef.IconFile ),
+				(sender, args ) => onClick()
+			);
+		}
+		
 	}
 }

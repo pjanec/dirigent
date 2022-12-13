@@ -133,6 +133,16 @@ namespace Dirigent
 			StartAction( action, vars );
 		}
 		
+		public void StartMachineBoundAction( ActionDef action, string localMachineId )
+		{
+			var vars = new Dictionary<string,string>()
+			{
+				{ "MACHINE_ID", localMachineId },
+				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId, $"action {action}" ) },
+			};
+			StartAction( action, vars );
+		}
+
 		public void StartMachineBoundAction( ActionDef action, MachineDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()

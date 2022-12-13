@@ -17,7 +17,7 @@ namespace Dirigent
 	[ProtoBuf.ProtoContract]
 	[ProtoBuf.ProtoInclude( 101, typeof( ActionDef ) )]
 	[ProtoBuf.ProtoInclude( 102, typeof( VfsNodeDef ) )]
-	public class AssocItemDef : IEquatable<AssocItemDef>
+	public class AssocMenuItemDef : IEquatable<AssocMenuItemDef>
 	{
 		/// <summary>
 		/// Unique id within the system (generated when loading the item from config)
@@ -78,7 +78,7 @@ namespace Dirigent
 			return $"{Id}";
 		}
 
-		public bool ThisEquals( AssocItemDef other ) =>
+		public bool ThisEquals( AssocMenuItemDef other ) =>
 				this.Guid == other.Guid &&
 				this.Title == other.Title &&
 				this.Id == other.Id &&
@@ -91,9 +91,9 @@ namespace Dirigent
 
 		// boilerplate
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
-		public bool Equals(AssocItemDef? o) => object.Equals(this, o);
-		public static bool operator ==(AssocItemDef o1, AssocItemDef o2) => object.Equals(o1, o2);
-		public static bool operator !=(AssocItemDef o1, AssocItemDef o2) => !object.Equals(o1, o2);
+		public bool Equals(AssocMenuItemDef? o) => object.Equals(this, o);
+		public static bool operator ==(AssocMenuItemDef o1, AssocMenuItemDef o2) => object.Equals(o1, o2);
+		public static bool operator !=(AssocMenuItemDef o1, AssocMenuItemDef o2) => !object.Equals(o1, o2);
 		public override int GetHashCode() => Id.GetHashCode();
 	}
 }

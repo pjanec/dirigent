@@ -21,7 +21,7 @@ namespace Dirigent
 	[ProtoBuf.ProtoInclude( 103, typeof( FolderDef ) )]
 	[ProtoBuf.ProtoInclude( 104, typeof( VFolderDef ) )]
 	[ProtoBuf.ProtoInclude( 105, typeof( FilePackageDef ) )]
-	public class VfsNodeDef : AssocItemDef, IEquatable<VfsNodeDef>
+	public class VfsNodeDef : AssocMenuItemDef, IEquatable<VfsNodeDef>
 	{
 		/// <summary>
 		/// Full file path in the real file system, local to the machine where the file/folder resides.

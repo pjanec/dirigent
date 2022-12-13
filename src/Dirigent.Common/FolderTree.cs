@@ -73,5 +73,11 @@ namespace Dirigent
 				child.IsFolder = isFolder;
 			}
 		}
+
+		public static string GetNamePart( string path )
+		{
+			var parts = path.Split( seps, 2 );
+			return parts[0];
+		}
 	}
 }

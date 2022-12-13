@@ -42,7 +42,8 @@ namespace Dirigent
 			LoadUnboundFiles( _fdReg );
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
-			_cfg.Scripts = LoadSingleInstScripts(_root);
+			_cfg.SinglScripts = LoadSingleInstScripts(_root);
+			_cfg.ToolActions = LoadToolActions(_root);
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
@@ -264,7 +265,7 @@ namespace Dirigent
 			return a;
 		}
 
-		static void FillAssocItem( ref AssocItemDef a, XElement e, string? machineId=null, string? appId=null )
+		static void FillAssocItem( ref AssocMenuItemDef a, XElement e, string? machineId=null, string? appId=null )
 		{
 			a.MachineId = machineId;
 			a.AppId = appId;
@@ -322,7 +323,7 @@ namespace Dirigent
 		
 		static void FillVfsNodeBase( ref VfsNodeDef a, XElement e, string? machineId=null, string? appId=null )
 		{
-			var assocItemDef = (AssocItemDef)a;
+			var assocItemDef = (AssocMenuItemDef)a;
 			FillAssocItem( ref assocItemDef, e, machineId, appId );
 
 			var xml = new XElement(e.Name);
@@ -419,7 +420,7 @@ namespace Dirigent
 
 		static void FillActionBase( ref ActionDef a, XElement e, string? machineId=null, string? appId=null )
 		{
-			var assocItemDef = (AssocItemDef)a;
+			var assocItemDef = (AssocMenuItemDef)a;
 			FillAssocItem( ref assocItemDef, e, machineId, appId );
 
 			var x = new 
@@ -699,6 +700,51 @@ namespace Dirigent
 
 			return res;
 		}
+
+
+		static ActionDef? LoadToolAction( XElement e )
+		{
+			if (e.Name == "Script")
+			{
+				var a = new ScriptActionDef();
+				FillScriptAction( ref a, e );
+				return a;
+			}
+			else
+			if (e.Name == "Tool")
+			{
+				var a = new ToolActionDef();
+				FillToolAction( ref a, e );
+				return a;
+			}
+			else
+			return null;
+		}
+
+		static List<ActionDef> LoadToolActions( XElement root )
+		{
+			var res = new List<ActionDef>();
+
+			foreach( var toolMenuRoot in root.Elements("ToolsMenu") )
+			{
+				foreach( var elem in toolMenuRoot.Elements() )
+				{
+					var action = LoadToolAction( elem );
+					if( action is not null )
+					{
+						res.Add( action );
+						continue;
+					}
+					//var vfsNode = LoadVfsNode( elem );
+					//if( vfsNode is not null )
+					//{
+					//	res.Add( vfsNode );
+					//}
+				}
+			}
+			return res;
+		}
+
 
 		static List<FileShareDef> LoadShares( XElement root )
 		{

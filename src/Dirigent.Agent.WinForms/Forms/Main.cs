@@ -126,6 +126,9 @@ namespace Dirigent.Gui.WinForms
 			{
 			};
 
+			UpdateToolsMenu(); // initial menus
+			ReflStates.OnActionsReceived += () => UpdateToolsMenu(); // when Action arrived from master, we rebuild the menu
+
 			SyncOps = new SynchronousOpProcessor();
 
 			Ctrl = ReflStates;
@@ -793,6 +796,31 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+
+		void UpdateToolsMenu()
+		{
+			// build the menu from the list of predefined tool menu items and the list of extra actions
+			var tree = new FolderTree();
+
+			tree.InsertNode("Reload/Shared Config", false, reloadSharedConfigToolStripMenuItem, null);
+			tree.InsertNode("Kill/All running apps", false, killAllRunningAppsToolStripMenuItem, null);
+			tree.InsertNode("Power/Reboot All", false, rebootAllToolStripMenuItem1, null);
+			tree.InsertNode("Power/Shutdown All", false, shutdownAllToolStripMenuItem1, null);
+
+			foreach( var a in this.ReflStates.Actions )
+			{
+				var menuItem = WFT.ActionDefToMenuItem(a, () => _toolsReg.StartMachineBoundAction( a, _machineId ));
+				
+				tree.InsertNode( a.Title, false, menuItem, null);
+			}
+
+			// convert the actions to menu items
+			var menuItems = WFT.GetMenuTreeItems( tree );
+
+			// replace the Tools menu with a new one
+			this.toolsToolStripMenuItem.DropDownItems.Clear();
+			this.toolsToolStripMenuItem.DropDownItems.AddRange( menuItems );
+		}
 
 	}
 }

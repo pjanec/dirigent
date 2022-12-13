@@ -45,6 +45,7 @@ namespace Dirigent
 		public Action? OnScriptsReceived;
 		public Action? OnFilesReceived;
 		public Action? OnMachinesReceived;
+		public Action? OnActionsReceived;
 
 		// fired when reset is received
 		public Action? OnReset;
@@ -61,6 +62,12 @@ namespace Dirigent
 		
 		private Dictionary<string, PlanState> _planStates = new Dictionary<string, PlanState>();
 		private List<PlanDef> _planDefs = new List<PlanDef>();
+		
+		/// <summary>
+		/// tool menu actions
+		/// </summary>
+		private List<ActionDef> _actionDefs = new List<ActionDef>();
+		public List<ActionDef> Actions => _actionDefs;
 
 		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
 
@@ -180,6 +187,13 @@ namespace Dirigent
 				{
 					_scripts.SetScriptDefs( m.ScriptDefs, m.Incremental );
 					OnScriptsReceived?.Invoke();
+					break;
+				}
+
+				case Net.ActionDefsMessage m:
+				{
+					_actionDefs = m.ActionDefs ?? new List<ActionDef>();
+					OnActionsReceived?.Invoke();
 					break;
 				}
 
