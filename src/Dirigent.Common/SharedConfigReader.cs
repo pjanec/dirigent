@@ -351,6 +351,17 @@ namespace Dirigent
 				var vfsNode = (VfsNodeDef) a;
 				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				if( string.IsNullOrEmpty(a.Path) ) throw new Exception($"Path missing or empty in {e}");
+				if( string.IsNullOrEmpty(a.MachineId) )
+				{
+					//if( System.IO.Path.IsPathFullyQualified( a.Path ) )
+					//	throw new Exception($"Path not fully qualified: {e}");
+
+					var uri = new Uri( a.Path, UriKind.RelativeOrAbsolute );
+					if( !uri.IsFile )
+						throw new Exception($"Path must be a file: {e}");
+					if( !uri.IsUnc )
+						throw new Exception($"Path must be UNC: {e}");
+				}
 				return a;
 			}
 			else
