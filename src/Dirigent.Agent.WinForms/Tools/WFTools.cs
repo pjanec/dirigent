@@ -103,7 +103,7 @@ namespace Dirigent.Gui.WinForms
 		///	Builds menu items from the children of given folder tree node.
 		/// FolderTree payload needs to be a ToolStripMenuItem.
 		/// </summary>
-		public static ToolStripMenuItem[] GetMenuTreeItems( FolderTree parent )
+		public static ToolStripMenuItem[] GetMenuTreeItems( TreeNode parent )
 		{
 			var res = new List<ToolStripMenuItem>();
 			
@@ -139,7 +139,7 @@ namespace Dirigent.Gui.WinForms
 			if (string.IsNullOrEmpty( title )) title = adef.Guid.ToString();
 
 			return new ToolStripMenuItem(
-				FolderTree.GetNamePart( title ),
+				TreeNode.GetNamePart( title ),
 				WFT.GetBitmapFromFile( adef.IconFile ),
 				(sender, args ) => onClick( adef )
 			);

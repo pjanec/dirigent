@@ -16,7 +16,7 @@ namespace Dirigent.Gui
 		private ImGuiWindow _wnd;
 		
 		FolderTreeRenderer _treeRend;
-		FolderTree _treeRoot;
+		TreeNode _treeRoot;
 		Dictionary<string, AppRenderer> _nodeRenderers;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -40,7 +40,7 @@ namespace Dirigent.Gui
 			_treeRend.DrawUI( _treeRoot );
 		}
 
-		Action? RenderNode( FolderTree node )
+		Action? RenderNode( TreeNode node )
 		{
 			var r = node.Payload as AppRenderer;
 			if ( r != null ) // leaf, i.e. actual script
@@ -59,7 +59,7 @@ namespace Dirigent.Gui
 		}
 
 
-		void SortTree( FolderTree tree )
+		void SortTree( TreeNode tree )
 		{
 			if( tree.Children == null ) return;
 
@@ -83,9 +83,9 @@ namespace Dirigent.Gui
 			return r;
 		}
 
-		FolderTree BuildTree()
+		TreeNode BuildTree()
 		{
-			var root = new FolderTree();
+			var root = new TreeNode();
 			foreach( (var id, var def) in _ctrl.GetAllAppDefs() )
 			{
 				// parse "Groups" attribute into individual group paths

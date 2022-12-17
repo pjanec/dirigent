@@ -614,7 +614,7 @@ namespace Dirigent.Gui.WinForms
 		void UpdateToolsMenu()
 		{
 			// build the menu from the list of predefined tool menu items and the list of extra actions
-			var tree = new FolderTree();
+			var tree = new TreeNode();
 
 			tree.InsertNode("Reload/Shared Config", false, reloadSharedConfigToolStripMenuItem, null);
 			tree.InsertNode("Kill/All running apps", false, killAllRunningAppsToolStripMenuItem, null);

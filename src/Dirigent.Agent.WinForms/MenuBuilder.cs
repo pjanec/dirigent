@@ -29,7 +29,7 @@ namespace Dirigent.Gui.WinForms
 		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
 		public ToolStripMenuItem[] GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
 		{
-			var tree = new FolderTree();
+			var tree = new TreeNode();
 
 			foreach( var a in actions )
 			{

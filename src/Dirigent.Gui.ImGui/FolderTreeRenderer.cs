@@ -17,7 +17,7 @@ namespace Dirigent.Gui
 
 		// Returns non-null if the node is unfolded; then the caller needs to call the action returned
 		// to finish rendering the node.
-		public delegate Action? NodeDrawDelegate( FolderTree node );
+		public delegate Action? NodeDrawDelegate( TreeNode node );
 		
 		public FolderTreeRenderer( ImGuiWindow wnd, IDirig ctrl, NodeDrawDelegate? nodeDrawDeleg )
 		{
@@ -26,7 +26,7 @@ namespace Dirigent.Gui
 			_nodeDrawDeleg = nodeDrawDeleg ?? DefaultNodeDraw;
 		}
 
-		public void DrawUI( FolderTree root )
+		public void DrawUI( TreeNode root )
 		{
 			ImGui.PushID(_uniqueUiId);
 			
@@ -35,7 +35,7 @@ namespace Dirigent.Gui
 			ImGui.PopID();
 		}
 
-		Action? DefaultNodeDraw( FolderTree node )
+		Action? DefaultNodeDraw( TreeNode node )
 		{
 			ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(0f,1f,1f,1f) );
 			bool opened = ImGui.TreeNodeEx( $"{node.Name}", ImGuiTreeNodeFlags.FramePadding);
@@ -44,7 +44,7 @@ namespace Dirigent.Gui
 			return null;
 		}
 
-		void RenderNode( FolderTree node )
+		void RenderNode( TreeNode node )
 		{
 			var closingAction = _nodeDrawDeleg( node );
 			if( closingAction != null )	// node is unfolded
@@ -54,7 +54,7 @@ namespace Dirigent.Gui
 			}
 		}
 
-		void RenderSubnodes( FolderTree node )
+		void RenderSubnodes( TreeNode node )
 		{
 			if( node.Children == null ) return;
 

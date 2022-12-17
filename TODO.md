@@ -1,6 +1,8 @@
+[BUG] FileDef menu containing actions overwrites existing menu folder with same name (Shared Config [FileDef] -> Actions  overwrites Shared Config -> Reload)
+
 [BUG] FolderDef, when including content, fails with exception if one of the subfolders is inaccessible
 
-[TODO] Let remote script itself evaluate %VAR% (on the hosting machine), do not evaluate it on machine where script call is made from.
+[DONE] Let remote script itself evaluate %VAR% (on the hosting machine), do not evaluate it on machine where script call is made from.
 
 [TODO] Use Glob nuget for filtering file names. Stop using extra "Mask" attribute.
 

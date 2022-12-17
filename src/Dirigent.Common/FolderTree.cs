@@ -12,37 +12,38 @@ namespace Dirigent
 	/// Intermediate nodes can be created via given constructor delegate (otherwise FolderTree objects are instantiated).
 	/// Can be used for sorting apps, scripts and plans into groups.
 	/// </summary>
-	public class FolderTree
+	public class TreeNode
 	{
 		public string Name = string.Empty;
-		public List<FolderTree>? Children;
+		public List<TreeNode>? Children;
 		public bool IsFolder; // folders are drawn before the rest
 
 		public object? Payload;
 
 		static char[] seps = new char[] { '/', '\\' };
 
-		public delegate FolderTree ConstructorDeleg();
+		public delegate TreeNode ConstructorDeleg();
 		
 		/// <summary>
-		/// Parses the path to segments, builds intermediate tree levels and stored the payload to the leaf one
+		/// Parses the path to segments, builds intermediate tree levels and stored the payload to the leaf one.
+		/// Returns the deepest newly created node (the leaf).
 		/// </summary>
 		/// <param name="path"></param>
 		/// <param name="payload"></param>
 		/// <param name="constructor">if not null, called to create new tree nodes </param>
-		public void InsertNode( string path, bool isFolder, object? payload, ConstructorDeleg? constructor )
+		public TreeNode InsertNode( string path, bool isFolder, object? payload, ConstructorDeleg? constructor )
 		{
 			var parts = path.Split( seps, 2 );
 			var name = parts[0];
 			
 			// find/create the next child node having same name as the first path segment
-			FolderTree? child = null;
+			TreeNode? child = null;
 			if(!string.IsNullOrEmpty(name))
 			{
 				// create subtree if not existing yet
 				if( Children == null )
 				{
-					Children = new List<FolderTree>();
+					Children = new List<TreeNode>();
 				}
 				else // try to find existing
 				{
@@ -51,7 +52,7 @@ namespace Dirigent
 				// create new child not if not existing yet
 				if( child == null )
 				{
-					child = constructor == null ? new FolderTree() : constructor();
+					child = constructor == null ? new TreeNode() : constructor();
 					child.Name = name;
 					child.IsFolder = true; // automatically created are folders
 					Children.Add(child);
@@ -65,12 +66,38 @@ namespace Dirigent
 			// process recursively the rest of the path
 			if( parts.Length > 1 )
 			{
-				child.InsertNode( parts[1], isFolder, payload, constructor );
+				return child.InsertNode( parts[1], isFolder, payload, constructor );
 			}
 			else // it's the leaf of the tree, set the payload
 			{
 				child.Payload = payload;
 				child.IsFolder = isFolder;
+				return child;
+			}
+		}
+
+		// add the child nodes from given subtree to this node
+		// WARNING: written by copilot, NEEDS REVISING FIRST!
+		public void MergeSubtree( TreeNode subtree )
+		{
+			if( subtree.Children != null )
+			{
+				if( Children == null)
+				{
+					Children = new List<TreeNode>();
+				}
+				foreach( var child in subtree.Children )
+				{
+					var existingChild = Children.Find( x => string.Equals( x.Name, child.Name ) );
+					if (existingChild == null)
+					{
+						Children.Add( child );
+					}
+					else
+					{
+						existingChild.MergeSubtree( child );
+					}
+				}
 			}
 		}
 
