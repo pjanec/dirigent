@@ -202,6 +202,10 @@
 
      </Machine>
 
+    <Machine Name="m2">
+        <Share Name="C" Path="C:\"/>
+     </Machine>
+
    	<App
 	    AppIdTuple = "m1.appWithFile"
 		Template = "apps.notepad"
@@ -239,7 +243,7 @@
     	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
         	
         	<!-- global files specification -->
-        	<File Id="inPackFile" Path="D:\TEMP\file.txt">
+        	<File Id="inPackFile" AppIdTuple="m1.a" Path="D:\TEMP\file.txt">
                 <Tool Title="Notepad++" Name="Notepad"/>
         	</File>
 
@@ -272,7 +276,7 @@
     	        <!-- resolves to the tree of files/filerefs/folders/vfolders provided by given script -->
     	        <ScriptedContent Script="PackageScripts/Test1" Args=""/>
 
-            	<File Id="inPackFile" Path="D:\TEMP\file.txt"/>
+            	<File Id="inPackFile" Path="\\server\TEMP\file.txt"/>
     	    </VFolder>
 	    </VFolder>
 
@@ -292,7 +296,7 @@
 
 	<!-- This is a default item which does not need to be defined explicitly unless you need some special tools for it;
 	     the path is provided automatically -->
-	<File Title="SharedConfig" Id="DirigentSharedConfig" Path="x:\y\SharedConfig.xml">
+	<File Title="SharedConfig" Id="DirigentSharedConfig" MachineId="m1" Path="x:\y\SharedConfig.xml">
         <Tool Title="Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
 	</File>
 

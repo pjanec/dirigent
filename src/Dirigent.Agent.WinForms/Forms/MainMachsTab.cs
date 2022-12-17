@@ -99,6 +99,8 @@ namespace Dirigent.Gui.WinForms
 				initGrid();
 			}
 
+			// we need to display shared-config defined machines (always no matter if connected or not) and also other machines that are connected to the agent
+
 			// find what has changed
 			// - list new client info
 			// - find differences with current grid data table (added/remove/updated)
@@ -116,6 +118,7 @@ namespace Dirigent.Gui.WinForms
 			}
 
 
+			// add connected machines
 			foreach (var (id, state) in ReflStates.GetAllClientStates())
 			{
 				if( oldRows.ContainsKey( id )) continue; // already existing
@@ -127,6 +130,23 @@ namespace Dirigent.Gui.WinForms
 				item[colAddress] = $"{state.IP}";
 				toAdd.Add( item );
 			}
+
+			// combine with predefined machines
+			foreach (var mach in ReflStates.GetAllMachineDefs())
+			{
+				var id = mach.Id;
+				if( oldRows.ContainsKey( id )) continue; // already existing
+				if( toAdd.Find( x => (string)x[colName] == id ) != null ) continue; // already added as connected client
+
+				// here we already know it is not connected
+				var item = new object[colMAX];
+				item[colName] = id;
+				item[colStatus] = Tools.GetClientStateText( null );
+				item[colAddress] = mach.IP;
+				toAdd.Add( item );
+			}
+
+
 
 			foreach( var dataRow in toRemove )
 			{

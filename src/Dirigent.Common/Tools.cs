@@ -30,21 +30,23 @@ namespace Dirigent
 
 		}
 
-		public static string GetClientStateText( ClientState st )
+		public static string GetClientStateText( ClientState? st )
 		{
-			string stCode = "Not running";
+			string stCode = "Offline";
 
-			if( st.Connected )
+			if( st != null )
 			{
-				stCode = "Connected";
-			}
+				if( st.Connected )
+				{
+					stCode = "Connected";
+				}
 
-			var statusInfoAge = DateTime.UtcNow - st.LastChange;
-			if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
-			{
-				stCode = string.Format( "Offline for {0:0} sec", statusInfoAge.TotalSeconds );
+				var statusInfoAge = DateTime.UtcNow - st.LastChange;
+				if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+				{
+					stCode = string.Format( "Offline for {0:0} sec", statusInfoAge.TotalSeconds );
+				}
 			}
-
 			return stCode;
 		}
 
