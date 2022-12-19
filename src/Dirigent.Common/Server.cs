@@ -14,7 +14,7 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Client session created by the server for communicating with the client.
 	/// </summary>
-	class ProtoSession : NetCoreServer.TcpSession
+	class MessageSession : NetCoreServer.TcpSession
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -27,22 +27,22 @@ namespace Dirigent.Net
 		public string Name => Ident?.Sender ?? string.Empty;
 
 
-		private ProtoBufCodec _msgCodec;
+		private MsgPackCodec _msgCodec;
 		private Server _server;
 
 		/// <summary>Buffer for async received messages (msgs stays there until passed to server's buffer during <see cref="Poll"/>)</summary>
 		private ConcurrentQueue<object> _msgsReceived = new ConcurrentQueue<object>(); 
 
 
-		public ProtoSession( Server server ) : base( server )
+		public MessageSession( Server server ) : base( server )
 		{
 			_server = server;
-			_msgCodec = new ProtoBufCodec( TypeMapRegistry.TypeMap );
-			_msgCodec.MessageReceived = OnProtoMessageReceived;
+			_msgCodec = new MsgPackCodec();
+			_msgCodec.MessageReceived = OnMessageReceived;
 		}
 
 		// Async!
-		void OnProtoMessageReceived( uint msgCode, object instance )
+		void OnMessageReceived( Net.Message instance )
 		{
 			_msgsReceived.Enqueue( instance );
 		}
@@ -87,12 +87,12 @@ namespace Dirigent.Net
 		}
 
 
-		public void BroadcastMessage<T>( T msg )
-		{
-			var ms = new System.IO.MemoryStream();
-			_msgCodec.ConstructProtoMessage( ms, msg );
-			_server.Multicast( ms.GetBuffer(), 0, ms.Position );
-		}
+		//public void BroadcastMessage<T>( T msg )
+		//{
+		//	var ms = new System.IO.MemoryStream();
+		//	_msgCodec.Serialize( ms, msg );
+		//	_server.Multicast( ms.GetBuffer(), 0, ms.Position );
+		//}
 
 		// Async!
 		protected override void OnConnected()
@@ -142,19 +142,19 @@ namespace Dirigent.Net
 		private int _port;
 
 		/// <summary>Clients just asynchronously connected but not yet madea vaialable for synchronous use</summary>
-		private Queue<ProtoSession> _connectingClients = new Queue<ProtoSession>();
+		private Queue<MessageSession> _connectingClients = new Queue<MessageSession>();
 
 		/// <summary>Just asynchrously disconnected but not yet removed from synchronous use</summary>
-		private Queue<ProtoSession> _disconnectingClients = new Queue<ProtoSession>(); //
+		private Queue<MessageSession> _disconnectingClients = new Queue<MessageSession>(); //
 
 		/// <summary>Already connected clients available for synchronous processing</summary>
-		private Dictionary<Guid, ProtoSession> _connectedClients = new Dictionary<Guid, ProtoSession>();
+		private Dictionary<Guid, MessageSession> _connectedClients = new Dictionary<Guid, MessageSession>();
 
 		/// <summary>Those clients that already connected and already sent ClientInfo</summary>
-		private Dictionary<string, ProtoSession> _identifiedClients = new Dictionary<string, ProtoSession>();
+		private Dictionary<string, MessageSession> _identifiedClients = new Dictionary<string, MessageSession>();
 
 		/// <summary>coded for outgoing messages</summary>
-		private ProtoBufCodec _msgCodec;
+		private MsgPackCodec _msgCodec;
 
 		/// <summary>Messages received since last <see cref="Tick"/> from all connected client. Filled & read synchronously from <see cref="Tick"/></summary>
 		private Queue<Message> _messagesReceived = new Queue<Message>();
@@ -163,9 +163,7 @@ namespace Dirigent.Net
 			: base( IPAddress.Any, port )
 		{
 			this._port = port;
-			_msgCodec = new ProtoBufCodec( TypeMapRegistry.TypeMap );
-
-			Net.Message.RegisterProtobufTypeMaps();
+			_msgCodec = new MsgPackCodec();
 
 			Start();
 		}
@@ -177,18 +175,18 @@ namespace Dirigent.Net
 
 		protected override TcpSession CreateSession()
 		{
-			return new ProtoSession( this );
+			return new MessageSession( this );
 		}
 
 		// async!
-		internal void OnSessionConnected( ProtoSession session )
+		internal void OnSessionConnected( MessageSession session )
 		{
 			lock( _connectingClients )
 				_connectingClients.Enqueue( session );
 		}
 
 		// async!
-		internal void OnSessionDisconnected( ProtoSession session )
+		internal void OnSessionDisconnected( MessageSession session )
 		{
 			lock( _disconnectingClients )
 				_disconnectingClients.Enqueue( session );
@@ -201,7 +199,7 @@ namespace Dirigent.Net
 		}
 
 		// called synchronously from session's Poll()
-		internal void ClientIdentified( ProtoSession session )
+		internal void ClientIdentified( MessageSession session )
 		{
 			_identifiedClients[session.Name] = session;
 
@@ -264,10 +262,10 @@ namespace Dirigent.Net
 		/// <summary>
 		/// Sends message to all identified clients who are interested
 		/// </summary>
-		public void SendToAllSubscribed<T>( T msg, EMsgRecipCateg msgCategoryMask ) where T : Message
+		public void SendToAllSubscribed( Net.Message msg, EMsgRecipCateg msgCategoryMask )
 		{
 			var ms = new System.IO.MemoryStream();
-			_msgCodec.ConstructProtoMessage( ms, msg );
+			_msgCodec.Serialize( ms, msg );
 
 			if( !msg.IsFrequent )
 			{
@@ -286,14 +284,14 @@ namespace Dirigent.Net
 		/// <summary>
 		/// Send message to given client only
 		/// </summary>
-		public void SendToSingle<T>( T msg, string clientName )
+		public void SendToSingle( Net.Message msg, string clientName )
 		{
 			if( _identifiedClients.TryGetValue( clientName, out var session ) )
 			{
 				log.Debug( $"[master] => [{clientName}]: {msg}" );
 
 				var ms = new System.IO.MemoryStream();
-				_msgCodec.ConstructProtoMessage( ms, msg );
+				_msgCodec.Serialize( ms, msg );
 				session.SendAsync( ms.GetBuffer(), 0, ms.Position );
 			}
 		}

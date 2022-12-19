@@ -8,7 +8,6 @@ namespace Dirigent.Net
 	{
 		public struct Header
 		{
-			public uint MsgCode;
 			public uint DataSize;
 		}
 		public Action<Header, byte[], long, long>? MessageReceived;
@@ -21,7 +20,7 @@ namespace Dirigent.Net
 		Header _header; // the header recently received
 
 
-		public const long HeaderLen = 4 + 4;
+		public const long HeaderLen = 4;
 
 		public MessageCodec()
 		{
@@ -33,9 +32,8 @@ namespace Dirigent.Net
 			_header = new Header();
 
 			unsafe { fixed( byte *p = &data[offset] )
-		{
-			_header.MsgCode  = *( ( uint * )( p + 0 ) );
-				_header.DataSize = *( ( uint * )( p + 4 ) );
+			{
+				_header.DataSize = *( ( uint * )( p + 0 ) );
 			}
 				   }
 
@@ -83,11 +81,10 @@ namespace Dirigent.Net
 		static public void ConstructHeader( in Header hdr, byte[] buf, long offs )
 		{
 			unsafe { fixed( byte *p = &buf[offs] )
-		{
-			*( ( uint * )( p + 0 ) ) = hdr.MsgCode;
-				*( ( uint * )( p + 4 ) ) = hdr.DataSize;
+			{
+				*( ( uint * )( p + 0 ) ) = hdr.DataSize;
 			}
-				   }
+		   }
 		}
 
 		static public void ConstructHeader( in Header hdr, System.IO.MemoryStream stream )

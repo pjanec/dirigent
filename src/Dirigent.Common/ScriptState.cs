@@ -19,13 +19,13 @@ namespace Dirigent
 		Cancelled,
 	}
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ScriptException : Exception
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public override string Message { get; }
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public override string? StackTrace { get; }
 
 		public ScriptException()
@@ -48,22 +48,22 @@ namespace Dirigent
 	}
 
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ScriptState : IEquatable<ScriptState>
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public EScriptStatus Status = EScriptStatus.Unknown;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string? Text = null;
 
 		/// <summary>
 		/// Script status info
-		/// If status == Running, it is the progress info (script-specific format, usually some protobuf serialized struct).
-		/// If status == Finished, it is the result (script-specific format, usually some protobuf serialized struct).
-		/// If status == Failed, it is the instance of ScriptError (protobuf serialized).
+		/// If status == Running, it is the progress info (script-specific format, usually some serialized struct).
+		/// If status == Finished, it is the result (script-specific format, usually some serialized struct).
+		/// If status == Failed, it is the instance of ScriptError (serialized).
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public byte[]? Data = null;
 
 		public ScriptState() {}
@@ -78,6 +78,7 @@ namespace Dirigent
 		/// <summary>
 		/// Is the script not yet dead?
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool IsAlive => Status == EScriptStatus.Starting || Status == EScriptStatus.Running || Status == EScriptStatus.Cancelling;
 
 		public override string ToString()

@@ -32,6 +32,7 @@ namespace Dirigent
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineDefs; }
+		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
 		  => _scripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
 		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
@@ -52,8 +53,8 @@ namespace Dirigent
 		public Action? OnReset;
 
 		private Net.Client _client;
-		private Dictionary<AppIdTuple, AppState> _appStates = new Dictionary<AppIdTuple, AppState>();
-		private Dictionary<string, ClientState> _clientStates = new Dictionary<string, ClientState>();
+		private Dictionary<AppIdTuple, AppState> _appStates = new();
+		private Dictionary<string, ClientState> _clientStates = new();
 		public Dictionary<string, ClientState> ClientStates => _clientStates;
 		
 		/// <summary>
@@ -61,7 +62,7 @@ namespace Dirigent
 		/// </summary>
 		private Dictionary<AppIdTuple, AppDef> _appDefs = new();
 		
-		private Dictionary<string, PlanState> _planStates = new Dictionary<string, PlanState>();
+		private Dictionary<string, PlanState> _planStates = new();
 		private List<PlanDef> _planDefs = new List<PlanDef>();
 		
 		/// <summary>
@@ -83,6 +84,7 @@ namespace Dirigent
 		
 
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
+		private Dictionary<string, MachineState> _machineStates = new(); // id => state
 
 		public ReflectedStateRepo( Net.Client client, string localMachineId )
 		{
@@ -210,6 +212,12 @@ namespace Dirigent
 					_machineDefs = m.Machines.ToList();
 					_fileReg.SetMachines( _machineDefs );
 					OnMachinesReceived?.Invoke();
+					break;
+				}
+
+				case Net.MachineStateMessage m:
+				{
+					_machineStates[m.Id] = m.State;
 					break;
 				}
 

@@ -189,7 +189,7 @@ namespace Dirigent
 		// runs script on given machine and wait for its termination
 		// throws ScriptException on failure
 		// throws TimeoutException on timeout
-		// otherwise returns the proto-decoded value that was proto-encoded by the script
+		// otherwise returns the deserialized value that was serialized by the script
 		public async Task<TResult?> RunScriptAndWaitAsync<TArgs,TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
 		{
 			var tcs = new TaskCompletionSource<TResult?>();

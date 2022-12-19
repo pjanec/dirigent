@@ -94,6 +94,7 @@ namespace Dirigent
 		public SynchronousOpProcessor _syncOps;
 		private SynchronousIDirig _syncIDirig;
 		private string _machineId; // empty if we run master standalone on an unidentified machine (this never happens as we always run master as part of some agent on a machine with a known id)
+		private bool _debug = true; // do not catch exceptions etc.
 
 		#endregion
 
@@ -263,13 +264,13 @@ namespace Dirigent
 						Tools.GetRemoteIpAndPort( socket, out ipAddress, out port );
 					}
 
-					// remember initial client state as connected
+					// remember initial client state as connected from certain IP address
 					var cs = new ClientState();
 					cs.Ident = m;
 					cs.Connected = true;
-					cs.LastChange = DateTime.Now;
+					cs.LastChange = DateTime.UtcNow;
 					cs.IP = ipAddress;
-					_allClientStates.AddOrUpdate( m.Name, cs );
+					_allClientStates.AddOrUpdate( m.Name, cs, ipAddress );
 
 					break;
 				}
@@ -278,7 +279,8 @@ namespace Dirigent
 				{
 					if( m.State != null && m.State.Ident != null) // sanity check
 					{
-						m.State.Connected = true;  // we just received from the client
+						m.State.Connected = true;  // we just received from the client, so it must be connected
+						m.State.LastChange = DateTime.UtcNow; // we just received from the client, so it must be fresh
 						_allClientStates.AddOrUpdate( m.State.Ident.Name, m.State );
 					}
 					break;
@@ -460,6 +462,15 @@ namespace Dirigent
 					break;
 				}
 
+				case MachineStateMessage m:
+				{
+					// forward to others (if it was sent from non-master)
+					if( m.Sender != "" )
+					{
+						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+					}
+					break;
+				}
 				
 			}
 
@@ -467,18 +478,25 @@ namespace Dirigent
 
 		void ProcessIncomingMessageAndHandleExceptions( Message msg )
 		{
-			try
+			if( _debug )
 			{
 				ProcessIncomingMessage( msg );
 			}
-			catch( Exception ex )
+			else
 			{
-				var errText = $"Exception\n\n'{ex.Message}'\n\nwhen processing message '{msg}'";
-				log.Error(errText, ex);
+				try
+				{
+					ProcessIncomingMessage( msg );
+				}
+				catch( Exception ex )
+				{
+					var errText = $"Exception\n\n'{ex.Message}'\n\nwhen processing message '{msg}'";
+					log.Error(errText, ex);
 					
-				// send error back to the sender
-				// note: if the sender is an agent and not a GUI, we won't see anything...
-				_server.SendToSingle( new RemoteOperationErrorMessage( msg.Sender, errText ), msg.Sender );
+					// send error back to the sender
+					// note: if the sender is an agent and not a GUI, we won't see anything...
+					_server.SendToSingle( new RemoteOperationErrorMessage( msg.Sender, errText ), msg.Sender );
+				}
 			}
 		}
 

@@ -14,63 +14,67 @@ namespace Dirigent
 	/// related to some dirigent-controlled item (app, plan, machine..),
 	/// optionally having some actions associated with the item (startable in the context of this item.)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[ProtoBuf.ProtoInclude( 101, typeof( ActionDef ) )]
-	[ProtoBuf.ProtoInclude( 102, typeof( VfsNodeDef ) )]
-	public class AssocMenuItemDef : IEquatable<AssocMenuItemDef>
+	[MessagePack.MessagePackObject]
+	[MessagePack.Union( 101, typeof( ActionDef ) )]
+	[MessagePack.Union( 102, typeof( VfsNodeDef ) )]
+	[MessagePack.Union( 103, typeof( ScriptActionDef ) )]
+	[MessagePack.Union( 104, typeof( ToolActionDef ) )]
+	[MessagePack.Union( 105, typeof( ScriptDef ) )]
+	
+	[MessagePack.Union( 111, typeof( FileDef ) )]
+	[MessagePack.Union( 112, typeof( FileRef ) )]
+	[MessagePack.Union( 113, typeof( FolderDef ) )]
+	[MessagePack.Union( 114, typeof( VFolderDef ) )]
+	[MessagePack.Union( 115, typeof( FilePackageDef ) )]
+	[MessagePack.Union( 116, typeof( ResolvedVfsNodeDef ) )]
+
+	public abstract class AssocMenuItemDef : IEquatable<AssocMenuItemDef>
 	{
 		/// <summary>
 		/// Unique id within the system (generated when loading the item from config)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
+		[MessagePack.Key( 1 )]
 		public Guid Guid;
 
 		/// <summary>
 		/// Display name of the item.
 		/// Optional backslash-separated submenu levels, like "Utils\File\My Title".
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
+		[MessagePack.Key( 2 )]
 		public string Title = String.Empty;
 
 		/// <summary>
 		/// Human readable item id
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
+		[MessagePack.Key( 3 )]
 		public string Id = String.Empty;
 
 		/// <summary>
 		/// Machine the item belongs to. Null if global.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 4 )]
-		[DataMember]
+		[MessagePack.Key( 4 )]
 		public string? MachineId = String.Empty;
 
 		/// <summary>
 		/// App the item belongs to. Used only if the action is bouond to an app.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
+		[MessagePack.Key( 5 )]
 		public string? AppId = null;
 
 		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
-		[ProtoBuf.ProtoMember( 6 )]
+		[MessagePack.Key( 6 )]
 		public string Groups = string.Empty;
 
 		/// <summary>
 		/// Icon for the menu item 
 		/// </summary>
-		[ProtoBuf.ProtoMember( 7 )]
-		[DataMember]
+		[MessagePack.Key( 7 )]
 		public string? IconFile;
 
 		/// <summary>
 		/// Submenu items
 		/// </summary>
-		[ProtoBuf.ProtoMember( 8 )]
-		[DataMember]
+		[MessagePack.Key( 8 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
 		public override string ToString()

@@ -6,16 +6,13 @@ using System.Runtime.Serialization;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public readonly struct AppIdTuple
 	{
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
+		[MessagePack.Key( 1 )]
 		public readonly string MachineId;
 
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
+		[MessagePack.Key( 2 )]
 		public readonly string AppId;
 
 		public AppIdTuple( string machineId, string appId )

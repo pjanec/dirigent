@@ -30,6 +30,7 @@ namespace Dirigent
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;
 
+		private ProcessInfoRegistry _procInfoReg;
 		private LocalAppsRegistry _localApps;
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private Net.Client _client;
@@ -52,6 +53,11 @@ namespace Dirigent
 		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
+
+		#if Windows
+		//PerformanceCounter _perfTotalCPU;
+		#endif		
+		
 
 		public Agent( string machineId, string masterIP, int masterPort, string rootForRelativePaths, string localCfgFileName )
 
@@ -79,7 +85,9 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
-			_localApps = new LocalAppsRegistry( _sharedContext );
+			_procInfoReg = new ProcessInfoRegistry();
+
+			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg );
 
 			_localConfig = LoadLocalConfig( localCfgFileName, machineId );
 			if( _localConfig is not null )
@@ -90,12 +98,21 @@ namespace Dirigent
 
 
 			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps );
+			
+			#if Windows
+			//_perfTotalCPU = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+			#endif
+
+
 
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+			if( !disposing ) return;
+			
+			_procInfoReg.Dispose();
 			_localScripts.Dispose();
 			_tickers.Dispose();
 			_client.Dispose();
@@ -105,6 +122,8 @@ namespace Dirigent
 		{
 			_client.Tick( OnMessage );
 
+			_procInfoReg.Tick();
+
 			_localApps.Tick();
 
 			_tickers.Tick();
@@ -113,6 +132,7 @@ namespace Dirigent
 
 			_localScripts.Tick();
 
+
 			PublishAgentState();
 		}
 
@@ -120,16 +140,15 @@ namespace Dirigent
 		{
 			var now = DateTime.UtcNow;
 
-			// THIS CAUSED StackOverflon on deserialization of proto message when using HUGE SharedConfig.xml
-			//// send client's state
-			//{
-			//	var clientState = new ClientState();
-			//	clientState.Ident = _clientIdent;
-			//	clientState.LastChange = now;
-			//
-			//	var msg = new Net.ClientStateMessage( now, clientState );
-			//	_client.Send( msg );
-			//}
+			// send client's state
+			{
+				var clientState = new ClientState();
+				clientState.Ident = _clientIdent;
+				clientState.LastChange = now;
+
+				var msg = new Net.ClientStateMessage( now, clientState );
+				_client.Send( msg );
+			}
 
 			// send the state of all local apps
 
@@ -142,6 +161,14 @@ namespace Dirigent
 			if( states.Count > 0 )
 			{
 				var msg = new Net.AppsStateMessage( states, DateTime.UtcNow );
+				_client.Send( msg );
+			}
+
+			// state of the machine
+			{
+				var machineState = GetMachineState();
+
+				var msg = new Net.MachineStateMessage( _clientIdent.Name, now, machineState );
 				_client.Send( msg );
 			}
 		}
@@ -380,6 +407,21 @@ namespace Dirigent
 					_folderWatchers.Add( fw );
 				}
 			}
+		}
+
+		MachineState GetMachineState()
+		{
+			#if Windows
+			//var cpu = _perfTotalCPU.NextValue();
+			return new MachineState()
+			{
+				//CPU = cpu,
+				MemoryAvailMB = WinApi.PerformanceInfo.GetPhysicalAvailableMemoryInMiB(),
+				MemoryTotalMB = WinApi.PerformanceInfo.GetTotalMemoryInMiB()
+			};
+			#else
+			return new MachineState();
+			#endif
 		}
 
 	}

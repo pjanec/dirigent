@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Reflection;
+using System.Globalization;
 
 namespace Dirigent
 {
@@ -38,7 +39,7 @@ namespace Dirigent
 			{
 				if( st.Connected )
 				{
-					stCode = "Connected";
+					stCode = "Online";
 				}
 
 				var statusInfoAge = DateTime.UtcNow - st.LastChange;
@@ -608,7 +609,7 @@ namespace Dirigent
 		{
 			using (var stream = new MemoryStream())
 			{
-				ProtoBuf.Serializer.Serialize( stream, data );
+				MessagePack.MessagePackSerializer.Serialize( stream, data );
 				return stream.ToArray();
 			}
 		}
@@ -618,15 +619,43 @@ namespace Dirigent
 			if (data is null) return default( T );
 			using (var stream = new MemoryStream( data ))
 			{
-				return ProtoBuf.Serializer.Deserialize<T>( stream );
+				return MessagePack.MessagePackSerializer.Deserialize<T>( stream );
 			}
 		}
 
-		/// <summary> Protobuf-based cloning </summary>
+		/// <summary> serialze/deserialize-based cloning </summary>
 		public static T? Clone<T>( T? data )	
 		{
 			if (data is null) return default(T);
 			return Deserialize<T>( Serialize( data ) );
+		}
+
+		public static string HumanReadableSize( ulong bytes )
+		{
+			string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+			double len = bytes;
+			int order = 0;
+			while (len >= 1024 && order < sizes.Length - 1)
+			{
+				order++;
+				len = len / 1024;
+			}
+			return String.Format( CultureInfo.InvariantCulture, "{0:0.#} {1}", len, sizes[order] );
+		}
+
+		public static string HumanReadableSizeOutOf( ulong bytes, ulong total )
+		{
+			string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+			double len1 = bytes;
+			double len2 = total;
+			int order = 0;
+			while (len2 >= 1024 && order < sizes.Length - 1)
+			{
+				order++;
+				len1 = len1 / 1024;
+				len2 = len2 / 1024;
+			}
+			return String.Format( CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} {2}", len1, len2, sizes[order] );
 		}
 
 	}

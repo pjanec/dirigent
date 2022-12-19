@@ -304,6 +304,35 @@ namespace Dirigent
 			}
 		}
 
+		public UInt64 WorkingSet64
+		{
+			get
+			{
+			#if Windows
+				if( !_hasProcessInfo ) // process never started
+					return 0;
+
+				// as the Process object is not available, we need to find the info ourselves
+				UInt64 memSize = 0;
+				var handle = WinApi.OpenProcess( (uint) WinApi.ProcessAccessFlags.QueryLimitedInformation, false, (uint)_processInfo.dwProcessId );
+				if( handle != IntPtr.Zero )
+				{
+					WinApi.PROCESS_MEMORY_COUNTERS memoryCounters;
+					memoryCounters.cb = (uint)Marshal.SizeOf(typeof(WinApi.PROCESS_MEMORY_COUNTERS));
+					if( WinApi.GetProcessMemoryInfo( handle, out memoryCounters, memoryCounters.cb))
+					{
+						memSize = memoryCounters.WorkingSetSize;
+					}
+					WinApi.CloseHandle( handle );
+				}
+				return memSize;
+			#else
+				return 0;
+			#endif
+			}
+		}
+
+
 		public void CloseMainWindow()
 		{
 			if( _process == null )

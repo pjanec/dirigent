@@ -46,6 +46,14 @@ namespace Dirigent
 
 		SharedContext _sharedContext;
 
+
+		#if Windows
+		//PerformanceCounter? _perfCPU;
+		//PerformanceCounter? _perfTotalCPU;
+		//PerformanceCounter? _perfGPU;
+		//PerformanceCounter? _perfMemory;
+		#endif		
+
 		public Launcher( AppDef appDef, SharedContext sharedContext, Dictionary<string,string>? extraVars=null )
 		{
 			this.ctrl = sharedContext.Client;
@@ -161,6 +169,61 @@ namespace Dirigent
 				return true;
 			}
 			return false;
+		}
+
+		void InstallPerfCounters()
+		{
+		//#if Windows
+		//	if ( _proc == null ) return;
+		//	if( _perfCPU == null )
+		//	{
+		//		_perfCPU = new PerformanceCounter("Process", "% Processor Time", _proc.ProcessName );
+		//	}
+		//	if( _perfTotalCPU == null )
+		//	{
+		//		_perfTotalCPU = new PerformanceCounter("Process", "% Processor Time", "_Total");
+		//	}
+		//	//if( _perfGPU == null )
+		//	//{
+		//	//	_perfGPU = new PerformanceCounter("Process", "% Processor Time", _proc.ProcessName );
+		//	//}
+		//	if( _perfMemory == null )
+		//	{
+		//		_perfMemory = new PerformanceCounter("Process", "Working Set - Private", _proc.ProcessName );
+		//	}
+		//#endif			
+		}
+
+		public float CPU
+		{
+			get 
+			{
+			//#if Windows
+			//	if( _perfCPU == null || _perfTotalCPU == null ) return -1;
+			//	var cpuVal = _perfCPU.NextValue();
+			//	var totalCpuVal = _perfTotalCPU.NextValue();
+			//	var cpu = ((cpuVal/( (Environment.ProcessorCount)* totalCpuVal))*100);
+			//	if (cpu is float.NaN)
+			//	{
+			//		int i = 1;
+			//	}
+			//	return cpu;
+			//#else
+				return -1;
+			//#endif
+			}
+		}
+
+		/// <summary>
+		/// MBytes
+		/// </summary>
+		public float Memory
+		{
+			get 
+			{
+				if( _proc == null ) return 0;
+				return (float)((double)_proc.WorkingSet64 / (1024 * 1024));
+			}
 		}
 
 		string GetCmdExePath()
@@ -289,6 +352,7 @@ namespace Dirigent
 			{
 				if( AdoptAlreadyRunning() )
 				{
+					InstallPerfCounters();
 					return true;
 				}
 			}
@@ -408,6 +472,8 @@ namespace Dirigent
 			{
 				log.DebugFormat( "SetPriority FAILED except {0}", ex.Message );
 			}
+
+			InstallPerfCounters();
 
 			return true;
 		}

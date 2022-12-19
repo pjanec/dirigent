@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class DTaskScriptState : ScriptState
 	{
 		public DTaskScriptState() : base() {}

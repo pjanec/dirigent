@@ -257,7 +257,7 @@ namespace Dirigent
 
 				if( string.IsNullOrEmpty(fileDef.Filter ) )
 				{
-					var r = EmptyFrom<VfsNodeDef>( fileDef );
+					var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
 					r.Path = GetFilePath( fileDef );
 					return r;
 				}
@@ -290,7 +290,7 @@ namespace Dirigent
 			else
 			if (nodeDef is VFolderDef vfolderDef)
 			{
-				var ret = new VfsNodeDef
+				var ret = new ResolvedVfsNodeDef
 				{
 					IsContainer = true
 				};

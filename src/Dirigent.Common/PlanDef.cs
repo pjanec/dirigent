@@ -4,31 +4,31 @@ using System.Linq;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class PlanDef
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string Name = string.Empty;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public List<AppDef> AppDefs = new List<AppDef>();
 
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public PlanScriptDef? PlanScriptDef;
 
-		[ProtoBuf.ProtoMember( 4 )]
+		[MessagePack.Key( 4 )]
 		public double StartTimeout = 0.0;
 
 		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing items in a folder tree
-		[ProtoBuf.ProtoMember( 5 )]
+		[MessagePack.Key( 5 )]
 		public string Groups = string.Empty;
 
 		// update app def of all contained apps when the plan is started
-		[ProtoBuf.ProtoMember( 6 )]
+		[MessagePack.Key( 6 )]
 		public bool ApplyOnStart;
 
 		// update app def of all contained apps when the plan is selected on GUI
-		[ProtoBuf.ProtoMember( 7 )]
+		[MessagePack.Key( 7 )]
 		public bool ApplyOnSelect;
 		
 

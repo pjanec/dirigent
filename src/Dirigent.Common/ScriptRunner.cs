@@ -26,14 +26,14 @@ namespace Dirigent
 
 		public Guid ScriptInstance { get; private set;}
 
-		private IDirig _ctrl;
+		private readonly IDirig _ctrl;
 
 		Task? _runTask;
 		CancellationTokenSource? _runCTS;
 
-		ScriptFactory _scriptFactory;
+		readonly ScriptFactory _scriptFactory;
 
-		SynchronousOpProcessor _syncOps;
+		readonly SynchronousOpProcessor _syncOps;
 
 					
 		public ScriptRunner( IDirig master, Guid instance, ScriptFactory factory, SynchronousOpProcessor syncOps )

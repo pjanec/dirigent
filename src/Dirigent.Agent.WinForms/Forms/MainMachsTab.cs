@@ -18,7 +18,9 @@ namespace Dirigent.Gui.WinForms
 		const int colName = 0;
 		const int colStatus = 1;
 		const int colAddress = 2;
-		const int colMAX = 3;
+		const int colCPU = 3;
+		const int colMemory = 4;
+		const int colMAX = 5;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -48,6 +50,8 @@ namespace Dirigent.Gui.WinForms
 			_dataTable.Columns.Add("Name", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
 			_dataTable.Columns.Add("Address", typeof(string));
+			_dataTable.Columns.Add("CPU", typeof(string));
+			_dataTable.Columns.Add("Mem", typeof(string));
 
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
@@ -69,7 +73,19 @@ namespace Dirigent.Gui.WinForms
 			_Address.HeaderText = "Address";
 			_Address.MinimumWidth = 9;
 			_Address.ReadOnly = true;
-			_Address.Width = 175;
+			_Address.Width = 100;
+
+			var _CPU = _grid.Columns[colCPU];
+			_CPU.HeaderText = "CPU";
+			_CPU.MinimumWidth = 9;
+			_CPU.ReadOnly = true;
+			_CPU.Width = 50;
+
+			var _MemAvail = _grid.Columns[colMemory];
+			_MemAvail.HeaderText = "Memory";
+			_MemAvail.MinimumWidth = 9;
+			_MemAvail.ReadOnly = true;
+			_MemAvail.Width = 140;
 
 		}
 
@@ -117,6 +133,27 @@ namespace Dirigent.Gui.WinForms
 				oldRows[id] = dataRow;
 			}
 
+
+			void SetStats( DataRow dr, string machineId )
+			{
+				var st = ReflStates.GetMachineState( machineId );
+				
+				if( st == null )
+				{
+					dr.SetField( colCPU, "N/A" );
+					dr.SetField( colMemory, "N/A" );
+				}
+				else
+				{
+					dr.SetField( colCPU, $"{(st == null ? 0 : (int) st.CPU)}%" );
+
+					var totalMB = st.MemoryTotalMB;
+					var availMB = st.MemoryAvailMB;
+					var usedMB = totalMB - availMB;
+					dr.SetField( colMemory, $"{Tools.HumanReadableSizeOutOf( (ulong)((double)usedMB*1024*1024),  (ulong)((double)totalMB*1024*1024) )} ({(int)(usedMB/totalMB*100)}%)" );
+				}
+			}
+			
 
 			// add connected machines
 			foreach (var (id, state) in ReflStates.GetAllClientStates())
@@ -166,6 +203,14 @@ namespace Dirigent.Gui.WinForms
 				var state = Ctrl.GetClientState( id );
 				dataRow.SetField( colStatus, Tools.GetClientStateText( state ) );
 			}
+
+			// update stats
+			foreach( DataRow dataRow in _dataTable.Rows )
+			{
+				var id = getClientIdFromMachsDataRow( dataRow );
+				SetStats( dataRow, id );
+			}
+			
 		}
 
 		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )

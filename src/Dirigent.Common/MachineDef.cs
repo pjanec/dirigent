@@ -12,15 +12,13 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of a machine (computer) in the whole system
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public class MachineDef : IEquatable<MachineDef>
 	{
 		/// <summary>
 		/// Unique machine id in the system
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
+		[MessagePack.Key( 1 )]
 		public string Id = String.Empty;
 
 		/// <summary>
@@ -28,23 +26,19 @@ namespace Dirigent
 		/// Should stay empty to be auto-determined from the TCP connection.
 		/// If not empty, it overrides the auto-determined IP
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
+		[MessagePack.Key( 2 )]
 		public string IP = String.Empty;
 
 		/// <summary>
 		/// File shares the machine defines; to be used for remote file access
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
+		[MessagePack.Key( 3 )]
 		public List<FileShareDef> FileShares = new List<FileShareDef>();
 
-		[ProtoBuf.ProtoMember( 4 )]
-		[DataMember]
+		[MessagePack.Key( 4 )]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
-		[ProtoBuf.ProtoMember( 6 )]
-		[DataMember]
+		[MessagePack.Key( 6 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
 		public bool ThisEquals( MachineDef other ) =>

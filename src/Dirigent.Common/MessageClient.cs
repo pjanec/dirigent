@@ -11,7 +11,7 @@ namespace Dirigent.Net
 {
 
 
-	class ProtoClient : NetCoreServer.TcpClient
+	class MessageClient : NetCoreServer.TcpClient
 	{
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
@@ -25,15 +25,15 @@ namespace Dirigent.Net
 		/// </summary>
 		public Action? Disconnected;
 
-		private ProtoBufCodec _msgCodec;
-		private List<object> _msgReceived = new List<object>();
+		private MsgPackCodec _msgCodec;
+		private List<Net.Message> _msgReceived = new List<Net.Message>();
 		private bool _autoRecon = false;
 		private bool _isDisposing = false;
 
-		public ProtoClient( string address, int port, bool autoRecon ) : base( address, port )
+		public MessageClient( string address, int port, bool autoRecon ) : base( address, port )
 		{
 			_autoRecon = autoRecon;
-			_msgCodec = new ProtoBufCodec( TypeMapRegistry.TypeMap );
+			_msgCodec = new MsgPackCodec();
 			_msgCodec.MessageReceived = OnMessageReceived;
 		}
 
@@ -43,7 +43,7 @@ namespace Dirigent.Net
 			base.Dispose(disposingManagedResources);
 		}
 
-		void OnMessageReceived( uint msgCode, object instance )
+		void OnMessageReceived( Net.Message instance )
 		{
 			lock( _msgReceived )
 			{
@@ -51,7 +51,7 @@ namespace Dirigent.Net
 			}
 		}
 
-		public void GetMessages( ref List<object> msgList )
+		public void GetMessages( ref List<Net.Message> msgList )
 		{
 			msgList.Clear();
 			lock( _msgReceived )
@@ -123,10 +123,10 @@ namespace Dirigent.Net
 
 		private bool _stop;
 
-		public void SendMessage<T>( T msg )
+		public void SendMessage( Net.Message msg )
 		{
 			var ms = new System.IO.MemoryStream();
-			_msgCodec.ConstructProtoMessage( ms, msg );
+			_msgCodec.Serialize( ms, msg );
 			SendAsync( ms.GetBuffer(), 0, ms.Position );
 		}
 

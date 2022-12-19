@@ -9,11 +9,10 @@ using System.Threading;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public struct KillAllArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string MachineId; // where to kill the apps; null or empty means everywhere
 	}
 
@@ -23,22 +22,20 @@ namespace Dirigent
 		Reboot = 1
 	}
 
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public struct ShutdownArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public EShutdownMode Mode;
 	}
 
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public struct TerminateArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before terminating
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string MachineId; // where to kill the apps; null or empty means everywhere
 	}
 
@@ -47,23 +44,21 @@ namespace Dirigent
 		Manual = 0,  // shows a dialog offering to restart the dirigent once the dirigent binaries have been manually overwritten
 	}
 
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public struct ReinstallArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public EDownloadMode DownloadMode;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Url;
 	}
 
 
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public struct ReloadSharedConfigArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before reloading
 	}
 

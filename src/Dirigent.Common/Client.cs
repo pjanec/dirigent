@@ -17,13 +17,13 @@ namespace Dirigent.Net
 		}
 	}
 
-	//[ProtoBuf.ProtoContract]
+	//[MessagePack.MessagePackObject]
 	//public class ClientIdent
 	//{
-	//	[ProtoBuf.ProtoMember( 2 )]
+	//	[MessagePack.Key( 2 )]
 	//	public string Name;
 
-	//	[ProtoBuf.ProtoMember( 2 )]
+	//	[MessagePack.Key( 2 )]
 	//	public EMsgRecipCateg SubscribedTo;
 	//}
 
@@ -43,8 +43,8 @@ namespace Dirigent.Net
 		private Net.ClientIdent _ident;
 		private string _masterIP;
 		private int _masterPort;
-		private ProtoClient _protoClient;
-		private List<object> _messagesReceived = new List<object>();
+		private MessageClient _messageClient;
+		private List<Net.Message> _messagesReceived = new List<Net.Message>();
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
@@ -59,30 +59,27 @@ namespace Dirigent.Net
 			_masterIP = masterIP;
 			_masterPort = masterPort;
 
-			Net.Message.RegisterProtobufTypeMaps();
-
-
-			_protoClient = new ProtoClient( _masterIP, _masterPort, autoConn );
+			_messageClient = new MessageClient( _masterIP, _masterPort, autoConn );
 
 			if( string.IsNullOrEmpty( _ident.Name ) )
 			{
-				_ident.Name = _protoClient.Id.ToString();
+				_ident.Name = _messageClient.Id.ToString();
 			}
 
 			// as the first thing when connected, tell the master who we are 
-			_protoClient.Connected = () =>
+			_messageClient.Connected = () =>
 			{
-				_protoClient.SendMessage( _ident );
+				_messageClient.SendMessage( _ident );
 			};
 
 			if( autoConn ) // if we want autoconnecting, do not wait for it...
 			{
 
-				_protoClient.ConnectAsync();
+				_messageClient.ConnectAsync();
 			}
 			else // if we do not want autoconnecting, throw exception on disconnection
 			{
-				_protoClient.Disconnected = () =>
+				_messageClient.Disconnected = () =>
 				{
 					throw new MasterConnectionTimeoutException( _masterIP, _masterPort );
 				};
@@ -92,12 +89,12 @@ namespace Dirigent.Net
 
 		public bool Connect()
 		{
-			return _protoClient.Connect();
+			return _messageClient.Connect();
 		}
 
 		public void Disconnect()
 		{
-			_protoClient.Disconnect();
+			_messageClient.Disconnect();
 		}
 
 		/// <summary>
@@ -106,7 +103,7 @@ namespace Dirigent.Net
 		/// <returns></returns>
 		public void Tick( Action<Message>? act = null )
 		{
-			_protoClient.GetMessages( ref _messagesReceived );
+			_messageClient.GetMessages( ref _messagesReceived );
 			foreach( var m in _messagesReceived )
 			{
 				var msg = m as Message;
@@ -131,15 +128,15 @@ namespace Dirigent.Net
 			if( IsDisposed ) return;
 
 			msg.Sender = _ident.Sender;
-			_protoClient.SendMessage( msg );
+			_messageClient.SendMessage( msg );
 		}
 
-		public bool IsConnected => _protoClient.IsConnected;
+		public bool IsConnected => _messageClient.IsConnected;
 
 		protected override void Dispose( bool disposing )
 		{
 			if( !disposing ) return;
-			_protoClient.Dispose();
+			_messageClient.Dispose();
 		}
 	}
 }

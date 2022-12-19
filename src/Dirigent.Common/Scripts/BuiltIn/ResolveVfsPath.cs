@@ -15,10 +15,10 @@ public class ResolveVfsPath : Script
 
 	public static readonly string _Name = "BuiltIns/ResolveVfsPath.cs";
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class TArgs
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
 		public override string ToString() => $"{VfsNode}";
@@ -26,10 +26,10 @@ public class ResolveVfsPath : Script
 		public static TResult? Deserialize( byte[] data ) => Tools.Deserialize<TResult>( data );
 	};
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class TResult
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
 		public override string ToString() => $"{VfsNode}";

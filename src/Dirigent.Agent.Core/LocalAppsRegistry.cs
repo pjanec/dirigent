@@ -16,10 +16,13 @@ namespace Dirigent
 		public Dictionary<AppIdTuple, LocalApp> Apps => _apps;
 
         private SharedContext _sharedContext;
+		ProcessInfoRegistry? _procInfoReg;
 
-		public LocalAppsRegistry( SharedContext shCtx )
+		public LocalAppsRegistry( SharedContext shCtx, ProcessInfoRegistry? procInfoReg )
 		{
+			_sharedContext = shCtx;
             _sharedContext = shCtx;
+			_procInfoReg = procInfoReg;
 		}
 
 		public void Tick()
@@ -50,7 +53,7 @@ namespace Dirigent
 			LocalApp? la;
 			if( !_apps.TryGetValue( appDef.Id, out la ) )
 			{
-				la = new LocalApp( appDef, _sharedContext );
+				la = new LocalApp( appDef, _sharedContext, _procInfoReg );
 				_apps[appDef.Id] = la;
 				return la;
 			}
@@ -73,7 +76,7 @@ namespace Dirigent
 			}
 			else
 			{
-				la = new LocalApp( ad, _sharedContext );
+				la = new LocalApp( ad, _sharedContext, _procInfoReg );
 				_apps[ad.Id] = la;
 			}
 			return la;

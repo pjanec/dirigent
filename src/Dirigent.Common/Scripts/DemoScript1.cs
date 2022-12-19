@@ -9,10 +9,10 @@ public class DemoScript1 : Script
 {
 	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class Result
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public int Code;
 
 		public override string ToString() => Code.ToString();
@@ -20,10 +20,9 @@ public class DemoScript1 : Script
 
 	protected async override Task<byte[]?> Run( CancellationToken ct )
 	{
-		if( Args is not null )
+		if( TryGetArgs<string>( out var strArgs ) )
 		{
-			var strArgs = GetArgs<string>();
-			log.Info($"Init with args: '{strArgs}'");
+			log.Info($"Init with string args: '{strArgs}'");
 		}
 
 		log.Info("Run!");

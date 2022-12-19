@@ -11,45 +11,44 @@ namespace Dirigent
 	/// <summary>
 	/// Client status known to master and shared with other participats.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public class ClientState
 	{
 		[MaybeNull]
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public Net.ClientIdent Ident;
 
 		[Flags]
-		enum FL
+		public enum FL
 		{
 			Connected         = 1 << 0,
 		}
 
-		[ProtoBuf.ProtoMember( 2 )]
-		FL flags;
+		[MessagePack.Key( 2 )]
+		public FL _flags;  // must be public so tham MessagePack wants to serialize it:-(
 
 		// UTC time of last update, recalculated to local time (as the clock migh differ on different computers)
 		// On Agent, the agent's UTC time of last update
 		// On Master, the UTC time of last update recalculated to master's local time
 		// On Gui, the UTC time of last update recalculated to gui's local time
-		[ProtoBuf.ProtoMember( 3 )]
-		DateTime lastChange = DateTime.UtcNow;
+		[MessagePack.Key( 3 )]
+		public DateTime _lastChange = DateTime.UtcNow;
 
-		[ProtoBuf.ProtoMember( 4 )]
-		string? selectedPlanName; // in what plan is selected as the current one (applies to some GUIs)
+		[MessagePack.Key( 4 )]
+		public string? _selectedPlanName; // in what plan is selected as the current one (applies to some GUIs)
 
-		[ProtoBuf.ProtoMember( 5 )]
+		[MessagePack.Key( 5 )]
 		public string? IP; // ip address of the client (determined by master from dirigent's TCP connection)
 
 		bool Is( FL value )
 		{
-			return ( flags & value ) == value;
+			return ( _flags & value ) == value;
 		}
 
 		void Set( FL value, bool toSet )
 		{
-			if( toSet ) flags |= value;
-			else flags &= ~value;
+			if( toSet ) _flags |= value;
+			else _flags &= ~value;
 
 			changed();
 		}
@@ -57,6 +56,7 @@ namespace Dirigent
 		/// <summary>
 		/// Client is currently connected. This is updated by master.
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Connected
 		{
 			get { return Is( FL.Connected ); }
@@ -67,33 +67,33 @@ namespace Dirigent
 		/// <summary>
 		/// UTC Time of the last change in reported client state.
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public DateTime LastChange
 		{
-			get { return lastChange; }
-			set { lastChange = value; }
+			get { return _lastChange; }
+			set { _lastChange = value; }
 		}
 
 		/// <summary>
 		/// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public string? SelectedPlanName
 		{
-			get { return selectedPlanName; }
-			set { selectedPlanName = value; changed(); }
+			get { return _selectedPlanName; }
+			set { _selectedPlanName = value; changed(); }
 		}
 
 		void changed()
 		{
-			lastChange = DateTime.UtcNow;
+			_lastChange = DateTime.UtcNow;
 		}
-
-		public bool IsOffline => DateTime.UtcNow - lastChange  > TimeSpan.FromSeconds(3); 
 
 		public static ClientState GetDefault()
 		{
 			return new ClientState()
 			{
-				lastChange = DateTime.MinValue
+				_lastChange = DateTime.MinValue
 			};
 		}
 

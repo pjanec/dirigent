@@ -22,7 +22,9 @@ namespace Dirigent.Gui.WinForms
 		const int colIconRestart = 5;
 		const int colEnabled = 6;
 		const int colPlan = 7;
-		const int colMAX = 8;
+		const int colCPU = 8;
+		const int colMemory = 9;
+		const int colMAX = 10;
 
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
@@ -59,6 +61,8 @@ namespace Dirigent.Gui.WinForms
 			_dataTable.Columns.Add("IconRestart", typeof(Bitmap));
 			_dataTable.Columns.Add("Enabled", typeof(bool));
 			_dataTable.Columns.Add("Plan", typeof(string));
+			_dataTable.Columns.Add("CPU", typeof(string));
+			_dataTable.Columns.Add("Memory", typeof(string));
 
 			_bindingSource.DataMember = _dataSet.Tables[0].TableName;
 
@@ -112,7 +116,19 @@ namespace Dirigent.Gui.WinForms
 			_hdrPlan.HeaderText = "Last Plan";
 			_hdrPlan.MinimumWidth = 9;
 			_hdrPlan.ReadOnly = true;
-			_hdrPlan.Width = 175;
+			_hdrPlan.Width = 120;
+
+			var _CPU = _grid.Columns[colCPU];
+			_CPU.HeaderText = "CPU";
+			_CPU.MinimumWidth = 9;
+			_CPU.ReadOnly = true;
+			_CPU.Width = 50;
+
+			var _MemAvail = _grid.Columns[colMemory];
+			_MemAvail.HeaderText = "Memory";
+			_MemAvail.MinimumWidth = 9;
+			_MemAvail.ReadOnly = true;
+			_MemAvail.Width = 70;
 
 			if (Common.Properties.Settings.Default.GridButtonSpacing > 0)
 			{
@@ -269,6 +285,14 @@ namespace Dirigent.Gui.WinForms
 					dataRow.SetField( colStatus, upd.Status );
 					dataRow.SetField( colPlan, upd.PlanName );
 				}
+			}
+
+
+			// update stats
+			foreach( DataRow dataRow in _dataTable.Rows )
+			{
+				var id = getAppTupleFromAppDataRow( dataRow );
+				SetStats( dataRow, id );
 			}
 
 			// colorize the background of items from current plan
@@ -614,5 +638,19 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		void SetStats( DataRow dr, AppIdTuple appIdTuple )
+		{
+			var st = ReflStates.GetAppState( appIdTuple );
+			if ( st == null || !st.Running )
+			{
+				dr.SetField( colCPU, "N/A" );
+				dr.SetField( colMemory, "N/A" );
+			}
+			else
+			{
+				dr.SetField( colCPU, $"{(st == null ? 0 : (int) st.CPU)}%" );
+				dr.SetField( colMemory, $"{Tools.HumanReadableSize( (ulong)((double) st.Memory*1024*1024))}" );
+			}
+		}
 	}
 }

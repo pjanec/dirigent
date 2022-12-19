@@ -12,26 +12,22 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of a file share for a machine
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public class FileShareDef : IEquatable<FileShareDef>
 	{
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
+		[MessagePack.Key( 1 )]
 		public string MachineId = String.Empty;
 
 		/// <summary>
 		/// Unique name of the share
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
-		[DataMember]
+		[MessagePack.Key( 2 )]
 		public string Name = String.Empty;
 
 		/// <summary>
 		/// Local folder path (full one, from root, including drive letter)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
+		[MessagePack.Key( 3 )]
 		public string Path = String.Empty;
 
 

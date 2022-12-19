@@ -15,49 +15,45 @@ namespace Dirigent
 	///   - a link to a real file
 	///   - a virtual folder than can contain other file links or other vfolders.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[ProtoBuf.ProtoInclude( 101, typeof( FileDef ) )]
-	[ProtoBuf.ProtoInclude( 102, typeof( FileRef ) )]
-	[ProtoBuf.ProtoInclude( 103, typeof( FolderDef ) )]
-	[ProtoBuf.ProtoInclude( 104, typeof( VFolderDef ) )]
-	[ProtoBuf.ProtoInclude( 105, typeof( FilePackageDef ) )]
-	public class VfsNodeDef : AssocMenuItemDef, IEquatable<VfsNodeDef>
+	[MessagePack.MessagePackObject]
+	[MessagePack.Union( 101, typeof( FileDef ) )]
+	[MessagePack.Union( 102, typeof( FileRef ) )]
+	[MessagePack.Union( 103, typeof( FolderDef ) )]
+	[MessagePack.Union( 104, typeof( VFolderDef ) )]
+	[MessagePack.Union( 105, typeof( FilePackageDef ) )]
+	[MessagePack.Union( 106, typeof( ResolvedVfsNodeDef ) )]
+	public abstract class VfsNodeDef : AssocMenuItemDef, IEquatable<VfsNodeDef>
 	{
 		/// <summary>
 		/// Full file path in the real file system, local to the machine where the file/folder resides.
 		/// Paths is already resolved, not containing any macros.
 		/// Empty for virtual folders having no counterpart in the real file system.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 6 )]
-		[DataMember]
+		[MessagePack.Key( 26 )]
 		public string? Path = null;
 
 		/// <summary>
 		/// Is the node a container for another vfs nodes? False = leaf
 		/// </summary>
-		[ProtoBuf.ProtoMember( 7 )]
-		[DataMember]
+		[MessagePack.Key( 27 )]
 		public bool IsContainer;
 
 		/// <summary>
 		/// Sub-items. Used for folders only.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 8 )]
-		[DataMember]
+		[MessagePack.Key( 28 )]
 		public List<VfsNodeDef> Children = new List<VfsNodeDef>();
 
 		/// <summary>
 		/// Name of the filter script to resolve this item 
 		/// </summary>
-		[ProtoBuf.ProtoMember( 10 )]
-		[DataMember]
+		[MessagePack.Key( 30 )]
 		public string? Filter;
 
 		/// <summary>
 		/// Xml node with attributes passed to filter scripts 
 		/// </summary>
-		[ProtoBuf.ProtoMember( 11 )]
-		[DataMember]
+		[MessagePack.Key( 31 )]
 		public string? Xml;
 
 
@@ -84,22 +80,39 @@ namespace Dirigent
 	}
 
 
+	[MessagePack.MessagePackObject]
+	public class ResolvedVfsNodeDef : VfsNodeDef, IEquatable<ResolvedVfsNodeDef>
+	{
+		public bool ThisEquals( ResolvedVfsNodeDef other ) =>
+			base.ThisEquals( other ) &&
+			true;
+
+		// boilerplate
+		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
+		public bool Equals(ResolvedVfsNodeDef? o) => object.Equals(this, o);
+		public static bool operator ==(ResolvedVfsNodeDef o1, ResolvedVfsNodeDef o2) => object.Equals(o1, o2);
+		public static bool operator !=(ResolvedVfsNodeDef o1, ResolvedVfsNodeDef o2) => !object.Equals(o1, o2);
+		public override int GetHashCode() => Guid.GetHashCode();
+	}
+	
+
 	public enum EFLookupType
 	{
 		Path,
 		Newest,
 	}
 
+
 	/// <summary>
 	/// Definition of a non-virtual file
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class FileDef : VfsNodeDef, IEquatable<FileDef>
 	{
 		///// <summary>
 		///// Folder where to look for the file. Used by the 'Newest' option.
 		///// </summary>
-		//[ProtoBuf.ProtoMember( 1 )]
+		//[MessagePack.Key( 51 )]
 		//public EFLookupType LookupType = EFLookupType.Path;
 
 		public override string ToString() =>$"[File] {base.ToString()}";
@@ -113,7 +126,7 @@ namespace Dirigent
 	/// <summary>
 	/// Reference to a file. Path not used, just the Id, MachineId, AppId.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class FileRef : VfsNodeDef, IEquatable<FileRef>
 	{
 		public override string ToString() =>$"[FileRef] {base.ToString()}";
@@ -128,13 +141,13 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of folder or virtual associated with a machine, with an application on a machine or with no association (a global file)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class FolderDef : VfsNodeDef, IEquatable<FolderDef>
 	{
 		/// <summary>
 		/// File name mask in Glob style (allowing stuff like "**/*.{jpg,png}".
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 51 )]
 		public string? Mask = String.Empty;
 
 		public override string ToString() =>$"[Folder] {base.ToString()}";
@@ -153,7 +166,7 @@ namespace Dirigent
 	/// Definition of a virtual folder.
 	/// Path field is ignored.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class VFolderDef : VfsNodeDef, IEquatable<VFolderDef>
 	{
 		public override string ToString() =>$"[VFolder] {base.ToString()}";
@@ -167,7 +180,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of file package associated with a machine, with an application on a machine or with no association (a global file package)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class FilePackageDef : VfsNodeDef, IEquatable<FilePackageDef>
 	{
 		public override string ToString() =>$"[FilePackage] {base.ToString()}";
@@ -182,7 +195,7 @@ namespace Dirigent
 	/// Reference to existing package (via Id, AppId, MachineId)
 	/// Path field is ignored.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class FilePackageRef : VfsNodeDef, IEquatable<FilePackageRef>
 	{
 		public override string ToString() =>$"[FilePackageRef] {base.ToString()}";

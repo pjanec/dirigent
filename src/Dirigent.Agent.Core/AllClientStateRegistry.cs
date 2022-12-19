@@ -13,19 +13,24 @@ namespace Dirigent
 	/// </summary>
 	public class AllClientStateRegistry
 	{
-		//public class ClientInfo
-		//{
-		//	public ClientState State;
-		//	public Net.ClientIdent Ident;
-		//}
-
 		private Dictionary<string, ClientState> _clientStates = new Dictionary<string, ClientState>();
 
 		public Dictionary<string, ClientState> ClientStates => _clientStates;
 
-		public void AddOrUpdate( string id, ClientState clientState )
+		/// <param name="IP">if not null, will be updated, otherwise unchaged</param>
+		public void AddOrUpdate( string id, ClientState clientState, string? IP=null )
 		{
-			_clientStates[id] = clientState;
+			if (_clientStates.TryGetValue( id, out var cs ))
+			{
+				clientState.IP = cs.IP;	// keep original ip unless a different one is explicitly specified
+				if (IP != null) clientState.IP = IP;
+				_clientStates[id] = clientState;
+			}
+			else
+			{
+				if (IP != null) clientState.IP = IP;
+				_clientStates.Add( id, clientState );
+			}
 		}
 
 		public void SetDefault( string id )

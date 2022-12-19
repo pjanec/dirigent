@@ -21,202 +21,168 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of an application in a launch plan
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public class AppDef : IEquatable<AppDef>
 	{
 		/// <summary>
 		/// Unique application name; together with MachineId makes a unique name across all applications on all machines.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
-		[DataMember]
+		[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
 		/// <summary>
 		/// What plan this appdef belongs to
 		/// </summary>
-		[ProtoBuf.ProtoMember(2)]
-		[DataMember]
+		[MessagePack.Key(2)]
 		public string? PlanName = null;
 
-		[ProtoBuf.ProtoMember( 3 )]
-		[DataMember]
+		[MessagePack.Key( 3 )]
 		public string ExeFullPath = string.Empty;
 
-		[ProtoBuf.ProtoMember( 4 )]
-		[DataMember]
+		[MessagePack.Key( 4 )]
 		public string StartupDir = string.Empty;
 
-		[ProtoBuf.ProtoMember( 5 )]
-		[DataMember]
+		[MessagePack.Key( 5 )]
 		public string CmdLineArgs = string.Empty;
 
-		[ProtoBuf.ProtoMember( 6 )]
-		[DataMember]
+		[MessagePack.Key( 6 )]
 		public int StartupOrder;
 
 		/// <summary>
 		/// Is the application expected to terminate automatically
 		/// Such apps are not part of plan start success condition
 		/// </summary>
-		[ProtoBuf.ProtoMember( 7 )]
-		[DataMember]
+		[MessagePack.Key( 7 )]
 		public bool Volatile;
 
-		[ProtoBuf.ProtoMember( 8 )]
-		[DataMember]
+		[MessagePack.Key( 8 )]
 		public bool RestartOnCrash;
 
-		[ProtoBuf.ProtoMember( 9 )]
-		[DataMember]
+		[MessagePack.Key( 9 )]
 		public bool AdoptIfAlreadyRunning;
 
-		[ProtoBuf.ProtoMember( 10 )]
-		[DataMember]
+		[MessagePack.Key( 10 )]
 		public string PriorityClass = string.Empty; // idle, belownormal, normal, abovenormal, high, realtime; empty = normal
 
-		[ProtoBuf.ProtoMember( 11 )]
-		[DataMember]
+		[MessagePack.Key( 11 )]
 		public string InitializedCondition = string.Empty; //  immediate | timeout 5.23 | exitcode 0 | mutex "mymutex1"
 
-		//[ProtoBuf.ProtoMember(??)]
-		//[DataMember]
+		//[MessagePack.Key(??)]
 		//public List<string> Watchers = new List<string>();
 
-		[ProtoBuf.ProtoMember( 12 )]
-		[DataMember]
+		[MessagePack.Key( 12 )]
 		public double SeparationInterval; // seconds before next app can be started on the same computer
 
 		/// <summary>
 		/// AppIds of applications that need to be initialized before this app can be started
 		/// </summary>
-		[ProtoBuf.ProtoMember( 13 )]
-		[DataMember]
+		[MessagePack.Key( 13 )]
 		public List<string> Dependencies = new List<string>();
 
 		/// <summary>
 		/// Shall it be processed as part of plan?
 		/// </summary>
-		[ProtoBuf.ProtoMember( 14 )]
-		[DataMember]
+		[MessagePack.Key( 14 )]
 		public bool Disabled;
 
-		[ProtoBuf.ProtoMember( 15 )]
-		[DataMember]
+		[MessagePack.Key( 15 )]
 		public bool KillTree; // False = just the process started will be killed; True = all processes originating form the one started are killed also
 
 		/// <summary>
 		/// Specifies whether the process should be 'killed' through the CloseMainWindow() method (giving it a chance to handle the termination gracefully) instead of the Kill() method call.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 16 )]
-		[DataMember]
+		[MessagePack.Key( 16 )]
 		public bool KillSoftly;
 
-		[ProtoBuf.ProtoMember( 17 )]
-		[DataMember]
+		[MessagePack.Key( 17 )]
 		public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
 		/// <summary>
 		/// list of all <WindowPos /> XML sections as string (to be parsed later by specific app watcher code)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 18 )]
-		[DataMember]
+		[MessagePack.Key( 18 )]
 		public List<string> WindowPosXml = new List<string>();
 
 		/// <summary>
 		/// the <Restart /> XML section as string (to be parsed later by specific app watcher code)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 19 )]
-		[DataMember]
+		[MessagePack.Key( 19 )]
 		public string RestarterXml = String.Empty;
 
 		/// <summary>
 		/// the <KillSeq /> XML section as string (to be parsed later by Launcher code)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 20 )]
-		[DataMember]
+		[MessagePack.Key( 20 )]
 		public string SoftKillXml = String.Empty;
 
 		/// <summary>
 		/// list of environment vars to set (in addition to inherited system environemnt)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 21 )]
-		[DataMember]
+		[MessagePack.Key( 21 )]
 		public Dictionary<string, string> EnvVarsToSet = new Dictionary<string, string>();
 
 		/// <summary>
 		/// list of app-local vars to set (can be used in expansions for example in process exe path or command line)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 22 )]
-		[DataMember]
+		[MessagePack.Key( 22 )]
 		public Dictionary<string, string> LocalVarsToSet = new Dictionary<string, string>();
 
 		/// <summary>
 		/// what to prepend to the PATH variable
 		/// </summary>
-		[ProtoBuf.ProtoMember( 23 )]
-		[DataMember]
+		[MessagePack.Key( 23 )]
 		public String EnvVarPathToPrepend = string.Empty;
 
 		/// <summary>
 		/// what to append to the PATH variable
 		/// </summary>
-		[ProtoBuf.ProtoMember( 24 )]
-		[DataMember]
+		[MessagePack.Key( 24 )]
 		public String EnvVarPathToAppend = string.Empty;
 
 		/// <summary>
 		/// the element within the InitDetectors section
 		/// </summary>
-		[ProtoBuf.ProtoMember( 25 )]
-		[DataMember]
+		[MessagePack.Key( 25 )]
 		public List<string> InitDetectors = new List<string>();
 
 		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing items in a folder tree
-		[ProtoBuf.ProtoMember( 26 )]
+		[MessagePack.Key( 26 )]
 		public string Groups = string.Empty;
 
-		[ProtoBuf.ProtoMember( 27 )]
-		[DataMember]
+		[MessagePack.Key( 27 )]
 		public double MinKillingTime; // min seconds before reporting "killed" after the kill operation
 
 		/// <summary>
 		/// Specifies whether on StartApp the process should be restarted with new env vars if it is already running with a different set of explicit env vars.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 28 )]
-		[DataMember]
+		[MessagePack.Key( 28 )]
 		public bool LeaveRunningWithPrevVars;
 
 		/// <summary>
 		/// If true, removes cached env vars specified for the previous runs. Will use just those defined in AppDef and those explicitly specified as part of StartApp command.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 29 )]
-		[DataMember]
+		[MessagePack.Key( 29 )]
 		public bool ReusePrevVars;
 
 		/// <summary>
 		/// Name of the network service the app is using
 		/// </summary>
-		[ProtoBuf.ProtoMember( 32 )]
-		[DataMember]
+		[MessagePack.Key( 32 )]
 		public string Service = string.Empty;
 
 		/// <summary>
 		/// What icon to show for this app
 		/// </summary>
-		[ProtoBuf.ProtoMember( 33 )]
-		[DataMember]
+		[MessagePack.Key( 33 )]
 		public string IconFile = string.Empty;
 
-		[ProtoBuf.ProtoMember( 34 )]
-		[DataMember]
+		[MessagePack.Key( 34 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
 		/// <summary>
 		/// Files/folders/packages associated with the app
 		/// </summary>
-		[ProtoBuf.ProtoMember( 35 )]
-		[DataMember]
+		[MessagePack.Key( 35 )]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
 
@@ -281,9 +247,9 @@ namespace Dirigent
 		public AppDef Clone()
 		{
 			var stream = new System.IO.MemoryStream( 16000 );
-			ProtoBuf.Serializer.Serialize( stream, this );
+			MessagePack.MessagePackSerializer.Serialize( stream, this );
 			stream.Seek(0, System.IO.SeekOrigin.Begin);
-			return ProtoBuf.Serializer.Deserialize<AppDef>( stream );
+			return MessagePack.MessagePackSerializer.Deserialize<AppDef>( stream );
 		}
 
 		

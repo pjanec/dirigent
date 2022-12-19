@@ -9,23 +9,19 @@ namespace Dirigent
 	/// <summary>
 	/// Arguments passed to the script called as a result of user clicking the script-based action menu item.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	class TScriptActionArgs
+	[MessagePack.MessagePackObject]
+	public class TScriptActionArgs
 	{
 		/// <summary>
 		/// Generic string arguments as defined by the ScriptActionDef.Args.
 		/// </summary>
-		/// <remarks>
-		/// Must always be the first item in this structure so that the script using GetArgs&lt;string&gt;() run happily without knowing about the Vars,
-		/// not throwing deserialization errors.
-		/// </remarks>
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string? Args;
 		
 		/// <summary>
 		/// Variables associated with the item (file, app, etc.)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public Dictionary<string, string>? Vars;
 	}
 
@@ -89,7 +85,7 @@ namespace Dirigent
 				toolAppDef.CmdLineArgs = tool.Args;
 			}
 
-			var localApp = new LocalApp( toolAppDef, _sharedContext );
+			var localApp = new LocalApp( toolAppDef, _sharedContext, null );
 
 			try
 			{

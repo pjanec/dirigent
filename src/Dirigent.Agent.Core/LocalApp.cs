@@ -38,10 +38,12 @@ namespace Dirigent
         ///<summary>Starts/kills the app process. Null if app is not supposed to be running (not launched)</summary>
 		public Launcher? Launcher { get; private set; }
 
+		ProcessInfoRegistry? _procInfoReg;
 
 
-        ///<summary>All watchers currently installed on this app</summary>
-        private AppWatcherCollection _watchers = new AppWatcherCollection();
+
+		///<summary>All watchers currently installed on this app</summary>
+		private AppWatcherCollection _watchers = new AppWatcherCollection();
 
         private SharedContext _sharedContext;
 
@@ -50,13 +52,14 @@ namespace Dirigent
 
 
 
-		public LocalApp( AppDef ad, SharedContext sharedContext )
+		public LocalApp( AppDef ad, SharedContext sharedContext, ProcessInfoRegistry? processInfoRegistry )
 		{
             Id = ad.Id;
             RecentAppDef = ad;
 			UpcomingAppDef = ad;
             AppState.PlanName = ad.PlanName;
             _sharedContext = sharedContext;
+			_procInfoReg = processInfoRegistry;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -332,6 +335,25 @@ namespace Dirigent
 				{
 					Launcher.Dispose();
 					Launcher = null;
+				}
+                else
+                {
+					//AppState.CPU = Launcher.CPU;
+					
+                    if( _procInfoReg != null )
+                    {
+                        var pi = _procInfoReg.GetProcessInfo( ProcessId );
+						if (pi != null)
+						{
+							AppState.CPU = pi.CPU;
+							AppState.Memory = (float)((double)pi.WorkingSetPrivate/1024/1024);
+						}
+                        else
+                        {
+							AppState.CPU = -1f;
+							AppState.Memory = -1f;
+                        }
+                    }
 				}
             }
             else // not running

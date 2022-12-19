@@ -461,6 +461,14 @@ namespace Dirigent
 			//if (hostId != null) a.HostId = hostId;
 		}
 
+		static void FillScriptAction( ref ScriptDef a, XElement e, string? machineId = null, string? appId = null )
+		{
+			var act = (ActionDef) a;
+			FillActionBase( ref act, e, machineId, appId );
+			//var hostId = e.Attribute( "HostId" )?.Value;
+			//if (hostId != null) a.HostId = hostId;
+		}
+
 		static ActionDef? LoadAction( XElement e, string? machineId=null, string? appId=null )
 		{
 			if (e.Name == "Tool")
@@ -500,8 +508,7 @@ namespace Dirigent
 		static ScriptDef LoadSingleInstScript( XElement e )
 		{
 			var a = new ScriptDef();
-			var act = (ScriptActionDef) a;
-			FillScriptAction( ref act, e );
+			FillScriptAction( ref a, e );
 
 			// we read the Guid Id attribute
 			if( string.IsNullOrEmpty(a.Id) )

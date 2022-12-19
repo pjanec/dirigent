@@ -12,26 +12,27 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of an action associated with some dirigent item (app, file, machine..)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[ProtoBuf.ProtoInclude( 101, typeof( ToolActionDef ) )]
-	[ProtoBuf.ProtoInclude( 102, typeof( ScriptActionDef ) )]
-	public class ActionDef : AssocMenuItemDef, IEquatable<ActionDef>
+	[MessagePack.MessagePackObject]
+	[MessagePack.Union( 201, typeof( ToolActionDef ) )]
+	[MessagePack.Union( 202, typeof( ScriptActionDef ) )]
+	[MessagePack.Union( 203, typeof( ScriptDef ) )]
+	public abstract class ActionDef : AssocMenuItemDef, IEquatable<ActionDef>
 	{
 		/// Name in the library of scripts, tools etc.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 21 )]
 		public string Name = string.Empty;
 
 		/// <summary>
 		/// Args to pass to the action (tool, script etc.)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 22 )]
 		public string Args = string.Empty;
 
 		/// <summary>
 		/// On which node (client/agent/master) to run this script. empty=master. Null = not set.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 23 )]
 		public string? HostId;
 
 		public override string ToString()
@@ -54,7 +55,7 @@ namespace Dirigent
 		public override int GetHashCode() => Id.GetHashCode();
 	}
 
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ToolActionDef : ActionDef, IEquatable<ToolActionDef>
 	{
 		public override string ToString() =>$"[ToolAction] {base.ToString()}";
@@ -65,8 +66,7 @@ namespace Dirigent
 		public override int GetHashCode() => base.GetHashCode();
 	}
 
-	[ProtoBuf.ProtoContract]
-	[ProtoBuf.ProtoInclude( 101, typeof( ScriptDef ) )]
+	[MessagePack.MessagePackObject]
 	public class ScriptActionDef : ActionDef, IEquatable<ScriptActionDef>
 	{
 		public override string ToString() =>$"[ScriptAction] {base.ToString()}";

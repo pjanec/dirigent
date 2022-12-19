@@ -8,127 +8,73 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Dirigent.Net
 {
-	public static class TypeMapRegistry
-	{
-		static public Dictionary<uint, System.Type> TypeMap = new Dictionary<uint, Type>()
-		{
-			{ 100, typeof( Message ) },
-			{ 101, typeof( RemoteOperationErrorMessage ) },
-			{ 102, typeof( AppsStateMessage ) },
-			{ 103, typeof( PlansStateMessage ) },
-			{ 104, typeof( StartAppMessage ) },
-			{ 105, typeof( KillAppMessage ) },
-			{ 106, typeof( RestartAppMessage ) },
-			{ 107, typeof( SetAppEnabledMessage ) },
-			{ 108, typeof( SelectPlanMessage) },
-			{ 109, typeof( StartPlanMessage ) },
-			{ 110, typeof( StopPlanMessage ) },
-			{ 111, typeof( KillPlanMessage ) },
-			{ 112, typeof( RestartPlanMessage ) },
-			//{ 113, typeof( CurrentPlanMessage ) },
-			{ 114, typeof( PlanDefsMessage ) },
-			{ 115, typeof( SetVarsMessage ) },
-			{ 116, typeof( KillAllMessage ) },
-			{ 117, typeof( ShutdownMessage ) },
-			{ 118, typeof( ReinstallMessage ) },
-			{ 119, typeof( TerminateMessage ) },
-			{ 120, typeof( ReloadSharedConfigMessage ) },
-			{ 121, typeof( ClientIdent ) },
-			{ 122, typeof( AppDefsMessage ) },
-			{ 123, typeof( CLIRequestMessage ) },
-			{ 124, typeof( CLIResponseMessage ) },
-			{ 125, typeof( ResetMessage ) },
-			{ 126, typeof( ClientStateMessage ) },
-			{ 127, typeof( StartScriptMessage ) },
-			{ 128, typeof( KillScriptMessage ) },
-			{ 129, typeof( ScriptDefsMessage ) },
-			//{ 130, typeof( ScriptsStateMessage ) },
-			{ 131, typeof( ApplyPlanMessage ) },
-			{ 132, typeof( SetWindowStyleMessage ) },
-			{ 133, typeof( VfsNodesMessage ) },
-			{ 134, typeof( MachineDefsMessage ) },
-			//{ 135, typeof( StartTaskMessage ) },
-			//{ 136, typeof( KillTaskMessage ) },
-			{ 137, typeof( MenuItemDefsMessage ) },
-			{ 138, typeof( ScriptStateMessage ) },
-			// WARNING: add newly added messages also to the list below!!
-		};
-	}
-
 	/// <summary>
 	/// Base class for all messages.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[ProtoBuf.ProtoInclude( 101, typeof( RemoteOperationErrorMessage ) )]
-	[ProtoBuf.ProtoInclude( 102, typeof( AppsStateMessage ) )]
-	[ProtoBuf.ProtoInclude( 103, typeof( PlansStateMessage ) )]
-	[ProtoBuf.ProtoInclude( 104, typeof( StartAppMessage ) )]
-	[ProtoBuf.ProtoInclude( 105, typeof( KillAppMessage ) )]
-	[ProtoBuf.ProtoInclude( 106, typeof( RestartAppMessage ) )]
-	[ProtoBuf.ProtoInclude( 107, typeof( SetAppEnabledMessage ) )]
-    [ProtoBuf.ProtoInclude( 108, typeof(SelectPlanMessage))]
-	[ProtoBuf.ProtoInclude( 109, typeof( StartPlanMessage ) )]
-	[ProtoBuf.ProtoInclude( 110, typeof( StopPlanMessage ) )]
-	[ProtoBuf.ProtoInclude( 111, typeof( KillPlanMessage ) )]
-	[ProtoBuf.ProtoInclude( 112, typeof( RestartPlanMessage ) )]
-  //[ProtoBuf.ProtoInclude( 113, typeof( CurrentPlanMessage ) )]
-	[ProtoBuf.ProtoInclude( 114, typeof( PlanDefsMessage ) )]
-	[ProtoBuf.ProtoInclude( 115, typeof( SetVarsMessage ) )]
-	[ProtoBuf.ProtoInclude( 116, typeof( KillAllMessage ) )]
-	[ProtoBuf.ProtoInclude( 117, typeof( ShutdownMessage ) )]
-	[ProtoBuf.ProtoInclude( 118, typeof( ReinstallMessage ) )]
-	[ProtoBuf.ProtoInclude( 119, typeof( TerminateMessage ) )]
-	[ProtoBuf.ProtoInclude( 120, typeof( ReloadSharedConfigMessage ) )]
-	[ProtoBuf.ProtoInclude( 121, typeof( ClientIdent ) )]
-	[ProtoBuf.ProtoInclude( 122, typeof( AppDefsMessage ) )]
-	[ProtoBuf.ProtoInclude( 123, typeof( CLIRequestMessage ) )]
-	[ProtoBuf.ProtoInclude( 124, typeof( CLIResponseMessage ) )]
-	[ProtoBuf.ProtoInclude( 125, typeof( ResetMessage ) )]
-	[ProtoBuf.ProtoInclude( 126, typeof( ClientStateMessage ) )]
-	[ProtoBuf.ProtoInclude( 127, typeof( StartScriptMessage ) )]
-	[ProtoBuf.ProtoInclude( 128, typeof( KillScriptMessage ) )]
-	[ProtoBuf.ProtoInclude( 129, typeof( ScriptDefsMessage ) )]
-	//[ProtoBuf.ProtoInclude( 130, typeof( ScriptsStateMessage ) )]
-	[ProtoBuf.ProtoInclude( 131, typeof( ApplyPlanMessage ) )]
-	[ProtoBuf.ProtoInclude( 132, typeof( SetWindowStyleMessage ) )]
-	[ProtoBuf.ProtoInclude( 133, typeof( VfsNodesMessage ) )]
-	[ProtoBuf.ProtoInclude( 134, typeof( MachineDefsMessage ) )]
-	//[ProtoBuf.ProtoInclude( 135, typeof( StartTaskMessage ) )]
-	//[ProtoBuf.ProtoInclude( 136, typeof( KillTaskMessage ) )]
-	[ProtoBuf.ProtoInclude( 137, typeof( MenuItemDefsMessage ) )]
-	[ProtoBuf.ProtoInclude( 138, typeof( ScriptStateMessage ) )]
-	//[ProtoBuf.ProtoInclude( 139, typeof( TaskRequestMessage ) )]
-	//[ProtoBuf.ProtoInclude( 140, typeof( TaskResponseMessage ) )]
-	//[ProtoBuf.ProtoInclude( 141, typeof( StartTaskWorkerMessage ) )]
-	//[ProtoBuf.ProtoInclude( 142, typeof( KillTaskWorkersMessage ) )]
+	[MessagePack.MessagePackObject]
+	[MessagePack.Union( 101, typeof( RemoteOperationErrorMessage ) )]
+	[MessagePack.Union( 102, typeof( AppsStateMessage ) )]
+	[MessagePack.Union( 103, typeof( PlansStateMessage ) )]
+	[MessagePack.Union( 104, typeof( StartAppMessage ) )]
+	[MessagePack.Union( 105, typeof( KillAppMessage ) )]
+	[MessagePack.Union( 106, typeof( RestartAppMessage ) )]
+	[MessagePack.Union( 107, typeof( SetAppEnabledMessage ) )]
+    [MessagePack.Union( 108, typeof(SelectPlanMessage))]
+	[MessagePack.Union( 109, typeof( StartPlanMessage ) )]
+	[MessagePack.Union( 110, typeof( StopPlanMessage ) )]
+	[MessagePack.Union( 111, typeof( KillPlanMessage ) )]
+	[MessagePack.Union( 112, typeof( RestartPlanMessage ) )]
+  //[MessagePack.Union( 113, typeof( CurrentPlanMessage ) )]
+	[MessagePack.Union( 114, typeof( PlanDefsMessage ) )]
+	[MessagePack.Union( 115, typeof( SetVarsMessage ) )]
+	[MessagePack.Union( 116, typeof( KillAllMessage ) )]
+	[MessagePack.Union( 117, typeof( ShutdownMessage ) )]
+	[MessagePack.Union( 118, typeof( ReinstallMessage ) )]
+	[MessagePack.Union( 119, typeof( TerminateMessage ) )]
+	[MessagePack.Union( 120, typeof( ReloadSharedConfigMessage ) )]
+	[MessagePack.Union( 121, typeof( ClientIdent ) )]
+	[MessagePack.Union( 122, typeof( AppDefsMessage ) )]
+	[MessagePack.Union( 123, typeof( CLIRequestMessage ) )]
+	[MessagePack.Union( 124, typeof( CLIResponseMessage ) )]
+	[MessagePack.Union( 125, typeof( ResetMessage ) )]
+	[MessagePack.Union( 126, typeof( ClientStateMessage ) )]
+	[MessagePack.Union( 127, typeof( StartScriptMessage ) )]
+	[MessagePack.Union( 128, typeof( KillScriptMessage ) )]
+	[MessagePack.Union( 129, typeof( ScriptDefsMessage ) )]
+	//[MessagePack.Union( 130, typeof( ScriptsStateMessage ) )]
+	[MessagePack.Union( 131, typeof( ApplyPlanMessage ) )]
+	[MessagePack.Union( 132, typeof( SetWindowStyleMessage ) )]
+	[MessagePack.Union( 133, typeof( VfsNodesMessage ) )]
+	[MessagePack.Union( 134, typeof( MachineDefsMessage ) )]
+	//[MessagePack.Union( 135, typeof( StartTaskMessage ) )]
+	//[MessagePack.Union( 136, typeof( KillTaskMessage ) )]
+	[MessagePack.Union( 137, typeof( MenuItemDefsMessage ) )]
+	[MessagePack.Union( 138, typeof( ScriptStateMessage ) )]
+	[MessagePack.Union( 139, typeof( MachineStateMessage ) )]
 
-	public class Message
+	public abstract class Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 0 )]
 		public string Sender { get; set; } = string.Empty;  // machine name for agents, guid for GUIs, empty for master
 
-		public static void RegisterProtobufTypeMaps()
-		{
-			//ProtoBuf.Meta.RuntimeTypeModel.Default.Add( typeof( ILaunchPlan ), true ).AddSubType( 50, typeof( LaunchPlan ) );
-		}
-
 		// do not dump it on console
+		[MessagePack.IgnoreMember]
 		public virtual bool IsFrequent { get { return false; } }
 	}
 
 	/// <summary>
 	/// Agent tells others there was an error processing some operation. Master resends this to GUIs.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class RemoteOperationErrorMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string Requestor = string.Empty;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Message = string.Empty; // Error description
 
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		public RemoteOperationErrorMessage() {}
@@ -143,17 +89,18 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Agent tells the master what is the status if his apps. Master resends this to GUIs.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class AppsStateMessage : Message
 	{
+		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, AppState> AppsState;
 
 		// time on sender when sending this message
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public DateTime TimeStamp;
 
 		public AppsStateMessage() {}
@@ -168,12 +115,13 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells GUIs what is the status of the plans.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class PlansStateMessage : Message
 	{
+		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public Dictionary<string, PlanState> PlansState;
 
@@ -188,14 +136,14 @@ namespace Dirigent.Net
 	/// Master's internal state of applications in the plan.
 	/// Not in use.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class PlanAppsStateMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public string PlanName;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, PlanAppState> AppsState;
 
@@ -225,10 +173,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class StartAppMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
 		/// <summary>
@@ -239,19 +187,19 @@ namespace Dirigent.Net
 		/// This is used when the command is sent from gui to master.
 		/// Must be always null if sent from master to agent (agent does not know about plans anyway)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string? PlanName;
 
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public StartAppFlags Flags;
 
 		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
-		[ProtoBuf.ProtoMember( 4 )]
+		[MessagePack.Key( 4 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[ProtoBuf.ProtoMember( 5 )]
+		[MessagePack.Key( 5 )]
 		public bool UseVars;
 
 		public StartAppMessage() {}
@@ -283,13 +231,13 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class KillAppMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public KillAppFlags Flags;
 
 
@@ -312,19 +260,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to restart a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class RestartAppMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
 		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 
@@ -347,16 +295,16 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to temporarily remove an app from the plan execustion (if enabled=false).
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class SetAppEnabledMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string? PlanName;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public AppIdTuple Id;
 
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public bool Enabled;
 
 		public SetAppEnabledMessage() {}
@@ -378,10 +326,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// GUI is telling the Master about what plan is currently selected there.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class SelectPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public SelectPlanMessage() { }
@@ -401,19 +349,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a plan.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class StartPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public String PlanName = string.Empty;
 
 		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 		public StartPlanMessage() {}
@@ -433,10 +381,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to stop starting next apps from the plan (this does not kill the apps!)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class StopPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public StopPlanMessage() {}
@@ -452,10 +400,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill all apps in the plan.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class KillPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public KillPlanMessage() {}
@@ -471,19 +419,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to restart all apps in the plan.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class RestartPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 		public RestartPlanMessage() {}
@@ -502,10 +450,10 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Master tells new client about the current launch plan
 	///// </summary>
-	//[ProtoBuf.ProtoContract]
+	//[MessagePack.MessagePackObject]
 	//public class CurrentPlanMessage : Message
 	//{
-	//	[ProtoBuf.ProtoMember( 1 )]
+	//	[MessagePack.Key( 1 )]
 	//	public string PlanName = string.Empty;
 
 	//	public CurrentPlanMessage() {}
@@ -523,17 +471,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing plans
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class PlanDefsMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<PlanDef> PlanDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public PlanDefsMessage() {}
@@ -553,10 +501,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to set env vars for newly started processed. Master resends to all agents.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class SetVarsMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string Vars = string.Empty;
 
 		public SetVarsMessage() {}
@@ -577,10 +525,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill all apps and plans. Master kills the plans, resending KillApp to all agents.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class KillAllMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public KillAllArgs Args;
 
 		public KillAllMessage() {}
@@ -600,10 +548,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to terminate the agents/guis. Master resends to agents/guis.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class TerminateMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public TerminateArgs Args;
 
 		public TerminateMessage() {}
@@ -623,10 +571,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to shutdown/reboot the computers. Master resends to agents.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ShutdownMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public ShutdownArgs Args;
 
 		public ShutdownMessage() {}
@@ -646,10 +594,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to reinstall the Dirigent. Master resends to all.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ReinstallMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public ReinstallArgs Args;
 
 		public ReinstallMessage() {}
@@ -669,10 +617,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to reload the shared config.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ReloadSharedConfigMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public ReloadSharedConfigArgs Args;
 
 		public ReloadSharedConfigMessage() {}
@@ -692,17 +640,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Client (Agent or GUI) identifies itself. Must be the first message sent when connected to the Master.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ClientIdent : Message
 	{
 		///<summary>Client name. For agents, this equals the MachineId. For Guis this is a stringized GUID</summary>
+		//[MessagePack.Key( 1 )]	// this does not need seralizing, as the Sender is already serialized
+		[MessagePack.IgnoreMember]
 		public string Name
 		{
 			get { return Sender; }
 			set { Sender = value; }
 		}
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public EMsgRecipCateg SubscribedTo;
 
 		public ClientIdent() {}
@@ -718,7 +668,10 @@ namespace Dirigent.Net
 			return $"ClientInfo Name {Sender}, Type {(int)SubscribedTo}";
 		}
 
+		[MessagePack.IgnoreMember]
 		public bool IsGui => (SubscribedTo & EMsgRecipCateg.Gui) != 0;
+
+		[MessagePack.IgnoreMember]
 		public bool IsAgent => (SubscribedTo & EMsgRecipCateg.Agent) != 0;
 
 	}
@@ -727,18 +680,18 @@ namespace Dirigent.Net
 	/// Master tells the agent what app defs to use. Agent will overwrite the already known apps and add the new apps.
 	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class AppDefsMessage : Message
 	{
 
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull] // when constructed without arguments by protobuf
 		public List<AppDef> AppDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public AppDefsMessage() {}
@@ -759,10 +712,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to execute given Command Line Interface command
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class CLIRequestMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Text = string.Empty;
 
 		public CLIRequestMessage()
@@ -782,10 +735,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master sends back to the sender the response from the just executed CLI command.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class CLIResponseMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Text = string.Empty;
 
 		public CLIResponseMessage()
@@ -810,7 +763,7 @@ namespace Dirigent.Net
 	/// This will not kill the apps; so if the running ones are no longer part of the new app defs,
 	/// they will stay running and it will not be possible to kill them via dirigent.
 	/// </remarks>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ResetMessage : Message
 	{
 		public ResetMessage() {}
@@ -824,16 +777,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Client is updating its state to master (at regular intervals)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ClientStateMessage : Message
 	{
+		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
 		// time on sender when sending this message
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public DateTime TimeStamp;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		[MaybeNull]
 		public ClientState State;
 
@@ -849,16 +803,16 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a script
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class StartScriptMessage : Message
 	{
 		/// <summary>
 		/// Guid to assign to a script once its instance is created
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public Guid Instance;
 					
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Title = string.Empty;
 
 		/// <summary>
@@ -871,24 +825,24 @@ namespace Dirigent.Net
 		///   FileTools/DownloadFile
 		/// Some names are stored in the built-in script library (not requiring external script file).
 		/// </remarks>
-		[ProtoBuf.ProtoMember( 3 )]
+		[MessagePack.Key( 3 )]
 		public string ScriptName = string.Empty;
 
 		/// <summary>
 		/// Script code to instantiate (C#); empty for built-in tasks or file-based scripts.
 		/// If empty, the script is loaded from the script library.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 4 )]
+		[MessagePack.Key( 4 )]
 		public string? SourceCode;
 
 
-		[ProtoBuf.ProtoMember( 5 )]
+		[MessagePack.Key( 5 )]
 		public byte[]? Args;
 
 		/// <summary>
 		/// Client where the script shall be started.
 		/// </summary>
-		[ProtoBuf.ProtoMember( 6 )]
+		[MessagePack.Key( 6 )]
 		public string HostClientId = "";
 
 		
@@ -926,10 +880,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Asking to kill an instance of a running script (wherever it is running)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class KillScriptMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public Guid Instance;
 
 
@@ -951,17 +905,17 @@ namespace Dirigent.Net
 	/// Master tells new client about existing script definitions
 	/// (they are used for single-instance scripts presented on GUI)
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ScriptDefsMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<ScriptDef> ScriptDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public ScriptDefsMessage() {}
@@ -981,12 +935,13 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Master tells clients aboout the status of the scripts.
 	///// </summary>
-	//[ProtoBuf.ProtoContract]
+	//[MessagePack.MessagePackObject]
 	//public class ScriptsStateMessage : Message
 	//{
+	//	[MessagePack.IgnoreMember]
 	//	public override bool IsFrequent { get { return true; } }
 
-	//	[ProtoBuf.ProtoMember( 1 )]
+	//	[MessagePack.Key( 1 )]
 	//	[MaybeNull]
 	//	public Dictionary<Guid, ScriptState> ScriptsState;
 
@@ -1002,14 +957,14 @@ namespace Dirigent.Net
 	/// Plan is applied either to given app from the plan (if specified), otherwise to all the apps in the plan.
 	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ApplyPlanMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		// if empty, the plan is applied to all the apps from the plan
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public AppIdTuple AppIdTuple;
 
 		public ApplyPlanMessage() { }
@@ -1028,14 +983,14 @@ namespace Dirigent.Net
 
 	/// <summary>
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class SetWindowStyleMessage : Message
 	{
 		// if empty, the plan is applied to all the apps from the plan
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public AppIdTuple AppIdTuple;
 
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
 		public SetWindowStyleMessage() { }
@@ -1055,10 +1010,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing VfsNodes
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class VfsNodesMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
 		public VfsNodesMessage() { }
@@ -1076,11 +1031,11 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing machine definitions
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class MachineDefsMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
-		public List<MachineDef> Machines = new List<MachineDef>();
+		[MessagePack.Key( 1 )]
+		public List<MachineDef> Machines = new();
 
 
 		public MachineDefsMessage() { }
@@ -1099,22 +1054,22 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Someone asking the Master to start given task
 	///// </summary>
-	//[ProtoBuf.ProtoContract]
+	//[MessagePack.MessagePackObject]
 	//public class StartTaskMessage : Message
 	//{
 	//	/// <summary>
 	//	/// Guid to assign to a task once created. If empty, a new guid is generated.
 	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 1 )]
+	//	[MessagePack.Key( 1 )]
 	//	public Guid TaskInstance;
 
-	//	[ProtoBuf.ProtoMember( 2 )]
+	//	[MessagePack.Key( 2 )]
 	//	public string ScriptName = string.Empty;
 
-	//	[ProtoBuf.ProtoMember( 3 )]
+	//	[MessagePack.Key( 3 )]
 	//	public byte[]? Args;
 
-	//	[ProtoBuf.ProtoMember( 4 )]
+	//	[MessagePack.Key( 4 )]
 	//	public string Title = string.Empty;
 
 	//	public StartTaskMessage() {}
@@ -1146,11 +1101,11 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Someone asking the Master to kill a running task.
 	///// </summary>
-	//[ProtoBuf.ProtoContract]
+	//[MessagePack.MessagePackObject]
 	//public class KillTaskMessage : Message
 	//{
 	//	// the task instance to kill
-	//	[ProtoBuf.ProtoMember( 1 )]
+	//	[MessagePack.Key( 1 )]
 	//	[MaybeNull]
 	//	public Guid TaskInstance;
 
@@ -1172,17 +1127,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing actions
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class MenuItemDefsMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<AssocMenuItemDef> MenuItemDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[ProtoBuf.ProtoMember( 2 )]
+		[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public MenuItemDefsMessage() {}
@@ -1203,14 +1158,14 @@ namespace Dirigent.Net
 	/// Client tells other the status of the script running on it
 	/// Sent periodically for running scripts, and once for finished script (Status=Finished or Failed means the task should be removed).
 	/// </summary>
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class ScriptStateMessage : Message
 	{
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public Guid Instance;
 		
-		[ProtoBuf.ProtoMember( 2 )]
-		public ScriptState State = new ScriptState();
+		[MessagePack.Key( 2 )]
+		public ScriptState State = new();
 
 		public ScriptStateMessage() {}
 		public ScriptStateMessage( Guid instance, ScriptState state )
@@ -1225,201 +1180,34 @@ namespace Dirigent.Net
 		}
 	}
 
-	///// <summary>
-	///// Request sent from a task to the same task instance on controller another agent(s).
-	///// </summary>
-	//[ProtoBuf.ProtoContract]
-	//public class TaskRequestMessage : Message
-	//{
-	//	//public override bool IsFrequent { get { return true; } }
+	/// <summary>
+	/// Agent on the machine is updating the machine state to master (at regular intervals)
+	/// </summary>
+	[MessagePack.MessagePackObject]
+	public class MachineStateMessage : Message
+	{
+		[MessagePack.IgnoreMember]		
+		public override bool IsFrequent { get { return true; } }
 
-	//	/// <summary>
-	//	/// Task instance to receive this message
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 1 )]
-	//	public Guid TaskInstance;
+		[MessagePack.Key( 1 )]
+		public string Id = "";
 
-	//	/// <summary>
-	//	/// Who should handle the request.
-	//	///   Empty = task controller.
-	//	///   "[ALLWORKERS]" = all agents where the worker for this instance is instantiated.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 2 )]
-	//	public List<string> Recipients = new List<string>();
+		// time on sender when sending this message
+		[MessagePack.Key( 2 )]
+		public DateTime TimeStamp;
 
-	//	/// <summary>
-	//	/// Unique id of the request (might be used by responses to this particular request)
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 3 )]
-	//	public Guid RequestId;
+		[MessagePack.Key( 3 )]
+		public MachineState State = new();
 
-	//	/// <summary>
-	//	/// Type id of the request; determines the expected format of the parameters.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 4 )]
-	//	public string Type = string.Empty;
+		public MachineStateMessage() {}
+		public MachineStateMessage( string id, DateTime timeStamp, MachineState state )
+		{
+		    this.Id = id;
+			this.TimeStamp = timeStamp;
+			this.State = state;
+		}
 
-	//	/// <summary>
-	//	/// RequestType specific arguments for this request; any string, JSON by convention
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 5 )]
-	//	[MaybeNull]
-	//	public string? Args = string.Empty;
-
-	//	public TaskRequestMessage() {}
-	//	public TaskRequestMessage( Guid taskInstance, string type, string? args )
-	//	{
-	//		TaskInstance = taskInstance;
-	//		RequestId = Guid.NewGuid();
-	//		Type = type;
-	//		Args = args;
-	//	}
-	//}
-
-	///// <summary>
-	///// Response from a task to another to the same task instance on another agent.
-	///// Used as worker status report to the controller, or for communicating among workers.
-	///// </summary>
-	//[ProtoBuf.ProtoContract]
-	//public class TaskResponseMessage : Message
-	//{
-	//	//public override bool IsFrequent { get { return true; } }
-
-	//	/// <summary>
-	//	/// Task instance this response belongs to
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 1 )]
-	//	public Guid TaskInstance;
-
-	//	/// <summary>
-	//	/// MachineIds to receive this message.
-	//	/// Empty = just the controller on the master.
-	//	/// Use Message.Sender value if you want to reply to the sender only.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 2 )]
-	//	public List<string> Recipients = new List<string>();
-
-	//	/// <summary>
-	//	/// Unique id of the request (might be used by responses to this particular request)
-	//	/// Use the value of the TaskInstance is this is the reponse to the task worker instantiation request.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 3 )]
-	//	public Guid RequestId;
-
-	//	/// <summary>
-	//	/// Type id of the response; determines the expected format of the parameters.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 4 )]
-	//	public string Type = string.Empty;
-
-	//	/// <summary>
-	//	/// RequestType specific arguments for this response; any string, JSON by convention
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 5 )]
-	//	[MaybeNull]
-	//	public string? Args = string.Empty;
-
-	//	public TaskResponseMessage() {}
-	//	public TaskResponseMessage( Guid taskInstance, Guid requestId, string type, string? args )
-	//	{
-	//		TaskInstance = taskInstance;
-	//		RequestId = requestId;
-	//		Type = type;
-	//		Args = args;
-	//	}
-	//}
-
-
-	///// <summary>
-	///// Master asking the worker clients to instantiate a task
-	///// </summary>
-	//[ProtoBuf.ProtoContract]
-	//public class StartTaskWorkerMessage : Message
-	//{
-	//	/// <summary>
-	//	/// What task instance this worker belongs to.
-	//	/// This can be also used as RequestId in the first response from the worker to its controller
-	//	/// upon instantiating the worker part on the client. For example when the worker instantiation
-	//	/// fails, the TaskResponse might be sent to the controller with this Guid.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 1 )]
-	//	public Guid TaskInstance;
-
-	//	/// <summary>
-	//	/// Name of the task this worker belongs to (for debug display purposes)
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 2 )]
-	//	public string Title = string.Empty;
-
-	//	/// <summary>
-	//	/// MachineIds to start the worker part of the task on
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 3 )]
-	//	public List<string> Workers = new List<string>();
-
-	//	/// <summary>
-	//	/// Guids for the new worker tasks to be created; same number as in the Workers list.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 4 )]
-	//	public List<Guid> WorkerInstances = new List<Guid>();
-
-	//	/// <summary>
-	//	/// Name of the worker part script.
-	//	/// </summary>
-	//	/// <remarks>
-	//	/// The name can contain a "subfolder part"
-	//	///   MyScript
-	//	///   FileTools/DownloadFile
-	//	/// Some names are stored in the built-in script library (not requiring external script file).
-	//	/// </remarks>
-	//	[ProtoBuf.ProtoMember( 5 )]
-	//	public string ScriptName = string.Empty;
-
-	//	/// <summary>
-	//	/// Script code to instantiate (C#); empty for built-in tasks or file-based scripts.
-	//	/// If ScriptCode is empty, the script is loaded from the script library.
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 6 )]
-	//	public string? ScriptCode;
-
-	//	/// <summary>
-	//	/// Arguments to pass to the task worker
-	//	/// </summary>
-	//	[ProtoBuf.ProtoMember( 7 )]
-	//	public byte[]? Args;
-
-	//	public StartTaskWorkerMessage() {}
-
-	//	public override string ToString()
-	//	{
-	//		return string.Format( $"StartTaskWorkerMessage {ScriptName} [{string.Join(", ", from x in Workers select x)}]" );
-	//	}
-
-	//}
-
-	///// <summary>
-	///// Master asking the worker clients to remove everything beloning to given taks instance
-	///// </summary>
-	//[ProtoBuf.ProtoContract]
-	//public class KillTaskWorkersMessage : Message
-	//{
-	//	[ProtoBuf.ProtoMember( 1 )]
-	//	public Guid TaskInstance;
-
-	//	public KillTaskWorkersMessage() {}
-
-	//	public KillTaskWorkersMessage( string requestorId, Guid taskInstance )
-	//	{
-	//		this.Sender = requestorId;
-	//		this.TaskInstance = taskInstance;
-	//	}
-
-	//	public override string ToString()
-	//	{
-	//		return string.Format( $"KillTaskWorkersMessage {TaskInstance}" );
-	//	}
-
-	//}
+	}
 
 
 }

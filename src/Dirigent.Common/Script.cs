@@ -36,7 +36,32 @@ namespace Dirigent
 
 		public byte[]? Args { get; set; }
 
-		public T? GetArgs<T>() => Tools.Deserialize<T>(Args);
+		/// <summary>
+		/// Tries to deserialize the script arguments from the Args property.
+		/// </summary>
+		/// <returns>true if succeeded</returns>
+		public bool TryGetArgs<T>( out T? args )
+		{
+			if (Args != null)
+			{
+				try
+				{
+					args = Tools.Deserialize<T>( Args );
+					return true;
+				}
+				catch
+				{
+					args = default;
+					return false;
+				}
+			}
+			else
+			{
+				args = default;
+				return false;
+			}
+		}
+
 		public byte[] MakeResult<T>(T result) => Tools.Serialize<T>(result);
 
 		// initialized during installation

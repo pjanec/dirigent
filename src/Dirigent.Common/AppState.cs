@@ -10,12 +10,11 @@ namespace Dirigent
 	/// <summary>
 	/// App status shared among all Dirigent participants.
 	/// </summary>
-	[ProtoBuf.ProtoContract]
-	[DataContract]
+	[MessagePack.MessagePackObject]
 	public class AppState
 	{
 		[Flags]
-		enum FL
+		public enum FL
 		{
 			Started         = 1 << 0,
 			StartFailed     = 1 << 1,
@@ -28,46 +27,46 @@ namespace Dirigent
 			//Disabled        = 1 << 8,
 		}
 
-		[ProtoBuf.ProtoMember( 1 )]
-		FL flags;
+		[MessagePack.Key( 1 )]
+		public FL _flags; // note: public because of MessagePacks refuses to serialize private fields
 
-		[ProtoBuf.ProtoMember( 2 )]
-		int exitCode;
+		//[MessagePack.Key( 2 )]
+		//protected int exitCode;
 
 		// UTC time of last update, recalculated to local time (as the clock migh differ on different computers)
 		// On Agent, the agent's UTC time of last update
 		// On Master, the UTC time of last update recalculated to master's local time
 		// On Gui, the UTC time of last update recalculated to gui's local time
-		[ProtoBuf.ProtoMember( 3 )]
-		DateTime lastChange = DateTime.UtcNow;
+		[MessagePack.Key( 3 )]
+		public DateTime _lastChange = DateTime.UtcNow;  // note: public because of MessagePacks refuses to serialize private fields
 
-		[ProtoBuf.ProtoMember( 4 )]
-		int cpu; // percentage of CPU usage
+		//[MessagePack.Key( 4 )]
+		//protected float cpu { get; private set; }; // percentage of CPU usage; negative = N/A
 
-		[ProtoBuf.ProtoMember( 5 )]
-		int gpu; // percentage of GPU usage
+		//[MessagePack.Key( 5 )]
+		//protected float gpu; // percentage of GPU usage
 
-		[ProtoBuf.ProtoMember( 6 )]
-		int memory; // MBytes of memory allocated
+		//[MessagePack.Key( 6 )]
+		//protected float memory; // MBytes of memory allocated; negative = N/A
 
-		[ProtoBuf.ProtoMember( 7 )]
-		string? planName; // in what plan's context the app was started
+		//[MessagePack.Key( 7 )]
+		//protected string? planName; // in what plan's context the app was started
 
 		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
 		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration
 
-		[ProtoBuf.ProtoMember( 8 )]
-		int restartsRemaining = RESTARTS_UNITIALIZED;
+		//[MessagePack.Key( 8 )]
+		//int restartsRemaining = RESTARTS_UNITIALIZED;
 
 		bool Is( FL value )
 		{
-			return ( flags & value ) == value;
+			return ( _flags & value ) == value;
 		}
 
 		void Set( FL value, bool toSet )
 		{
-			if( toSet ) flags |= value;
-			else flags &= ~value;
+			if( toSet ) _flags |= value;
+			else _flags &= ~value;
 
 			changed();
 		}
@@ -75,6 +74,7 @@ namespace Dirigent
 		/// <summary>
 		/// process was launched successfully
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Started
 		{
 			get { return Is( FL.Started ); }
@@ -84,6 +84,7 @@ namespace Dirigent
 		/// <summary>
 		/// process was launched but failed to start
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool StartFailed
 		{
 			get { return Is( FL.StartFailed ); }
@@ -93,6 +94,7 @@ namespace Dirigent
 		/// <summary>
 		/// process is currently running
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Running
 		{
 			get { return Is( FL.Running ); }
@@ -102,6 +104,7 @@ namespace Dirigent
 		/// <summary>
 		/// forced to terminate	by KillApp request (not by a KillPlan)
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Killed
 		{
 			get { return Is( FL.Killed ); }
@@ -111,6 +114,7 @@ namespace Dirigent
 		/// <summary>
 		/// Still dying (after termination request)
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Dying
 		{
 			get { return Is( FL.Dying ); }
@@ -120,6 +124,7 @@ namespace Dirigent
 		/// <summary>
 		/// Just being restarted (waiting until dies in order to be lanuched again)
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Restarting
 		{
 			get { return Is( FL.Restarting ); }
@@ -132,6 +137,7 @@ namespace Dirigent
 		/// By default true upon launching but can be immediately reset by a freshly instantiated AppWatcher acting like an InitDetector.
 		/// This is to avoid app to stay in unitialized if an Initdetector-class watcher is not defined
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool Initialized
 		{
 			get { return Is( FL.Initialized ); }
@@ -147,6 +153,7 @@ namespace Dirigent
         ///          BUT (theoretically) might be set also on different occasion when
         ///          starting the app with non-empty planName from some reason! 
 		/// </summary>
+		[MessagePack.IgnoreMember]
 		public bool PlanApplied
 		{
 			get { return Is( FL.PlanApplied ); }
@@ -157,6 +164,7 @@ namespace Dirigent
 		///// Whether the app has been disabled from execution as part of the plan;
 		///// This is set by the owner
 		///// </summary>
+		//[MessagePack.IgnoreMember]
 		//public bool Disabled
 		//{
 		//	get { return Is( FL.Disabled ); }
@@ -166,60 +174,49 @@ namespace Dirigent
 		/// <summary>
 		/// process exit code; valid only if is Started && !Running && !Killed
 		/// </summary>
-		public int ExitCode
-		{
-			get { return exitCode; }
-			set { exitCode = value; }
-		}
+		[MessagePack.Key( 4 )]
+		public int ExitCode;
 
 		/// <summary>
 		/// Timne of the last change in the application state.
 		/// </summary>
+		[MessagePack.Key( 5 )]
 		public DateTime LastChange
 		{
-			get { return lastChange; }
-			set { lastChange = value; }
+			get { return _lastChange; }
+			set { _lastChange = value; }
 		}
 
 		/// <summary>
 		///	percentage of CPU usage
 		/// </summary>
-		public int CPU
-		{
-			get { return cpu; }
-			set { cpu = value; }
-		}
+		[MessagePack.Key( 6 )]
+		public float CPU;
 
 		/// <summary>
 		///	percentage of GPU usage
 		/// </summary>
-		public int GPU
-		{
-			get { return gpu; }
-			set { gpu = value; }
-		}
+		[MessagePack.Key( 7 )]
+		public float GPU;
 
 		/// <summary>
 		///	MBytes of memory allocated
 		/// </summary>
-		public int Memory
-		{
-			get { return memory; }
-			set { memory = value; }
-		}
+		[MessagePack.Key( 8 )]
+		public float Memory;
 
 		/// <summary>
 		///	How many restart tries to make before giving up
 		/// </summary>
-		public int RestartsRemaining
-		{
-			get { return restartsRemaining; }
-			set { restartsRemaining = value; }
-		}
+		[MessagePack.Key( 9 )]
+		public int RestartsRemaining = RESTARTS_UNITIALIZED;
+
+		string? planName;
 
 		/// <summary>
 		/// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
 		/// </summary>
+		[MessagePack.Key( 10 )]
 		public string? PlanName
 		{
 			get { return planName; }
@@ -228,10 +225,11 @@ namespace Dirigent
 
 		void changed()
 		{
-			lastChange = DateTime.UtcNow;
+			_lastChange = DateTime.UtcNow;
 		}
 
-		public bool IsOffline => DateTime.UtcNow - lastChange  > TimeSpan.FromSeconds(3); 
+		[MessagePack.IgnoreMember]
+		public bool IsOffline => DateTime.UtcNow - _lastChange  > TimeSpan.FromSeconds(3); 
 
 		public static AppState GetDefault( AppDef ad )
 		{
@@ -242,7 +240,7 @@ namespace Dirigent
 				Started = false,
 				Dying = false,
 				//Disabled = ad.Disabled
-				lastChange = DateTime.MinValue
+				_lastChange = DateTime.MinValue
 			};
 		}
 

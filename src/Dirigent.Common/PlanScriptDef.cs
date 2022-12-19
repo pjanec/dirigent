@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace Dirigent
 {
-	[ProtoBuf.ProtoContract]
+	[MessagePack.MessagePackObject]
 	public class PlanScriptDef
 	{
 		/// <summary>
 		/// Path to the script file; Either absolute or relative to the SharedConfig file location
 		/// </summary>
-		[ProtoBuf.ProtoMember( 1 )]
+		[MessagePack.Key( 1 )]
 		public string Name = string.Empty;
 	}
 

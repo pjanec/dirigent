@@ -27,7 +27,7 @@ namespace Dirigent
 		SynchronousOpProcessor _syncOps;
 		
 		// all currently running scripts on this client
-		Dictionary<Guid, LocalScript> _scripts = new Dictionary<Guid, LocalScript>();
+		Dictionary<Guid, LocalScript> _scripts = new();
 		public Dictionary<Guid, LocalScript> Scripts => _scripts;
 		public Dictionary<Guid, ScriptState> ScriptStates => Scripts.Values.ToDictionary( p => p.Instance, p => p.State );
 

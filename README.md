@@ -479,15 +479,15 @@ Number of seconds since last update of the app state
 
 ###### CPU
 
-Integer percentage of CPU usage [NOT IMPLEMENTED, zero]
+Float percentage of CPU usage [NOT IMPLEMENTED, zero]
 
 ###### GPU
 
-Integer percentage of GPU usage [NOT IMPLEMENTED, zero]
+Float percentage of GPU usage [NOT IMPLEMENTED, zero]
 
 ###### MemoryMB
 
-Integer number of MBytes used  [NOT IMPLEMENTED, zero]
+Float number of MBytes used  [NOT IMPLEMENTED, zero]
 
 
 ###### PlanName
