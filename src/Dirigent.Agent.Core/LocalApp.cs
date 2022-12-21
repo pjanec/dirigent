@@ -326,7 +326,8 @@ namespace Dirigent
         {
             if( Launcher != null ) // already launched
             {
-                AppState.Running = Launcher.Running;
+				AppState.PID = Launcher.PID;
+				AppState.Running = Launcher.Running;
 				AppState.Dying = Launcher.Dying;	// if dying=true, then running=true
                 AppState.ExitCode = Launcher.ExitCode;
 
@@ -350,14 +351,15 @@ namespace Dirigent
 						}
                         else
                         {
-							AppState.CPU = -1f;
-							AppState.Memory = -1f;
+							AppState.CPU = 0f;
+							AppState.Memory = 0f;
                         }
                     }
 				}
             }
             else // not running
             {
+                AppState.PID = -1;
                 AppState.Running = false;
 				AppState.Dying = false;
             }

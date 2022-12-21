@@ -151,7 +151,7 @@ namespace Dirigent
 
 			var stateStr = String.Format(
 							   System.Globalization.CultureInfo.InvariantCulture,
-							   "APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}",
+							   "APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}:{8}",
 							   t.ToString(),
 							   flags,
 							   appState.ExitCode,
@@ -159,7 +159,8 @@ namespace Dirigent
 							   appState.CPU,
 							   appState.GPU,
 							   appState.Memory,
-							   appState.PlanName
+							   appState.PlanName,
+							   appState.PID
 						   );
 
 			return stateStr;

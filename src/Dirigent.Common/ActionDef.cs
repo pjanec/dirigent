@@ -30,7 +30,7 @@ namespace Dirigent
 		public string Args = string.Empty;
 
 		/// <summary>
-		/// On which node (client/agent/master) to run this script. empty=master. Null = not set.
+		/// On which node (client/agent/master) to run this script/action. empty=master. Null = not set.
 		/// </summary>
 		[MessagePack.Key( 23 )]
 		public string? HostId;

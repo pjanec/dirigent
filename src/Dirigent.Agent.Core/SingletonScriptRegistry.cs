@@ -40,11 +40,11 @@ namespace Dirigent
 
 			public void Tick() {}
 
-			public void Start( string? args )
+			public void Start( string? requestorId, string? args )
 			{
 				if (args is null) args = Def.Args;
 				// create a new instance of the script; it will be disposed when it dies
-				_localScriptRegistry.Start( Def.Guid, Def.Name, null, Tools.Serialize( args ), Def.Title );
+				_localScriptRegistry.Start( Def.Guid, Def.Name, null, Tools.Serialize( args ), Def.Title, requestorId );
 			}
 
 			public void Stop()
@@ -114,10 +114,10 @@ namespace Dirigent
 		}
 
 		// if args==null, use arguments from ScriptDef
-		public void StartScript( string requestorId, Guid id, string? args )
+		public void StartScript( string? requestorId, Guid id, string? args )
 		{
 			var entry = FindScript( id );
-			entry.Start( args );
+			entry.Start( requestorId, args );
 		}
 
 		public void KillScript( string requestorId, Guid id )

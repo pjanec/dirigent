@@ -51,6 +51,9 @@ namespace Dirigent.Net
 	[MessagePack.Union( 137, typeof( MenuItemDefsMessage ) )]
 	[MessagePack.Union( 138, typeof( ScriptStateMessage ) )]
 	[MessagePack.Union( 139, typeof( MachineStateMessage ) )]
+	[MessagePack.Union( 140, typeof( RunActionMessage ) )]
+
+
 
 	public abstract class Message
 	{
@@ -203,6 +206,7 @@ namespace Dirigent.Net
 		public bool UseVars;
 
 		public StartAppMessage() {}
+
 		/// <param name="vars">if null, variables will NOT be changed from last use</param>
 		public StartAppMessage( string requestorId, AppIdTuple id, string? planName, StartAppFlags flags=0, Dictionary<string,string>? vars=null )
 		{
@@ -845,28 +849,32 @@ namespace Dirigent.Net
 		[MessagePack.Key( 6 )]
 		public string HostClientId = "";
 
-		
+		/// <summary>
+		/// Who wants the results back. Null=not defined.
+		/// </summary>
+		[MessagePack.Key( 7 )]
+		public string? Requestor = null;
 
 		public StartScriptMessage() {}
 
 		/// <summary> Starts a singleton script from a ScriptDef on master </summary>
 		public StartScriptMessage( string requestorId, Guid singletonScriptId, string? args )
 		{
-			this.Sender = requestorId;
 			this.Instance = singletonScriptId;
 			this.Args = Tools.Serialize( args );
+			this.Requestor = requestorId;
 		}
 
 		/// <summary> Starts script on given client </summary>
 		public StartScriptMessage( string requestorId, Guid instance, string scriptName, string? scriptCode, byte[]? args, string title, string hostClientId )
 		{
-			this.Sender = requestorId;
 			this.Instance = instance;
 			this.Title = title;
 			this.ScriptName = scriptName;
 			this.SourceCode = scriptCode;
 			this.Args = args;
 			this.HostClientId = hostClientId;
+			this.Requestor = requestorId;
 		}
 
 
@@ -1050,80 +1058,6 @@ namespace Dirigent.Net
 		}
 	}
 
-
-	///// <summary>
-	///// Someone asking the Master to start given task
-	///// </summary>
-	//[MessagePack.MessagePackObject]
-	//public class StartTaskMessage : Message
-	//{
-	//	/// <summary>
-	//	/// Guid to assign to a task once created. If empty, a new guid is generated.
-	//	/// </summary>
-	//	[MessagePack.Key( 1 )]
-	//	public Guid TaskInstance;
-
-	//	[MessagePack.Key( 2 )]
-	//	public string ScriptName = string.Empty;
-
-	//	[MessagePack.Key( 3 )]
-	//	public byte[]? Args;
-
-	//	[MessagePack.Key( 4 )]
-	//	public string Title = string.Empty;
-
-	//	public StartTaskMessage() {}
-
-	//	//public StartScriptMessage( string requestorId, string id, string? fileName, string?args )
-	//	//{
-	//	//	this.Sender = requestorId;
-	//	//	this.Id = id;
-	//	//	this.FileName = fileName;
-	//	//	this.Args = args;
-	//	//}
-
-	//	public StartTaskMessage( string requestorId, Guid taskInstance, string scriptName, byte[]? args, string title )
-	//	{
-	//		this.Sender = requestorId;
-	//		this.TaskInstance = taskInstance;
-	//		this.ScriptName = scriptName;
-	//		this.Args = args;
-	//		this.Title = title;
-	//	}
-
-	//	public override string ToString()
-	//	{
-	//		return string.Format( $"StartTaskMessage {TaskInstance} {ScriptName}" );
-	//	}
-
-	//}
-
-	///// <summary>
-	///// Someone asking the Master to kill a running task.
-	///// </summary>
-	//[MessagePack.MessagePackObject]
-	//public class KillTaskMessage : Message
-	//{
-	//	// the task instance to kill
-	//	[MessagePack.Key( 1 )]
-	//	[MaybeNull]
-	//	public Guid TaskInstance;
-
-
-	//	public KillTaskMessage() {}
-	//	public KillTaskMessage( string requestorId, Guid taskInstance )
-	//	{
-	//		this.Sender = requestorId;
-	//		this.TaskInstance = taskInstance;
-	//	}
-
-	//	public override string ToString()
-	//	{
-	//		return string.Format( "KillTaskMessage {0}", TaskInstance );
-	//	}
-
-	//}
-
 	/// <summary>
 	/// Master tells new client about existing actions
 	/// </summary>
@@ -1209,5 +1143,44 @@ namespace Dirigent.Net
 
 	}
 
+	[MessagePack.MessagePackObject]
+	public class RunActionMessage : Message
+	{
+		[MessagePack.Key( 1 )]
+		public ActionDef? Def;
+
+		/// <summary>Internal/local vars passed to the action (can be used macro expansion)</summary>
+		[MessagePack.Key( 2 )]
+		public Dictionary<string,string>? Vars;
+
+		/// <summary>
+		/// Client where the action shall be started.
+		/// </summary>
+		[MessagePack.Key( 3 )]
+		public string HostClientId = "";
+
+		/// <summary>
+		/// Who wants the result of the action (if any)
+		/// </summary>
+		[MessagePack.Key( 4 )]
+		public string? Requestor = null;
+
+		public RunActionMessage() {}
+
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
+		public RunActionMessage( string requestorId, ActionDef def, string hostClientId, Dictionary<string,string>? vars=null )
+		{
+			this.Def = def;
+			this.Vars = vars;
+			this.HostClientId = hostClientId;
+			this.Requestor = requestorId;
+		}
+
+		public override string ToString()
+		{
+			return $"RunAction {Def}, vars={Tools.EnvVarListToString(Vars)}";
+		}
+
+	}
 
 }

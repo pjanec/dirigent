@@ -223,6 +223,12 @@ namespace Dirigent
 			set { planName = value; changed(); }
 		}
 
+		/// <summary>
+		/// -1 = N/A (app not running).
+		/// </summary>
+		[MessagePack.Key( 11 )]
+		public int PID;
+
 		void changed()
 		{
 			_lastChange = DateTime.UtcNow;

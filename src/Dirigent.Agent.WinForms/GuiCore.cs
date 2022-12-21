@@ -106,10 +106,11 @@ namespace Dirigent.Gui.WinForms
 			base.Dispose( disposing );
 			if (!disposing) return;
 
-
+			_toolsReg.Dispose();
 			_localScripts.Dispose();
-			
-			if( Client is not null )
+			ReflStates.Dispose();
+
+			if ( Client is not null )
 			{
 				Client.MessageReceived -= OnMessage;
 				Client.Dispose();
@@ -135,7 +136,7 @@ namespace Dirigent.Gui.WinForms
 				Client
 			);
 
-			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates.FileRegistry, ReflStates.Scripts );
+			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates );
 		}
 
 		void OnMessage( Net.Message msg )
@@ -144,7 +145,7 @@ namespace Dirigent.Gui.WinForms
 			{
 				case Net.StartScriptMessage m:
 				{
-					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
 					break;
 				}
 

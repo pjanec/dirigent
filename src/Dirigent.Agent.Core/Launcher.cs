@@ -737,6 +737,8 @@ namespace Dirigent
 			return true;
 		}
 
+		// -1 = N/A
+		public int PID => _proc?.Id ?? -1;
 
 		/// <summary>
 		/// Returns true if the process is in the system, no matter if running corectly or

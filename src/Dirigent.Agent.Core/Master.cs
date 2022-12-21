@@ -33,6 +33,11 @@ namespace Dirigent
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
 		public string Name => string.Empty;
+		
+		/// <summary>
+		/// Send to all subcribed. Does not change the sender.
+		/// </summary>
+		/// <param name="msg"></param>
 		public void Send( Net.Message msg )
 		{
 			// send to everyone else
@@ -391,11 +396,11 @@ namespace Dirigent
 					{
 						if( string.IsNullOrEmpty(m.ScriptName) ) // is it a ScriptDef based single-instance script?
 						{
-							StartSingletonScript( m.Sender, m.Instance, Tools.Deserialize<string?>(m.Args) );
+							StartSingletonScript( m.Requestor, m.Instance, Tools.Deserialize<string?>(m.Args) );
 						}
 						else // it is a generic script
 						{
-							_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+							_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
 						}
 					}
 					else // forward to the target client
@@ -466,6 +471,16 @@ namespace Dirigent
 				{
 					// forward to others (if it was sent from non-master)
 					if( m.Sender != "" )
+					{
+						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+					}
+					break;
+				}
+				
+				case RunActionMessage m:
+				{
+					// forward to others
+					if( m.Sender != "" ) // avoid sending twice is sent from master
 					{
 						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
 					}
@@ -941,7 +956,7 @@ namespace Dirigent
 		}
 
 
-		public void StartSingletonScript( string requestorId, Guid id, string? args )
+		public void StartSingletonScript( string? requestorId, Guid id, string? args )
 		{
 			_singlScripts.StartScript( requestorId, id, args );
 		}

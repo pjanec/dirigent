@@ -46,15 +46,16 @@ namespace Dirigent
 
 		//}
 		
-		void SetupScript( Script script, string title, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin )
+		void SetupScript( Script script, string title, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
 		{
 			script.Dirig = ctrl;
 			script.Title = title;
 			script.Origin = string.IsNullOrEmpty(scriptOrigin) ? string.Empty : scriptOrigin;
 			script.Args = args;
+			script.Requestor = requestorId ?? "";
 		}
 
-		public T CreateFromLines<T>( string title, string[] codeLines, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin ) where T: Script
+		public T CreateFromLines<T>( string title, string[] codeLines, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T: Script
 		{
 			//string? scriptClassName = GetScriptClassName( codeLines );
 			//if( string.IsNullOrEmpty( scriptClassName ) )
@@ -81,24 +82,24 @@ namespace Dirigent
 				throw new Exception($"Script not derived from AsyncScript class!");
 			}
 
-			SetupScript( script, title, args, ctrl, scriptOrigin );
+			SetupScript( script, title, args, ctrl, scriptOrigin, requestorId );
 			return script;
 		}
 
-		public T CreateFromFile<T>( string title, string fileName, byte[]? args, SynchronousIDirig ctrl ) where T:Script
+		public T CreateFromFile<T>( string title, string fileName, byte[]? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
 		{
 			var lines = File.ReadAllLines( fileName );
 
-			var script = CreateFromLines<T>( title, lines, args, ctrl, fileName );
+			var script = CreateFromLines<T>( title, lines, args, ctrl, fileName, requestorId );
 
 			return script;
 		}
 
-		public T CreateFromString<T>( Guid taskInstance, string id, string scriptCode, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin ) where T:Script
+		public T CreateFromString<T>( Guid taskInstance, string id, string scriptCode, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T:Script
 		{
 			var lines = Tools.ReadAllLinesFromString( scriptCode );
 
-			var script = CreateFromLines<T>( id, lines, args, ctrl, scriptOrigin );
+			var script = CreateFromLines<T>( id, lines, args, ctrl, scriptOrigin, requestorId );
 
 			return script;
 		}
@@ -132,18 +133,18 @@ namespace Dirigent
 		/// <param name="ctrl">WARNING must be a unique instance as each script modifies it</param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public T Create<T>( Guid taskInstance, string title, string scriptName, string? scriptRootFolder, string? scriptCode, byte[]? args, SynchronousIDirig ctrl ) where T:Script
+		public T Create<T>( Guid taskInstance, string title, string scriptName, string? scriptRootFolder, string? scriptCode, byte[]? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
 		{
 			T? script = TryBuiltIns( scriptName ) as T;
 			if( script != null )
 			{
-				SetupScript( script, title, args, ctrl, scriptName );
+				SetupScript( script, title, args, ctrl, scriptName, requestorId );
 				return script;
 			}
 				
 			if (!string.IsNullOrEmpty( scriptCode ))
 			{
-				script = CreateFromString<T>( taskInstance, title, scriptCode, args, ctrl, scriptName );
+				script = CreateFromString<T>( taskInstance, title, scriptCode, args, ctrl, scriptName, requestorId );
 			}
 			else
 			// code not provided
@@ -172,7 +173,7 @@ namespace Dirigent
 					fileName = fileName + ".cs";
 				}
 
-				script = CreateFromFile<T>( title, fileName, args, ctrl );
+				script = CreateFromFile<T>( title, fileName, args, ctrl, requestorId );
 			}
 			else
 			{

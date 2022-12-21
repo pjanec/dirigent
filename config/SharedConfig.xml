@@ -62,6 +62,12 @@
     	</App>
 
     	<App
+    	    AppIdTuple = "m1.CpuStres"
+    		ExeFullPath = "c:\utils\cpustres.exe"
+    		>
+    	</App>
+
+    	<App
     	    AppIdTuple = "m3.bash"
     		ExeFullPath = "/usr/bin/bash"
     		StartupDir = "%HOME%"
@@ -171,7 +177,7 @@
     <AppTemplate Name="apps.cmd.show_vars"
     		Template = "apps.cmd"
     		StartupDir = "c:\"
-    		CmdLineArgs = "/c &quot;set&amp;&amp;pause&quot;"
+    		CmdLineArgs = "/k &quot;set&amp;&amp;pause&quot;"
     />
 
     <Machine Name="m1">

@@ -12,7 +12,7 @@ namespace Dirigent
 	/// Maintains the current state of AppStates and PlanStates
 	/// as received from the master
 	/// </summary>
-	public class ReflectedStateRepo	: IDirig
+	public class ReflectedStateRepo	: Disposable, IDirig
 	{
 		public ClientState? GetClientState( string Id ) { if( _clientStates.TryGetValue(Id, out var x)) return x; else return null; }
 		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return _clientStates; }
@@ -20,21 +20,21 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
-		public ScriptState? GetScriptState( Guid Id ) { return _scripts.GetScriptState(Id); }
-		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scripts.GetAllScriptStates(); }
+		public ScriptState? GetScriptState( Guid Id ) { return _scriptReg.GetScriptState(Id); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scriptReg.GetAllScriptStates(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
-		public ScriptDef? GetScriptDef( Guid Id ) { return _scripts.ScriptDefs.Find((x) => x.Guid==Id); }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scripts.ScriptDefs; }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _scriptReg.ScriptDefs.Find((x) => x.Guid==Id); }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptReg.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineDefs; }
 		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
-		  => _scripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+		  => _scriptReg.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
 		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
 
 
@@ -53,6 +53,7 @@ namespace Dirigent
 		public Action? OnReset;
 
 		private Net.Client _client;
+		public Net.Client Client => _client;
 		private Dictionary<AppIdTuple, AppState> _appStates = new();
 		private Dictionary<string, ClientState> _clientStates = new();
 		public Dictionary<string, ClientState> ClientStates => _clientStates;
@@ -73,11 +74,11 @@ namespace Dirigent
 
 		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
 
-		private ReflectedScriptRegistry _scripts;
-		public ReflectedScriptRegistry Scripts => _scripts;
+		private ReflectedScriptRegistry _scriptReg;
+		public ReflectedScriptRegistry ScriptReg => _scriptReg;
 
 		private FileRegistry _fileReg;
-		public FileRegistry FileRegistry => _fileReg;
+		public FileRegistry FileReg => _fileReg;
 		SynchronousOpProcessor _syncOps;
 		SynchronousIDirig _syncIDirig;
 
@@ -94,7 +95,7 @@ namespace Dirigent
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 			
-			_scripts = new ReflectedScriptRegistry( this );
+			_scriptReg = new ReflectedScriptRegistry( this );
 
 			_fileReg = new FileRegistry( localMachineId, (string machineId) =>
 			{
@@ -104,6 +105,13 @@ namespace Dirigent
 				}
 				return null;
 			});
+		}
+
+		protected override void Dispose( bool disposing )
+		{
+			base.Dispose( disposing );
+			if( !disposing ) return;
+			_client.MessageReceived -= OnMessage;
 		}
 
 		void OnMessage( Net.Message msg )
@@ -182,13 +190,13 @@ namespace Dirigent
 
 				case Net.ScriptStateMessage m:
 				{
-					_scripts.UpdateScriptState( m.Instance, m.State );
+					_scriptReg.UpdateScriptState( m.Instance, m.State );
 					break;
 				}
 
 				case Net.ScriptDefsMessage m:
 				{
-					_scripts.SetScriptDefs( m.ScriptDefs, m.Incremental );
+					_scriptReg.SetScriptDefs( m.ScriptDefs, m.Incremental );
 					OnScriptsReceived?.Invoke();
 					break;
 				}
@@ -243,7 +251,7 @@ namespace Dirigent
 					_planDefs.Clear();
 					_appStates.Clear();
 					_planStates.Clear();
-					_scripts.Clear();
+					_scriptReg.Clear();
 					_machineDefs.Clear();
 					_fileReg.Clear();
 					OnReset?.Invoke();

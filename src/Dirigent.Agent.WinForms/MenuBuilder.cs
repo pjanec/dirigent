@@ -49,8 +49,8 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				vfsNodeDef.Actions,
 				async (action) => await WFT.GuardedOpAsync( async () => {
-						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
-						_core.ToolsRegistry.StartFileBoundAction( action, resolved ) ;
+						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, null, CancellationToken.None );
+						_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
 					}
 				)
 			);
@@ -64,8 +64,8 @@ namespace Dirigent.Gui.WinForms
 				GetMenuItemsFromActions(
 					fpack.Actions,
 					async (action) => await WFT.GuardedOpAsync( async () => {
-						var resolved = await ReflStates.FileRegistry.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
-						_core.ToolsRegistry.StartFilePackageBoundAction( action, resolved );
+						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, fpack, null, CancellationToken.None );
+						_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved );
 						}
 					)
 				)

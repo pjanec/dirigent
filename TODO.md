@@ -1,3 +1,15 @@
+[BUG] ReloadSharedConfig does not apply changes from shared config. AppIds do not change. Startup params do not change.
+
+[IDEA] Implement some tools as standard part of the Dirigent, always available. 
+
+[IDEA] Add json viewer as one of internal tools? Or better use Notepad++?
+
+[DONE] Script able to run a tool preconfigured in dirigent, passing parameters & values to the tool.
+
+[DONE] Pass app's process PID to the tools started in the context of an app. As an internal variable "APP_PID" evaluatable on the command line.
+
+[DONE] Let the script started in the context of an app (from app's context menu) know the PID of app's process. As "APP_PID" variable.
+
 [BUG] FileDef menu containing actions overwrites existing menu folder with same name (Shared Config [FileDef] -> Actions  overwrites Shared Config -> Reload)
 
 [BUG] FolderDef, when including content, fails with exception if one of the subfolders is inaccessible
@@ -6,15 +18,15 @@
 
 [TODO] Use Glob nuget for filtering file names. Stop using extra "Mask" attribute.
 
-[TODO] Monitor CPU GPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
+[DONE] Monitor CPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
 
-[TODO] Monitor memory, cpu, gpu usage per app. Add columns to the app grid.
+[DONE] Monitor memory, cpu, usage per app. Add columns to the app grid.
 
 [TODO] Script libraries - initialized form built-ins as well as by scanning script files.
 
 [BUG] icons show tooltip saying "Image"
 
-[IDEA] Add items to dirigent's tools menu via SharedConfigMenu
+[DONE] Add items to dirigent's tools menu via SharedConfigMenu
 
 [IDEA] Add "Install OpenSSH server" to Tools menu, setting up the SSH server on each computer where Dirigent is running. Define a Script in shared config that runs the powershell to download necessary files, distribute to machines etc. Define similar script to enable powershell remoting on all the machines. 
 
@@ -61,7 +73,7 @@
 
 [IDEA] Single selected plan from all GUIs (optional). Dirigent could be configured to distribute the Selected Plan to all its GUIs, meaning all GUIS will share the same selected plan. This might be useful for example for development purposes with multiple computers.
 
-[IDEA] Sharing the ClientState with Master. Disabled for now as sending it caused StackOverflof on deserialization of proto message on master when using many clients and huge SharedConfig.xml. Not sure what was the cause. Might be some timing/initialization issue related to protobuf deserialization??
+[DONE] Sharing the ClientState with Master. Disabled for now as sending it caused StackOverflof on deserialization of proto message on master when using many clients and huge SharedConfig.xml. Not sure what was the cause. Might be some timing/initialization issue related to protobuf deserialization??
 
 [IDEA] Tell the master about selecting a plan in the GUI using a new message PlanSelected. Master to update the app definitions to those from the plan (only if enabled, either by dirigent global setting, or individual plan setting...)
 

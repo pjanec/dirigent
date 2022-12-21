@@ -73,7 +73,7 @@ namespace Dirigent
 			}
 		}
 
-		public void Start( string scriptName, string? sourceCode, byte[]? args, string title )
+		public void Start( string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
 		{
 			// one runner can run max one script at a time
 			if( _script is not null ) // already started?
@@ -82,7 +82,7 @@ namespace Dirigent
 			_status = EScriptStatus.Starting;
 			SendStatus( new ScriptState(_status) );
 
-			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ) );
+			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ), requestorId );
 
 			Start( script, args );
 		}

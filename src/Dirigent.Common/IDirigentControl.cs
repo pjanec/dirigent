@@ -236,6 +236,5 @@ namespace Dirigent
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync();
 		Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 );
 		Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs );
-
 	}
 }

@@ -23,14 +23,14 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
-			=> _reflStates.Scripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
+			=> _reflStates.ScriptReg.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
 		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
-			=> _reflStates.FileRegistry.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
+			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
 
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;
 
-		private ProcessInfoRegistry _procInfoReg;
+		private ProcessInfoRegistry? _procInfoReg = null;
 		private LocalAppsRegistry _localApps;
 		private Net.ClientIdent _clientIdent; // name of the network client; messages are marked with that
 		private Net.Client _client;
@@ -53,11 +53,6 @@ namespace Dirigent
 		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
-
-		#if Windows
-		//PerformanceCounter _perfTotalCPU;
-		#endif		
-		
 
 		public Agent( string machineId, string masterIP, int masterPort, string rootForRelativePaths, string localCfgFileName )
 
@@ -99,12 +94,6 @@ namespace Dirigent
 
 			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps );
 			
-			#if Windows
-			//_perfTotalCPU = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-			#endif
-
-
-
 		}
 
 		protected override void Dispose(bool disposing)
@@ -112,7 +101,8 @@ namespace Dirigent
 			base.Dispose(disposing);
 			if( !disposing ) return;
 			
-			_procInfoReg.Dispose();
+			_procInfoReg?.Dispose();
+			_reflStates.Dispose();
 			_localScripts.Dispose();
 			_tickers.Dispose();
 			_client.Dispose();
@@ -122,7 +112,7 @@ namespace Dirigent
 		{
 			_client.Tick( OnMessage );
 
-			_procInfoReg.Tick();
+			_procInfoReg?.Tick();
 
 			_localApps.Tick();
 
@@ -247,7 +237,7 @@ namespace Dirigent
 
 				case Net.StartScriptMessage m:
 				{
-					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title );
+					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
 					break;
 				}
 
@@ -412,10 +402,9 @@ namespace Dirigent
 		MachineState GetMachineState()
 		{
 			#if Windows
-			//var cpu = _perfTotalCPU.NextValue();
 			return new MachineState()
 			{
-				//CPU = cpu,
+				CPU = _procInfoReg?.GetTotalCpuUsage() ?? 0.0f,
 				MemoryAvailMB = WinApi.PerformanceInfo.GetPhysicalAvailableMemoryInMiB(),
 				MemoryTotalMB = WinApi.PerformanceInfo.GetTotalMemoryInMiB()
 			};

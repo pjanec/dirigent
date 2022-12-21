@@ -67,6 +67,7 @@ namespace Dirigent.Gui
 			_reflStates.OnAppsReceived -= _appTreeRenderer.Reset;
 			_reflStates.OnPlansReceived -= _planTreeRenderer.Reset;
 			_reflStates.OnScriptsReceived -= _scriptTreeRenderer.Reset;
+			_reflStates.Dispose();
 		}
 
 		Dictionary<string, ClientRenderer> _clientRenderers = new();

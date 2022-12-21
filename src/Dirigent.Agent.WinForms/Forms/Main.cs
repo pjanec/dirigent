@@ -623,7 +623,7 @@ namespace Dirigent.Gui.WinForms
 
 			foreach( var item in _core.ReflStates.MenuItems )
 			{
-				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( x, _core.MachineId ));
+				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, x, _core.MachineId ));
 				tree.InsertNode( item.Title, false, menuItem, null);
 				
 			}

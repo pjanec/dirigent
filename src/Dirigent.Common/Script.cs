@@ -37,6 +37,11 @@ namespace Dirigent
 		public byte[]? Args { get; set; }
 
 		/// <summary>
+		/// Who wanted this script to run
+		/// </summary>
+		public string Requestor { get; set; } = string.Empty;
+
+		/// <summary>
 		/// Tries to deserialize the script arguments from the Args property.
 		/// </summary>
 		/// <returns>true if succeeded</returns>
@@ -125,5 +130,6 @@ namespace Dirigent
 		protected Task KillPlan( string id ) => Dirig.SendAsync( new Net.KillPlanMessage( string.Empty, id ) );
 		protected Task<PlanState?> GetPlanState( string id ) => Dirig.GetPlanStateAsync( id );
 		protected Task<ClientState?> GetClientState( string id ) => Dirig.GetClientStateAsync( id );
+		protected Task RunAction( string requestorId, ActionDef actionDef, string hostClientId, Dictionary<string,string>? vars=null ) => Dirig.SendAsync( new Net.RunActionMessage( requestorId, actionDef, hostClientId, vars ) );
 	}
 }

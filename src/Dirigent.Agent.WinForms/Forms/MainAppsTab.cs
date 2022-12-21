@@ -530,7 +530,7 @@ namespace Dirigent.Gui.WinForms
 							if (string.IsNullOrEmpty( title )) title = action.Name;
 							var item = new ToolStripMenuItem( title );
 							item.Click += ( s, a ) => WFT.GuardedOp( () => {
-									_core.ToolsRegistry.StartAppBoundAction( action, appDef ) ;
+									_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef ) ;
 								}
 							);
 							toolsMenu.DropDownItems.Add( item );
@@ -643,8 +643,8 @@ namespace Dirigent.Gui.WinForms
 			var st = ReflStates.GetAppState( appIdTuple );
 			if ( st == null || !st.Running )
 			{
-				dr.SetField( colCPU, "N/A" );
-				dr.SetField( colMemory, "N/A" );
+				dr.SetField( colCPU, "" );
+				dr.SetField( colMemory, "" );
 			}
 			else
 			{

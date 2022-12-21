@@ -140,8 +140,8 @@ namespace Dirigent.Gui.WinForms
 				
 				if( st == null )
 				{
-					dr.SetField( colCPU, "N/A" );
-					dr.SetField( colMemory, "N/A" );
+					dr.SetField( colCPU, "" );
+					dr.SetField( colMemory, "" );
 				}
 				else
 				{
@@ -274,7 +274,7 @@ namespace Dirigent.Gui.WinForms
 									if (string.IsNullOrEmpty( title )) title = action.Name;
 									var item = new System.Windows.Forms.ToolStripMenuItem( title );
 									item.Click += ( s, a ) => WFT.GuardedOp( () => {
-											_core.ToolsRegistry.StartMachineBoundAction( action, machDef ) ;
+											_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef ) ;
 										}
 									);
 									toolsMenu.DropDownItems.Add( item );

@@ -82,7 +82,7 @@ namespace Dirigent
 			_scripts.Remove( entry.Instance );
 		}
 
-		public void Start( Guid instance, string scriptName, string? sourceCode, byte[]? args, string title )
+		public void Start( Guid instance, string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
 		{
 			if( _scripts.TryGetValue( instance, out var entry ) )
 			{
@@ -100,7 +100,7 @@ namespace Dirigent
 			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance );
 			_scripts.Add( instance, entry );
 
-			entry.Start( scriptName, sourceCode, args, title );
+			entry.Start( scriptName, sourceCode, args, title, requestorId );
 		}
 
 		public void Stop( Guid instance )
@@ -142,9 +142,9 @@ namespace Dirigent
 				Runner.Dispose();
 			}
 
-			public void Start( string scriptName, string? sourceCode, byte[]? args, string title )
+			public void Start( string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
 			{
-				Runner.Start( scriptName, sourceCode, args, title );
+				Runner.Start( scriptName, sourceCode, args, title, requestorId );
 			}
 
 			public void Stop()

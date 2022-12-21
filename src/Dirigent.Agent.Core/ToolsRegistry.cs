@@ -34,7 +34,7 @@ namespace Dirigent
 	/// Tools are defined in LocalConfig. They can be bound to (started with reference to) an app, machine or file/package.
 	/// Each tool app can be started multiple times, once for each resource the tool is bound to.
 	/// </remarks>
-	public class ToolsRegistry
+	public class ToolsRegistry : Disposable
 	{
         private SharedContext _sharedContext;
 
@@ -46,24 +46,49 @@ namespace Dirigent
 
 		FileRegistry _fileReg;
 		ReflectedScriptRegistry _reflScriptReg;
+		ReflectedStateRepo _reflStates;
 
-		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolDefs, FileRegistry fileRegistry, ReflectedScriptRegistry reflScriptReg )
+		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolDefs, ReflectedStateRepo reflStates )
 		{
 			_sharedContext = shCtx;
 			_defs = toolDefs.ToDictionary( x => x.Id.AppId ); // toolId is stored as the AppId
-			_fileReg = fileRegistry;
-			_reflScriptReg = reflScriptReg;
+			_fileReg = reflStates.FileReg;
+			_reflScriptReg = reflStates.ScriptReg;
+			_reflStates = reflStates;
+			_reflStates.Client.MessageReceived += OnMessage;
 		}
 
-		public void StartAction( ActionDef action, Dictionary<string,string>? vars=null )
+		protected override void Dispose( bool disposing )
+		{
+			base.Dispose( disposing );
+			if (!disposing) return;
+			_reflStates.Client.MessageReceived -= OnMessage;
+		}
+
+		void OnMessage( Net.Message msg )
+		{
+			switch( msg )
+			{
+				case Net.RunActionMessage m:
+				{
+					if( m.HostClientId == _reflStates.Client.Ident.Name ) // for us?
+					{
+						StartAction( m.Requestor, m.Def!, m.Vars );
+					}
+					break;
+				}
+			}
+		}
+		
+		public void StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null )
 		{
 			if (action is ToolActionDef toolAction)
 			{
-				StartTool( toolAction, vars );
+				StartTool( requestorId, toolAction, vars );
 			}
 			else if (action is ScriptActionDef scriptAction)
 			{
-				StartScript( scriptAction, vars );
+				StartScript( requestorId, scriptAction, vars );
 			}
 			else
 			{
@@ -71,7 +96,7 @@ namespace Dirigent
 			}
 		}
 
-		public void StartTool( ToolActionDef tool, Dictionary<string,string>? vars=null )
+		public void StartTool( string? requestorId, ToolActionDef tool, Dictionary<string,string>? vars=null )
 		{
 			if(! _defs.TryGetValue( tool.Name, out var toolAppDef ) )
 				throw new Exception( $"Tool '{tool}' not available" );
@@ -103,7 +128,7 @@ namespace Dirigent
 
 		}
 
-		public void StartScript( ScriptActionDef script, Dictionary<string,string>? vars=null )
+		public void StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null )
 		{
 			//var argsString = vars != null ? Tools.ExpandEnvAndInternalVars( script.Args, vars ) : script.Args;
 			var argsString = script.Args; // we don't expand the vars here, we pass them to the script as a dictionary so they can be expanded there, on the hosting machine
@@ -116,50 +141,51 @@ namespace Dirigent
 			_reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
 		}
 
-		public void StartAppBoundAction( ActionDef action, AppDef boundTo )
+		public void StartAppBoundAction( string? requestorId, ActionDef action, AppDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()
 			{
-				{ "APP_IDTUPLE", boundTo.Id.ToString() },
 				{ "MACHINE_ID", boundTo.Id.MachineId },
 				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id.MachineId, $"action {action}" ) },
+				{ "APP_IDTUPLE", boundTo.Id.ToString() },
 				{ "APP_ID", boundTo.Id.AppId },
+				{ "APP_PID", (_reflStates.GetAppState(boundTo.Id)?.PID ?? -1).ToString() },
 				// TODO: resolve app workdir etc. on app's-local computer?
 			};
-			StartAction( action, vars );
+			StartAction( requestorId, action, vars );
 		}
 		
-		public void StartMachineBoundAction( ActionDef action, string localMachineId )
+		public void StartMachineBoundAction( string requestorId, ActionDef action, string localMachineId )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", localMachineId },
 				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId, $"action {action}" ) },
 			};
-			StartAction( action, vars );
+			StartAction( requestorId, action, vars );
 		}
 
-		public void StartMachineBoundAction( ActionDef action, MachineDef boundTo )
+		public void StartMachineBoundAction( string requestorId, ActionDef action, MachineDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id },
 				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id, $"action {action}" ) },
 			};
-			StartAction( action, vars );
+			StartAction( requestorId, action, vars );
 		}
 
-		public void StartFileBoundAction( ActionDef action, VfsNodeDef boundTo )
+		public void StartFileBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
 				{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
 			};
-			StartAction( action, vars );
+			StartAction( requestorId, action, vars );
 		}
 
-		public void StartFilePackageBoundAction( ActionDef action, VfsNodeDef boundTo )
+		public void StartFilePackageBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
 		{
 			// FIXME: generate package content description file to a temp folder and put its full name to the vars
 			var vars = new Dictionary<string,string>()
@@ -167,7 +193,7 @@ namespace Dirigent
 				//{ "FILE_ID", boundTo.Id },
 				//{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
 			};
-			StartAction( action, vars );
+			StartAction( requestorId, action, vars );
 		}
 
 		public void Tick()

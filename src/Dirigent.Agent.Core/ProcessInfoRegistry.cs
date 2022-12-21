@@ -16,39 +16,29 @@ namespace Dirigent
         public int PID;
 		public UInt64 PercentProcessorTime;
         public UInt64 WorkingSetPrivate;
-		public UInt64 TimeStamp_Sys100NS;
 		public float CPU; // percent of CPU usage
 	}
 
 
 	/// <summary>
 	/// Gather some info about running processes.
-	/// Updated asynchronously to avoid blocking the querying thread.
-	/// Warning: the update is taking a lot of CPU as it scans all processes!
+	/// Updated asynchronously in separate thread to avoid blocking the querying thread.
+	/// Warning: each update is taking long time as it scans all processes!
 	/// </summary>
 	public class ProcessInfoRegistry : Disposable
 	{
-		const double UPDATE_PERIOD = 3.0; // do not update frequently, takes a lot of CPU
-
-		DateTime _timeStamp_Prev;
-		Dictionary<int, ProcessInfo> _processInfosPrev = new();
-		Dictionary<int, ProcessInfo> _processInfos = new();
+		const double UPDATE_PERIOD = 3.0; // do not update too often, takes a lot of CPU
 		CancellationTokenSource _cts; 
-		Task _updateTask;
-		//Clock _clock;
 		Thread _thread;
 
-
-		//PerformanceCounter _perfTotalCPU = new PerformanceCounter("Process", "% Processor Time", "_Total");
-
+		Dictionary<int, ProcessInfo> _processInfos = new();
+		float _totalCpuUsage = 0; // percents
 
 		public ProcessInfoRegistry()
 		{
 			_cts = new CancellationTokenSource();
-			//_updateTask = Task.Run( UpdateLoop, _cts.Token );
 			_thread = new Thread( new ThreadStart( UpdateLoop ) );
 			_thread.Start();
-			//_clock = new Clock();
 		}
 
 		protected override void Dispose( bool disposing )
@@ -57,7 +47,6 @@ namespace Dirigent
 			if (!disposing) return;
 
 			_cts.Cancel();
-			//_updateTask?.Wait();
 			_thread?.Join();
 		}
 
@@ -77,30 +66,24 @@ namespace Dirigent
 			}
 		}
 
-		async Task UpdateTask()
+		public float GetTotalCpuUsage()
 		{
-			try
+			lock(this)
 			{
-				while( !_cts.IsCancellationRequested )
-				{
-					Update();
-					await Task.Delay( (int)(UPDATE_PERIOD * 1000), _cts.Token );
-				}
-			}
-			catch (TaskCanceledException)
-			{
-				// ok
+				return _totalCpuUsage;
 			}
 		}
-		
+
 		void UpdateLoop()
 		{
 			while( !_cts.IsCancellationRequested )
 			{
 				Update();
-				for(int i=0; i < UPDATE_PERIOD/1000; i++ )
+
+				const double sleepTimeSec = 0.1;
+				for (int i=0; i < UPDATE_PERIOD/sleepTimeSec; i++ )
 				{
-					Thread.Sleep( 1000 );
+					Thread.Sleep( (int)(sleepTimeSec*1000) );
 					if (_cts.IsCancellationRequested) break;
 				}
 			}
@@ -113,53 +96,39 @@ namespace Dirigent
 			// (part of https://stackoverflow.com/questions/11523150/how-do-you-monitor-the-cpu-utilization-of-a-process-using-powershell)
 			
 			var processInfos = new Dictionary<int, ProcessInfo>();
-			var now = DateTime.Now;
 
-			double timeDelta100ns = (now - _timeStamp_Prev).TotalSeconds * 10e7;
-
-			//var totalCpuVal = _perfTotalCPU.NextValue();
-
-			using (var items = new ManagementObjectSearcher( String.Format( "Select PercentProcessorTime, TimeStamp_Sys100NS, WorkingSetPrivate, IDProcess From Win32_PerfFormattedData_PerfProc_Process" ) ).Get())
+			float totalCpu = 0;
+			
+			using (var items = new ManagementObjectSearcher( String.Format( "Select PercentProcessorTime, WorkingSetPrivate, IDProcess From Win32_PerfFormattedData_PerfProc_Process" ) ).Get())
 			{
 				foreach (var item in items)
 				{
 					var pi = new ProcessInfo();
 					pi.PID = (int)((UInt32)item["IDProcess"]);
 					pi.PercentProcessorTime = (UInt64)item["PercentProcessorTime"];
-					//pi.TimeStamp_Sys100NS = (UInt64)item["TimeStamp_Sys100NS"];
-					pi.CPU = (float)((double)pi.PercentProcessorTime/Environment.ProcessorCount)*100;
+					pi.CPU = (float)pi.PercentProcessorTime/Environment.ProcessorCount;
 					pi.WorkingSetPrivate = (UInt64)item["WorkingSetPrivate"];
 					processInfos[pi.PID] = pi;
 
-					//// find delta from last call
-					//if (_processInfos.TryGetValue( pi.PID, out var piPrev ))
-					//{
-					//	//var procDelta = piPrev.PercentProcessorTime - pi.PercentProcessorTime;
-					//	var timeDelta = pi.TimeStamp_Sys100NS - piPrev.TimeStamp_Sys100NS;
-					//	pi.CPU = (float)((double)procDelta/timeDelta/Environment.ProcessorCount)*100;
-					//}
-					//else
-					//{
-					//	pi.CPU = -1;
-					//}
-					
-
+					if( pi.PID >= 8 )  // processes under 8 are various system/idle processes
+					{
+						totalCpu += pi.CPU;
+					}
 				}
 			}
 
 			// replace the shared info with new
 			lock (this)
 			{
-				_timeStamp_Prev = now;
-				_processInfosPrev = _processInfos;
 				_processInfos = processInfos;
+				_totalCpuUsage = totalCpu;
 			}
 		#endif
 		}
 
 		public void Tick()
 		{
-			// no need, we are updating asynchronously via recurring task
+			// no need, we are updating asynchronously in separate thread
 		}
 
 	}
