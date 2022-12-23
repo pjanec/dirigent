@@ -45,9 +45,9 @@ namespace Dirigent
 			// process also on master
 			ProcessIncomingMessageAndHandleExceptions( msg );
 		}
-		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
-			=> _reflScripts.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
-		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
+		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
+			=> _reflScripts.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
 		{
 			//// if node not associated with any machine, resolve on master's machine
 			//if( string.IsNullOrEmpty(nodeDef.MachineId) )
@@ -55,7 +55,7 @@ namespace Dirigent
 			//	nodeDef = Tools.Clone( nodeDef )!;
 			//	nodeDef.MachineId = _machineId;	
 			//}
-			return _files.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
+			return _files.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
 		}
 					
 		#endregion
@@ -112,7 +112,7 @@ namespace Dirigent
 
 			_rootForRelativePaths = rootForRelativePaths;
 
-			ScriptFactory = new ScriptFactory();
+			ScriptFactory = new ScriptFactory( rootForRelativePaths );
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
@@ -386,6 +386,16 @@ namespace Dirigent
 					if( !string.IsNullOrEmpty( m.Requestor ) )
 					{
 						_server.SendToSingle( m, m.Requestor );
+					}
+					break;
+				}
+
+				case UserNotificationMessage m:
+				{
+					// forward
+					if( !string.IsNullOrEmpty( m.HostClientId ) )
+					{
+						_server.SendToSingle( m, m.HostClientId );
 					}
 					break;
 				}

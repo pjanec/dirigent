@@ -19,33 +19,6 @@ namespace Dirigent
 		Cancelled,
 	}
 
-	[MessagePack.MessagePackObject]
-	public class ScriptException : Exception
-	{
-		[MessagePack.Key( 1 )]
-		public override string Message { get; }
-
-		[MessagePack.Key( 2 )]
-		public override string? StackTrace { get; }
-
-		public ScriptException()
-		{
-			Message = "";
-			StackTrace = null;
-		}
-
-		public ScriptException( Exception ex )
-		{
-			Message = ex.Message;
-			StackTrace = ex.StackTrace;
-		}
-
-		public ScriptException( string message, string? stackTrace )
-		{
-			Message = message;
-			StackTrace = stackTrace;
-		}
-	}
 
 
 	[MessagePack.MessagePackObject]
@@ -61,7 +34,7 @@ namespace Dirigent
 		/// Script status info
 		/// If status == Running, it is the progress info (script-specific format, usually some serialized struct).
 		/// If status == Finished, it is the result (script-specific format, usually some serialized struct).
-		/// If status == Failed, it is the instance of ScriptError (serialized).
+		/// If status == Failed, it is the instance of SerializedException (serialized).
 		/// </summary>
 		[MessagePack.Key( 3 )]
 		public byte[]? Data = null;

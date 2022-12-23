@@ -52,6 +52,7 @@ namespace Dirigent.Net
 	[MessagePack.Union( 138, typeof( ScriptStateMessage ) )]
 	[MessagePack.Union( 139, typeof( MachineStateMessage ) )]
 	[MessagePack.Union( 140, typeof( RunActionMessage ) )]
+	[MessagePack.Union( 141, typeof( UserNotificationMessage ) )]
 
 
 
@@ -1183,4 +1184,71 @@ namespace Dirigent.Net
 
 	}
 
+	/// <summary>
+	/// We want the user on given client to be notified about something
+	/// </summary>
+	[MessagePack.MessagePackObject]
+	public class UserNotificationMessage : Message
+	{
+		public enum ECategory
+		{
+			Info,
+			Warning,
+			Error,
+		}
+
+		public enum EPresentationType
+		{
+			Default,
+			MessageBox,
+			BalloonTip,
+		}
+
+
+		/// <summary>
+		/// Where to show the notification
+		/// </summary>
+		[MessagePack.Key( 1 )]
+		public string HostClientId = string.Empty;
+
+		/// <summary>
+		/// Categiry of the message
+		/// </summary>
+		[MessagePack.Key( 2 )]
+		public ECategory Category = ECategory.Info;
+
+		/// <summary>
+		/// Catogiry of the message
+		/// </summary>
+		[MessagePack.Key( 3 )]
+		public EPresentationType PresentationType = EPresentationType.Default;
+
+		/// <summary>
+		/// Title of the message
+		/// </summary>
+		[MessagePack.Key( 4 )]
+		public string? Title;
+
+		/// <summary>
+		/// Message to show
+		/// </summary>
+		[MessagePack.Key( 5 )]
+		public string Message = string.Empty;
+
+		/// <summary>
+		/// What action to run if the user clicks on the notification
+		/// </summary>
+		[MessagePack.Key( 6 )]
+		public ActionDef? Action;
+
+
+		[MessagePack.Key( 7 )]
+		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
+
+		/// <summary>
+		/// How long to keep the mesage displayed in seconds (0=default)
+		/// </summary>
+		[MessagePack.Key( 8 )]
+		public double Timeout;
+	}
 }

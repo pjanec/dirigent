@@ -21,6 +21,34 @@
 
             <Folder Title="my folder" Path="D:\TEMP\BIST"/>
 
+        	<FilePackage Id="pack_m1">
+        	    <!-- reference to machine-specific file-->
+        	    <FileRef Id="Greetings"/>
+        	    <!-- reference to application-specific file-->
+        	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
+        	    <!-- direct definition of independent file using UNC path-->
+           	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
+
+        	    <Tool Title="Browse files in package" Name="FileCmd" CmdLineArgs="%PACKAGE_LIST_FILE%"/>
+
+        	    <!-- real folder in the filesystem using glob-style globbing; empty mask means "**"-->
+        	    <Folder Id="fold1" Path="D:\TEMP" Mask="**/logs/**/*.{log,txt}" />
+
+        	    <!-- virtual folder is just like a sub-package containing real files, real folders, or virtual subfolders -->
+        	    <VFolder Id="vfold1">
+                    <File Id="global3" Path="\\server\share\path\to\file.txt"/>
+            	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
+            	    <Folder Id="fold2" Path="D:\TEMP" />
+            	    <VFolder Id="vsubfold2">
+            	        <!-- resolves to the tree of files/filerefs/folders/vfolders provided by given script -->
+            	        <ScriptedContent Script="PackageScripts/Test1" Args=""/>
+
+                    	<File Id="inPackFile" Path="\\server\TEMP\file.txt"/>
+            	    </VFolder>
+        	    </VFolder>
+
+            </FilePackage>
+
     	</App>
 
     	<App
@@ -183,7 +211,7 @@
     <Machine Name="m1">
         <Share Name="C" Path="C:\"/>
         <Share Name="D$" Path="d:\"/>
-        <File Id="Greetings file" Path="%USERPROFILE%\Documents\Greetings.txt">
+        <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt">
           <Tool Title="Open in Notepad" Name="Notepad" />
         </File>
         <File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest">
@@ -240,8 +268,11 @@
 
     	<FilePackage Id="appFilePack">
     	    <!-- reference to machine-specific file-->
-    	    <FileRef Id="Greetings" Machine="m1" />
+    	    <FileRef Id="Greetings" MachineId="m1" AppId="" />
 
+            <Folder Title="Books folder" Path="%USERPROFILE%\Documents\Books">
+              <Tool Title="Open in Explorer" Name="Explorer"/>
+            </Folder>
     	    <!-- reference to file defined within another app -->
     	    <FileRef Id="xxx" AppIdTuple="m1.a" />
 
@@ -299,6 +330,7 @@
         <!-- Tools appear in the file's context menu -->
         <Tool Title="Notepad++" Name="Notepad" />
 	</File>
+
 
 	<!-- This is a default item which does not need to be defined explicitly unless you need some special tools for it;
 	     the path is provided automatically -->

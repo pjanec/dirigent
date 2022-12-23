@@ -185,7 +185,7 @@ namespace Dirigent
 				{
 					_status = EScriptStatus.Failed;
 					state.Status = _status;
-					state.Data = Tools.Serialize( new ScriptException( ex ) );
+					state.Data = Tools.Serialize( new SerializedException( ex ) );
 				}
 				await SendStatusAsync( state );
 			}

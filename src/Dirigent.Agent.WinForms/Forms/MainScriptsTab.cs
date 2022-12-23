@@ -156,8 +156,8 @@ namespace Dirigent.Gui.WinForms
 					else
 					if (scriptState.Status == EScriptStatus.Failed)
 					{
-						var scriptError = Tools.Deserialize<ScriptException>( scriptState.Data );
-						statusText += "; " + scriptError.Message;
+						var scriptExcept = Tools.Deserialize<SerializedException>( scriptState.Data );
+						statusText += "; " + scriptExcept.Message;
 					}
 					
 

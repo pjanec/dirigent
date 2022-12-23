@@ -46,12 +46,13 @@ namespace Dirigent.Gui.WinForms
 		public SynchronousOpProcessor SyncOps { get; private set; }
 		private LocalScriptRegistry _localScripts;
 
-		public Action<Net.Message> IncomingMessage;
+		//public Action<Net.Message> IncomingMessage;
 
 
 		public GuiCore(
 			AppConfig ac,
-			string machineId // empty if no local agent was started with the GUI
+			string machineId, // empty if no local agent was started with the GUI
+			string rootForRelativePaths
 		)
 		{
 			_ac = ac;
@@ -76,7 +77,7 @@ namespace Dirigent.Gui.WinForms
 			// load tools from local config
 			InitFromLocalConfig( machineId );			
 
-			ScriptFactory = new ScriptFactory();
+			ScriptFactory = new ScriptFactory( rootForRelativePaths );
 			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps );
 			
 			bool firstGotPlans = true;
@@ -145,7 +146,10 @@ namespace Dirigent.Gui.WinForms
 			{
 				case Net.StartScriptMessage m:
 				{
-					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
+					if( m.HostClientId == Client.Ident.Name )					 // FIXME: this should not be needed, we should receive just messages for us!!
+					{
+						_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
+					}
 					break;
 				}
 

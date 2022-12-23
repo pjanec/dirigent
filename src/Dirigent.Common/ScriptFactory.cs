@@ -16,8 +16,11 @@ namespace Dirigent
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		
 
-		public ScriptFactory()
+		string _scriptRootFolder;
+
+		public ScriptFactory( string scriptRootFolder )
 		{
+			_scriptRootFolder = scriptRootFolder;
 		}
 
 		//private static string? GetScriptClassName( string[] scriptLines )
@@ -110,12 +113,10 @@ namespace Dirigent
 				return new DemoScript1();
 			if( scriptName == Scripts.BuiltIn.ResolveVfsPath._Name )
 				return new Scripts.BuiltIn.ResolveVfsPath();
-			//if( scriptName == "BuiltIns/DownloadFileZipped/Controller" )
-			//	return new Scripts.DownloadFileZipped.Controller();
-			//if( scriptName == "BuiltIns/DownloadFileZipped/Worker" )
-			//	return new Scripts.DownloadFileZipped.Worker();
-			//if( scriptName == Scripts.ResolveVfsTree.Controller._Name )
-			//	return new Scripts.ResolveVfsTree.Controller();
+			if( scriptName == Scripts.BuiltIn.DownloadZipped._Name )
+				return new Scripts.BuiltIn.DownloadZipped();
+			if( scriptName == Scripts.BuiltIn.DownloadZippedSlave._Name )
+				return new Scripts.BuiltIn.DownloadZippedSlave();
 
 			return null;				
 		}

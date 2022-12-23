@@ -21,7 +21,7 @@ namespace Dirigent.Gui.WinForms
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod().DeclaringType );
 
-		private NotifyIcon _notifyIcon;
+		private NotifyIconHandler _notifyIconHandler;
 
 		public System.ComponentModel.IContainer Components => components;
 
@@ -47,13 +47,14 @@ namespace Dirigent.Gui.WinForms
 
 		public frmMain(
 			AppConfig ac,
-			NotifyIcon notifyIcon,
-			string machineId // empty if no local agent was started with the GUI
+			NotifyIconHandler Handler,
+			string machineId, // empty if no local agent was started with the GUI
+			string rootForRelativePaths
 		)
 		{
-			_core = new GuiCore( ac, machineId );
+			_core = new GuiCore( ac, machineId, rootForRelativePaths );
 		
-			_notifyIcon = notifyIcon;
+			_notifyIconHandler = Handler;
 
 			InitializeComponent();
 
@@ -86,13 +87,13 @@ namespace Dirigent.Gui.WinForms
 
 			_menuBuilder = new MenuBuilder( _core );
 
-			_core.IncomingMessage += OnMessage;
+			_core.Client.MessageReceived += OnMessage;
 
 		}
 
 		void myDispose()
 		{
-			_core.IncomingMessage -= OnMessage;
+			_core.Client.MessageReceived -= OnMessage;
 
 			tmrTick.Enabled = false;
 
@@ -108,7 +109,56 @@ namespace Dirigent.Gui.WinForms
 					MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 					break;
 				}
-				// note: ScriptStateMessage handling is done in ReflectedStateRepo
+
+				case Net.UserNotificationMessage m:
+				{
+					var title = string.IsNullOrEmpty(m.Title) ? "Dirigent" : $"Dirigent - {m.Title}";
+					
+					if (m.PresentationType == Net.UserNotificationMessage.EPresentationType.MessageBox)
+					{
+						MessageBoxIcon icon = m.Category switch
+						{
+							Net.UserNotificationMessage.ECategory.Info => MessageBoxIcon.Information,
+							Net.UserNotificationMessage.ECategory.Warning => MessageBoxIcon.Warning,
+							Net.UserNotificationMessage.ECategory.Error => MessageBoxIcon.Error,
+							_ => throw new Exception( "Unknown notification category" )
+						};
+
+						MessageBoxButtons btns = MessageBoxButtons.OK;
+						if (m.Action != null) btns = MessageBoxButtons.OKCancel;
+
+						var dlgres = MessageBox.Show( m.Message, title, btns, icon );
+						if( m.Action != null && dlgres == DialogResult.OK )
+						{
+							Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) );
+						}
+					}
+					else if (m.PresentationType == Net.UserNotificationMessage.EPresentationType.BalloonTip)
+					{
+						ToolTipIcon icon = m.Category switch
+						{
+							Net.UserNotificationMessage.ECategory.Info => ToolTipIcon.Info,
+							Net.UserNotificationMessage.ECategory.Warning => ToolTipIcon.Warning,
+							Net.UserNotificationMessage.ECategory.Error => ToolTipIcon.Error,
+							_ => throw new Exception( "Unknown notification category" )
+						};
+						
+						Action onClick = m.Action != null
+							? () => Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) )
+							: null;
+
+						int timeout = m.Timeout > 0 ? (int)(m.Timeout*1000) : 5000;
+
+						_notifyIconHandler.ShowBalloonTip( timeout, title, m.Message, icon, onClick );
+					}
+					else
+					{
+						throw new Exception( "Unknown notification presentation type" );
+					}
+					break;
+				}
+
+				// note: other messages are handled is done in ReflectedStateRepo...
 			}
 		}
 		
@@ -126,9 +176,9 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			this.Text = string.Format( "Dirigent [{0}] - {1}", _core.MachineId, planName );
-			if( this._notifyIcon != null )
+			if( this._notifyIconHandler != null )
 			{
-				this._notifyIcon.Text = string.Format( "Dirigent [{0}] - {1}", _core.MachineId, planName );
+				this._notifyIconHandler.Text = string.Format( "Dirigent [{0}] - {1}", _core.MachineId, planName );
 			}
 
 		}
@@ -136,7 +186,7 @@ namespace Dirigent.Gui.WinForms
 
 		private void handleOperationError( Exception ex )
 		{
-			this._notifyIcon.ShowBalloonTip( 5000, "Dirigent Operation Error", ex.Message, ToolTipIcon.Error );
+			this._notifyIconHandler.ShowBalloonTip( 5000, "Dirigent Operation Error", ex.Message, ToolTipIcon.Error );
 			log.ErrorFormat( "Exception: {0}\n{1}", ex.Message, ex.StackTrace );
 		}
 
@@ -287,7 +337,7 @@ namespace Dirigent.Gui.WinForms
 					if( i < plans.Count )
 					{
 						var planName = plans[i].Name;
-						this._notifyIcon.ShowBalloonTip( 1000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
+						this._notifyIconHandler.ShowBalloonTip( 5000, String.Format( "{0}", planName ), " ", ToolTipIcon.Info );
 						_core.SelectPlan( planName );
 					}
 					break;

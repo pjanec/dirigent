@@ -6,26 +6,6 @@ using System.Threading.Tasks;
 
 namespace Dirigent
 {
-	/// <summary>
-	/// Arguments passed to the script called as a result of user clicking the script-based action menu item.
-	/// </summary>
-	[MessagePack.MessagePackObject]
-	public class TScriptActionArgs
-	{
-		/// <summary>
-		/// Generic string arguments as defined by the ScriptActionDef.Args.
-		/// </summary>
-		[MessagePack.Key( 1 )]
-		public string? Args;
-		
-		/// <summary>
-		/// Variables associated with the item (file, app, etc.)
-		/// </summary>
-		[MessagePack.Key( 2 )]
-		public Dictionary<string, string>? Vars;
-	}
-
-
 
 	/// <summary>
 	/// Handles tool app instances on a client (usually a GUI as tools are invoked interactively by the users from dirigent's UI)
@@ -51,7 +31,7 @@ namespace Dirigent
 		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolDefs, ReflectedStateRepo reflStates )
 		{
 			_sharedContext = shCtx;
-			_defs = toolDefs.ToDictionary( x => x.Id.AppId ); // toolId is stored as the AppId
+			_defs = new( toolDefs.ToDictionary( x => x.Id.AppId ), StringComparer.OrdinalIgnoreCase); // toolId is stored as the AppId
 			_fileReg = reflStates.FileReg;
 			_reflScriptReg = reflStates.ScriptReg;
 			_reflStates = reflStates;
@@ -80,7 +60,7 @@ namespace Dirigent
 			}
 		}
 		
-		public void StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null )
+		public void StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNode=null )
 		{
 			if (action is ToolActionDef toolAction)
 			{
@@ -88,7 +68,7 @@ namespace Dirigent
 			}
 			else if (action is ScriptActionDef scriptAction)
 			{
-				StartScript( requestorId, scriptAction, vars );
+				StartScript( requestorId, scriptAction, vars, vfsNode );
 			}
 			else
 			{
@@ -128,14 +108,15 @@ namespace Dirigent
 
 		}
 
-		public void StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null )
+		public void StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNodeDef=null )
 		{
 			//var argsString = vars != null ? Tools.ExpandEnvAndInternalVars( script.Args, vars ) : script.Args;
-			var argsString = script.Args; // we don't expand the vars here, we pass them to the script as a dictionary so they can be expanded there, on the hosting machine
-			var args = new TScriptActionArgs
+			var argsString = script.Args; // we don't expand the vars here, we pass them to the script as a dictionary so they can be expanded on the hosting machine
+			var args = new ScriptActionArgs
 			{
 				Args = argsString,
-				Vars = vars
+				Vars = vars,
+				VfsNode = vfsNodeDef,
 			};
 
 			_reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
@@ -180,9 +161,9 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
-				{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
+				{ "FILE_PATH", _fileReg.GetFilePath( boundTo, false ) },
 			};
-			StartAction( requestorId, action, vars );
+			StartAction( requestorId, action, vars, boundTo );
 		}
 
 		public void StartFilePackageBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
@@ -193,7 +174,7 @@ namespace Dirigent
 				//{ "FILE_ID", boundTo.Id },
 				//{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
 			};
-			StartAction( requestorId, action, vars );
+			StartAction( requestorId, action, vars, boundTo );
 		}
 
 		public void Tick()

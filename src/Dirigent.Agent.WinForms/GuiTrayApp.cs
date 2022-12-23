@@ -17,6 +17,7 @@ namespace Dirigent.Gui.WinForms
 		private AppConfig _ac;
 		private frmMain _mainForm;
 		private NotifyIcon _notifyIcon;
+		private NotifyIconHandler _notifyIconHandler;
         //private ProcRunner _agentRunner;
 		private Agent _agent;
 		private Thread _agentThread;
@@ -115,8 +116,9 @@ namespace Dirigent.Gui.WinForms
 			var components = new System.ComponentModel.Container();
 
 			_notifyIcon = new NotifyIcon( components );
-			
-			if( !string.IsNullOrEmpty(_machineId) )
+			_notifyIconHandler = new NotifyIconHandler( _notifyIcon );
+
+			if ( !string.IsNullOrEmpty(_machineId) )
 			{
 				_notifyIcon.Text = $"Dirigent [{_machineId}]";
 			}
@@ -215,7 +217,12 @@ namespace Dirigent.Gui.WinForms
 
 		void CreateMainForm()
 		{
-			_mainForm = new frmMain( _ac, _notifyIcon, _machineId );
+			_mainForm = new frmMain(
+				_ac,
+				_notifyIconHandler,
+				_machineId,
+				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+			);
 
 			// restore saved location if SHIFT not held
 			if( ( Control.ModifierKeys & Keys.Shift ) == 0 )

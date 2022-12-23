@@ -129,7 +129,7 @@ namespace Dirigent
 		/// <param name="fdef"></param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public string GetFilePath( VfsNodeDef fdef )
+		public string GetFilePath( VfsNodeDef fdef, bool forceUNC )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -147,8 +147,10 @@ namespace Dirigent
 				throw new Exception($"FileDef path empty: {fdef}");
 			}
 
+			bool isLocal = IsLocalMachine(fdef.MachineId);
+
 			// if the file on local machine, return local path
-			if (fdef.MachineId == _localMachineId)
+			if( isLocal && !forceUNC )
 			{
 				// TODO: for app-bound files, expand also local vars and define var for app working dir etc.
 				var expanded = Tools.ExpandEnvVars( fdef.Path );
@@ -157,11 +159,13 @@ namespace Dirigent
 
 			// construct UNC path using file shares defined for machine
 
-			// find machine
-			if ( !Machines.TryGetValue( fdef.MachineId, out var m ) )
-				throw new Exception($"Machine {fdef.MachineId} not found for FileDef {fdef}");
+			var machineId = isLocal ? _localMachineId : fdef.MachineId;
 
-			var IP = GetMachineIP( fdef.MachineId, $"FileDef {fdef}" );
+			// find machine
+			if ( !Machines.TryGetValue( machineId, out var m ) )
+				throw new Exception($"Machine {machineId} not found for FileDef {fdef}");
+
+			var IP = GetMachineIP( machineId, $"FileDef {fdef}" );
 
 			foreach( var (shName, shPath) in m.Shares )
 			{
@@ -180,9 +184,10 @@ namespace Dirigent
 		{
 			foreach( var node in VfsNodes.Values )
 			{
-				if(	node.Id == Id &&
-					node.MachineId == machineId &&
-					node.AppId == appId )
+				// empty string equals to null; this allows nullifying the machine/app inherited from parent node in shared config by using empty string
+				if(	(node.Id ?? "") == (Id ?? "") &&
+					(node.MachineId ?? "") == (machineId ?? "") &&
+					(node.AppId ?? "") == (appId ?? "") )
 					return node;
 			}
 			return null;
@@ -195,9 +200,29 @@ namespace Dirigent
 				Id = x.Id,
 				Title = x.Title,
 				MachineId = x.MachineId,
+				IsContainer = x.IsContainer
 			};
 		}
 
+		bool IsLocalMachine( string clientId )
+		{
+			if( clientId == _localMachineId )
+				return true;
+
+			// try compare IP addresses
+			var clientIP = _machineIPDelegate( clientId );
+			if( clientIP is null )
+				return false;
+
+			var ourIP = _machineIPDelegate( _localMachineId );
+			if( ourIP is null )
+				return false;
+
+			if( clientIP == ourIP )
+				return true;
+
+			return false;
+		}
 
 		/// <summary>
 		/// Resolve all links, expands all widcards etc. Produces a tree of VfsNodes.
@@ -208,7 +233,7 @@ namespace Dirigent
 		/// Folders having just Title, files having Title and Path.
 		/// Path is resolved from the perspective of the local machine - remote paths are UNC.
 		/// </returns>
-		public async Task<VfsNodeDef> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, List<Guid>? usedGuids, CancellationToken ct, int timeoutMs=-1 )
+		public async Task<VfsNodeDef> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids )
 		{
 			if (nodeDef is null)
 				throw new ArgumentNullException( nameof( nodeDef ) );
@@ -221,7 +246,7 @@ namespace Dirigent
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
 			if( !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
-				&& nodeDef.MachineId != _localMachineId )
+				&& !IsLocalMachine(nodeDef.MachineId) )
 			{
 				// check if required machine is available
 				if( !string.IsNullOrEmpty(nodeDef.MachineId) &&  _machineIPDelegate( nodeDef.MachineId ) is null )
@@ -229,18 +254,19 @@ namespace Dirigent
 				// await script	to resolve remotely
 				var args = new Scripts.BuiltIn.ResolveVfsPath.TArgs
 				{
-					VfsNode = nodeDef
+					VfsNode = nodeDef,
+					ForceUNC = forceUNC,
+					IncludeContent = includeContent
 				};
 
-				var result = await iDirig.RunScriptAndWaitAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
-					nodeDef.MachineId ?? "",
-					Scripts.BuiltIn.ResolveVfsPath._Name,
-					"",	// sourceCode
-					args,
-					$"Resolve {nodeDef.Xml}",
-					ct,
-					timeoutMs
-				);
+				var result = await iDirig.RunScriptAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
+						nodeDef.MachineId ?? "",
+						Scripts.BuiltIn.ResolveVfsPath._Name,
+						"",	// sourceCode
+						args,
+						$"Resolve {nodeDef.Xml}",
+						out var instance
+					);
 
 				return result!.VfsNode!;
 
@@ -258,13 +284,13 @@ namespace Dirigent
 				if( string.IsNullOrEmpty(fileDef.Filter ) )
 				{
 					var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
-					r.Path = GetFilePath( fileDef );
+					r.Path = GetFilePath( fileDef, forceUNC );
 					return r;
 				}
 
 				if( fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ) )
 				{
-					var folder = GetFilePath( fileDef );
+					var folder = GetFilePath( fileDef, forceUNC );
 
 					if( string.IsNullOrEmpty(fileDef.Xml) ) throw new Exception($"FileDef.Xml is empty. {fileDef.Xml}");
 					var xel = XElement.Parse(fileDef.Xml);
@@ -285,29 +311,22 @@ namespace Dirigent
 				if( def is null )
 					throw new Exception( $"{fref} points to non-existing FileDef" );
 
-				return await ResolveAsync( iDirig, def, usedGuids, ct, timeoutMs );
+				return await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
 			}
 			else
 			if (nodeDef is VFolderDef vfolderDef)
 			{
-				var ret = new ResolvedVfsNodeDef
-				{
-					IsContainer = true
-				};
-
-				// FIXME: group children by machineId, resolve whole group by single remote script call
-				foreach( var child in vfolderDef.Children )
-				{
-					var resolved = await ResolveAsync( iDirig, child, usedGuids, ct, timeoutMs );
-					ret.Children.Add( resolved );
-				}
-
-				return ret;
+				return await ResolveVFolder( iDirig, vfolderDef, forceUNC, usedGuids );
 			}
 			else
 			if( nodeDef is FolderDef folderDef )
 			{
-				return ResolveFolder( folderDef, false ); // just that one folder, not the content
+				return ResolveFolder( folderDef, forceUNC, includeContent ); // including the content
+			}
+			else
+			if( nodeDef is FilePackageDef fpdef )
+			{
+				return await ResolveVFolder( iDirig, fpdef, forceUNC, usedGuids );
 			}
 			else
 			if( nodeDef is FilePackageRef fpref )
@@ -316,7 +335,7 @@ namespace Dirigent
 				if( def is null )
 					throw new Exception( $"{fpref} points to non-existing FilePackage" );
 
-				return await ResolveAsync( iDirig, def, usedGuids, ct, timeoutMs );
+				return await ResolveAsync( iDirig, def, forceUNC, true, usedGuids );
 			}
 			else
 			{
@@ -324,11 +343,24 @@ namespace Dirigent
 			}
 		}
 
-		VfsNodeDef ResolveFolder( FolderDef folderDef, bool includeContent )
+		async Task<VfsNodeDef> ResolveVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids )
+		{
+			var rootNode = EmptyFrom<ResolvedVfsNodeDef>( folderDef );
+
+			// FIXME: group children by machineId, resolve whole group by single remote script call
+			foreach( var child in folderDef.Children )
+			{
+				var resolved = await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
+				rootNode.Children.Add( resolved );
+			}
+
+			return rootNode;
+		}
+
+		VfsNodeDef ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
 		{
 			var rootNode = EmptyFrom<FolderDef>( folderDef );
-			rootNode.IsContainer = true;
-			rootNode.Path = GetFilePath( folderDef );
+			rootNode.Path = GetFilePath( folderDef, forceUNC );
 			
 			if( includeContent )
 			{
@@ -336,7 +368,7 @@ namespace Dirigent
 				// traverse all files & folders 
 				// filter by glob-style mask
 				// convert into vfs tree structure
-				var folderName = GetFilePath( folderDef );
+				var folderName = GetFilePath( folderDef, forceUNC );
 				// ....
 
 				var mask = folderDef.Mask;
@@ -354,7 +386,7 @@ namespace Dirigent
 						IsContainer = true,
 						Title = dir.Name,
 					};
-					var vfsFolder = ResolveFolder( dirDef, includeContent );
+					var vfsFolder = ResolveFolder( dirDef, forceUNC, includeContent );
 					rootNode.Children.Add( vfsFolder );
 				}
 

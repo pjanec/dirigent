@@ -341,6 +341,9 @@ namespace Dirigent
 			if( x.Filter is not null ) a.Filter = x.Filter;
 			a.Xml = xml.ToString();
 			a.Children.AddRange( x.Children );
+
+			// add built-in download action
+			a.Actions.Add( new ScriptActionDef() { Name="BuiltIns/DownloadZipped.cs", Title="Download" } );
 		}
 
 		static VfsNodeDef? LoadVfsNode( XElement e, string? machineId=null, string? appId=null )
@@ -571,7 +574,7 @@ namespace Dirigent
 				var planName = p.Attribute( "Name" )?.Value;
 				var startTimeout = X.getDoubleAttr( p, "StartTimeout", -1, true );
 
-				var apps = ( from e in p.Descendants( "App" )
+				var apps = ( from e in p.Elements( "App" )
 							 select ReadAppElement( e, _root, _fdReg ) ).ToList();
 
 				if( string.IsNullOrEmpty(planName) )

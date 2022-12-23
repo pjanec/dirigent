@@ -21,6 +21,12 @@ public class ResolveVfsPath : Script
 		[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
+		[MessagePack.Key( 2 )]
+		public bool ForceUNC;
+
+		[MessagePack.Key( 3 )]
+		public bool IncludeContent;
+
 		public override string ToString() => $"{VfsNode}";
 		public byte[] Serialize() => Tools.Serialize( this );
 		public static TResult? Deserialize( byte[] data ) => Tools.Deserialize<TResult>( data );
@@ -46,7 +52,7 @@ public class ResolveVfsPath : Script
 		if( vfsNode is null ) throw new NullReferenceException("vfsNode == null");
 
 
-		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, ct, -1 ) };
+		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, args.ForceUNC, args.IncludeContent ) };
 		return result.Serialize();
 	}
 }

@@ -10,6 +10,8 @@ namespace Dirigent
 {
 	public class Tools
 	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
 		public static bool BoolFromString( string boolString )
 		{
 			return ( new List<string>() { "1", "YES", "Y", "TRUE" } .Contains( boolString.ToUpper() ) );
@@ -610,7 +612,14 @@ namespace Dirigent
 		{
 			using (var stream = new MemoryStream())
 			{
+				try{
 				MessagePack.MessagePackSerializer.Serialize( stream, data );
+				}
+				catch (Exception ex)
+				{
+					log.Error($"MessagePack Serialize failed for {typeof(T).FullName}", ex );
+					throw;
+				}
 				return stream.ToArray();
 			}
 		}
@@ -658,6 +667,42 @@ namespace Dirigent
 			}
 			return String.Format( CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} {2}", len1, len2, sizes[order] );
 		}
+
+		public static string GetHomePath()
+		{
+			// Not in .NET 2.0
+			// System.Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+			if (System.Environment.OSVersion.Platform == System.PlatformID.Unix)
+				return System.Environment.GetEnvironmentVariable("HOME")!;
+
+			if( System.Environment.OSVersion.Platform == System.PlatformID.Win32NT )
+				return System.Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+
+			return String.Empty;
+		}
+		
+		public static string GetDownloadFolderPath()
+		{
+			if( System.Environment.OSVersion.Platform == System.PlatformID.Unix )
+			{
+				string pathDownload = System.IO.Path.Combine(GetHomePath(), "Downloads");
+				return pathDownload;
+			}
+
+			if( System.Environment.OSVersion.Platform == System.PlatformID.Win32NT )
+			{
+				return System.Convert.ToString(
+					Microsoft.Win32.Registry.GetValue(
+						 @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+						,"{374DE290-123F-4565-9164-39C4925E467B}"
+						,String.Empty
+					)
+				)!;
+			}
+
+			return String.Empty;
+		}
+		
 
 	}
 

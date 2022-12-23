@@ -22,10 +22,10 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return from x in _localApps.Apps select new KeyValuePair<AppIdTuple, AppDef>(x.Key, x.Value.RecentAppDef); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
-		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
-			=> _reflStates.ScriptReg.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
-		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs )
-			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
+		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
+			=> _reflStates.ScriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
 
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;
@@ -69,7 +69,7 @@ namespace Dirigent
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
-			ScriptFactory = new ScriptFactory();
+			ScriptFactory = new ScriptFactory( rootForRelativePaths );
 
 			_sharedContext = new SharedContext(
 				rootForRelativePaths,

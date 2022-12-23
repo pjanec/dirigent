@@ -177,20 +177,23 @@ namespace Dirigent
 			return instance;
 		}
 
-		public void RunScriptNoWait<TArgs>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title )
+		public Guid RunScriptNoWait<TArgs>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title )
 		{
 			var instance = Guid.NewGuid();
 			var argsBytes = args is null ? null : Tools.Serialize( args );
 
 			// send a request
 			_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, sourceCode, argsBytes, title, clientId ) );
+
+			return instance;
 		}
 
-		// runs script on given machine and wait for its termination
-		// throws ScriptException on failure
-		// throws TimeoutException on timeout
-		// otherwise returns the deserialized value that was serialized by the script
-		public async Task<TResult?> RunScriptAndWaitAsync<TArgs,TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
+		// Runs script on given machine and return the task that completed when the script terminates
+		// Returns deserialized return value fromo the script
+		// This task throws
+		//   - ScriptException on failure
+		//   - TimeoutException on timeout
+		public Task<TResult?> RunScriptAsync<TArgs,TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 		{
 			var tcs = new TaskCompletionSource<TResult?>();
 			
@@ -199,8 +202,8 @@ namespace Dirigent
 				if( state.Status == EScriptStatus.Failed )
 				{
 					// we throw a task failure exception to the task
-					var exception = Tools.Deserialize<ScriptException>(state.Data)!;
-					tcs.SetException( exception );
+					var exception = Tools.Deserialize<SerializedException>(state.Data)!;
+					tcs.SetException( exception.ToException() );
 				}
 				else if( state.Status == EScriptStatus.Cancelled )
 				{
@@ -214,16 +217,9 @@ namespace Dirigent
 				}
 			} );
 			
-			StartScriptWithWatcher( clientId, scriptName, sourceCode, Tools.Serialize(args), title, watcher );
-			
-			if( timeoutMs < 0 )
-			{
-				return await tcs.Task.WaitAsync( ct );
-			}
-			else
-			{
-				return await tcs.Task.WaitAsync( new TimeSpan(0,0,0,0,timeoutMs), ct );
-			}
+			scriptInstance = StartScriptWithWatcher( clientId, scriptName, sourceCode, Tools.Serialize(args), title, watcher );
+
+			return tcs.Task;
 		}
 
 

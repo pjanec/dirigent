@@ -38,6 +38,8 @@ namespace Dirigent
 		{
 			_cts = new CancellationTokenSource();
 			_thread = new Thread( new ThreadStart( UpdateLoop ) );
+			_thread.IsBackground = true; // do not block app exit
+			_thread.Priority = ThreadPriority.BelowNormal;
 			_thread.Start();
 		}
 
@@ -47,7 +49,7 @@ namespace Dirigent
 			if (!disposing) return;
 
 			_cts.Cancel();
-			_thread?.Join();
+			//_thread?.Join(); // we do not need to block, the thread will exit on its own
 		}
 
 		public ProcessInfo? GetProcessInfo( int pid )

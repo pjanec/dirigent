@@ -33,9 +33,9 @@ namespace Dirigent
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineDefs; }
 		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
-		public Task<TResult?> RunScriptAndWaitAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, CancellationToken ct, int timeoutMs=-1 )
-		  => _scriptReg.RunScriptAndWaitAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, ct, timeoutMs );
-		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, CancellationToken ct, int timeoutMs ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, null, ct, timeoutMs );
+		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
+		  => _scriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
+		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
 
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
