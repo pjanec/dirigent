@@ -126,7 +126,7 @@ namespace Dirigent.Net
 		public void SendMessage( Net.Message msg )
 		{
 			var ms = new System.IO.MemoryStream();
-			_msgCodec.Serialize( ms, msg );
+			MsgPackCodec.Serialize( ms, msg );
 			SendAsync( ms.GetBuffer(), 0, ms.Position );
 		}
 

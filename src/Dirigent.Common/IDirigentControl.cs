@@ -85,6 +85,10 @@ namespace Dirigent
 		/// <summary> ident of the network client used as RequestorId </summary>
 		string Name { get; } 
 
+		/// <summary>
+		/// Send is guaranteed to be thread/task safe, is always executed immediately, non-blocking
+		/// </summary>
+		/// <param name="msg"></param>
 		void Send( Net.Message msg ) {}
 
 		/// <summary>

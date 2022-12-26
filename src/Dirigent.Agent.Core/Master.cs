@@ -36,6 +36,7 @@ namespace Dirigent
 		
 		/// <summary>
 		/// Send to all subcribed. Does not change the sender.
+		/// This might be called from asyn context!
 		/// </summary>
 		/// <param name="msg"></param>
 		public void Send( Net.Message msg )
@@ -43,7 +44,7 @@ namespace Dirigent
 			// send to everyone else
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 			// process also on master
-			ProcessIncomingMessageAndHandleExceptions( msg );
+			_server.BufferMessageReceived( msg );
 		}
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _reflScripts.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );

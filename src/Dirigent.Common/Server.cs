@@ -157,7 +157,7 @@ namespace Dirigent.Net
 		private MsgPackCodec _msgCodec;
 
 		/// <summary>Messages received since last <see cref="Tick"/> from all connected client. Filled & read synchronously from <see cref="Tick"/></summary>
-		private Queue<Message> _messagesReceived = new Queue<Message>();
+		private ConcurrentQueue<Message> _messagesReceived = new();
 
 		public Server( int port )
 			: base( IPAddress.Any, port )
@@ -193,7 +193,8 @@ namespace Dirigent.Net
 		}
 
 		// called synchronously from session's Poll()
-		internal void BufferMessageReceived( Message msg )
+		// also called asynchronously from master's Send() if called from a script on master
+		public void BufferMessageReceived( Message msg )
 		{
 			_messagesReceived.Enqueue( msg );
 		}
@@ -265,7 +266,7 @@ namespace Dirigent.Net
 		public void SendToAllSubscribed( Net.Message msg, EMsgRecipCateg msgCategoryMask )
 		{
 			var ms = new System.IO.MemoryStream();
-			_msgCodec.Serialize( ms, msg );
+			MsgPackCodec.Serialize( ms, msg );
 
 			if( !msg.IsFrequent )
 			{
@@ -291,7 +292,7 @@ namespace Dirigent.Net
 				log.Debug( $"[master] => [{clientName}]: {msg}" );
 
 				var ms = new System.IO.MemoryStream();
-				_msgCodec.Serialize( ms, msg );
+				MsgPackCodec.Serialize( ms, msg );
 				session.SendAsync( ms.GetBuffer(), 0, ms.Position );
 			}
 		}

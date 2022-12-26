@@ -94,7 +94,7 @@ namespace Dirigent.Net
 			stream.Write( buf, 0, ( int ) MessageCodec.HeaderLen );
 		}
 
-		public void ConstructMessage( System.IO.MemoryStream stream, Header hdr, byte[] data, long offset, long size )
+		public static void ConstructMessage( System.IO.MemoryStream stream, Header hdr, byte[] data, long offset, long size )
 		{
 			ConstructHeader( hdr, stream );
 			stream.Write( data, ( int )offset, ( int )size );

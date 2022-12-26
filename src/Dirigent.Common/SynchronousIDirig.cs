@@ -68,7 +68,7 @@ namespace Dirigent
 
 #pragma warning disable CS8603 // Possible null reference return.
 		public string Name => _ctrl.Name;
-		public async Task SendAsync( Net.Message msg ) => await GuardedAct( () => _ctrl.Send( msg ) );
+		public       Task SendAsync( Net.Message msg ) { _ctrl.Send( msg ); return Task.CompletedTask; }
 		public async Task<ClientState?> GetClientStateAsync( string Id ) => await GuardedFunc( () => _ctrl.GetClientState(Id) );
 		public async Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStatesAsync() => await GuardedFunc( () => _ctrl.GetAllClientStates().ToList() );
 		public async Task<AppState?> GetAppStateAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppState(Id) );
