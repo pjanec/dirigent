@@ -46,4 +46,12 @@
     StartupDir = ""
   />
 
+  <Tool
+    AppIdTuple = "DoubleCommander"
+    IconFile = "Icons\DoubleCommander.png"
+    Service = ""
+    ExeFullPath = "%DIRIGENT_BIN%\tools\doublecmd\doublecmd.exe"
+    StartupDir = ""
+  />
+
 </Local>

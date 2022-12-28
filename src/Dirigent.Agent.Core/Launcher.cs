@@ -325,6 +325,7 @@ namespace Dirigent
 			_exitCode = 0;
 
 			// set environment variables here so we can use them when expanding process path/args/cwd
+			Environment.SetEnvironmentVariable( "DIRIGENT_BIN", Tools.GetExeDir() );
 			Environment.SetEnvironmentVariable( "DIRIGENT_SHAREDCONFDIR", _relativePathsRoot );
 			Environment.SetEnvironmentVariable( "DIRIGENT_PLAN", _planName );
 			Environment.SetEnvironmentVariable( "DIRIGENT_MACHINEID", _appDef.Id.MachineId );

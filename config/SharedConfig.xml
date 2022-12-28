@@ -285,6 +285,7 @@
         	</File>
 
     	    <Tool Title="Browse files in package" Name="FileCmd" Args="%FILEPACKAGE_LIST_FILE%"/>
+    	    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
         </FilePackage>
 	
 	</App>

@@ -111,12 +111,14 @@ namespace Dirigent
 		{
 			if( scriptName == "Scripts/DemoScript1.cs" )
 				return new DemoScript1();
-			if( scriptName == Scripts.BuiltIn.ResolveVfsPath._Name )
+			if(string.Equals( scriptName, Scripts.BuiltIn.ResolveVfsPath._Name, StringComparison.InvariantCultureIgnoreCase ))
 				return new Scripts.BuiltIn.ResolveVfsPath();
-			if( scriptName == Scripts.BuiltIn.DownloadZipped._Name )
+			if( string.Equals( scriptName, Scripts.BuiltIn.DownloadZipped._Name, StringComparison.InvariantCultureIgnoreCase ))
 				return new Scripts.BuiltIn.DownloadZipped();
-			if( scriptName == Scripts.BuiltIn.DownloadZippedSlave._Name )
+			if(string.Equals( scriptName, Scripts.BuiltIn.DownloadZippedSlave._Name, StringComparison.InvariantCultureIgnoreCase ))
 				return new Scripts.BuiltIn.DownloadZippedSlave();
+			if(string.Equals( scriptName, Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, StringComparison.InvariantCultureIgnoreCase ))
+				return new Scripts.BuiltIn.BrowseInDblCmdVirtPanel();
 
 			return null;				
 		}
