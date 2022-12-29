@@ -3,7 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+#if Windows
 using System.Management;
+#endif
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;

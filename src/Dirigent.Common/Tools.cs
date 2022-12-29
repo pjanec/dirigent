@@ -683,14 +683,7 @@ namespace Dirigent
 		
 		public static string GetDownloadFolderPath()
 		{
-			if( System.Environment.OSVersion.Platform == System.PlatformID.Unix )
-			{
-				string pathDownload = System.IO.Path.Combine(GetHomePath(), "Downloads");
-				return pathDownload;
-			}
-
-			if( System.Environment.OSVersion.Platform == System.PlatformID.Win32NT )
-			{
+			#if Windows
 				return System.Convert.ToString(
 					Microsoft.Win32.Registry.GetValue(
 						 @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
@@ -698,9 +691,10 @@ namespace Dirigent
 						,String.Empty
 					)
 				)!;
-			}
-
-			return String.Empty;
+			#else
+				string pathDownload = System.IO.Path.Combine(GetHomePath(), "Downloads");
+				return pathDownload;
+			#endif			
 		}
 
 		public static void SetDefaultEnvVars( string? sharedConfigDir )
