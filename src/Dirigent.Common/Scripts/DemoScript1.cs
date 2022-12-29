@@ -9,10 +9,10 @@ public class DemoScript1 : Script
 {
 	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class Result
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public int Code;
 
 		public override string ToString() => Code.ToString();

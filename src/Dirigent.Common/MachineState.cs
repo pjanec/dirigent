@@ -10,16 +10,16 @@ namespace Dirigent
 	/// <summary>
 	/// Machine status known to master and shared with other participats.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class MachineState
 	{
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public float CPU; // % of CPU usage
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public float MemoryAvailMB; // MBytes
 
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public float MemoryTotalMB; // physical memory Private Working Set MBytes
 	}
 

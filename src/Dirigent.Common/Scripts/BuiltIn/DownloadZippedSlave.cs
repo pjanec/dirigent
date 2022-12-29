@@ -23,35 +23,35 @@ namespace Dirigent.Scripts.BuiltIn
 
 		public static readonly string _Name = "BuiltIns/DownloadZippedSlave.cs";
 
-		[MessagePack.MessagePackObject]
+		//[MessagePack.MessagePackObject]
 		public class TArgs
 		{
 			// vfsnode contained (package, folder, virtual folder..); only the child nodes matter
-			[MessagePack.Key( 1 )]
+			//[MessagePack.Key( 1 )]
 			public VfsNodeDef? Container;
 
 			// Where to upload the zip file. Should be UNC path if on remote machine.
-			[MessagePack.Key( 2 )]
+			//[MessagePack.Key( 2 )]
 			public string? DestinationFolder;
 
 			// Name of the zip file to create in the destination folder, excluding extension
-			[MessagePack.Key( 3 )]
+			//[MessagePack.Key( 3 )]
 			public string? ZipFileBaseName;
 
 			// zip also files that are not associated with any machine (one of machine needs to do it)
-			[MessagePack.Key( 4 )]
+			//[MessagePack.Key( 4 )]
 			public bool IncludeGlobals;
 
 			public override string ToString() => $"{Container} => {DestinationFolder}/{ZipFileBaseName}";
 		};
 
-		[MessagePack.MessagePackObject]
+		//[MessagePack.MessagePackObject]
 		public class TResult
 		{
-			[MessagePack.Key( 1 )]
+			//[MessagePack.Key( 1 )]
 			public string ZipFileName = "";
 
-			[MessagePack.Key( 2 )]
+			//[MessagePack.Key( 2 )]
 			public List<SerializedException> Exceptions = new();
 		}
 

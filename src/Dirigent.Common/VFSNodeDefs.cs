@@ -15,7 +15,7 @@ namespace Dirigent
 	///   - a link to a real file
 	///   - a virtual folder than can contain other file links or other vfolders.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	[MessagePack.Union( 101, typeof( FileDef ) )]
 	[MessagePack.Union( 102, typeof( FileRef ) )]
 	[MessagePack.Union( 103, typeof( FolderDef ) )]
@@ -29,31 +29,31 @@ namespace Dirigent
 		/// Paths is already resolved, not containing any macros.
 		/// Empty for virtual folders having no counterpart in the real file system.
 		/// </summary>
-		[MessagePack.Key( 26 )]
+		//[MessagePack.Key( 26 )]
 		public string? Path = null;
 
 		/// <summary>
 		/// Is the node a container for another vfs nodes? False = leaf
 		/// </summary>
-		[MessagePack.Key( 27 )]
+		//[MessagePack.Key( 27 )]
 		public bool IsContainer;
 
 		/// <summary>
 		/// Sub-items. Used for folders only.
 		/// </summary>
-		[MessagePack.Key( 28 )]
+		//[MessagePack.Key( 28 )]
 		public List<VfsNodeDef> Children = new List<VfsNodeDef>();
 
 		/// <summary>
 		/// Name of the filter script to resolve this item 
 		/// </summary>
-		[MessagePack.Key( 30 )]
+		//[MessagePack.Key( 30 )]
 		public string? Filter;
 
 		/// <summary>
 		/// Xml node with attributes passed to filter scripts 
 		/// </summary>
-		[MessagePack.Key( 31 )]
+		//[MessagePack.Key( 31 )]
 		public string? Xml;
 
 
@@ -80,7 +80,7 @@ namespace Dirigent
 	}
 
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ResolvedVfsNodeDef : VfsNodeDef, IEquatable<ResolvedVfsNodeDef>
 	{
 		public bool ThisEquals( ResolvedVfsNodeDef other ) =>
@@ -106,13 +106,13 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of a non-virtual file
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class FileDef : VfsNodeDef, IEquatable<FileDef>
 	{
 		///// <summary>
 		///// Folder where to look for the file. Used by the 'Newest' option.
 		///// </summary>
-		//[MessagePack.Key( 51 )]
+		////[MessagePack.Key( 51 )]
 		//public EFLookupType LookupType = EFLookupType.Path;
 
 		public override string ToString() =>$"[File] {base.ToString()}";
@@ -126,7 +126,7 @@ namespace Dirigent
 	/// <summary>
 	/// Reference to a file. Path not used, just the Id, MachineId, AppId.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class FileRef : VfsNodeDef, IEquatable<FileRef>
 	{
 		public override string ToString() =>$"[FileRef] {base.ToString()}";
@@ -141,13 +141,13 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of folder or virtual associated with a machine, with an application on a machine or with no association (a global file)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class FolderDef : VfsNodeDef, IEquatable<FolderDef>
 	{
 		/// <summary>
 		/// File name mask in Glob style (allowing stuff like "**/*.{jpg,png}".
 		/// </summary>
-		[MessagePack.Key( 51 )]
+		//[MessagePack.Key( 51 )]
 		public string? Mask = String.Empty;
 
 		public override string ToString() =>$"[Folder] {base.ToString()}";
@@ -166,7 +166,7 @@ namespace Dirigent
 	/// Definition of a virtual folder.
 	/// Path field is ignored.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class VFolderDef : VfsNodeDef, IEquatable<VFolderDef>
 	{
 		public override string ToString() =>$"[VFolder] {base.ToString()}";
@@ -180,7 +180,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of file package associated with a machine, with an application on a machine or with no association (a global file package)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class FilePackageDef : VfsNodeDef, IEquatable<FilePackageDef>
 	{
 		public override string ToString() =>$"[FilePackage] {base.ToString()}";
@@ -195,7 +195,7 @@ namespace Dirigent
 	/// Reference to existing package (via Id, AppId, MachineId)
 	/// Path field is ignored.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class FilePackageRef : VfsNodeDef, IEquatable<FilePackageRef>
 	{
 		public override string ToString() =>$"[FilePackageRef] {base.ToString()}";

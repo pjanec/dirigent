@@ -22,12 +22,12 @@ namespace Dirigent.Scripts.BuiltIn
 
 		public static readonly string _Name = "BuiltIns/DownloadZipped.cs";
 
-		[MessagePack.MessagePackObject]
+		//[MessagePack.MessagePackObject]
 		public class TArgs : ScriptActionArgs
 		{
 		};
 
-		[MessagePack.MessagePackObject]
+		//[MessagePack.MessagePackObject]
 		public class TResult
 		{
 		}

@@ -21,13 +21,13 @@ namespace Dirigent
 
 
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ScriptState : IEquatable<ScriptState>
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public EScriptStatus Status = EScriptStatus.Unknown;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string? Text = null;
 
 		/// <summary>
@@ -36,7 +36,7 @@ namespace Dirigent
 		/// If status == Finished, it is the result (script-specific format, usually some serialized struct).
 		/// If status == Failed, it is the instance of SerializedException (serialized).
 		/// </summary>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public byte[]? Data = null;
 
 		public ScriptState() {}

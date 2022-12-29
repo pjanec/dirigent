@@ -17,13 +17,13 @@ namespace Dirigent.Net
 		}
 	}
 
-	//[MessagePack.MessagePackObject]
+	////[MessagePack.MessagePackObject]
 	//public class ClientIdent
 	//{
-	//	[MessagePack.Key( 2 )]
+	//	//[MessagePack.Key( 2 )]
 	//	public string Name;
 
-	//	[MessagePack.Key( 2 )]
+	//	//[MessagePack.Key( 2 )]
 	//	public EMsgRecipCateg SubscribedTo;
 	//}
 

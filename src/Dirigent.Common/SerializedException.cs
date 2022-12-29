@@ -24,19 +24,19 @@ namespace Dirigent
 		}
 	}
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class SerializedException
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string TypeName = "";
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Message = "";
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public string? StackTrace;
 
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public SerializedException? InnerException;
 
 		

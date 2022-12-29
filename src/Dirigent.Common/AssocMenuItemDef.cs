@@ -14,7 +14,7 @@ namespace Dirigent
 	/// related to some dirigent-controlled item (app, plan, machine..),
 	/// optionally having some actions associated with the item (startable in the context of this item.)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	[MessagePack.Union( 101, typeof( ActionDef ) )]
 	[MessagePack.Union( 102, typeof( VfsNodeDef ) )]
 	[MessagePack.Union( 103, typeof( ScriptActionDef ) )]
@@ -33,48 +33,48 @@ namespace Dirigent
 		/// <summary>
 		/// Unique id within the system (generated when loading the item from config)
 		/// </summary>
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public Guid Guid;
 
 		/// <summary>
 		/// Display name of the item.
 		/// Optional backslash-separated submenu levels, like "Utils\File\My Title".
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Title = String.Empty;
 
 		/// <summary>
 		/// Human readable item id
 		/// </summary>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public string Id = String.Empty;
 
 		/// <summary>
 		/// Machine the item belongs to. Null if global.
 		/// </summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public string? MachineId = String.Empty;
 
 		/// <summary>
 		/// App the item belongs to. Used only if the action is bouond to an app.
 		/// </summary>
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public string? AppId = null;
 
 		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
-		[MessagePack.Key( 6 )]
+		//[MessagePack.Key( 6 )]
 		public string Groups = string.Empty;
 
 		/// <summary>
 		/// Icon for the menu item 
 		/// </summary>
-		[MessagePack.Key( 7 )]
+		//[MessagePack.Key( 7 )]
 		public string? IconFile;
 
 		/// <summary>
 		/// Submenu items
 		/// </summary>
-		[MessagePack.Key( 8 )]
+		//[MessagePack.Key( 8 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
 		public override string ToString()

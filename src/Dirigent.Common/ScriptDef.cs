@@ -12,7 +12,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of a single-instance script with all its parameters predefined in shared config
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ScriptDef : ActionDef
 	{
 		public override string ToString()

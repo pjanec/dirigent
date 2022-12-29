@@ -15,16 +15,16 @@ public class ResolveVfsPath : Script
 
 	public static readonly string _Name = "BuiltIns/ResolveVfsPath.cs";
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class TArgs
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public bool ForceUNC;
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public bool IncludeContent;
 
 		public override string ToString() => $"{VfsNode}";
@@ -32,10 +32,10 @@ public class ResolveVfsPath : Script
 		public static TResult? Deserialize( byte[] data ) => Tools.Deserialize<TResult>( data );
 	};
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class TResult
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
 		public override string ToString() => $"{VfsNode}";

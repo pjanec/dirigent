@@ -11,7 +11,7 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Base class for all messages.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	[MessagePack.Union( 101, typeof( RemoteOperationErrorMessage ) )]
 	[MessagePack.Union( 102, typeof( AppsStateMessage ) )]
 	[MessagePack.Union( 103, typeof( PlansStateMessage ) )]
@@ -58,7 +58,7 @@ namespace Dirigent.Net
 
 	public abstract class Message
 	{
-		[MessagePack.Key( 0 )]
+		//[MessagePack.Key( 0 )]
 		public string Sender { get; set; } = string.Empty;  // machine name for agents, guid for GUIs, empty for master
 
 		// do not dump it on console
@@ -69,16 +69,16 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Agent tells others there was an error processing some operation. Master resends this to GUIs.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class RemoteOperationErrorMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string Requestor = string.Empty;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Message = string.Empty; // Error description
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		public RemoteOperationErrorMessage() {}
@@ -93,18 +93,18 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Agent tells the master what is the status if his apps. Master resends this to GUIs.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class AppsStateMessage : Message
 	{
 		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, AppState> AppsState;
 
 		// time on sender when sending this message
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public DateTime TimeStamp;
 
 		public AppsStateMessage() {}
@@ -119,13 +119,13 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells GUIs what is the status of the plans.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class PlansStateMessage : Message
 	{
 		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public Dictionary<string, PlanState> PlansState;
 
@@ -140,14 +140,14 @@ namespace Dirigent.Net
 	/// Master's internal state of applications in the plan.
 	/// Not in use.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class PlanAppsStateMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public string PlanName;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		[MaybeNull]
 		public Dictionary<AppIdTuple, PlanAppState> AppsState;
 
@@ -177,10 +177,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class StartAppMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
 		/// <summary>
@@ -191,19 +191,19 @@ namespace Dirigent.Net
 		/// This is used when the command is sent from gui to master.
 		/// Must be always null if sent from master to agent (agent does not know about plans anyway)
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string? PlanName;
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public StartAppFlags Flags;
 
 		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public bool UseVars;
 
 		public StartAppMessage() {}
@@ -236,13 +236,13 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class KillAppMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public KillAppFlags Flags;
 
 
@@ -265,19 +265,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to restart a concrete app. Resent by Master to the app's agent.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class RestartAppMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public AppIdTuple Id;
 
 		/// <summary>Env vars to be set for a process; also set as local vars for use in macro expansion</summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 
@@ -300,16 +300,16 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to temporarily remove an app from the plan execustion (if enabled=false).
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class SetAppEnabledMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string? PlanName;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public AppIdTuple Id;
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public bool Enabled;
 
 		public SetAppEnabledMessage() {}
@@ -331,10 +331,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// GUI is telling the Master about what plan is currently selected there.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class SelectPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public SelectPlanMessage() { }
@@ -354,19 +354,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a plan.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class StartPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public String PlanName = string.Empty;
 
 		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 		public StartPlanMessage() {}
@@ -386,10 +386,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to stop starting next apps from the plan (this does not kill the apps!)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class StopPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public StopPlanMessage() {}
@@ -405,10 +405,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill all apps in the plan.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class KillPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		public KillPlanMessage() {}
@@ -424,19 +424,19 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to restart all apps in the plan.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class RestartPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		/// <summary>Env vars to be set for each process in the plan; also set as local vars for use in macro expansion</summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>Do we want to set/change the variables for a processs?</summary>
 		/// <remarks>This is necessary as protobuf will send empty dictionary as null</remarks>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public bool UseVars;
 
 		public RestartPlanMessage() {}
@@ -455,10 +455,10 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Master tells new client about the current launch plan
 	///// </summary>
-	//[MessagePack.MessagePackObject]
+	////[MessagePack.MessagePackObject]
 	//public class CurrentPlanMessage : Message
 	//{
-	//	[MessagePack.Key( 1 )]
+	//	//[MessagePack.Key( 1 )]
 	//	public string PlanName = string.Empty;
 
 	//	public CurrentPlanMessage() {}
@@ -476,17 +476,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing plans
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class PlanDefsMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<PlanDef> PlanDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public PlanDefsMessage() {}
@@ -506,10 +506,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to set env vars for newly started processed. Master resends to all agents.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class SetVarsMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string Vars = string.Empty;
 
 		public SetVarsMessage() {}
@@ -530,10 +530,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to kill all apps and plans. Master kills the plans, resending KillApp to all agents.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class KillAllMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public KillAllArgs Args;
 
 		public KillAllMessage() {}
@@ -553,10 +553,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to terminate the agents/guis. Master resends to agents/guis.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class TerminateMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public TerminateArgs Args;
 
 		public TerminateMessage() {}
@@ -576,10 +576,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to shutdown/reboot the computers. Master resends to agents.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ShutdownMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public ShutdownArgs Args;
 
 		public ShutdownMessage() {}
@@ -599,10 +599,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to reinstall the Dirigent. Master resends to all.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ReinstallMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public ReinstallArgs Args;
 
 		public ReinstallMessage() {}
@@ -622,10 +622,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to reload the shared config.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ReloadSharedConfigMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public ReloadSharedConfigArgs Args;
 
 		public ReloadSharedConfigMessage() {}
@@ -645,11 +645,11 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Client (Agent or GUI) identifies itself. Must be the first message sent when connected to the Master.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ClientIdent : Message
 	{
 		///<summary>Client name. For agents, this equals the MachineId. For Guis this is a stringized GUID</summary>
-		//[MessagePack.Key( 1 )]	// this does not need seralizing, as the Sender is already serialized
+		////[MessagePack.Key( 1 )]	// this does not need seralizing, as the Sender is already serialized
 		[MessagePack.IgnoreMember]
 		public string Name
 		{
@@ -657,7 +657,7 @@ namespace Dirigent.Net
 			set { Sender = value; }
 		}
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public EMsgRecipCateg SubscribedTo;
 
 		public ClientIdent() {}
@@ -685,18 +685,18 @@ namespace Dirigent.Net
 	/// Master tells the agent what app defs to use. Agent will overwrite the already known apps and add the new apps.
 	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class AppDefsMessage : Message
 	{
 
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull] // when constructed without arguments by protobuf
 		public List<AppDef> AppDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public AppDefsMessage() {}
@@ -717,10 +717,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to execute given Command Line Interface command
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class CLIRequestMessage : Message
 	{
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Text = string.Empty;
 
 		public CLIRequestMessage()
@@ -740,10 +740,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master sends back to the sender the response from the just executed CLI command.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class CLIResponseMessage : Message
 	{
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Text = string.Empty;
 
 		public CLIResponseMessage()
@@ -768,7 +768,7 @@ namespace Dirigent.Net
 	/// This will not kill the apps; so if the running ones are no longer part of the new app defs,
 	/// they will stay running and it will not be possible to kill them via dirigent.
 	/// </remarks>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ResetMessage : Message
 	{
 		public ResetMessage() {}
@@ -782,17 +782,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Client is updating its state to master (at regular intervals)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ClientStateMessage : Message
 	{
 		[MessagePack.IgnoreMember]
 		public override bool IsFrequent { get { return true; } }
 
 		// time on sender when sending this message
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public DateTime TimeStamp;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		[MaybeNull]
 		public ClientState State;
 
@@ -808,16 +808,16 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Someone asking the Master to start a script
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class StartScriptMessage : Message
 	{
 		/// <summary>
 		/// Guid to assign to a script once its instance is created
 		/// </summary>
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public Guid Instance;
 					
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string Title = string.Empty;
 
 		/// <summary>
@@ -830,30 +830,30 @@ namespace Dirigent.Net
 		///   FileTools/DownloadFile
 		/// Some names are stored in the built-in script library (not requiring external script file).
 		/// </remarks>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public string ScriptName = string.Empty;
 
 		/// <summary>
 		/// Script code to instantiate (C#); empty for built-in tasks or file-based scripts.
 		/// If empty, the script is loaded from the script library.
 		/// </summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public string? SourceCode;
 
 
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public byte[]? Args;
 
 		/// <summary>
 		/// Client where the script shall be started.
 		/// </summary>
-		[MessagePack.Key( 6 )]
+		//[MessagePack.Key( 6 )]
 		public string HostClientId = "";
 
 		/// <summary>
 		/// Who wants the results back. Null=not defined.
 		/// </summary>
-		[MessagePack.Key( 7 )]
+		//[MessagePack.Key( 7 )]
 		public string? Requestor = null;
 
 		public StartScriptMessage() {}
@@ -889,10 +889,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Asking to kill an instance of a running script (wherever it is running)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class KillScriptMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public Guid Instance;
 
 
@@ -914,17 +914,17 @@ namespace Dirigent.Net
 	/// Master tells new client about existing script definitions
 	/// (they are used for single-instance scripts presented on GUI)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ScriptDefsMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<ScriptDef> ScriptDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public ScriptDefsMessage() {}
@@ -944,13 +944,13 @@ namespace Dirigent.Net
 	///// <summary>
 	///// Master tells clients aboout the status of the scripts.
 	///// </summary>
-	//[MessagePack.MessagePackObject]
+	////[MessagePack.MessagePackObject]
 	//public class ScriptsStateMessage : Message
 	//{
 	//	[MessagePack.IgnoreMember]
 	//	public override bool IsFrequent { get { return true; } }
 
-	//	[MessagePack.Key( 1 )]
+	//	//[MessagePack.Key( 1 )]
 	//	[MaybeNull]
 	//	public Dictionary<Guid, ScriptState> ScriptsState;
 
@@ -966,14 +966,14 @@ namespace Dirigent.Net
 	/// Plan is applied either to given app from the plan (if specified), otherwise to all the apps in the plan.
 	/// The app defs are applied when next time starting the app, the currently runnign app is not affected.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ApplyPlanMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string PlanName = string.Empty;
 
 		// if empty, the plan is applied to all the apps from the plan
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public AppIdTuple AppIdTuple;
 
 		public ApplyPlanMessage() { }
@@ -992,14 +992,14 @@ namespace Dirigent.Net
 
 	/// <summary>
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class SetWindowStyleMessage : Message
 	{
 		// if empty, the plan is applied to all the apps from the plan
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public AppIdTuple AppIdTuple;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
 		public SetWindowStyleMessage() { }
@@ -1019,10 +1019,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing VfsNodes
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class VfsNodesMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
 		public VfsNodesMessage() { }
@@ -1040,10 +1040,10 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing machine definitions
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class MachineDefsMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public List<MachineDef> Machines = new();
 
 
@@ -1062,17 +1062,17 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Master tells new client about existing actions
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class MenuItemDefsMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		[MaybeNull]
 		public List<AssocMenuItemDef> MenuItemDefs;
 
 		/// <summary>
 		/// Whether the recipient shall descard any extra items not contained in this message (false) or just add/update existing (true)
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public bool Incremental;
 
 		public MenuItemDefsMessage() {}
@@ -1093,13 +1093,13 @@ namespace Dirigent.Net
 	/// Client tells other the status of the script running on it
 	/// Sent periodically for running scripts, and once for finished script (Status=Finished or Failed means the task should be removed).
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ScriptStateMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public Guid Instance;
 		
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public ScriptState State = new();
 
 		public ScriptStateMessage() {}
@@ -1118,20 +1118,20 @@ namespace Dirigent.Net
 	/// <summary>
 	/// Agent on the machine is updating the machine state to master (at regular intervals)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class MachineStateMessage : Message
 	{
 		[MessagePack.IgnoreMember]		
 		public override bool IsFrequent { get { return true; } }
 
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string Id = "";
 
 		// time on sender when sending this message
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public DateTime TimeStamp;
 
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public MachineState State = new();
 
 		public MachineStateMessage() {}
@@ -1144,26 +1144,26 @@ namespace Dirigent.Net
 
 	}
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class RunActionMessage : Message
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public ActionDef? Def;
 
 		/// <summary>Internal/local vars passed to the action (can be used macro expansion)</summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public Dictionary<string,string>? Vars;
 
 		/// <summary>
 		/// Client where the action shall be started.
 		/// </summary>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public string HostClientId = "";
 
 		/// <summary>
 		/// Who wants the result of the action (if any)
 		/// </summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public string? Requestor = null;
 
 		public RunActionMessage() {}
@@ -1187,7 +1187,7 @@ namespace Dirigent.Net
 	/// <summary>
 	/// We want the user on given client to be notified about something
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class UserNotificationMessage : Message
 	{
 		public enum ECategory
@@ -1208,47 +1208,47 @@ namespace Dirigent.Net
 		/// <summary>
 		/// Where to show the notification
 		/// </summary>
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string HostClientId = string.Empty;
 
 		/// <summary>
 		/// Categiry of the message
 		/// </summary>
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public ECategory Category = ECategory.Info;
 
 		/// <summary>
 		/// Catogiry of the message
 		/// </summary>
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public EPresentationType PresentationType = EPresentationType.Default;
 
 		/// <summary>
 		/// Title of the message
 		/// </summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public string? Title;
 
 		/// <summary>
 		/// Message to show
 		/// </summary>
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public string Message = string.Empty;
 
 		/// <summary>
 		/// What action to run if the user clicks on the notification
 		/// </summary>
-		[MessagePack.Key( 6 )]
+		//[MessagePack.Key( 6 )]
 		public ActionDef? Action;
 
 
-		[MessagePack.Key( 7 )]
+		//[MessagePack.Key( 7 )]
 		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		/// <summary>
 		/// How long to keep the mesage displayed in seconds (0=default)
 		/// </summary>
-		[MessagePack.Key( 8 )]
+		//[MessagePack.Key( 8 )]
 		public double Timeout;
 	}
 }

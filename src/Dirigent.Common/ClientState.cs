@@ -11,11 +11,11 @@ namespace Dirigent
 	/// <summary>
 	/// Client status known to master and shared with other participats.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ClientState
 	{
 		[MaybeNull]
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public Net.ClientIdent Ident;
 
 		[Flags]
@@ -24,20 +24,20 @@ namespace Dirigent
 			Connected         = 1 << 0,
 		}
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public FL _flags;  // must be public so tham MessagePack wants to serialize it:-(
 
 		// UTC time of last update, recalculated to local time (as the clock migh differ on different computers)
 		// On Agent, the agent's UTC time of last update
 		// On Master, the UTC time of last update recalculated to master's local time
 		// On Gui, the UTC time of last update recalculated to gui's local time
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public DateTime _lastChange = DateTime.UtcNow;
 
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public string? _selectedPlanName; // in what plan is selected as the current one (applies to some GUIs)
 
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public string? IP; // ip address of the client (determined by master from dirigent's TCP connection)
 
 		bool Is( FL value )

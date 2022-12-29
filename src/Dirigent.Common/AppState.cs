@@ -10,7 +10,7 @@ namespace Dirigent
 	/// <summary>
 	/// App status shared among all Dirigent participants.
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class AppState
 	{
 		[Flags]
@@ -27,35 +27,35 @@ namespace Dirigent
 			//Disabled        = 1 << 8,
 		}
 
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public FL _flags; // note: public because of MessagePacks refuses to serialize private fields
 
-		//[MessagePack.Key( 2 )]
+		////[MessagePack.Key( 2 )]
 		//protected int exitCode;
 
 		// UTC time of last update, recalculated to local time (as the clock migh differ on different computers)
 		// On Agent, the agent's UTC time of last update
 		// On Master, the UTC time of last update recalculated to master's local time
 		// On Gui, the UTC time of last update recalculated to gui's local time
-		[MessagePack.Key( 3 )]
+		//[MessagePack.Key( 3 )]
 		public DateTime _lastChange = DateTime.UtcNow;  // note: public because of MessagePacks refuses to serialize private fields
 
-		//[MessagePack.Key( 4 )]
+		////[MessagePack.Key( 4 )]
 		//protected float cpu { get; private set; }; // percentage of CPU usage; negative = N/A
 
-		//[MessagePack.Key( 5 )]
+		////[MessagePack.Key( 5 )]
 		//protected float gpu; // percentage of GPU usage
 
-		//[MessagePack.Key( 6 )]
+		////[MessagePack.Key( 6 )]
 		//protected float memory; // MBytes of memory allocated; negative = N/A
 
-		//[MessagePack.Key( 7 )]
+		////[MessagePack.Key( 7 )]
 		//protected string? planName; // in what plan's context the app was started
 
 		public const int RESTARTS_UNLIMITED = -1;  // keep restarting forever
 		public const int RESTARTS_UNITIALIZED = -2; // not yet set, will be set by the AppRestarter on first app restart, based on app's configuration
 
-		//[MessagePack.Key( 8 )]
+		////[MessagePack.Key( 8 )]
 		//int restartsRemaining = RESTARTS_UNITIALIZED;
 
 		bool Is( FL value )
@@ -174,13 +174,13 @@ namespace Dirigent
 		/// <summary>
 		/// process exit code; valid only if is Started && !Running && !Killed
 		/// </summary>
-		[MessagePack.Key( 4 )]
+		//[MessagePack.Key( 4 )]
 		public int ExitCode;
 
 		/// <summary>
 		/// Timne of the last change in the application state.
 		/// </summary>
-		[MessagePack.Key( 5 )]
+		//[MessagePack.Key( 5 )]
 		public DateTime LastChange
 		{
 			get { return _lastChange; }
@@ -190,25 +190,25 @@ namespace Dirigent
 		/// <summary>
 		///	percentage of CPU usage
 		/// </summary>
-		[MessagePack.Key( 6 )]
+		//[MessagePack.Key( 6 )]
 		public float CPU;
 
 		/// <summary>
 		///	percentage of GPU usage
 		/// </summary>
-		[MessagePack.Key( 7 )]
+		//[MessagePack.Key( 7 )]
 		public float GPU;
 
 		/// <summary>
 		///	MBytes of memory allocated
 		/// </summary>
-		[MessagePack.Key( 8 )]
+		//[MessagePack.Key( 8 )]
 		public float Memory;
 
 		/// <summary>
 		///	How many restart tries to make before giving up
 		/// </summary>
-		[MessagePack.Key( 9 )]
+		//[MessagePack.Key( 9 )]
 		public int RestartsRemaining = RESTARTS_UNITIALIZED;
 
 		string? planName;
@@ -216,7 +216,7 @@ namespace Dirigent
 		/// <summary>
 		/// In what plan's context the app was started. Current plan for apps launched directly via LaunchApp.
 		/// </summary>
-		[MessagePack.Key( 10 )]
+		//[MessagePack.Key( 10 )]
 		public string? PlanName
 		{
 			get { return planName; }
@@ -226,7 +226,7 @@ namespace Dirigent
 		/// <summary>
 		/// -1 = N/A (app not running).
 		/// </summary>
-		[MessagePack.Key( 11 )]
+		//[MessagePack.Key( 11 )]
 		public int PID;
 
 		void changed()

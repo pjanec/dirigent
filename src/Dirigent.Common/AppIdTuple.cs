@@ -8,13 +8,13 @@ namespace Dirigent
 {
 	// warning: struct can't be readonly, does not play well with MessagePack
 	
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public struct AppIdTuple
 	{
-		[MessagePack.Key( 1 )]
+		//[MessagePack.Key( 1 )]
 		public string MachineId;
 
-		[MessagePack.Key( 2 )]
+		//[MessagePack.Key( 2 )]
 		public string AppId;
 
 		public AppIdTuple() // default ctor  needed because of serialization

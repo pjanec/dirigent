@@ -15,7 +15,7 @@ namespace Dirigent.Net
 		public MsgPackCodec()
 		{
 			_msgCodec.MessageReceived = OnMsgReceived;
-			//MessagePack.MessagePackSerializer.DefaultOptions = MessagePack.Resolvers.ContractlessStandardResolver.Options;
+			MessagePack.MessagePackSerializer.DefaultOptions = MessagePack.Resolvers.ContractlessStandardResolver.Options;
 		}
 
 		void OnMsgReceived( MessageCodec.Header hdr, byte[] data, long offset, long size )

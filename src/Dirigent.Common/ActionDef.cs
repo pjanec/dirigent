@@ -12,7 +12,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of an action associated with some dirigent item (app, file, machine..)
 	/// </summary>
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	[MessagePack.Union( 201, typeof( ToolActionDef ) )]
 	[MessagePack.Union( 202, typeof( ScriptActionDef ) )]
 	[MessagePack.Union( 203, typeof( ScriptDef ) )]
@@ -20,19 +20,19 @@ namespace Dirigent
 	{
 		/// Name in the library of scripts, tools etc.
 		/// </summary>
-		[MessagePack.Key( 21 )]
+		//[MessagePack.Key( 21 )]
 		public string Name = string.Empty;
 
 		/// <summary>
 		/// Args to pass to the action (tool, script etc.)
 		/// </summary>
-		[MessagePack.Key( 22 )]
+		//[MessagePack.Key( 22 )]
 		public string Args = string.Empty;
 
 		/// <summary>
 		/// On which node (client/agent/master) to run this script/action. empty=master. Null = not set.
 		/// </summary>
-		[MessagePack.Key( 23 )]
+		//[MessagePack.Key( 23 )]
 		public string? HostId;
 
 		public override string ToString()
@@ -55,7 +55,7 @@ namespace Dirigent
 		public override int GetHashCode() => Id.GetHashCode();
 	}
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ToolActionDef : ActionDef, IEquatable<ToolActionDef>
 	{
 		public override string ToString() =>$"[ToolAction] {base.ToString()}";
@@ -66,7 +66,7 @@ namespace Dirigent
 		public override int GetHashCode() => base.GetHashCode();
 	}
 
-	[MessagePack.MessagePackObject]
+	//[MessagePack.MessagePackObject]
 	public class ScriptActionDef : ActionDef, IEquatable<ScriptActionDef>
 	{
 		public override string ToString() =>$"[ScriptAction] {base.ToString()}";
