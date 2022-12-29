@@ -47,6 +47,7 @@ namespace Dirigent.Gui.WinForms
 		private LocalScriptRegistry _localScripts;
 
 		//public Action<Net.Message> IncomingMessage;
+		private string _rootForRelativePaths;
 
 
 		public GuiCore(
@@ -59,6 +60,7 @@ namespace Dirigent.Gui.WinForms
 			_machineId = machineId; // FIXME: this is only valid if we are running a local agent! How do we know??
 			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
 			AllowLocalIfDisconnected = true;
+			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
@@ -121,23 +123,25 @@ namespace Dirigent.Gui.WinForms
 
 		void InitFromLocalConfig( string machineId )
 		{
-			// load the local config file
-			if( string.IsNullOrEmpty( _ac.LocalCfgFileName ) )
-				return;
-
-			var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
-			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			var localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
-
+			var toolDefs = new List<AppDef>();
 			
+			if( !string.IsNullOrEmpty( _ac.LocalCfgFileName ) )
+			{
+				var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
+				log.DebugFormat( "Loading local config file '{0}'", fullPath );
+				var localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
+				toolDefs = localConfig.Tools;
+			}
+
+
 			_sharedContext = new SharedContext(
-				PathUtils.GetRootForRelativePaths( _ac.LocalCfgFileName, _ac.RootForRelativePaths ),
+				_rootForRelativePaths,
 				_internalVars,
 				new AppInitializedDetectorFactory(),
 				Client
 			);
 
-			_toolsReg = new ToolsRegistry( _sharedContext, localConfig.Tools, ReflStates );
+			_toolsReg = new ToolsRegistry( _sharedContext, toolDefs, ReflStates );
 		}
 
 		void OnMessage( Net.Message msg )

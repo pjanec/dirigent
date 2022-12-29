@@ -186,7 +186,14 @@
     		InitCondition = "timeout 2.0"
     		SeparationInterval = "0.5"
     		Groups="Folder 2"
-    />
+    >
+    	    <!-- direct definition of independent file using UNC path-->
+    	    <File Title="exe file" Path="c:\windows\notepad.exe">
+        	    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
+            </File>
+    </AppTemplate>
+    
+
 
     <AppTemplate Name="apps.cmd"
     		Template = ""

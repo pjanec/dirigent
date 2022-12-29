@@ -62,7 +62,7 @@ namespace Dirigent
 
 			foreach( var p in tools )
 			{
-				var toolDef = SharedConfigReader.ReadAppElement( p, _root, _fdReg );
+				var toolDef = SharedConfigReader.ReadAppElement( p, _root, _fdReg, null, null );
 				_cfg.Tools.Add( toolDef );
 			}
 		}

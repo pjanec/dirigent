@@ -46,9 +46,17 @@ namespace Dirigent
 			_cfg.ToolMenuItems = LoadToolMenuItems(_root);
 		}
 
-		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg )
+		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg, string? machineId, string? appId )
 		{
 			AppDef a;
+
+			var idStr = e.Attribute( "AppIdTuple" )?.Value;
+			if( !string.IsNullOrEmpty( idStr ) )
+			{
+				var id = new AppIdTuple( idStr );
+				machineId  = id.MachineId;
+				appId = id.AppId;
+			}
 
 			// first load templates
 			var templateName = X.getStringAttr( e, "Template" );
@@ -68,7 +76,7 @@ namespace Dirigent
 				}
 				else
 				{
-					a = ReadAppElement( te, root, fdReg );
+					a = ReadAppElement( te, root, fdReg, machineId, appId );
 				}
 			}
 			else
@@ -239,7 +247,7 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
-			foreach ( var vfsNode in LoadVfsNodes( e, a.Id.MachineId, a.Id.AppId ) )
+			foreach ( var vfsNode in LoadVfsNodes( e, machineId, appId ) )
 			{
 				fdReg.Add( vfsNode );
 				a.VfsNodes.Add( vfsNode );
@@ -557,7 +565,7 @@ namespace Dirigent
 
 			foreach( var p in apps )
 			{
-				var app = ReadAppElement( p, _root, _fdReg );
+				var app = ReadAppElement( p, _root, _fdReg, null, null );
 				_cfg.AppDefaults.Add( app );
 			}
 		}
@@ -575,7 +583,7 @@ namespace Dirigent
 				var startTimeout = X.getDoubleAttr( p, "StartTimeout", -1, true );
 
 				var apps = ( from e in p.Elements( "App" )
-							 select ReadAppElement( e, _root, _fdReg ) ).ToList();
+							 select ReadAppElement( e, _root, _fdReg, null, null ) ).ToList();
 
 				if( string.IsNullOrEmpty(planName) )
 					throw new ConfigurationErrorException( $"Missing plan name in plan #{planIndex}");

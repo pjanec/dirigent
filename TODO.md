@@ -1,7 +1,5 @@
 [BUG] Exception inside SyncOp is not shown, silently ignored.
 
-[BUG] ReloadSharedConfig does not apply changes from shared config. AppIds do not change. Startup params do not change.
-
 [IDEA] Implement some tools as standard part of the Dirigent, always available. 
 
 [IDEA] Add json viewer as one of internal tools? Or better use Notepad++?
