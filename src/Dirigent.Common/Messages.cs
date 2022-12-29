@@ -58,7 +58,7 @@ namespace Dirigent.Net
 
 	public abstract class Message
 	{
-		[MessagePack.Key( 1000 )]
+		[MessagePack.Key( 0 )]
 		public string Sender { get; set; } = string.Empty;  // machine name for agents, guid for GUIs, empty for master
 
 		// do not dump it on console

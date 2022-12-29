@@ -2,7 +2,7 @@
   "profiles": {
     "Dirigent.Gui.WinForms": {
       "commandName": "Project",
-      "commandLineArgs": "--isMaster 1 --machineId m1"
+      "commandLineArgs": "--isMaster 1 --machineId m1 --debug 1"
     }
   }
 }

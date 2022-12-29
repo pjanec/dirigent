@@ -264,6 +264,12 @@ namespace Dirigent
 		// incoming message from master
 		void OnMessage( Net.Message msg )
 		{
+			if( _debug ) // no exception catching
+			{
+                ProcessIncomingMessage(msg);
+				return;
+			}
+			
             try
             {
                 ProcessIncomingMessage(msg);

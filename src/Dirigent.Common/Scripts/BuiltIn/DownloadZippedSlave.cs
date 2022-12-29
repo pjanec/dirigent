@@ -57,7 +57,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 		TArgs? _args;
 		
-		protected async override Task<byte[]?> Run( CancellationToken ct )
+		protected override Task<byte[]?> Run( CancellationToken ct )
 		{
 			_args = Tools.Deserialize<TArgs>( Args );
 			if( _args is null ) throw new NullReferenceException("Args == null");
@@ -88,7 +88,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 					// all done!
 					var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
-					return Tools.Serialize(result);
+					return Task.FromResult( Tools.Serialize(result) )!;
 				}
 				finally
 				{

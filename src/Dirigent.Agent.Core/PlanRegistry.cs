@@ -40,7 +40,7 @@ namespace Dirigent
 		}
 
 		/// <summary>
-		/// Finds plan ba name. Throws if failed.
+		/// Finds plan by name. Throws if failed.
 		/// </summary>
 		public Plan FindPlan( string planName )
 		{

@@ -15,6 +15,7 @@ namespace Dirigent.Net
 		public MsgPackCodec()
 		{
 			_msgCodec.MessageReceived = OnMsgReceived;
+			//MessagePack.MessagePackSerializer.DefaultOptions = MessagePack.Resolvers.ContractlessStandardResolver.Options;
 		}
 
 		void OnMsgReceived( MessageCodec.Header hdr, byte[] data, long offset, long size )
@@ -24,11 +25,16 @@ namespace Dirigent.Net
 			MessageReceived?.Invoke( instance );
 		}
 
+		static object _globalLock = new object();
 
-		public static void Serialize<T>( System.IO.MemoryStream stream, in T instance )
+
+		public static void Serialize<T>( System.IO.MemoryStream stream, T instance )
 		{
 			var outBodyStream = new System.IO.MemoryStream( 1000 );
-			MessagePack.MessagePackSerializer.Serialize<T>( outBodyStream, instance );
+			lock (_globalLock)
+			{
+				MessagePack.MessagePackSerializer.Serialize<T>( outBodyStream, instance );
+			}
 
 			var hdr = new MessageCodec.Header()
 			{
@@ -49,7 +55,11 @@ namespace Dirigent.Net
 			var inBodyStream = new System.IO.MemoryStream( body, ( int ) offset, ( int ) size );
 			try
 			{
-				T instance = MessagePack.MessagePackSerializer.Deserialize<T>( inBodyStream );
+				T? instance;
+				lock (_globalLock)
+				{
+					instance = MessagePack.MessagePackSerializer.Deserialize<T>( inBodyStream );
+				}
 				return instance;
 			}
 			catch (Exception e)

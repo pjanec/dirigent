@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 
 namespace Dirigent
 {
-	#if Windows
     public class ProcessInfo
     {
         public int PID;
@@ -125,6 +124,8 @@ namespace Dirigent
 				_processInfos = processInfos;
 				_totalCpuUsage = totalCpu;
 			}
+		#else
+			// LINUX: TODO!
 		#endif
 		}
 
@@ -134,5 +135,4 @@ namespace Dirigent
 		}
 
 	}
-	#endif
 }
