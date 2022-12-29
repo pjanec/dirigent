@@ -107,7 +107,7 @@ namespace Dirigent.Gui.WinForms
 			base.Dispose( disposing );
 			if (!disposing) return;
 
-			_toolsReg.Dispose();
+			_toolsReg?.Dispose();
 			_localScripts.Dispose();
 			ReflStates.Dispose();
 
