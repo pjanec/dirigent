@@ -650,7 +650,12 @@ namespace Dirigent
 				order++;
 				len = len / 1024;
 			}
-			return String.Format( CultureInfo.InvariantCulture, "{0:0.#} {1}", len, sizes[order] );
+			return String.Format(
+				CultureInfo.InvariantCulture,
+				"{0} {1}",
+				RoundToSignificantDigits(len,3),
+				sizes[order]
+			);
 		}
 
 		public static string HumanReadableSizeOutOf( ulong bytes, ulong total )
@@ -665,7 +670,13 @@ namespace Dirigent
 				len1 = len1 / 1024;
 				len2 = len2 / 1024;
 			}
-			return String.Format( CultureInfo.InvariantCulture, "{0:0.#}/{1:0.#} {2}", len1, len2, sizes[order] );
+			return String.Format(
+				CultureInfo.InvariantCulture,
+				"{0}/{1} {2}",
+				RoundToSignificantDigits(len1, 3),
+				RoundToSignificantDigits(len2, 3),
+				sizes[order]
+			);
 		}
 
 		public static string GetHomePath()
@@ -705,6 +716,26 @@ namespace Dirigent
 				Environment.SetEnvironmentVariable( "DIRIGENT_SHAREDCONFDIR", sharedConfigDir );
 		}
 		
+		public static string RoundToSignificantDigits( double d, int digits )
+		{
+			if(d == 0)
+				return "0";
+
+			double scale = Math.Pow(10, Math.Floor(Math.Log10(Math.Abs(d))) + 1);
+			double rounded = scale * Math.Round(d / scale, digits);
+
+			string s = rounded.ToString( CultureInfo.InvariantCulture );
+			int digitsLeft = 3;
+			int pos = 0;
+			while (pos < s.Length && digitsLeft > 0)
+			{
+				if( s[pos] != '.')
+					digitsLeft--;
+				pos++;
+			}
+			return s.Substring( 0, pos );
+
+		}
 
 	}
 
