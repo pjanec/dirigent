@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\config\scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
+    <None Include="Scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="..\.editorconfig" Link=".editorconfig" />

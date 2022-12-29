@@ -36,6 +36,8 @@ namespace Dirigent
 			_ac = ac;
 			_alreadyRunningTester = new AlreadyRunningTester( ac.MasterIP, ac.MasterPort, ac.MachineId );
 
+			Tools.SetDefaultEnvVars( System.IO.Path.GetDirectoryName( _ac.SharedCfgFileName )! );
+
 		}
 
 		protected override void Dispose(bool disposing)
@@ -78,13 +80,7 @@ namespace Dirigent
 			{
 				if( !_alreadyRunningTester.IsAgentAlreadyRunning() )
 				{
-					_agent = new Agent(
-						_ac.MachineId,
-						_ac.MasterIP,
-						_ac.MasterPort,
-						PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths ),
-						_ac.LocalCfgFileName
-					);
+					_agent = new Agent( _ac );
 				}
 				else
 				{

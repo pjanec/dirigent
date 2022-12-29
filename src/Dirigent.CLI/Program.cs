@@ -40,7 +40,6 @@ namespace Dirigent
 		/// </summary>
 		static int Main()
 		{
-
             #if Windows
 				//Console.WriteLine("Windows!");
             #endif

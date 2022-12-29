@@ -22,19 +22,13 @@ namespace Dirigent.Gui
 		private string _machineId;
 		private ImGuiWindow _wnd;
 
-		public AgentWindow( ImGuiWindow wnd, AppConfig ac, string machineId )
+		public AgentWindow( ImGuiWindow wnd, AppConfig ac, string? machineId=null )
 		{
 			_wnd = wnd;
 			_ac = ac;
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
-			_machineId = machineId;
-			_agent = new Agent(
-				machineId,
-				_ac.MasterIP,
-				_ac.MasterPort,
-				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths ),
-				_ac.LocalCfgFileName
-			);
+			_machineId = machineId ?? _ac.MachineId;
+			_agent = new Agent(	_ac, _machineId );
 		}
 
 		protected override void Dispose(bool disposing)

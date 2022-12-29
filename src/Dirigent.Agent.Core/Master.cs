@@ -100,13 +100,15 @@ namespace Dirigent
 		public SynchronousOpProcessor _syncOps;
 		private SynchronousIDirig _syncIDirig;
 		private string _machineId; // empty if we run master standalone on an unidentified machine (this never happens as we always run master as part of some agent on a machine with a known id)
-		private bool _debug = true; // do not catch exceptions etc.
+		private bool _debug = false; // do not catch exceptions etc.
 
 		#endregion
 
 		public Master( AppConfig ac, string rootForRelativePaths )
 		{
 			log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
+
+			_debug = Tools.BoolFromString( ac.Debug );
 
 			_localIpAddr = ac.LocalIP;
 			_port = ac.MasterPort;

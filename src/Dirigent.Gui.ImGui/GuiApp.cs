@@ -26,6 +26,8 @@ namespace Dirigent.Gui
 			_ac = ac;
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 
+			Tools.SetDefaultEnvVars( System.IO.Path.GetDirectoryName( _ac.SharedCfgFileName ) );
+
 			_wnd = new ImGuiWindow("Dirigent Gui", width:400, height:650);
 			_wnd.OnDrawUI += DrawUI;
 

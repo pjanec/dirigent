@@ -91,6 +91,9 @@ namespace Dirigent
 		[Option( "guiAppExe", Required = false, Default = "", HelpText = "Executable for GUI" )]
 		public string GuiAppExe { get; set; } = string.Empty;
 
+		[Option( "debug", Required = false, Default = "", HelpText = "do not catch exceptions, let the debugger to break in [0|1]." )]
+		public string Debug { get; set; } = string.Empty;
+
 		[Value( 0 )]
 		public IEnumerable<string> Items { get; set; } = new List<string>();
 	}
@@ -122,6 +125,7 @@ namespace Dirigent
 		public IList<string> NonOptionArgs = new List<string>();
 		public int ParentPid = -1;
 		public string GuiAppExe = "";
+		public string Debug = "0";
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -160,6 +164,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.MasterTickPeriod != 0 ) MasterTickPeriod = Common.Properties.Settings.Default.MasterTickPeriod;
 			if( Common.Properties.Settings.Default.LogFile  != "" ) LogFileName = Common.Properties.Settings.Default.LogFile;
 			if( Common.Properties.Settings.Default.GuiAppExe != "" ) GuiAppExe = Common.Properties.Settings.Default.GuiAppExe;
+			if( Common.Properties.Settings.Default.Debug != "" ) Debug = Common.Properties.Settings.Default.Debug;
 
 			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>( System.Environment.GetCommandLineArgs() );
 
@@ -187,6 +192,7 @@ namespace Dirigent
 				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;
 				ParentPid = options.parentPid;
 				if( options.GuiAppExe != "" ) GuiAppExe = options.GuiAppExe;
+				if( options.Debug != "" ) Debug = options.Debug;
 			} )
 			.WithNotParsed<Options>( ( errList ) =>
 			{

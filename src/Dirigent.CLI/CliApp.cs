@@ -25,6 +25,9 @@ namespace Dirigent
 		{
 			this._ac = ac;
 			_interactive = interactive;
+
+			Tools.SetDefaultEnvVars( System.IO.Path.GetDirectoryName( _ac.SharedCfgFileName ) );
+
             _client = new Dirigent.CLI.CommandLineClient( _ac.MasterIP, _ac.CliPort );
 		}
 

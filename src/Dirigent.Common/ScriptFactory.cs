@@ -159,6 +159,8 @@ namespace Dirigent
 
 				string fileName = scriptName;
 
+				fileName = Tools.ExpandEnvVars( fileName );
+
 				if (!Path.IsPathRooted( fileName ))
 				{
 					if (!string.IsNullOrEmpty( scriptRootFolder ))

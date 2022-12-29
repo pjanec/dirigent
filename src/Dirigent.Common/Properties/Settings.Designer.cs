@@ -504,5 +504,17 @@ namespace Dirigent.Common.Properties
 				return ( ( int )( this["ConfirmKillAll"] ) );
 			}
 		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string Debug
+		{
+			get
+			{
+				return ( ( string )( this["Debug"] ) );
+			}
+		}
+
 	}
 }

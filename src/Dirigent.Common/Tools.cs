@@ -702,6 +702,14 @@ namespace Dirigent
 
 			return String.Empty;
 		}
+
+		public static void SetDefaultEnvVars( string? sharedConfigDir )
+		{
+			Environment.SetEnvironmentVariable( "DIRIGENT_BIN", Tools.GetExeDir() );
+			
+			if( sharedConfigDir != null )
+				Environment.SetEnvironmentVariable( "DIRIGENT_SHAREDCONFDIR", sharedConfigDir );
+		}
 		
 
 	}

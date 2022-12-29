@@ -47,6 +47,9 @@ namespace Dirigent
 		private SynchronousIDirig _syncIDirig;
 		private LocalScriptRegistry _localScripts;
 		ReflectedStateRepo _reflStates;
+		private bool _debug = false; // do not catch exceptions etc.
+		AppConfig _ac;
+
 		
 
         /// <summary>
@@ -54,25 +57,29 @@ namespace Dirigent
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
 
-		public Agent( string machineId, string masterIP, int masterPort, string rootForRelativePaths, string localCfgFileName )
-
-
+		public Agent( AppConfig ac, string? machineId=null )
 		{
-			log.Info( $"Running Agent machineId={machineId}, masterIp={masterIP}, masterPort={masterPort}" );
+			_ac = ac;
+
+			if( machineId == null ) machineId = _ac.MachineId;
+
+			log.Info( $"Running Agent machineId={machineId}, masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
+
+			_debug = Tools.BoolFromString( _ac.Debug );
 
 			_clientIdent = new Net.ClientIdent() { Sender = machineId, SubscribedTo = Net.EMsgRecipCateg.Agent };
-			_client = new Net.Client( _clientIdent, masterIP, masterPort, autoConn: true );
-			_rootForRelativePaths = rootForRelativePaths;
+			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
+			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
 			_reflStates = new ReflectedStateRepo( _client, machineId );
 
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
-			ScriptFactory = new ScriptFactory( rootForRelativePaths );
+			ScriptFactory = new ScriptFactory( _rootForRelativePaths );
 
 			_sharedContext = new SharedContext(
-				rootForRelativePaths,
+				_rootForRelativePaths,
 				_internalVars,
 				new AppInitializedDetectorFactory(),
 				_client
@@ -84,7 +91,7 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg );
 
-			_localConfig = LoadLocalConfig( localCfgFileName, machineId );
+			_localConfig = LoadLocalConfig( _ac.LocalCfgFileName, machineId );
 			if( _localConfig is not null )
 			{
 				InitFromLocalConfig();
