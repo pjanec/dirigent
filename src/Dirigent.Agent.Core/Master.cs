@@ -416,7 +416,7 @@ namespace Dirigent
 							_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
 						}
 					}
-					else // forward to the target client
+					else if( m.Sender != "" ) // forward to the target client
 					{
 						_server.SendToSingle( m, m.HostClientId );
 					}

@@ -1,5 +1,3 @@
-[BUG] StartScript message addressed to m1 agent is received by both the m1 agent and the GuiCore client on m1. GuiCore should not receive that!
-
 [BUG] Exception inside SyncOp is not shown, silently ignored.
 
 [BUG] ReloadSharedConfig does not apply changes from shared config. AppIds do not change. Startup params do not change.

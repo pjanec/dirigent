@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Development note:
+     This file is copied to the bin folder.
+     DIRIGENT_SHAREDCONFDIR is set to the bin folder for apps started from Visual Studio.
+-->
 <Shared>
     <!-- Free apps (app defaults if an app is not part of any plan, having own app definition -->
 	<App AppIdTuple = "m1.a" Template = "apps.notepad" Groups="Folder Free"/>

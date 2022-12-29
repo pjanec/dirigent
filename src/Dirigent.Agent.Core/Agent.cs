@@ -244,7 +244,10 @@ namespace Dirigent
 
 				case Net.StartScriptMessage m:
 				{
-					_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
+					if( m.HostClientId == _clientIdent.Name ) // is it for us? Note, this message is broadcasted to all nodes...
+					{
+						_localScripts.Start( m.Instance, m.ScriptName, m.SourceCode, m.Args, m.Title, m.Requestor );
+					}
 					break;
 				}
 
