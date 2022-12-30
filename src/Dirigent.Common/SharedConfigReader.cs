@@ -351,7 +351,7 @@ namespace Dirigent
 			a.Children.AddRange( x.Children );
 
 			// add built-in download action
-			a.Actions.Add( new ScriptActionDef() { Name="BuiltIns/DownloadZipped.cs", Title="Download" } );
+			//a.Actions.Add( new ScriptActionDef() { Name="BuiltIns/DownloadZipped.cs", Title="Download" } );
 		}
 
 		static VfsNodeDef? LoadVfsNode( XElement e, string? machineId=null, string? appId=null )

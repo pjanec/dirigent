@@ -66,11 +66,13 @@
   <!-- These are added to each file's context menu -->
   <DefaultFileActions>
     <Tool Title="BLA Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
+    <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" />
   </DefaultFileActions>
 
   <!-- These are added to each file pakage's context menu -->
   <DefaultFilePackageActions>
     <Script Title="BLA Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" />
   </DefaultFilePackageActions>
 
 </Local>

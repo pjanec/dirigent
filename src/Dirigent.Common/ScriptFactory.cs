@@ -109,7 +109,7 @@ namespace Dirigent
 
 		Script? TryBuiltIns( string scriptName )
 		{
-			if( scriptName == "Scripts/DemoScript1.cs" )
+			if( scriptName == "BuiltIns/DemoScript1.cs" )
 				return new DemoScript1();
 			if(string.Equals( scriptName, Scripts.BuiltIn.ResolveVfsPath._Name, StringComparison.InvariantCultureIgnoreCase ))
 				return new Scripts.BuiltIn.ResolveVfsPath();
