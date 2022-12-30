@@ -34,7 +34,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 		static string TempFilePrefix = "1B90C3B7-51DA-4E58-9A70-5C1F47E9BD02";
 
-		protected async override Task<byte[]?> Run( CancellationToken ct )
+		protected async override Task<byte[]?> Run()
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args is null");

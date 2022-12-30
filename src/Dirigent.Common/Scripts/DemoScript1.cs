@@ -1,48 +1,44 @@
-using System;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 using Dirigent;
 
 public class DemoScript1 : Script
 {
-	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+	private static readonly log4net.ILog log =
+		log4net.LogManager.GetLogger(
+			System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType
+		);
 
-	//[MessagePack.MessagePackObject]
 	public class Result
 	{
-		//[MessagePack.Key( 1 )]
 		public int Code;
-
-		public override string ToString() => Code.ToString();
 	}
 
-	protected async override Task<byte[]?> Run( CancellationToken ct )
+	protected async override System.Threading.Tasks.Task<byte[]?> Run()
 	{
-		if( TryGetArgs<string>( out var strArgs ) )
+		if( TryDeserializeArgs<string>( out var strArgs ) )
 		{
 			log.Info($"Init with string args: '{strArgs}'");
 		}
 
 		log.Info("Run!");
 
-		SetStatus("Waiting for m1 to boot");
+		await SetStatus("Waiting for m1 to boot");
 
-		//// wait for agent m1 to boot
-		//while( await Dirig.GetClientStateAsync("m1") is null ) await Task.Delay(100, ct);
+		// wait for agent m1 to boot
+		while( await GetClientState("m1") is null )
+			await Wait(100);
 
 		// start app "m1.a" defined within "plan1"
 		await StartApp( "m1.a", "plan1" );
 		
 		// wait for the app to initialize
-		SetStatus("Waiting for m1.a to initialize");
-		while ( !(await GetAppState( "m1.a" ))!.Initialized ) await Task.Delay(100, ct);
+		await SetStatus("Waiting for m1.a to initialize");
+		while ( !(await GetAppState("m1.a"))!.Initialized )
+			await Wait(100);
 
 		// start app "m1.b" defined within "plan1"
 		await StartApp( "m1.b", "plan1" );
 
-		await Task.Delay(2000, ct);
+		await Wait(2000);
 
 		// run action on where this script was issued from
 		await RunAction(
@@ -52,15 +48,15 @@ public class DemoScript1 : Script
 		);
 
 		//SetStatus("Waiting before throwing exception");
-		//await Task.Delay(4000, ct);
+		//await Delay(4000);
 		//throw new Exception( "Demo exception" );
 
-		SetStatus("Waiting before terminating");
-		await Task.Delay(4000, ct);
+		await SetStatus("Waiting before terminating");
+		await Wait(4000);
 
 		await KillApp( "m1.a" );
 		await KillApp( "m1.b" );
 
-		return MakeResult( new Result { Code = 17 } );
+		return SerializeResult( new Result { Code = 17 } );
 	}
 }

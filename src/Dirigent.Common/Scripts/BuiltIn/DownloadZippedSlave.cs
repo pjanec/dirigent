@@ -57,7 +57,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 		TArgs? _args;
 		
-		protected override Task<byte[]?> Run( CancellationToken ct )
+		protected override Task<byte[]?> Run()
 		{
 			_args = Tools.Deserialize<TArgs>( Args );
 			if( _args is null ) throw new NullReferenceException("Args == null");

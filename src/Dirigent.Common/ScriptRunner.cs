@@ -126,6 +126,7 @@ namespace Dirigent
 				ct.ThrowIfCancellationRequested();
 
 				_script.Instance = ScriptInstance;
+				_script.CancellationToken = ct;
 
 				log.Debug( $"Running script \"{title}\" {scriptName} [{ScriptInstance}]" );
 
@@ -133,7 +134,7 @@ namespace Dirigent
 				SendStatus( new ScriptState(_status) );
 
 				//await _script.CallInit();
-				var result = await _script.CallRun( ct );
+				var result = await _script.CallRun();
 
 				var state = new ScriptState();
 				lock( _runTask! )
