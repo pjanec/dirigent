@@ -933,6 +933,12 @@ namespace Dirigent
 					KillApp( requestorId, ad.Id );
 				}
 			}
+
+			// kill all running scripts
+			foreach( var (id, state) in _reflScripts.GetAllScriptStates() )
+			{
+				KillScript( requestorId, id );
+			}
 		}
 
 		public void ReloadSharedConfig( string requestorId, ReloadSharedConfigArgs args )
@@ -991,8 +997,13 @@ namespace Dirigent
 				_singlScripts.KillScript( requestorId, id );
 			}
 			else
+			if( _localScripts.Scripts.ContainsKey( id ) )
 			{
 				_localScripts.Stop( id );
+			}
+			else  // not our script, forward kill request to all others
+			{
+				_server.SendToAllSubscribed( new KillScriptMessage( requestorId, id ), EMsgRecipCateg.All );
 			}
 		}
 
