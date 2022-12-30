@@ -28,7 +28,7 @@ namespace Dirigent
 
 		private readonly IDirig _ctrl;
 
-		Task? _runTask;
+		Task? _runTask; // if not null, the script is still running
 		CancellationTokenSource? _runCTS;
 
 		readonly ScriptFactory _scriptFactory;
@@ -60,10 +60,10 @@ namespace Dirigent
 		// this has to be locked as the status can change either from Tick or from async ScriptLifeCycle
 		ScriptState GetStateLocked()
 		{
-			if( _script == null )
+			if( _runTask is null || _script is null )
 				return new ScriptState();
 
-			lock( _script )
+			lock( _runTask )
 			{
 				return new ScriptState(
 					_status,
@@ -76,52 +76,30 @@ namespace Dirigent
 		public void Start( string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
 		{
 			// one runner can run max one script at a time
-			if( _script is not null ) // already started?
+			if( _runTask is not null ) // already started?
 				throw new Exception( $"Script {title} [{ScriptInstance}] already started." );
 
 			_status = EScriptStatus.Starting;
 			SendStatus( new ScriptState(_status) );
 
-			var script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ), requestorId );
-
-			Start( script, args );
+			// run the script's Init+Run asynchronously
+			_runCTS = new CancellationTokenSource();
+			_runTask = Task.Run( async () => await ScriptLifeCycle( _runCTS.Token, scriptName, sourceCode, args, title, requestorId ) );
 		}
 
 		
 
-		/// <summary>
-		/// Starts the controller part
-		/// </summary>
-		/// <param name="script">Freshly created, no yet Init-ed script</param>
-		public void Start( Script script, byte[]? args )
-		{
-			if( _script is not null ) // already started?
-				throw new Exception( $"Script {ScriptInstance} already started." );
-
-			script.Instance = ScriptInstance;
-			_script = script;
-
-			log.Debug( $"Starting script \"{_script.Title}\"{_script.Origin} [{_script.Instance}]" );
-
-			_status = EScriptStatus.Running;
-			SendStatus( new ScriptState(_status) );
-
-			// run the script's Init+Run asynchronously
-			_runCTS = new CancellationTokenSource();
-			_runTask = Task.Run( async () => await ScriptLifeCycle( _runCTS.Token ) );
-		}
-
 		// cancel the script execution
 		public void Stop()
 		{
-			if( _script is null ) return;
+			if( _runTask is null ) return;
 
-			log.Debug( $"Cancelling script \"{_script.Title}\"{_script.Origin} [{_script.Instance}]" );
+			log.Debug( $"Cancelling script [{ScriptInstance}]" );
 
 			
 			// note: the script can be still running there, possibly overwriting the status when it finished etc, needs locking
 			var state = new ScriptState();
-			lock( _script )
+			lock( _runTask )
 			{
 				_status = EScriptStatus.Cancelling;
 				state.Status = _status;
@@ -136,86 +114,84 @@ namespace Dirigent
 			//	_runTask.Wait();
 		}
 
-		void Remove()
-		{
-			if( _script is null ) return;
-			
-			_script.Dispose();
-			
-			_script = null;
-
-			// we keep the last state (here either Finished, Failed, or Cancelled)
-			//State.Status = EScriptStatus.Unknown;
-		}
-
-		async Task ScriptLifeCycle( CancellationToken ct )
+		async Task ScriptLifeCycle( CancellationToken ct, string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId  )
 		{
 			// note: we wait for termination of this task in Tick(), then we call Done() from Tick
-
-			if( _script == null ) return;
-			
 			try
 			{
+				log.Debug( $"Instantiating script \"{title}\" {scriptName} [{ScriptInstance}]" );
+				
+				_script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ), requestorId );
+
+				ct.ThrowIfCancellationRequested();
+
+				_script.Instance = ScriptInstance;
+
+				log.Debug( $"Running script \"{title}\" {scriptName} [{ScriptInstance}]" );
+
+				_status = EScriptStatus.Running;
+				SendStatus( new ScriptState(_status) );
+
 				//await _script.CallInit();
 				var result = await _script.CallRun( ct );
 
 				var state = new ScriptState();
-				lock( _script )
+				lock( _runTask! )
 				{
 					_status = EScriptStatus.Finished;
 					state.Status = _status;
 					state.Data = result;
 				}
-				await SendStatusAsync( state );
+				SendStatus( state );
 			}
-			catch( TaskCanceledException )
+			catch( TaskCanceledException ) // thrown by one of the awaits if cancellation is detected
 			{
 				var state = new ScriptState();
-				lock( _script )
+				lock( _runTask! )
 				{
 					_status = EScriptStatus.Cancelled;
 					state.Status = _status;
 				}
-				await SendStatusAsync( state );
+				SendStatus( state );
+			}
+			catch( OperationCanceledException )	 // thrown by the script if it detected the cancellation
+			{
+				var state = new ScriptState();
+				lock( _runTask! )
+				{
+					_status = EScriptStatus.Cancelled;
+					state.Status = _status;
+				}
+				SendStatus( state );
 			}
 			catch( Exception ex )
 			{
 				var state = new ScriptState();
-				lock( _script )
+				lock( _runTask! )
 				{
 					_status = EScriptStatus.Failed;
 					state.Status = _status;
 					state.Data = Tools.Serialize( new SerializedException( ex ) );
 				}
-				await SendStatusAsync( state );
+				SendStatus( state );
 			}
 
 		}
 
 		public void SendStatus( ScriptState state )
 		{
-			if( _script == null ) return;
+			// note: the following should not block, must be thread safe
 			_ctrl.Send( new Net.ScriptStateMessage(
 				ScriptInstance,
 				state
 			));
 		}
 
-		public Task SendStatusAsync( ScriptState state )
-		{
-			if( _script == null ) return Task.CompletedTask;
-			return _script.Dirig.SendAsync( new Net.ScriptStateMessage(
-				ScriptInstance,
-				state
-			));
-		}
-		
-
 		ScriptState _lastSentState = new();
 		
 		public void Tick()
 		{
-			if( _script != null )
+			if( _runTask != null )
 			{
 				var state = GetStateLocked();
 
@@ -231,23 +207,36 @@ namespace Dirigent
 				}
 			}
 
-			if( _script != null )
+			if( _runTask != null )
 			{
-				// check for Run finished in order to dispose the instance
-				if( _runTask != null )
+				if( _runTask.IsCanceled )
 				{
-					if( _runTask.IsCanceled )
-					{
-						Remove();
-					}
-					else
-					if( _runTask.IsCompleted )
-					{
-						Remove();
-					}
+					ClearTask();
+				}
+				else
+				if( _runTask.IsCompleted )
+				{
+					ClearTask();
 				}
 			}
 		}
+
+		void ClearTask()
+		{
+			if( _script is not null )
+			{
+				_script.Dispose();
+			
+				_script = null;
+			}
+			
+			_runTask = null;
+
+			// we keep the last state (here either Finished, Failed, or Cancelled)
+			//State.Status = EScriptStatus.Unknown;
+		}
+
 	}
+
 }
 

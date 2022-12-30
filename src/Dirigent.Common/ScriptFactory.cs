@@ -122,9 +122,9 @@ namespace Dirigent
 
 			return null;				
 		}
-		
+
 		/// <summary>
-		/// 
+		/// Instantiates the script. Runs from async context, should not use any stuff that is not thread safe.
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="taskInstance"></param>

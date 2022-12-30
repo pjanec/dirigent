@@ -160,7 +160,11 @@
 
     <!-- single instance scripts in the Scripts tab -->
     <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1 - built-in" Name="BuiltIns/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
-    <Script Id="0204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
+    <Script Id="0204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #1" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
+    <Script Id="1204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #2" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
+    <Script Id="2204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #3" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
+    <Script Id="3204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #4" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
+    <Script Id="4204745E-8867-4168-AE91-81B7D3449A1B" Title="DemoX - not found" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/UnexistingScriptFile.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
 
     <ToolsMenu>
         <!-- script invoked on defined machine -->
