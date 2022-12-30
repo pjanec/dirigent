@@ -177,7 +177,7 @@
 			// 
 			this.stopPlanToolStripMenuItem.Name = "stopPlanToolStripMenuItem";
 			this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
-			this.stopPlanToolStripMenuItem.Text = "Stop";
+			this.stopPlanToolStripMenuItem.Text = "Stop (leave apps running)";
 			this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanMenuItem_Click);
 			// 
 			// restartPlanToolStripMenuItem
@@ -191,7 +191,7 @@
 			// 
 			this.killPlanToolStripMenuItem.Name = "killPlanToolStripMenuItem";
 			this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
-			this.killPlanToolStripMenuItem.Text = "Kill";
+			this.killPlanToolStripMenuItem.Text = "Kill apps";
 			this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanMenuItem_Click);
 			// 
 			// toolStripMenuItem1
@@ -433,7 +433,7 @@
 			this.btnStopPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnStopPlan.Name = "btnStopPlan";
 			this.btnStopPlan.Size = new System.Drawing.Size(34, 32);
-			this.btnStopPlan.Text = "Stop Plan";
+			this.btnStopPlan.Text = "Stop current plan, leave apps running";
 			this.btnStopPlan.Click += new System.EventHandler(this.stopPlanMenuItem_Click);
 			// 
 			// btnKillPlan
@@ -443,7 +443,7 @@
 			this.btnKillPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnKillPlan.Name = "btnKillPlan";
 			this.btnKillPlan.Size = new System.Drawing.Size(34, 32);
-			this.btnKillPlan.Text = "Kill Plan";
+			this.btnKillPlan.Text = "Kill apps from current plan";
 			this.btnKillPlan.Click += new System.EventHandler(this.killPlanMenuItem_Click);
 			// 
 			// btnRestartPlan
@@ -453,7 +453,7 @@
 			this.btnRestartPlan.ImageTransparentColor = System.Drawing.Color.Magenta;
 			this.btnRestartPlan.Name = "btnRestartPlan";
 			this.btnRestartPlan.Size = new System.Drawing.Size(34, 32);
-			this.btnRestartPlan.Text = "Restart Plan";
+			this.btnRestartPlan.Text = "Restart current plan";
 			this.btnRestartPlan.Click += new System.EventHandler(this.restartPlanMenuItem_Click);
 			// 
 			// bntAppsKillAll

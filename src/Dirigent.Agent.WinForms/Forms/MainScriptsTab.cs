@@ -17,10 +17,11 @@ namespace Dirigent.Gui.WinForms
 	{
 		const int colName = 0;
 		const int colStatus = 1;
-		const int colIconStart = 2;
-		const int colIconKill = 3;
-		const int colId = 4;
-		const int colMAX = 5;
+		const int colDetails = 2;
+		const int colIconStart = 3;
+		const int colIconKill = 4;
+		const int colId = 5;
+		const int colMAX = 6;
 
 		private Zuby.ADGV.AdvancedDataGridView _grid;
         private BindingSource _bindingSource = null;
@@ -49,6 +50,7 @@ namespace Dirigent.Gui.WinForms
 	        _dataTable = _dataSet.Tables.Add("ScriptsTable");
 			_dataTable.Columns.Add("Name", typeof(string));
 			_dataTable.Columns.Add("Status", typeof(string));
+			_dataTable.Columns.Add("Description", typeof(string));
 			_dataTable.Columns.Add("IconStart", typeof(Bitmap));
 			_dataTable.Columns.Add("IconKill", typeof(Bitmap));
 			_dataTable.Columns.Add("Id", typeof(Guid));
@@ -67,19 +69,27 @@ namespace Dirigent.Gui.WinForms
 			_Status.HeaderText = "Status";
 			_Status.MinimumWidth = 9;
 			_Status.ReadOnly = true;
-			_Status.Width = 350;
+			_Status.Width = 80;
+
+			var _Details = _grid.Columns[colDetails];
+			_Details.HeaderText = "Details";
+			_Details.MinimumWidth = 9;
+			_Details.ReadOnly = true;
+			_Details.Width = 350;
 
 			var _hdrScriptStart = _grid.Columns[colIconStart];
 			_hdrScriptStart.HeaderText = "";
 			_hdrScriptStart.MinimumWidth = 9;
 			_hdrScriptStart.ReadOnly = true;
 			_hdrScriptStart.Width = 24;
+			_hdrScriptStart.ToolTipText = "Start";
 
 			var _hdrScriptKill = _grid.Columns[colIconKill];
 			_hdrScriptKill.HeaderText = "";
 			_hdrScriptKill.MinimumWidth = 9;
 			_hdrScriptKill.ReadOnly = true;
 			_hdrScriptKill.Width = 24;
+			_hdrScriptKill.ToolTipText = "Kill";
 
 			var _hdrScriptId = _grid.Columns[colId];
 			_hdrScriptId.HeaderText = "Script Id";
@@ -108,6 +118,7 @@ namespace Dirigent.Gui.WinForms
 				populateScriptGrid();
 			}
 			updateScriptsStatus();
+			UpdateToolTips();
 		}
 
 		void populateScriptGrid()
@@ -127,12 +138,24 @@ namespace Dirigent.Gui.WinForms
 				
 				newrow[colName] = script.Title;
 				newrow[colStatus] = "";
+				newrow[colDetails] = "";
 				newrow[colIconStart] = _iconStart;
 				newrow[colIconKill] = _iconKill;
 				newrow[colId] = script.Id;
 				
 	            _dataTable.Rows.Add(newrow);
 			};
+
+		}
+
+		void UpdateToolTips()
+		{
+			for (int i = 0; i < _grid.RowCount; i++)
+			{
+				var r = _grid.Rows[i];
+				r.Cells[colIconStart].ToolTipText = _grid.Columns[colIconStart].ToolTipText;
+				r.Cells[colIconKill].ToolTipText = _grid.Columns[colIconKill].ToolTipText;
+			}
 		}
 
 		void updateScriptsStatus()
@@ -148,20 +171,22 @@ namespace Dirigent.Gui.WinForms
 				var scriptState = Ctrl.GetScriptState( scriptId );
 				if (scriptState != null)
 				{
-					var statusText = scriptState.Status.ToString();
+					var statusStr = scriptState.Status.ToString();
+					var textStr = "";
 					if (scriptState.Status == EScriptStatus.Running)
 					{
-						statusText += "; " + scriptState.Text;
+						textStr = scriptState.Text;
 					}
 					else
 					if (scriptState.Status == EScriptStatus.Failed)
 					{
 						var scriptExcept = Tools.Deserialize<SerializedException>( scriptState.Data );
-						statusText += "; " + scriptExcept.Message;
+						textStr = scriptExcept.Message;
 					}
 					
 
-					drv.Row.SetField(colStatus, statusText);
+					drv.Row.SetField(colStatus, statusStr);
+					drv.Row.SetField(colDetails, textStr);
 
 					//// mark currently running scripts with different background color
 					//var color = scriptState.StatusText == "Running" ? Color.LightGoldenrodYellow : Color.White;

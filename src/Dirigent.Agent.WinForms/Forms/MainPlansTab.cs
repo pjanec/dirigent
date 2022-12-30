@@ -74,24 +74,28 @@ namespace Dirigent.Gui.WinForms
 			_hdrPlanStart.MinimumWidth = 9;
 			_hdrPlanStart.ReadOnly = true;
 			_hdrPlanStart.Width = 24;
+			_hdrPlanStart.ToolTipText = "Start";
 
 			var _hdrPlanStop = _grid.Columns[colIconStop];
 			_hdrPlanStop.HeaderText = "";
 			_hdrPlanStop.MinimumWidth = 9;
 			_hdrPlanStop.ReadOnly = true;
 			_hdrPlanStop.Width = 24;
+			_hdrPlanStop.ToolTipText = "Stop (leave apps)";
 
 			var _hdrPlanKill = _grid.Columns[colIconKill];
 			_hdrPlanKill.HeaderText = "";
 			_hdrPlanKill.MinimumWidth = 9;
 			_hdrPlanKill.ReadOnly = true;
 			_hdrPlanKill.Width = 24;
+			_hdrPlanKill.ToolTipText = "Kill Apps";
 
 			var _hdrPlanRestart = _grid.Columns[colIconRestart];
 			_hdrPlanRestart.HeaderText = "";
 			_hdrPlanRestart.MinimumWidth = 9;
 			_hdrPlanRestart.ReadOnly = true;
 			_hdrPlanRestart.Width = 24;
+			_hdrPlanRestart.ToolTipText = "Restart";
 
 			if( Common.Properties.Settings.Default.GridButtonSpacing > 0 ) 
 			{
@@ -115,7 +119,7 @@ namespace Dirigent.Gui.WinForms
 				populatePlanLists();
 			}
 			updatePlansStatus();
-
+			UpdateToolTips();
 		}
 
 		void populatePlanLists()
@@ -184,6 +188,18 @@ namespace Dirigent.Gui.WinForms
 					r.Cells[colStatus].Value = PlanState.EOpStatus.None;
 					r.DefaultCellStyle.BackColor = Color.White;
 				}
+			}
+		}
+
+		void UpdateToolTips()
+		{
+			for (int i = 0; i < _grid.RowCount; i++)
+			{
+				var r = _grid.Rows[i];
+				r.Cells[colIconStart].ToolTipText = _grid.Columns[colIconStart].ToolTipText;
+				r.Cells[colIconStop].ToolTipText = _grid.Columns[colIconStop].ToolTipText;
+				r.Cells[colIconKill].ToolTipText = _grid.Columns[colIconKill].ToolTipText;
+				r.Cells[colIconRestart].ToolTipText = _grid.Columns[colIconRestart].ToolTipText;
 			}
 		}
 

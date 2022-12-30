@@ -93,18 +93,21 @@ namespace Dirigent.Gui.WinForms
 			_hdrLaunchIcon.MinimumWidth = 9;
 			_hdrLaunchIcon.ReadOnly = true;
 			_hdrLaunchIcon.Width = 24;
+			_hdrLaunchIcon.ToolTipText = "Start";
 
 			var _hdrKillIcon = _grid.Columns[colIconKill];
 			_hdrKillIcon.HeaderText = "";
 			_hdrKillIcon.MinimumWidth = 9;
 			_hdrKillIcon.ReadOnly = true;
 			_hdrKillIcon.Width = 24;
+			_hdrKillIcon.ToolTipText = "Kill";
 
 			var _hdrRestartIcon = _grid.Columns[colIconRestart];
 			_hdrRestartIcon.HeaderText = "";
 			_hdrRestartIcon.MinimumWidth = 9;
 			_hdrRestartIcon.ReadOnly = true;
 			_hdrRestartIcon.Width = 24;
+			_hdrRestartIcon.ToolTipText = "Restart";
 
 			var _hdrEnabled = _grid.Columns[colEnabled];
 			_hdrEnabled.HeaderText = "Enabled";
@@ -116,7 +119,7 @@ namespace Dirigent.Gui.WinForms
 			_hdrPlan.HeaderText = "Last Plan";
 			_hdrPlan.MinimumWidth = 9;
 			_hdrPlan.ReadOnly = true;
-			_hdrPlan.Width = 120;
+			_hdrPlan.Width = 100;
 
 			var _CPU = _grid.Columns[colCPU];
 			_CPU.HeaderText = "CPU";
@@ -332,11 +335,26 @@ namespace Dirigent.Gui.WinForms
 
 			}
 
+			UpdateToolTips();
+
 			if( toAdd.Count > 0 || toRemove.Count > 0 || toUpdate.Count > 0 )
 			{
 				_grid.Refresh();
 			}
 		}
+
+		void UpdateToolTips()
+		{
+			for (int i = 0; i < _grid.RowCount; i++)
+			{
+				var r = _grid.Rows[i];
+				r.Cells[colIconStart].ToolTipText = _grid.Columns[colIconStart].ToolTipText;
+				r.Cells[colIconKill].ToolTipText = _grid.Columns[colIconKill].ToolTipText;
+				r.Cells[colIconRestart].ToolTipText = _grid.Columns[colIconRestart].ToolTipText;
+			}
+		}
+
+		
 
 		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
