@@ -36,6 +36,7 @@ namespace Dirigent
 
 			LoadFolderWatchers();
 			LoadTools();
+			LoadDefaultActions();
 
 			//loadPlans();
 			//loadMachines();
@@ -67,5 +68,31 @@ namespace Dirigent
 			}
 		}
 
+		List<ActionDef> LoadActionList( XElement? root )
+		{
+			var list = new List<ActionDef>();
+			if (root is null) return list;
+
+			var elems = from e in root.Elements()	select e;
+
+			foreach( var e in elems )
+			{
+				var def = SharedConfigReader.LoadAction( e );
+				if( def is not  null )
+				{
+					list.Add( def );
+				}
+			}
+			
+			return list;
+		}
+
+		void LoadDefaultActions()
+		{
+			_cfg.DefaultFileActions = LoadActionList( _root.Element( "DefaultFileActions" ) );
+			_cfg.DefaultFilePackageActions = LoadActionList( _root.Element( "DefaultFilePackageActions" ) );
+			_cfg.DefaultAppActions = LoadActionList( _root.Element( "DefaultAppActions" ) );
+			_cfg.DefaultMachineActions = LoadActionList( _root.Element( "DefaultMachineActions" ) );
+		}
 	}
 }

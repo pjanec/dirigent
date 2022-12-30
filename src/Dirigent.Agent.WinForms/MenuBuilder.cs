@@ -44,10 +44,77 @@ namespace Dirigent.Gui.WinForms
 
 		}
 
-		public ToolStripMenuItem[] MenuVfsNodeActions( VfsNodeDef vfsNodeDef )
+		// including the default ones
+		IEnumerable<ActionDef> GetAllVfsNodeActions( VfsNodeDef vfsNodeDef )
+		{
+			// first the default ones
+			if( _core.LocalConfig is not null )
+			{
+				if (vfsNodeDef.IsContainer)
+				{
+					foreach( var a in _core.LocalConfig.DefaultFilePackageActions )
+					{
+						yield return a;
+					}
+				}
+				else
+				{
+					foreach( var a in _core.LocalConfig.DefaultFileActions )
+					{
+						yield return a;
+					}
+				}
+			}
+			
+			// then the ones from the shared config
+			foreach( var a in vfsNodeDef.Actions )
+			{
+				yield return a;
+			}
+		}
+
+		// including the default ones
+		IEnumerable<ActionDef> GetAllAppActions( AppDef appDef )
+		{
+			// first the default ones
+			if( _core.LocalConfig is not null )
+			{
+				foreach( var a in _core.LocalConfig.DefaultAppActions )
+				{
+					yield return a;
+				}
+			}
+			
+			// then the ones from the shared config
+			foreach( var a in appDef.Actions )
+			{
+				yield return a;
+			}
+		}
+
+		// including the default ones
+		IEnumerable<ActionDef> GetAllMachineActions( MachineDef machDef )
+		{
+			// first the default ones
+			if( _core.LocalConfig is not null )
+			{
+				foreach( var a in _core.LocalConfig.DefaultMachineActions )
+				{
+					yield return a;
+				}
+			}
+			
+			// then the ones from the shared config
+			foreach( var a in machDef.Actions )
+			{
+				yield return a;
+			}
+		}
+
+		public ToolStripMenuItem[] BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
 		{
 			return GetMenuItemsFromActions(
-				vfsNodeDef.Actions,
+				GetAllVfsNodeActions(vfsNodeDef),
 				async (action) => await WFT.GuardedOpAsync( async () => {
 						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, false, true, null );
 						if( !vfsNodeDef.IsContainer )
@@ -63,34 +130,35 @@ namespace Dirigent.Gui.WinForms
 			);
 		}
 
-		public ToolStripMenuItem ContextMenuFilePackage( FilePackageDef fpack )
+		public ToolStripMenuItem[] BuildMachineActionsMenuItems( MachineDef machDef )
 		{
-			var toolsMenu = new System.Windows.Forms.ToolStripMenuItem(
-				"&Tools",
-				null,
-				GetMenuItemsFromActions(
-					fpack.Actions,
-					async (action) => await WFT.GuardedOpAsync( async () => {
-						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, fpack, false, true, null );
-						_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved );
-						}
-					)
+			return GetMenuItemsFromActions(
+				GetAllMachineActions(machDef),
+					(action) => WFT.GuardedOp( () => {
+						_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef ) ;
+					}
 				)
 			);
-
-			if( toolsMenu.DropDownItems.Count > 0 )
-			{
-				return toolsMenu;
-			}
-			return null;
 		}
 
-		public ToolStripMenuItem MenuVfsNode( VfsNodeDef vfsNodeDef )
+		public ToolStripMenuItem[] BuildAppActionsMenuItems( AppDef appDef )
+		{
+			return GetMenuItemsFromActions(
+				GetAllAppActions(appDef),
+					(action) => WFT.GuardedOp( () => {
+						_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef ) ;
+					}
+				)
+			);
+		}
+
+
+		ToolStripMenuItem BuildVfsNodeMenuItem( VfsNodeDef vfsNodeDef )
 		{
 			var title = vfsNodeDef.Title;
 			if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
 			var fileMenu = new ToolStripMenuItem( title );
-			var submenus = MenuVfsNodeActions( vfsNodeDef );
+			var submenus = BuildVfsNodeActionsMenuItems( vfsNodeDef );
 			if( submenus.Length > 0 )
 			{
 				//fileMenu.DropDownItems.Add ( toolsSubmenu );
@@ -100,37 +168,18 @@ namespace Dirigent.Gui.WinForms
 			return null;
 		}
 
-		public ToolStripMenuItem ContextMenuVfsNodes( IEnumerable<VfsNodeDef> vfsNodeDefs )
+		public ToolStripMenuItem[] BuildVfsNodesMenuItems( IEnumerable<VfsNodeDef> vfsNodeDefs )
 		{
-			var filesMenu = new System.Windows.Forms.ToolStripMenuItem( "&Files/Folders" );
+			List<ToolStripMenuItem> items = new();
 			foreach( var vfsNodeDef in vfsNodeDefs )
 			{
-				var item =  MenuVfsNode(vfsNodeDef);
+				var item = BuildVfsNodeMenuItem(vfsNodeDef);
 				if( item != null )
 				{
-					filesMenu.DropDownItems.Add( item );
+					items.Add( item );
 				}
 			}
-			return filesMenu;
-		}
-		
-		public ToolStripMenuItem ContextMenuFilePackages( IEnumerable<FilePackageDef> fpackDefs )
-		{
-			var fpacksMenu = new System.Windows.Forms.ToolStripMenuItem( "&Packages" );
-			foreach( var fpack in fpackDefs )
-			{
-				var title = fpack.Title;
-				if (string.IsNullOrEmpty( title )) title = fpack.Id;
-				var fpackMenu = new ToolStripMenuItem( title );
-				var toolsSubmenu = ContextMenuFilePackage( fpack );
-				if( toolsSubmenu != null )
-				{
-					//fileMenu.DropDownItems.Add ( toolsSubmenu );
-					fpackMenu.DropDownItems.AddRange( toolsSubmenu.DropDownItems );
-				}
-				fpacksMenu.DropDownItems.Add( fpackMenu );
-			}
-			return fpacksMenu;
+			return items.ToArray();
 		}
 		
 		public ToolStripMenuItem AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
@@ -141,7 +190,7 @@ namespace Dirigent.Gui.WinForms
 			}
 			if( mitem is VfsNodeDef vsfNode )
 			{
-				return MenuVfsNode( vsfNode );
+				return BuildVfsNodeMenuItem( vsfNode );
 			}
 			
 			throw new Exception( $"Unsupported AssocMenuItem type {mitem.GetType().Name}" );

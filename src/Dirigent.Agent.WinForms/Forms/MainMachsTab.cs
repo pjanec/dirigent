@@ -79,13 +79,13 @@ namespace Dirigent.Gui.WinForms
 			_CPU.HeaderText = "CPU";
 			_CPU.MinimumWidth = 9;
 			_CPU.ReadOnly = true;
-			_CPU.Width = 50;
+			_CPU.Width = 40;
 
 			var _MemAvail = _grid.Columns[colMemory];
 			_MemAvail.HeaderText = "Memory";
 			_MemAvail.MinimumWidth = 9;
 			_MemAvail.ReadOnly = true;
-			_MemAvail.Width = 140;
+			_MemAvail.Width = 120;
 
 		}
 
@@ -245,14 +245,12 @@ namespace Dirigent.Gui.WinForms
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
 							{
-								var vfsNodesMenu = _menuBuilder.ContextMenuVfsNodes( machDef.VfsNodes );
-								if ( vfsNodesMenu.DropDownItems.Count > 0 )
+								var vfsNodesMenu = _menuBuilder.BuildVfsNodesMenuItems( machDef.VfsNodes );
+								if ( vfsNodesMenu.Length > 0 )
 								{
 									popup.Items.Add( new ToolStripSeparator() );
-								//	popup.Items.Add( filesMenu );
 								}
-								var fileMenuItems = vfsNodesMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
-								foreach ( ToolStripMenuItem item in fileMenuItems )
+								foreach( var item in vfsNodesMenu )
 								{
 									popup.Items.Add( item );
 								}
@@ -261,34 +259,21 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
-						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-						// TODO: generate subitems
 						if( isMachineId( id ) )
 						{
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
 							{
-								foreach( var action in machDef.Actions )
+								var actionMenuItems = _menuBuilder.BuildMachineActionsMenuItems( machDef );
+								if ( actionMenuItems.Length > 0 )
 								{
-									var title = action.Title;
-									if (string.IsNullOrEmpty( title )) title = action.Name;
-									var item = new System.Windows.Forms.ToolStripMenuItem( title );
-									item.Click += ( s, a ) => WFT.GuardedOp( () => {
-											_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef ) ;
-										}
-									);
-									toolsMenu.DropDownItems.Add( item );
+									popup.Items.Add( new ToolStripSeparator() );
+								}
+								foreach ( var item in actionMenuItems )
+								{
+									popup.Items.Add( item );
 								}
 							}
-						}
-						if( toolsMenu.DropDownItems.Count > 0 )
-						{
-							//popup.Items.Add( toolsMenu );
-						}
-						var toolsMenuItems = toolsMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
-						foreach ( var item in toolsMenuItems )
-						{
-							popup.Items.Add( item );
 						}
 					}
 

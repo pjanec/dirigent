@@ -159,7 +159,7 @@ namespace Dirigent.Gui.WinForms
 						var vfsNodeDef = ReflStates.GetVfsNodeDef( guid );
 						if ( vfsNodeDef != null )
 						{
-							var submenus = _menuBuilder.MenuVfsNodeActions( vfsNodeDef );
+							var submenus = _menuBuilder.BuildVfsNodeActionsMenuItems( vfsNodeDef );
 							foreach (var submenu in submenus)
 							{
 								popup.Items.Add( submenu );

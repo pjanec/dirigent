@@ -480,7 +480,7 @@ namespace Dirigent
 			//if (hostId != null) a.HostId = hostId;
 		}
 
-		static ActionDef? LoadAction( XElement e, string? machineId=null, string? appId=null )
+		public static ActionDef? LoadAction( XElement e, string? machineId=null, string? appId=null )
 		{
 			if (e.Name == "Tool")
 			{

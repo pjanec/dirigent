@@ -49,6 +49,9 @@ namespace Dirigent.Gui.WinForms
 		//public Action<Net.Message> IncomingMessage;
 		private string _rootForRelativePaths;
 
+		LocalConfig _localConfig;
+		public LocalConfig LocalConfig => _localConfig;
+
 
 		public GuiCore(
 			AppConfig ac,
@@ -129,8 +132,9 @@ namespace Dirigent.Gui.WinForms
 			{
 				var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
 				log.DebugFormat( "Loading local config file '{0}'", fullPath );
-				var localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
-				toolDefs = localConfig.Tools;
+				_localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
+
+				toolDefs = _localConfig.Tools;
 			}
 
 

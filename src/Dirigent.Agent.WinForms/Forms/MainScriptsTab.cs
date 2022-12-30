@@ -67,7 +67,7 @@ namespace Dirigent.Gui.WinForms
 			_Status.HeaderText = "Status";
 			_Status.MinimumWidth = 9;
 			_Status.ReadOnly = true;
-			_Status.Width = 175;
+			_Status.Width = 350;
 
 			var _hdrScriptStart = _grid.Columns[colIconStart];
 			_hdrScriptStart.HeaderText = "";

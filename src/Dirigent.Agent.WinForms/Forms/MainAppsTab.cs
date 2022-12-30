@@ -122,13 +122,13 @@ namespace Dirigent.Gui.WinForms
 			_CPU.HeaderText = "CPU";
 			_CPU.MinimumWidth = 9;
 			_CPU.ReadOnly = true;
-			_CPU.Width = 50;
+			_CPU.Width = 40;
 
 			var _MemAvail = _grid.Columns[colMemory];
 			_MemAvail.HeaderText = "Memory";
 			_MemAvail.MinimumWidth = 9;
 			_MemAvail.ReadOnly = true;
-			_MemAvail.Width = 70;
+			_MemAvail.Width = 60;
 
 			if (Common.Properties.Settings.Default.GridButtonSpacing > 0)
 			{
@@ -495,54 +495,24 @@ namespace Dirigent.Gui.WinForms
 					}
 
 					{
-						var vfsNodesMenu = _menuBuilder.ContextMenuVfsNodes( appDef.VfsNodes );
-						if ( vfsNodesMenu.DropDownItems.Count > 0 )
+						var vfsNodesMenuItems = _menuBuilder.BuildVfsNodesMenuItems( appDef.VfsNodes );
+						if ( vfsNodesMenuItems.Length > 0 )
 						{
 							popup.Items.Add( new ToolStripSeparator() );
-						//	popup.Items.Add( filesMenu );
 						}
-						var fileMenuItems = vfsNodesMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
-						foreach ( ToolStripMenuItem item in fileMenuItems )
+						foreach ( var item in vfsNodesMenuItems )
 						{
 							popup.Items.Add( item );
 						}
 					}
 
-					//{
-					//	var fpackMenu = ContextMenuFilePackages( from x in appDef.VfsNodes where x is FilePackageDef select x as FilePackageDef );
-					//	if( fpackMenu.DropDownItems.Count > 0 )
-					//	{
-					//		popup.Items.Add( new ToolStripSeparator() );
-					//	//	popup.Items.Add( fpackMenu );
-					//	}
-					//	var fpackMenuItems = fpackMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
-					//	foreach ( ToolStripMenuItem item in fpackMenuItems )
-					//	{
-					//		popup.Items.Add( item );
-					//	}
-					//}
-
 					{
-						var toolsMenu = new System.Windows.Forms.ToolStripMenuItem( "&Tools" );
-						foreach( var action in appDef.Actions )
+						var appActionsMenuItems = _menuBuilder.BuildAppActionsMenuItems( appDef );
+						if ( appActionsMenuItems.Length > 0 )
 						{
-							var title = action.Title;
-							if (string.IsNullOrEmpty( title )) title = action.Name;
-							var item = new ToolStripMenuItem( title );
-							item.Click += ( s, a ) => WFT.GuardedOp( () => {
-									_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef ) ;
-								}
-							);
-							toolsMenu.DropDownItems.Add( item );
-						}
-
-						if( toolsMenu.DropDownItems.Count > 0 )
-						{
-							//popup.Items.Add( toolsMenu );
 							popup.Items.Add( new ToolStripSeparator() );
 						}
-						var toolsMenuItems = toolsMenu.DropDownItems.Cast<ToolStripMenuItem>().ToArray();
-						foreach ( var item in toolsMenuItems )
+						foreach ( var item in appActionsMenuItems )
 						{
 							popup.Items.Add( item );
 						}

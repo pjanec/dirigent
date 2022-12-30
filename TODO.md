@@ -1,6 +1,12 @@
-[BUG] Exception inside SyncOp is not shown, silently ignored.
+[TODO] Default actions for File and FilePackage defined in LocalConfig DefaultFileActions and DefaultFilePackageActions sections. 
+
+[TODO] Built-in default tools like a simple window showing JSON, HTML viewer (using default web browser), Windows Explorer etc. These does not require special record in LocalConfig's Tools section, but can be overwritten by one if present there.
 
 [IDEA] Implement some tools as standard part of the Dirigent, always available. 
+
+[TODO] In App Properties window show also the actual startup info used for starting the app last time. Read that via remote script, use WMI etc.; return AppDef, command line string, environment of the process...
+
+[DONE] Exception inside SyncOp is not shown, silently ignored.
 
 [IDEA] Add json viewer as one of internal tools? Or better use Notepad++?
 
@@ -66,8 +72,6 @@
   * Run async 2 independent methods:
      - Create powershell instance, link with runspace, feed with script calling the method on the class instance variable, BeginInvoke() to run asynchronously
      - Create another powershell instance, link to same runspace, run another script calling another mathod of that class instance, BeginInvoke() to run asynchronously
-
-[TODO] In App Properties window show also the actual startup info used for starting the app last time. Add new message sent from client once when app is launched, broadcast to all, cache on each client.
 
 [TODO] Remember grid column widths.
 
