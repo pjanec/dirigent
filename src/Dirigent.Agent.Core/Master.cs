@@ -139,6 +139,7 @@ namespace Dirigent
 			if (string.IsNullOrEmpty( _machineId )) throw new Exception($"MachineId not specified for Master!");
 
 			_files = new FileRegistry(
+				this,
 				_machineId, // empty if we run master standalone on an unidentified machine
 				(string machineId) =>
 				{
@@ -395,8 +396,8 @@ namespace Dirigent
 
 				case UserNotificationMessage m:
 				{
-					// forward
-					if( !string.IsNullOrEmpty( m.HostClientId ) )
+					// forward if sent from non-master
+					if( m.Sender != "" && !string.IsNullOrEmpty( m.HostClientId ) )
 					{
 						_server.SendToSingle( m, m.HostClientId );
 					}
@@ -672,7 +673,7 @@ namespace Dirigent
 				foreach( (var id, var state) in _allClientStates.ClientStates )
 				{
 					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
-					_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
 				}
 			}
 

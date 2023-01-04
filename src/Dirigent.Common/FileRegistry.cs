@@ -39,8 +39,11 @@ namespace Dirigent
 
 		private string _localMachineId = string.Empty;
 
-		public FileRegistry( string localMachineId, GetMachineIPDelegate machineIdDelegate )
+		IDirig _ctrl;
+		
+		public FileRegistry( IDirig ctrl, string localMachineId, GetMachineIPDelegate machineIdDelegate )
 		{
+			_ctrl = ctrl;
 			_localMachineId = localMachineId;
 			_machineIPDelegate = machineIdDelegate;
 		}
@@ -88,7 +91,7 @@ namespace Dirigent
 			}
 		}
 
-		public string GetMachineIP( string machineId, string whatFor )
+		public string GetMachineIP( string machineId )
 		{
 			string? ip = null;
 
@@ -122,6 +125,32 @@ namespace Dirigent
 			return m.IP;
 		}
 
+		public string MakeUNC( string path, string? machineId, string whatFor )
+		{
+			// global paths are already UNC
+			if ( string.IsNullOrEmpty(machineId) )
+				return path;
+				
+			// find machine
+			if ( !Machines.TryGetValue( machineId, out var m ) )
+				throw new Exception($"Machine {machineId} not found for {whatFor}");
+
+			var IP = GetMachineIP( machineId );
+
+			foreach( var (shName, shPath) in m.Shares )
+			{
+				// get path relative to share
+				if( path.StartsWith( shPath, StringComparison.OrdinalIgnoreCase ) )
+				{
+					var pathRelativeToShare = path.Substring( shPath.Length );
+					return $"\\\\{IP}\\{shName}\\{pathRelativeToShare}";
+				}
+			}
+
+			throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
+		}
+		
+
 		/// <summary>
 		/// Returns direct path to the file, with all variables and file path resolution mechanism already evaluated.
 		/// If we are on the machine where the file is, returns local path, otherwise returns remote path.
@@ -129,7 +158,7 @@ namespace Dirigent
 		/// <param name="fdef"></param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public string GetFilePath( VfsNodeDef fdef, bool forceUNC )
+		string ResolveFilePath( VfsNodeDef fdef, bool forceUNC )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -149,35 +178,49 @@ namespace Dirigent
 
 			bool isLocal = IsLocalMachine(fdef.MachineId);
 
+			var path = fdef.Path;
+
+			// expand variables in local context
+			if( isLocal )
+			{
+				var vars = new Dictionary<string, string>();
+
+				// for app-bound files, expand also local vars and define var for app working dir etc.
+				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
+				{
+					vars["MACHINE_ID"] = _localMachineId;
+					vars["MACHINE_IP"] = GetMachineIP( _localMachineId );
+				
+					if( !string.IsNullOrEmpty( fdef.AppId ) )
+					{
+						var appDef = _ctrl.GetAppDef( new AppIdTuple( fdef.MachineId, fdef.AppId ) );
+						if( appDef is not null )
+						{
+							foreach( var (k,v) in appDef.EnvVarsToSet )
+								vars[k] = v;
+
+							// add some app-special vars
+							vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
+							vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
+						}
+					}
+				}
+
+				path = Tools.ExpandEnvAndInternalVars( path, vars );
+			}
+
 			// if the file on local machine, return local path
 			if( isLocal && !forceUNC )
 			{
-				// TODO: for app-bound files, expand also local vars and define var for app working dir etc.
-				var expanded = Tools.ExpandEnvVars( fdef.Path );
-				return expanded;
+				return path;
 			}
+
 
 			// construct UNC path using file shares defined for machine
 
 			var machineId = isLocal ? _localMachineId : fdef.MachineId;
 
-			// find machine
-			if ( !Machines.TryGetValue( machineId, out var m ) )
-				throw new Exception($"Machine {machineId} not found for FileDef {fdef}");
-
-			var IP = GetMachineIP( machineId, $"FileDef {fdef}" );
-
-			foreach( var (shName, shPath) in m.Shares )
-			{
-				// get path relative to share
-				if( fdef.Path.StartsWith( shPath, StringComparison.OrdinalIgnoreCase ) )
-				{
-					var pathRelativeToShare = fdef.Path.Substring( shPath.Length );
-					return $"\\\\{IP}\\{shName}\\{pathRelativeToShare}";
-				}
-			}
-
-			throw new Exception($"No file share matching FileDef {fdef}, can't construct UNC path");
+			return MakeUNC( path, machineId, $"FileDef {fdef}" );
 		}
 
 		VfsNodeDef? FindById( string Id, string? machineId, string? appId )
@@ -225,13 +268,16 @@ namespace Dirigent
 		}
 
 		/// <summary>
-		/// Resolve all links, expands all widcards etc. Produces a tree of VfsNodes.
+		/// Converts given VfsNode into a tree of virtual folders containing links to physical files.
+		/// Resolves all links, scans the folders (remembering the contained files and subfolders if requested), expands variables.
+		/// File paths returned are resolved from the perspective of the local machine - remote paths are UNC, variables expanded to values found on the remote machines.
 		/// </summary>
-		/// <param name="machineId">Tree of definitions (descendants of VfsNodeDef)</param>
-		/// <param name="defs">Tree of definitions (descendants of VfsNodeDef)</param>
-		/// <returns>A tree of plain VfsNodeDef instances containing just files (leave nodes) and folders (intermediate nodes).
-		/// Folders having just Title, files having Title and Path.
-		/// Path is resolved from the perspective of the local machine - remote paths are UNC.
+		/// <param name="def">Root node of what to resolve</param>
+		/// <param name="forceUNC">If true, all paths will be UNC, even if they are on the local machine</param>
+		/// <param name="includeContent">If true, will include content of folders, otherwise will just include the folders themselves</param>
+		/// <returns>
+		///  Folders - VFolder will have just the Title (vfolder name).
+		/// Files will have the Title and Path (link to physical file).
 		/// </returns>
 		public async Task<VfsNodeDef> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids )
 		{
@@ -251,6 +297,7 @@ namespace Dirigent
 				// check if required machine is available
 				if( !string.IsNullOrEmpty(nodeDef.MachineId) &&  _machineIPDelegate( nodeDef.MachineId ) is null )
 					throw new Exception($"Machine {nodeDef.MachineId} not connected.");
+					
 				// await script	to resolve remotely
 				var args = new Scripts.BuiltIn.ResolveVfsPath.TArgs
 				{
@@ -276,42 +323,12 @@ namespace Dirigent
 
 			if( nodeDef is FileDef fileDef )
 			{
-				if( string.IsNullOrEmpty(fileDef.Path) ) throw new Exception($"FileDef.Path is empty. {fileDef.Xml}");
-
-
-				//if( fileDef.Path.Contains('%') )
-
-				if( string.IsNullOrEmpty(fileDef.Filter ) )
-				{
-					var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
-					r.Path = GetFilePath( fileDef, forceUNC );
-					return r;
-				}
-
-				if( fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ) )
-				{
-					var folder = GetFilePath( fileDef, forceUNC );
-
-					if( string.IsNullOrEmpty(fileDef.Xml) ) throw new Exception($"FileDef.Xml is empty. {fileDef.Xml}");
-					var xel = XElement.Parse(fileDef.Xml);
-					string? mask = xel.Attribute( "Mask" )?.Value;
-					if( mask is null ) mask = "*.*";
-
-					var r = EmptyFrom<FileDef>( fileDef );
-					r.Path = GetNewestFileInFolder( folder, mask );
-					return r;
-				}
-
-				throw new Exception($"Unsupported filter. {fileDef.Xml}");
+				return ResolveFileDef( forceUNC, fileDef );
 			}
 			else
 			if( nodeDef is FileRef fref )
 			{
-				var def = FindById( fref.Id, fref.MachineId, fref.AppId ) as FileDef;
-				if( def is null )
-					throw new Exception( $"{fref} points to non-existing FileDef" );
-
-				return await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+				return await ResolveFileRef( iDirig, forceUNC, includeContent, usedGuids, fref );
 			}
 			else
 			if (nodeDef is VFolderDef vfolderDef)
@@ -321,7 +338,7 @@ namespace Dirigent
 			else
 			if( nodeDef is FolderDef folderDef )
 			{
-				return ResolveFolder( folderDef, forceUNC, includeContent ); // including the content
+				return ResolveFolder( folderDef, forceUNC, includeContent );
 			}
 			else
 			if( nodeDef is FilePackageDef fpdef )
@@ -331,16 +348,61 @@ namespace Dirigent
 			else
 			if( nodeDef is FilePackageRef fpref )
 			{
-				var def = FindById( fpref.Id, fpref.MachineId, fpref.AppId ) as FilePackageDef;
-				if( def is null )
-					throw new Exception( $"{fpref} points to non-existing FilePackage" );
-
-				return await ResolveAsync( iDirig, def, forceUNC, true, usedGuids );
+				return await ResolvePackageRef( iDirig, forceUNC, usedGuids, fpref );
 			}
 			else
 			{
 				throw new Exception( $"Unknown VfsNodeDef type: {nodeDef}" );
 			}
+		}
+
+		private async Task<VfsNodeDef> ResolvePackageRef( IDirigAsync iDirig, bool forceUNC, List<Guid>? usedGuids, FilePackageRef fpref )
+		{
+			var def = FindById( fpref.Id, fpref.MachineId, fpref.AppId ) as FilePackageDef;
+			if (def is null)
+				throw new Exception( $"{fpref} points to non-existing FilePackage" );
+
+			return await ResolveAsync( iDirig, def, forceUNC, true, usedGuids );
+		}
+
+		private async Task<VfsNodeDef> ResolveFileRef( IDirigAsync iDirig, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileRef fref )
+		{
+			var def = FindById( fref.Id, fref.MachineId, fref.AppId ) as FileDef;
+			if (def is null)
+				throw new Exception( $"{fref} points to non-existing FileDef" );
+
+			return await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+		}
+
+		private VfsNodeDef ResolveFileDef( bool forceUNC, FileDef fileDef )
+		{
+			if (string.IsNullOrEmpty( fileDef.Path )) throw new Exception( $"FileDef.Path is empty. {fileDef.Xml}" );
+
+
+			//if( fileDef.Path.Contains('%') )
+
+			if (string.IsNullOrEmpty( fileDef.Filter ))
+			{
+				var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
+				r.Path = ResolveFilePath( fileDef, forceUNC );
+				return r;
+			}
+
+			if (fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ))
+			{
+				var folder = ResolveFilePath( fileDef, forceUNC );
+
+				if (string.IsNullOrEmpty( fileDef.Xml )) throw new Exception( $"FileDef.Xml is empty. {fileDef.Xml}" );
+				var xel = XElement.Parse( fileDef.Xml );
+				string? mask = xel.Attribute( "Mask" )?.Value;
+				if (mask is null) mask = "*.*";
+
+				var r = EmptyFrom<FileDef>( fileDef );
+				r.Path = GetNewestFileInFolder( folder, mask );
+				return r;
+			}
+
+			throw new Exception( $"Unsupported filter. {fileDef.Xml}" );
 		}
 
 		async Task<VfsNodeDef> ResolveVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids )
@@ -359,8 +421,8 @@ namespace Dirigent
 
 		VfsNodeDef ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
 		{
-			var rootNode = EmptyFrom<FolderDef>( folderDef );
-			rootNode.Path = GetFilePath( folderDef, forceUNC );
+			var rootNode = EmptyFrom<VFolderDef>( folderDef );
+			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
 			
 			if( includeContent )
 			{
@@ -368,7 +430,7 @@ namespace Dirigent
 				// traverse all files & folders 
 				// filter by glob-style mask
 				// convert into vfs tree structure
-				var folderName = GetFilePath( folderDef, forceUNC );
+				var folderName = ResolveFilePath( folderDef, forceUNC );
 				// ....
 
 				var mask = folderDef.Mask;

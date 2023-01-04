@@ -97,7 +97,7 @@ namespace Dirigent
 			
 			_scriptReg = new ReflectedScriptRegistry( this );
 
-			_fileReg = new FileRegistry( localMachineId, (string machineId) =>
+			_fileReg = new FileRegistry( this, localMachineId, (string machineId) =>
 			{
 				if( _clientStates.TryGetValue( machineId, out var state ) )
 				{

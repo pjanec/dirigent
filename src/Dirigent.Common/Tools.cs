@@ -736,7 +736,6 @@ namespace Dirigent
 			return s.Substring( 0, pos );
 
 		}
-
 	}
 
 }

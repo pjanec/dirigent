@@ -1,4 +1,6 @@
-[TODO] Default actions for File and FilePackage defined in LocalConfig DefaultFileActions and DefaultFilePackageActions sections. 
+[IDEA] Allow referencing app's startup folder from the File or Package definitions. Some special variable like `%APP_STARTUPDIR%` or something? Evaluated during the path resolution.
+
+[BUG] "Collection modified" sometimes appear as notification baloon.
 
 [TODO] Built-in default tools like a simple window showing JSON, HTML viewer (using default web browser), Windows Explorer etc. These does not require special record in LocalConfig's Tools section, but can be overwritten by one if present there.
 
@@ -6,39 +8,19 @@
 
 [TODO] In App Properties window show also the actual startup info used for starting the app last time. Read that via remote script, use WMI etc.; return AppDef, command line string, environment of the process...
 
-[DONE] Exception inside SyncOp is not shown, silently ignored.
-
 [IDEA] Add json viewer as one of internal tools? Or better use Notepad++?
-
-[DONE] Script able to run a tool preconfigured in dirigent, passing parameters & values to the tool.
-
-[DONE] Pass app's process PID to the tools started in the context of an app. As an internal variable "APP_PID" evaluatable on the command line.
-
-[DONE] Let the script started in the context of an app (from app's context menu) know the PID of app's process. As "APP_PID" variable.
 
 [BUG] FileDef menu containing actions overwrites existing menu folder with same name (Shared Config [FileDef] -> Actions  overwrites Shared Config -> Reload)
 
 [BUG] FolderDef, when including content, fails with exception if one of the subfolders is inaccessible
 
-[DONE] Let remote script itself evaluate %VAR% (on the hosting machine), do not evaluate it on machine where script call is made from.
+[IDEA] Use Glob style masks for filtering file names.
 
-[TODO] Use Glob nuget for filtering file names. Stop using extra "Mask" attribute.
-
-[DONE] Monitor CPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
-
-[DONE] Monitor memory, cpu, usage per app. Add columns to the app grid.
-
-[TODO] Script libraries - initialized form built-ins as well as by scanning script files.
-
-[BUG] icons show tooltip saying "Image"
-
-[DONE] Add items to dirigent's tools menu via SharedConfigMenu
+[TODO] Script libraries - initialized from built-ins as well as by scanning script files. Applies to relative script paths only. At the moment relative paths are resolved to one single physical root folder, by default the location of the shared config file.
 
 [IDEA] Add "Install OpenSSH server" to Tools menu, setting up the SSH server on each computer where Dirigent is running. Define a Script in shared config that runs the powershell to download necessary files, distribute to machines etc. Define similar script to enable powershell remoting on all the machines. 
 
 [IDEA] Background scripts, defined per machine, automatically started when machine's agent gets SharedConfig (and killed when master sends Reset before sending new defs). Can periodically check for something to happen and emit notification baloon messages.
-
-[IDEA] New dirigent's message for emitting a baloon notifications. What message to show, on what machine, script & args to fire if notification clicked. 
 
 [IDEA] IconFile attribute for shared config records like File, Folder, Package etc.
 
@@ -77,11 +59,7 @@
 
 [IDEA] Single selected plan from all GUIs (optional). Dirigent could be configured to distribute the Selected Plan to all its GUIs, meaning all GUIS will share the same selected plan. This might be useful for example for development purposes with multiple computers.
 
-[DONE] Sharing the ClientState with Master. Disabled for now as sending it caused StackOverflof on deserialization of proto message on master when using many clients and huge SharedConfig.xml. Not sure what was the cause. Might be some timing/initialization issue related to protobuf deserialization??
-
 [IDEA] Tell the master about selecting a plan in the GUI using a new message PlanSelected. Master to update the app definitions to those from the plan (only if enabled, either by dirigent global setting, or individual plan setting...)
-
-[BUG] "Collection modified" sometimes appear as notification baloon.
 
 [TODO] HTTP port as a command line argument.
 [TODO] bind web server to any interface (this is probably working already...)

@@ -48,6 +48,18 @@ For example if there is an environment variable used in the path (like for examp
 
 So if the file was defined for an application running on machine "m1", the path will be resolved from the perspective of "m1" machine, no matter on what machine the user made the request.
 
+The following special variables are defined for expansion in the `Path` attribute:
+
+| Associate | Variable       |                                                              |
+| --------- | -------------- | ------------------------------------------------------------ |
+| App       | MACHINE_ID     | Name of the machine where the app is located.                |
+|           | MACHINE_IP     | IP address of the machine where the app is located.          |
+|           | APP_BINDIR     | Folder path where the app's exe file resides (`ExeFullPath` in `App` section in SharedConfig) |
+|           | APP_STARTUPDIR | Folder path where the app is started in (`StartupDir` in `App` section in SharedConfig) |
+|           |                |                                                              |
+| Machine   | MACHINE_ID     | Name of the machine.                                         |
+|           | MACHINE_IP     | IP address of the machine.                                   |
+
 #### UNC Paths and File Shares
 
 The resulting path in the target machine's local file system is converted to an UNC path to be directly accessible from the requestor's machine - like for example for opening the file for viewing.

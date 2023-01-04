@@ -208,6 +208,32 @@ namespace Dirigent.Gui.WinForms
 
 		public void CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
 		{
+			var gridRow = _grid.Rows[e.RowIndex];
+			var dataRow = WFT.GetDataRowFromGridRow( gridRow );
+			var dataItems = dataRow.ItemArray;
+
+			var cell = _grid.Rows[e.RowIndex].Cells[e.ColumnIndex];
+			var defst = _grid.Rows[e.RowIndex].Cells[colStatus].Style;
+			if( e.ColumnIndex == colStatus )
+			{
+				var txt = dataItems[colStatus] as string;
+				if( txt.StartsWith( "Run" ) )
+				{
+					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
+				}
+				else if( txt.StartsWith( "Cancel" ) )
+				{
+					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkViolet, SelectionForeColor = Color.DarkViolet, BackColor = defst.BackColor };
+				}
+				else if( txt.StartsWith( "Fail" ) )
+				{
+					cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+				}
+				else
+				{
+					cell.Style = defst;
+				}
+			}
 		}
 
 		public void MouseClick( object sender, MouseEventArgs e )

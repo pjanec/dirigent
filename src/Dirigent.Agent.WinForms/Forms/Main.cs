@@ -112,6 +112,9 @@ namespace Dirigent.Gui.WinForms
 
 				case Net.UserNotificationMessage m:
 				{
+					if( m.HostClientId != _core.Client.Ident.Name ) // ignore if not for us
+						break;
+
 					var title = string.IsNullOrEmpty(m.Title) ? "Dirigent" : $"Dirigent - {m.Title}";
 					
 					if (m.PresentationType == Net.UserNotificationMessage.EPresentationType.MessageBox)

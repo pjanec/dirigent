@@ -1,4 +1,29 @@
+[DONE] Default actions for File and FilePackage defined in LocalConfig DefaultFileActions and DefaultFilePackageActions sections. 
+
+[DONE] New dirigent's message for emitting a baloon notifications. What message to show, on what machine, script & args to fire if notification clicked. 
+
+[DONE] icons show tooltip saying "Image"
+
+[DONE] Sharing the ClientState with Master. Disabled for now as sending it caused StackOverflof on deserialization of proto message on master when using many clients and huge SharedConfig.xml. Not sure what was the cause. Might be some timing/initialization issue related to protobuf deserialization??
+
+[DONE] Add items to dirigent's tools menu via SharedConfigMenu
+
+[DONE] Monitor CPU memory network stats on each station, show in Machine tab. Agents to send MachineState to master periodically.
+
+[DONE] Monitor memory, cpu, usage per app. Add columns to the app grid.
+
+[DONE] Let remote script itself evaluate %VAR% (on the hosting machine), do not evaluate it on machine where script call is made from.
+
+[DONE] Exception inside SyncOp is not shown, silently ignored.
+
+[DONE] Script able to run a tool preconfigured in dirigent, passing parameters & values to the tool.
+
+[DONE] Pass app's process PID to the tools started in the context of an app. As an internal variable "APP_PID" evaluatable on the command line.
+
+[DONE] Let the script started in the context of an app (from app's context menu) know the PID of app's process. As "APP_PID" variable.
+
 [DONE] Extend possible impacts of the Select Plan operation in the GUI
+
  1. To choose what plan will be started when pressing the big green Play button. This affects jut the GUI when issuing the StartPlan command.
  2. To choose from what plan the the app definition will be taken if an individual app is started from the GUI. Here we need to remember the selected plan just inside the GUI when issuing the "LaunchApp xxx.yyy@plan" command when clicking on the "Start app" icon.
  3. To choose from what plan the the app definition will be taken when an external controller will start an individual app. Here we need to change the app definition in the Agent's memory so when a "LaunchApp xxx.yyy" command comes to the agent, it already remembers what app definition (from what plan) to use.
@@ -26,15 +51,15 @@ Controlling the Dirigents from some background apps would work safely if it work
 [DONE] WebServer REST API on master for querying the defs/statuses, extended to allow firing commands
 
     GET /api/plandefs ... list of all plandefs [{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]
-
+    
     GET /api/plandefs/plan1 ... plandef of a single given plan {'name':'plan1', 'appDefs':[...]}
-
+    
     GET /api/planstates ... list of the state of all plans [{'name':'plan1', 'status':{'code':'InProgress'}, {'name':'plan2', status={'code':'None'}}]
     
     GET /api/planstates/plan1 ... state of a single plan {'code':'InProgress'}
-
+    
     POST /api/cli, data "StartApp m1.a" ... response on success: "ACK"; response on failure: "ERROR: xxxxxx"
-  
+
 
 [DONE] If an app is disabled, it will never be started so its appdef is never sent to an agent that will never change the Disabled flag in AppState.
 We need to tell the agent about disabling the app for concrete plan.. Do we?? Why the agent should know? Agent does not need to know if app is disabled

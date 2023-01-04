@@ -127,7 +127,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id.MachineId },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id.MachineId, $"action {action}" ) },
+				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id.MachineId ) },
 				{ "APP_IDTUPLE", boundTo.Id.ToString() },
 				{ "APP_ID", boundTo.Id.AppId },
 				{ "APP_PID", (_reflStates.GetAppState(boundTo.Id)?.PID ?? -1).ToString() },
@@ -141,7 +141,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", localMachineId },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId, $"action {action}" ) },
+				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId ) },
 			};
 			StartAction( requestorId, action, vars );
 		}
@@ -151,7 +151,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id, $"action {action}" ) },
+				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id ) },
 			};
 			StartAction( requestorId, action, vars );
 		}
@@ -161,7 +161,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
-				{ "FILE_PATH", _fileReg.GetFilePath( boundTo, false ) },
+				{ "FILE_PATH", _fileReg.MakeUNC( boundTo.Path!, boundTo.MachineId, $"{boundTo}" ) },
 			};
 			StartAction( requestorId, action, vars, boundTo );
 		}
