@@ -168,12 +168,14 @@ namespace Dirigent
 
 		public void StartFilePackageBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
 		{
-			// FIXME: generate package content description file to a temp folder and put its full name to the vars
-			var vars = new Dictionary<string,string>()
+			// this gets called also for physical folders (then the vsfNode.Path is non-empty)
+			
+			var vars = new Dictionary<string,string>();
+
+			if( !string.IsNullOrEmpty( boundTo.Path ) )
 			{
-				//{ "FILE_ID", boundTo.Id },
-				//{ "FILE_PATH", _fileReg.GetFilePath( boundTo ) },
-			};
+				vars["FILE_PATH"] = _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" );
+			}
 			StartAction( requestorId, action, vars, boundTo );
 		}
 
