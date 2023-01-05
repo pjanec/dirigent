@@ -161,7 +161,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
-				{ "FILE_PATH", _fileReg.MakeUNC( boundTo.Path!, boundTo.MachineId, $"{boundTo}" ) },
+				{ "FILE_PATH", _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" ) },
 			};
 			StartAction( requestorId, action, vars, boundTo );
 		}

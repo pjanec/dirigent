@@ -72,7 +72,7 @@ namespace Dirigent.Gui.WinForms
 
 			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
 			Client.MessageReceived += OnMessage;
-			ReflStates = new ReflectedStateRepo( Client, machineId );
+			ReflStates = new ReflectedStateRepo( Client, machineId, _rootForRelativePaths );
 			
 			SyncOps = new SynchronousOpProcessor();
 

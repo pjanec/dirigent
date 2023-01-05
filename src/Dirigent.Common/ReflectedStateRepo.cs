@@ -87,7 +87,7 @@ namespace Dirigent
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<string, MachineState> _machineStates = new(); // id => state
 
-		public ReflectedStateRepo( Net.Client client, string localMachineId )
+		public ReflectedStateRepo( Net.Client client, string localMachineId, string rootForRelativePaths )
 		{
 			_client = client;
 			_client.MessageReceived += OnMessage;
@@ -97,7 +97,7 @@ namespace Dirigent
 			
 			_scriptReg = new ReflectedScriptRegistry( this );
 
-			_fileReg = new FileRegistry( this, localMachineId, (string machineId) =>
+			_fileReg = new FileRegistry( this, localMachineId, rootForRelativePaths, (string machineId) =>
 			{
 				if( _clientStates.TryGetValue( machineId, out var state ) )
 				{

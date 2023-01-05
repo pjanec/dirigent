@@ -141,6 +141,7 @@ namespace Dirigent
 			_files = new FileRegistry(
 				this,
 				_machineId, // empty if we run master standalone on an unidentified machine
+				_rootForRelativePaths,
 				(string machineId) =>
 				{
 					if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )

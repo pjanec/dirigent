@@ -71,7 +71,7 @@ namespace Dirigent
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
-			_reflStates = new ReflectedStateRepo( _client, machineId );
+			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths );
 
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );

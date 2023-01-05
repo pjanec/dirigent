@@ -31,16 +31,18 @@ namespace Dirigent.Gui
 		PlanTreeRenderer _planTreeRenderer;
 		ScriptTreeRenderer _scriptTreeRenderer;
 		ErrorRenderer _errorRenderer;
+		string _rootForRelativePaths;
 
 		public GuiWindow( ImGuiWindow wnd, AppConfig ac )
 		{
 			_wnd = wnd;
 			_ac = ac;
+			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_clientIdent = new Net.ClientIdent(	_ac.ClientId, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_client.MessageReceived += OnMessage;
-			_reflStates = new ReflectedStateRepo( _client, _ac.MachineId );
+			_reflStates = new ReflectedStateRepo( _client, _ac.MachineId, _rootForRelativePaths );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");
 
 			_menuRenderer = new GuiWinMenuRenderer( _wnd, _reflStates );

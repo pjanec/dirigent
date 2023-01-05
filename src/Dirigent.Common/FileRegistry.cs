@@ -23,6 +23,8 @@ namespace Dirigent
 
 		public GetMachineIPDelegate _machineIPDelegate;
 
+		string _rootForRelativePaths;
+
 		public class TMachine
 		{
 			public string Id = string.Empty;
@@ -41,10 +43,11 @@ namespace Dirigent
 
 		IDirig _ctrl;
 		
-		public FileRegistry( IDirig ctrl, string localMachineId, GetMachineIPDelegate machineIdDelegate )
+		public FileRegistry( IDirig ctrl, string localMachineId, string rootForRelativePaths, GetMachineIPDelegate machineIdDelegate )
 		{
 			_ctrl = ctrl;
 			_localMachineId = localMachineId;
+			_rootForRelativePaths = rootForRelativePaths;
 			_machineIPDelegate = machineIdDelegate;
 		}
 		
@@ -150,6 +153,17 @@ namespace Dirigent
 			throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
 		}
 		
+		public string MakeUNCIfNotLocal( string path, string? machineId, string whatFor )
+		{
+			if( _localMachineId != machineId )
+			{
+				return MakeUNC( path, machineId, whatFor );
+			}
+			else
+			{
+				return path;
+			}
+		}
 
 		/// <summary>
 		/// Returns direct path to the file, with all variables and file path resolution mechanism already evaluated.
@@ -207,6 +221,11 @@ namespace Dirigent
 				}
 
 				path = Tools.ExpandEnvAndInternalVars( path, vars );
+
+				if( !PathUtils.IsPathAbsolute( path ) )
+				{
+					path = Path.Combine( _rootForRelativePaths, path );
+				}
 			}
 
 			// if the file on local machine, return local path
