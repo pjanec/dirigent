@@ -250,7 +250,7 @@ namespace Dirigent.Gui.WinForms
 			_tabPlans.Refresh();
 			_tabScripts.Refresh();
 			_tabMachs.Refresh();
-			_tabFiles.Refresh();
+			//_tabFiles.Refresh();
 			refreshStatusBar();
 			refreshMenu();
 			setTitle();

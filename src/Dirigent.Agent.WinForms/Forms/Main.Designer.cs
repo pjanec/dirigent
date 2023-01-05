@@ -341,7 +341,7 @@
 			this.tabControl1.Controls.Add(this.tabPagePlans);
 			this.tabControl1.Controls.Add(this.tabPageScripts);
 			this.tabControl1.Controls.Add(this.tabPageMachs);
-			this.tabControl1.Controls.Add(this.tabPageFiles);
+			//this.tabControl1.Controls.Add(this.tabPageFiles);
 			this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.tabControl1.Location = new System.Drawing.Point(0, 35);
 			this.tabControl1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
