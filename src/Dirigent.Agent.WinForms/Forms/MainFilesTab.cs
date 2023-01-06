@@ -162,7 +162,7 @@ namespace Dirigent.Gui.WinForms
 							var submenus = _menuBuilder.BuildVfsNodeActionsMenuItems( vfsNodeDef );
 							foreach (var submenu in submenus)
 							{
-								popup.Items.Add( submenu );
+								popup.Items.AddRange( WFT.MenuItemToToolStrips(submenu) );
 							}
 						}
 					}

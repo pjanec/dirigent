@@ -54,24 +54,26 @@
     StartupDir = ""
   />
 
+  <!-- These are added to each machine's context menu -->
   <DefaultMachineActions>
-    <Tool Title="BLA Do something with the machine" Name="Notepad" Args="%MACHINE_ID%"/>
+    <Tool Title="Do something with the machine" Name="Notepad" Args="%MACHINE_ID% %MACHINE_IP%"/>
   </DefaultMachineActions>
 
+  <!-- These are added to each app's context menu -->
   <DefaultAppActions>
-    <Tool Title="BLA Do something with the app++" Name="Notepad" Args="%APP_ID%"/>
+    <Tool Title="Do something with the app++" Name="Notepad" Args="%APP_ID% %APP_PID%"/>
   </DefaultAppActions>
 
 
   <!-- These are added to each file's context menu -->
   <DefaultFileActions>
-    <Tool Title="BLA Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
+    <Tool Title="Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
     <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" />
   </DefaultFileActions>
 
   <!-- These are added to each file pakage's context menu -->
   <DefaultFilePackageActions>
-    <Script Title="BLA Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
+    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
     <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" />
   </DefaultFilePackageActions>
 

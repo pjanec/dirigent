@@ -171,7 +171,9 @@
         <Script Title="Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>
         
         <!-- tool invoked on the machine where the menu was clicked -->
-    	<Tool Title="Demo tool menu item - VNC to self" Name="VncViewer" Args="%MACHINE_IP%"/>
+    	<Tool Title="VNC to self" Name="VncViewer" Args="%MACHINE_IP%"/>
+    	<Tool Title="VNC to self/sub 1" Name="VncViewer" Args="%MACHINE_IP%"/>
+    	<Tool Title="VNC to self/sub 2" Name="VncViewer" Args="%MACHINE_IP%"/>
 
         <!-- tool invoked on the machine where the menu was clicked, started in context of given file -->
     	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
@@ -225,13 +227,14 @@
     		CmdLineArgs = "/k &quot;set&amp;&amp;pause&quot;"
     />
 
-    <Machine Name="m1">
+    <Machine Name="m1" IP="127.0.0.1">
         <Share Name="C" Path="C:\"/>
         <Share Name="D$" Path="d:\"/>
         <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt">
           <Tool Title="Open in Notepad" Name="Notepad" />
         </File>
-        <File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest">
+        <!--File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest"-->
+        <File Id="newest log file" Path="C:\Logs\App1XXX" Filter="Newest">
           <Tool Title="Open in Notepad" Name="Notepad" />
         </File>
         <Folder Id="Docs folder" Path="%USERPROFILE%\Documents">
@@ -253,7 +256,7 @@
 
      </Machine>
 
-    <Machine Name="m2">
+    <Machine Name="m2" IP="127.0.0.1">
         <Share Name="C" Path="C:\"/>
      </Machine>
 
@@ -265,12 +268,20 @@
 		CmdLineArgs = "xxx.txt"
 	    >
 
-        <File Id="xxx" Title="xxx file" Path="%USERPROFILE%\Documents\xxx.txt">
+        <File Id="xxx" Title="user's doc" Path="..\xxx.txt">
           <Tool Title="Open in Notepad" Name="Notepad"/>
         </File>
 
-        <File Id="yyy" Title="xxx file" Path="C:\Logs" Mask="*.log" Filter="Newest" >
+        <File Id="yyy" Title="newest log" Path="C:\Logs" Mask="*.log" Filter="Newest" >
           <Tool Title="Open in Notepad" Name="Notepad" />
+        </File>
+
+        <File Title="apps startup folder doc" Path="%APP_STARTUPDIR%\config1.txt">
+          <Tool Title="Open in Notepad" Name="Notepad"/>
+        </File>
+
+        <File Title="apps bin folder doc" Path="%APP_BINDIR%\DirectX.log">
+          <Tool Title="Open in Notepad" Name="Notepad"/>
         </File>
 
         <Folder Id="LocalData folder" Path="%AppData%\Notepad++">
@@ -305,6 +316,9 @@
     	    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
         </FilePackage>
 	
+    	<Folder Title="TEMP folder" Path="D:\TEMP">
+            <Tool Title="Open in Explorer" Name="Explorer" Args="%FILE_PATH%"/>
+    	</Folder>
 	</App>
 
 	<!-- FilePackage is a collection of file and folders available for some operation (browse, download...) -->
@@ -356,17 +370,9 @@
         <Tool Title="Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
 	</File>
 
-	<!-- Gateway network settings for tunelling network service ports in case we connect via SSH.
-         This actually makes no sense here as the shared config is not available until connected.
-         It might be read by not yet connected Dirigent if the shared config
-	<SshGateway
-		ExternalIP = "10.0.102.5"
-		InternalIP =  "192.168.0.150"
-		Port = "22"
-		UserName = "user"
-		Password = "password"
-	/> --> 
-
+	<Folder Title="TEMP folder" MachineId="m1" Path="D:\TEMP">
+        <Tool Title="Open in Explorer" Name="Explorer" Args="%FILE_PATH%"/>
+	</Folder>
 
 
 </Shared>

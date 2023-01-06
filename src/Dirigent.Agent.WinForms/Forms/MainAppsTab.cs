@@ -514,25 +514,25 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var vfsNodesMenuItems = _menuBuilder.BuildVfsNodesMenuItems( appDef.VfsNodes );
-						if ( vfsNodesMenuItems.Length > 0 )
+						if ( vfsNodesMenuItems.Count > 0 )
 						{
 							popup.Items.Add( new ToolStripSeparator() );
 						}
 						foreach ( var item in vfsNodesMenuItems )
 						{
-							popup.Items.Add( item );
+							popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
 						}
 					}
 
 					{
 						var appActionsMenuItems = _menuBuilder.BuildAppActionsMenuItems( appDef );
-						if ( appActionsMenuItems.Length > 0 )
+						if ( appActionsMenuItems.Count > 0 )
 						{
 							popup.Items.Add( new ToolStripSeparator() );
 						}
 						foreach ( var item in appActionsMenuItems )
 						{
-							popup.Items.Add( item );
+							popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
 						}
 					}
 

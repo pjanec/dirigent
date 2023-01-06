@@ -27,19 +27,14 @@ namespace Dirigent.Gui.WinForms
 		}
 
 		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
-		public ToolStripMenuItem[] GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
+		public List<MenuTreeNode> GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
 		{
-			var tree = new TreeNode();
-
+			var menuItems = new List<MenuTreeNode>();
 			foreach( var a in actions )
 			{
 				var menuItem = WFT.ActionDefToMenuItem(a, (x) => onClick(x) );
-				tree.InsertNode( a.Title, false, menuItem, null);
+				menuItems.Add( menuItem );
 			}
-
-			// convert the actions to menu items
-			var menuItems = WFT.GetMenuTreeItems( tree );
-
 			return menuItems;
 
 		}
@@ -111,7 +106,7 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
-		public ToolStripMenuItem[] BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
+		public List<MenuTreeNode> BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
 		{
 			return GetMenuItemsFromActions(
 				GetAllVfsNodeActions(vfsNodeDef),
@@ -130,7 +125,7 @@ namespace Dirigent.Gui.WinForms
 			);
 		}
 
-		public ToolStripMenuItem[] BuildMachineActionsMenuItems( MachineDef machDef )
+		public List<MenuTreeNode> BuildMachineActionsMenuItems( MachineDef machDef )
 		{
 			return GetMenuItemsFromActions(
 				GetAllMachineActions(machDef),
@@ -141,7 +136,7 @@ namespace Dirigent.Gui.WinForms
 			);
 		}
 
-		public ToolStripMenuItem[] BuildAppActionsMenuItems( AppDef appDef )
+		public List<MenuTreeNode> BuildAppActionsMenuItems( AppDef appDef )
 		{
 			return GetMenuItemsFromActions(
 				GetAllAppActions(appDef),
@@ -153,24 +148,23 @@ namespace Dirigent.Gui.WinForms
 		}
 
 
-		ToolStripMenuItem BuildVfsNodeMenuItem( VfsNodeDef vfsNodeDef )
+		MenuTreeNode BuildVfsNodeMenuItem( VfsNodeDef vfsNodeDef )
 		{
 			var title = vfsNodeDef.Title;
 			if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
-			var fileMenu = new ToolStripMenuItem( title );
+			var fileMenu = new MenuTreeNode( title );
 			var submenus = BuildVfsNodeActionsMenuItems( vfsNodeDef );
-			if( submenus.Length > 0 )
+			if( submenus.Count > 0 )
 			{
-				//fileMenu.DropDownItems.Add ( toolsSubmenu );
-				fileMenu.DropDownItems.AddRange( submenus );
+				fileMenu.Children.AddRange( submenus );
 				return fileMenu;
 			}
 			return null;
 		}
 
-		public ToolStripMenuItem[] BuildVfsNodesMenuItems( IEnumerable<VfsNodeDef> vfsNodeDefs )
+		public List<MenuTreeNode> BuildVfsNodesMenuItems( IEnumerable<VfsNodeDef> vfsNodeDefs )
 		{
-			List<ToolStripMenuItem> items = new();
+			List<MenuTreeNode> items = new();
 			foreach( var vfsNodeDef in vfsNodeDefs )
 			{
 				var item = BuildVfsNodeMenuItem(vfsNodeDef);
@@ -179,10 +173,10 @@ namespace Dirigent.Gui.WinForms
 					items.Add( item );
 				}
 			}
-			return items.ToArray();
+			return items;
 		}
 		
-		public ToolStripMenuItem AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
+		public MenuTreeNode AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
 		{
 			if( mitem is ActionDef action)
 			{
@@ -195,5 +189,6 @@ namespace Dirigent.Gui.WinForms
 			
 			throw new Exception( $"Unsupported AssocMenuItem type {mitem.GetType().Name}" );
 		}
+
 	}
 }

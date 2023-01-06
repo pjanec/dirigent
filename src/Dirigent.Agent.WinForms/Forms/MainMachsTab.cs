@@ -269,13 +269,13 @@ namespace Dirigent.Gui.WinForms
 							if( machDef != null )
 							{
 								var vfsNodesMenu = _menuBuilder.BuildVfsNodesMenuItems( machDef.VfsNodes );
-								if ( vfsNodesMenu.Length > 0 )
+								if ( vfsNodesMenu.Count > 0 )
 								{
 									popup.Items.Add( new ToolStripSeparator() );
 								}
 								foreach( var item in vfsNodesMenu )
 								{
-									popup.Items.Add( item );
+									popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
 								}
 							}
 						}
@@ -288,13 +288,13 @@ namespace Dirigent.Gui.WinForms
 							if( machDef != null )
 							{
 								var actionMenuItems = _menuBuilder.BuildMachineActionsMenuItems( machDef );
-								if ( actionMenuItems.Length > 0 )
+								if ( actionMenuItems.Count > 0 )
 								{
 									popup.Items.Add( new ToolStripSeparator() );
 								}
 								foreach ( var item in actionMenuItems )
 								{
-									popup.Items.Add( item );
+									popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
 								}
 							}
 						}

@@ -666,27 +666,39 @@ namespace Dirigent.Gui.WinForms
 
 		void UpdateToolsMenu()
 		{
-			// build the menu from the list of predefined tool menu items and the list of extra actions
-			var tree = new TreeNode();
-
-			tree.InsertNode("Reload/Shared Config", false, reloadSharedConfigToolStripMenuItem, null);
-			tree.InsertNode("Kill/All running apps", false, killAllRunningAppsToolStripMenuItem, null);
-			tree.InsertNode("Power/Reboot All", false, rebootAllToolStripMenuItem1, null);
-			tree.InsertNode("Power/Shutdown All", false, shutdownAllToolStripMenuItem1, null);
-
-			foreach( var item in _core.ReflStates.MenuItems )
+			var menuItems = new List<MenuTreeNode>();
+			
+			// hardcoded items
+			var orig = new List<MenuTreeNode>()
 			{
-				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, x, _core.MachineId ));
-				tree.InsertNode( item.Title, false, menuItem, null);
-				
+				new MenuTreeNode( "Reload/Shared Config", action: () => this.reloadSharedConfigToolStripMenuItem_Click( null, null ) ),
+				new MenuTreeNode( "Kill/All running apps", action: () => this.killAllRunningAppsToolStripMenuItem_Click( null, null ) ),
+				new MenuTreeNode( "Power/Reboot All", action: () => this.rebootAllToolStripMenuItem1_Click( null, null ) ),
+				new MenuTreeNode( "Power/Shutdown All", action: () => this.shutdownAllToolStripMenuItem1_Click( null, null ) ),
+			};
+
+			foreach( var item in orig )
+			{
+				menuItems.Add( MenuTreeNode.MakeTreeFromTitle( item ) );
 			}
 
-			// convert the actions to menu items
-			var menuItems = WFT.GetMenuTreeItems( tree );
+			// user-defined items
+			foreach ( var item in _core.ReflStates.MenuItems )
+			{
+				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, x, _core.MachineId ));
+				menuItems.Add( menuItem );
+			}
+
+			// merge menus into a single tree
+			var combinedMenuTree = MenuTreeNode.CombineMenuItems( menuItems ); // just the children matter
+
+			// convert to toolstrips
+			var toolStripsMenuItems = WFT.MenuItemsToToolStrips( combinedMenuTree.Children );
 
 			// replace the Tools menu with a new one
 			this.toolsToolStripMenuItem.DropDownItems.Clear();
-			this.toolsToolStripMenuItem.DropDownItems.AddRange( menuItems );
+			this.toolsToolStripMenuItem.DropDownItems.AddRange( toolStripsMenuItems.ToArray() );
+
 		}
 
 	}

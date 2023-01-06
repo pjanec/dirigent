@@ -99,52 +99,68 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
-		/// <summary>
-		///	Builds menu items from the children of given folder tree node.
-		/// FolderTree payload needs to be a ToolStripMenuItem.
-		/// </summary>
-		public static ToolStripMenuItem[] GetMenuTreeItems( TreeNode parent )
+
+		// Convert a tree of menu items into a tree of tool strips.
+		// Note: if a menu item is both a leaf (having action) and a parent (having submenus), we create 2 separate strips
+		public static ToolStripMenuItem[] MenuItemToToolStrips( MenuTreeNode menuItem )
 		{
 			var res = new List<ToolStripMenuItem>();
-			
-			//empty tree?
-			if( parent.Children is null )
-				return res.ToArray();
-			
-			foreach( var node in parent.Children )
+
+			if( menuItem.Action != null )
 			{
-				if( node.IsFolder )
-				{
-					var item = new ToolStripMenuItem( node.Name );
-					item.DropDownItems.AddRange( GetMenuTreeItems( node ) );
-					res.Add( item );
-				}
-				else
-				if(node.Payload is ToolStripMenuItem menuItem )
-				{
-					res.Add( menuItem );
-				}
-				else
-				{
-					throw new Exception( "GetMenuItems called with non-menuitem payload" );
-				}
+				// action menu item first
+				var stripItem = new ToolStripMenuItem(
+					menuItem.Title
+					, GetBitmapFromFile( menuItem.Icon )
+					, ( s, e ) => menuItem.Action?.Invoke()
+				);
+				res.Add( stripItem );
+				
 			}
+			
+			if( menuItem.Children.Count > 0)
+			{
+
+				var stripItem = new ToolStripMenuItem(
+					menuItem.Title
+					, GetBitmapFromFile( menuItem.Icon )
+					, ( s, e ) => menuItem.Action?.Invoke() // this is never called as this is a parent menu item with submenus
+				);
+
+				stripItem.DropDownItems.AddRange( MenuItemsToToolStrips( menuItem.Children ).ToArray() );
+
+				res.Add( stripItem );
+			}
+			
 			return res.ToArray();
 		}
+		
 
-		public static ToolStripMenuItem ActionDefToMenuItem( ActionDef adef, Action<ActionDef> onClick )
+		public static List<ToolStripMenuItem> MenuItemsToToolStrips( List<MenuTreeNode> menuItems )
+		{
+			var res = new List<ToolStripMenuItem>();
+			foreach( var item in menuItems )
+			{
+				res.AddRange( MenuItemToToolStrips( item ) );
+			}
+			return res;
+		}
+		
+
+		public static MenuTreeNode ActionDefToMenuItem( ActionDef adef, Action<ActionDef> onClick )
 		{
 			var title = adef.Title;
 			if (string.IsNullOrEmpty( title )) title = adef.Name;
 			if (string.IsNullOrEmpty( title )) title = adef.Guid.ToString();
 
-			return new ToolStripMenuItem(
-				TreeNode.GetNamePart( title ),
-				WFT.GetBitmapFromFile( adef.IconFile ),
-				(sender, args ) => onClick( adef )
+			var menuItemWithSegmentedTitle = new MenuTreeNode(
+				title,
+				adef.IconFile,
+				() => onClick( adef )
 			);
-		}
 
+			return MenuTreeNode.MakeTreeFromTitle( menuItemWithSegmentedTitle );
+		}
 
 	}
 }
