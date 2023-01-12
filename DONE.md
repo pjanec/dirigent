@@ -1,3 +1,11 @@
+[DONE] FileDef menu containing actions overwrites existing menu folder with same name (Shared Config [FileDef] -> Actions  overwrites Shared Config -> Reload)
+
+[DONE] Add debug mode (--debug 1) that disables catching exceptions, leaving them crash the app and allowing them to be caught by the debugger.
+
+[DONE] IconFile attribute for shared config records like File, Folder, Package etc.
+
+[DONE] VfsNodeDef.Title using "\\" characters to create menu tree. Helps sorting multiple items of similar type into groups shown as submenus. 
+
 [DONE] Default actions for File and FilePackage defined in LocalConfig DefaultFileActions and DefaultFilePackageActions sections. 
 
 [DONE] New dirigent's message for emitting a baloon notifications. What message to show, on what machine, script & args to fire if notification clicked. 
