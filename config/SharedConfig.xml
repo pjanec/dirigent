@@ -177,7 +177,7 @@
 
         <!-- tool invoked on the machine where the menu was clicked, started in context of given file -->
     	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
-            <Tool Title="Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
+            <Tool Title="Edit in Notepad++" Icon="Icons\Notepad++.png" Name="Notepad++" Args="%FILE_PATH%"/>
     	</FileRef>
     </ToolsMenu>
 
@@ -231,14 +231,14 @@
         <Share Name="C" Path="C:\"/>
         <Share Name="D$" Path="d:\"/>
         <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings.txt">
-          <Tool Title="Open in Notepad" Name="Notepad" />
+          <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
         <!--File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest"-->
         <File Id="newest log file" Path="C:\Logs\App1XXX" Filter="Newest">
-          <Tool Title="Open in Notepad" Name="Notepad" />
+          <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
         <Folder Id="Docs folder" Path="%USERPROFILE%\Documents">
-          <Tool Title="Open in Explorer" Name="Explorer"/>
+          <Tool Title="Open in Explorer" Name="WinExplorer"/>
         </Folder>
 
         <!-- Tools are added to machine's Tools menu. Tools are always started on local machine.
@@ -269,26 +269,26 @@
 	    >
 
         <File Id="xxx" Title="user's doc" Path="..\xxx.txt">
-          <Tool Title="Open in Notepad" Name="Notepad"/>
+          <Tool Title="Open in Notepad" Name="Notepad++"/>
         </File>
 
         <File Id="yyy" Title="newest log" Path="C:\Logs" Mask="*.log" Filter="Newest" >
-          <Tool Title="Open in Notepad" Name="Notepad" />
+          <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
 
         <File Title="apps startup folder doc" Path="%APP_STARTUPDIR%\config1.txt">
-          <Tool Title="Open in Notepad" Name="Notepad"/>
+          <Tool Title="Open in Notepad" Name="Notepad++"/>
         </File>
 
         <File Title="apps bin folder doc" Path="%APP_BINDIR%\DirectX.log">
-          <Tool Title="Open in Notepad" Name="Notepad"/>
+          <Tool Title="Open in Notepad" Name="Notepad++"/>
         </File>
 
         <Folder Id="LocalData folder" Path="%AppData%\Notepad++">
-          <Tool Title="Open in Explorer" Name="Explorer"/>
+          <Tool Title="Open in Explorer" Name="WinExplorer"/>
         </Folder>
 
-        <Tool Title="Open some file in Notepad" Name="Notepad" Args="somefile.txt"/>
+        <Tool Title="Open some file in Notepad" Name="Notepad++" Args="somefile.txt"/>
 
         <Script Title="Run some script" Name="Scripts/DemoScript1.cs" Args="somefile.txt"/>
 
@@ -299,7 +299,7 @@
     	    <FileRef Id="Greetings" MachineId="m1" AppId="" />
 
             <Folder Title="Books folder" Path="%USERPROFILE%\Documents\Books">
-              <Tool Title="Open in Explorer" Name="Explorer"/>
+              <Tool Title="Open in Explorer" Name="WinExplorer"/>
             </Folder>
     	    <!-- reference to file defined within another app -->
     	    <FileRef Id="xxx" AppIdTuple="m1.a" />
@@ -309,7 +309,7 @@
         	
         	<!-- global files specification -->
         	<File Id="inPackFile" AppIdTuple="m1.a" Path="D:\TEMP\file.txt">
-                <Tool Title="Notepad++" Name="Notepad"/>
+                <Tool Title="Notepad++" Name="Notepad++"/>
         	</File>
 
     	    <Tool Title="Browse files in package" Name="FileCmd" Args="%FILEPACKAGE_LIST_FILE%"/>
@@ -317,7 +317,7 @@
         </FilePackage>
 	
     	<Folder Title="TEMP folder" Path="D:\TEMP">
-            <Tool Title="Open in Explorer" Name="Explorer" Args="%FILE_PATH%"/>
+            <Tool Title="Open in Explorer" Name="WinExplorer" Args="%FILE_PATH%"/>
     	</Folder>
 	</App>
 
@@ -355,23 +355,23 @@
 	<!-- global files specification -->
 	<File Id="global4" Path="\\server\share\path\to\file.txt">
         <!-- Tools appear in the file's context menu -->
-        <Tool Title="Notepad++" Name="Notepad" />
+        <Tool Title="Notepad++" Name="Notepad++" />
 	</File>
 
 	<File Id="local1" MachineId="m1" Path="D:\TEMP\file.txt">
         <!-- Tools appear in the file's context menu -->
-        <Tool Title="Notepad++" Name="Notepad" />
+        <Tool Title="Notepad++" Name="Notepad++" />
 	</File>
 
 
 	<!-- This is a default item which does not need to be defined explicitly unless you need some special tools for it;
 	     the path is provided automatically -->
 	<File Title="SharedConfig" Id="DirigentSharedConfig" MachineId="m1" Path="x:\y\SharedConfig.xml">
-        <Tool Title="Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
+        <Tool Title="Notepad++" Name="Notepad++" Icon="Icons\Notepad++.png" Args="%FILE_PATH%"/>
 	</File>
 
 	<Folder Title="TEMP folder" MachineId="m1" Path="D:\TEMP">
-        <Tool Title="Open in Explorer" Name="Explorer" Args="%FILE_PATH%"/>
+        <Tool Title="Open in Explorer" Name="WinExplorer" Args="%FILE_PATH%"/>
 	</Folder>
 
 

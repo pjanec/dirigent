@@ -69,7 +69,7 @@ namespace Dirigent
 		/// Icon for the menu item 
 		/// </summary>
 		//[MessagePack.Key( 7 )]
-		public string? IconFile;
+		public string? Icon;
 
 		/// <summary>
 		/// Submenu items
@@ -89,7 +89,7 @@ namespace Dirigent
 				this.MachineId == other.MachineId &&
 				this.AppId == other.AppId &&
 				this.Groups == other.Groups &&
-				this.IconFile == other.IconFile &&
+				this.Icon == other.Icon &&
 				this.Actions.SequenceEqual( other.Actions ) &&
 				true;
 

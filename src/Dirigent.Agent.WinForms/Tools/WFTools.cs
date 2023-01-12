@@ -155,7 +155,7 @@ namespace Dirigent.Gui.WinForms
 
 			var menuItemWithSegmentedTitle = new MenuTreeNode(
 				title,
-				adef.IconFile,
+				adef.Icon,
 				() => onClick( adef )
 			);
 

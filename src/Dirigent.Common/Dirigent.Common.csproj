@@ -38,6 +38,9 @@
     <None Include="Scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Icons\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 

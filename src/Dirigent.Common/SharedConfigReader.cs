@@ -286,7 +286,7 @@ namespace Dirigent
 				MachineId = e.Attribute( "MachineId" )?.Value,
 				AppId = e.Attribute( "AppId" )?.Value,
 				Groups = e.Attribute( "Groups" )?.Value,
-				IconFile = e.Attribute( "IconFile" )?.Value,
+				Icon = e.Attribute( "Icon" )?.Value,
 				Actions = LoadActions( e, machineId, appId ),
 			};
 
@@ -310,7 +310,7 @@ namespace Dirigent
 			if( x.Title != null ) a.Title = x.Title;
 			if( x.MachineId != null ) a.MachineId = x.MachineId;
 			if( x.AppId != null ) a.AppId = x.AppId;
-			if( x.IconFile != null ) a.IconFile = x.IconFile;
+			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Groups != null ) a.Groups = x.Groups;
 
 			// add/replace actions

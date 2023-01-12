@@ -20,8 +20,8 @@
        If the tool is assigned a network service, the SVC_IP and SVC_PORT variables hold the network
        settings for accessing the service. -->
   <Tool
-    AppIdTuple = "Explorer"
-    IconFile = "Icons\Explorer.png"
+    AppIdTuple = "WinExplorer"
+    IconFile = "Icons\WinExplorer.png"
     Service = ""
     ExeFullPath = "%SystemRoot%\explorer.exe"
     CmdLineArgs = "%FILE_PATH%"
@@ -30,7 +30,7 @@
 
   <Tool
     AppIdTuple = "VncViewer"
-    IconFile = "Icons\VNC.png"
+    IconFile = "Icons\TightVNC.png"
     Service = "VNC"
     ExeFullPath = "%ProgramW6432%\TightVNC\tvnviewer_mouse_pan_zoom.exe"
     CmdLineArgs = "%MACHINE_IP%"
@@ -38,8 +38,8 @@
   />
 
   <Tool
-    AppIdTuple = "Notepad"
-    IconFile = "Icons\Notepad.png"
+    AppIdTuple = "Notepad++"
+    IconFile = "Icons\Notepad++.png"
     Service = ""
     ExeFullPath = "%ProgramW6432%\Notepad++\notepad++.exe"
     CmdLineArgs = "%FILE_PATH%"
