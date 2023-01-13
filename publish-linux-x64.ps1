@@ -2,7 +2,7 @@ Param( $buildconf="Release", $clean=1 )
 
 & "$PSScriptRoot\build-linux.ps1" $buildconf $clean
 
-dotnet publish src\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj -f net5.0 -r linux-x64 -o publish\Dirigent.Agent.Console\linux-x64\$buildconf
+dotnet publish src\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj -f net6.0 -r linux-x64 -o publish\Dirigent.Agent.Console\linux-x64\$buildconf
 
 New-Item -ItemType Directory -Force -Path release\linux-x64\$buildconf
 
