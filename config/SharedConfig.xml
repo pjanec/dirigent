@@ -170,10 +170,11 @@
         <!-- script invoked on defined machine -->
         <Script Title="Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>
         
-        <!-- tool invoked on the machine where the menu was clicked -->
-    	<Tool Title="VNC to self" Name="VncViewer" Args="%MACHINE_IP%"/>
-    	<Tool Title="VNC to self/sub 1" Name="VncViewer" Args="%MACHINE_IP%"/>
-    	<Tool Title="VNC to self/sub 2" Name="VncViewer" Args="%MACHINE_IP%"/>
+        <!-- tool invoked on the machine where the menu was clicked unless non-empty HostId is specified. -->
+    	<Tool Title="VNC to self" Name="VncViewer" Args="%MACHINE_IP%" HostId="m1" StartupDir="C:\TEMP" />
+    	<Tool Title="VNC to self/sub 1" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptRed.png" />
+    	<Tool Title="VNC to self/sub 2" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptGreen.png"/>
+    	<Tool Title="sample batch script" Name="BatchScript" Args="test1.bat" StartupDir="C:\TEMP" HostId="m1" />
 
         <!-- tool invoked on the machine where the menu was clicked, started in context of given file -->
     	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
@@ -290,7 +291,7 @@
 
         <Tool Title="Open some file in Notepad" Name="Notepad++" Args="somefile.txt"/>
 
-        <Script Title="Run some script" Name="Scripts/DemoScript1.cs" Args="somefile.txt"/>
+        <Script Title="Run some script" Name="Scripts/DemoScript1.cs" Args="somefile.txt" Icon="Icons\ScriptRed.png"/>
 
 		<Tool Title="VNC to where the app runs" Name="VncViewer" Args="%MACHINE_IP%"/>
 

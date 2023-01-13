@@ -59,6 +59,15 @@ namespace Dirigent
 				}
 			}
 		}
+
+		public string? GetToolIcon( string toolName )
+		{
+			if( _defs.TryGetValue( toolName, out var toolAppDef ) )
+			{
+				return toolAppDef.Icon;
+			}
+			return null;
+		}
 		
 		public void StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNode=null )
 		{
@@ -88,6 +97,10 @@ namespace Dirigent
 				// make a clone as are going to modify it
 				toolAppDef = toolAppDef.Clone();
 				toolAppDef.CmdLineArgs = tool.Args;
+				if( !string.IsNullOrEmpty( tool.StartupDir ) )
+				{
+					toolAppDef.StartupDir = tool.StartupDir;
+				}
 			}
 
 			var localApp = new LocalApp( toolAppDef, _sharedContext, null );

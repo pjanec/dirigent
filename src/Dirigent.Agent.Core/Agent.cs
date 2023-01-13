@@ -37,6 +37,8 @@ namespace Dirigent
 		private SharedContext _sharedContext;
 		private string _rootForRelativePaths;
 		private LocalConfig? _localConfig;
+		private ToolsRegistry _toolsReg;
+		public ToolsRegistry ToolsRegistry => _toolsReg;
 
 		List<FolderWatcher> _folderWatchers = new List<FolderWatcher>();
 
@@ -91,15 +93,17 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg );
 
+			var toolDefs = new List<AppDef>();
 			_localConfig = LoadLocalConfig( _ac.LocalCfgFileName, machineId );
 			if( _localConfig is not null )
 			{
 				InitFromLocalConfig();
+				toolDefs = _localConfig.Tools;
 			}
 			
+			_toolsReg = new ToolsRegistry( _sharedContext, toolDefs, _reflStates );
 
-
-			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps );
+			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths );
 			
 		}
 
@@ -108,6 +112,7 @@ namespace Dirigent
 			base.Dispose(disposing);
 			if( !disposing ) return;
 			
+			_toolsReg?.Dispose();
 			_procInfoReg?.Dispose();
 			_reflStates.Dispose();
 			_localScripts.Dispose();
@@ -129,6 +134,7 @@ namespace Dirigent
 
 			_localScripts.Tick();
 
+			_toolsReg?.Tick();
 
 			PublishAgentState();
 		}

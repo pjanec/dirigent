@@ -174,7 +174,7 @@ namespace Dirigent
 		/// What icon to show for this app
 		/// </summary>
 		//[MessagePack.Key( 33 )]
-		public string IconFile = string.Empty;
+		public string Icon = string.Empty;
 
 		//[MessagePack.Key( 34 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
@@ -222,7 +222,7 @@ namespace Dirigent
 				this.LeaveRunningWithPrevVars == other.LeaveRunningWithPrevVars &&
 				this.ReusePrevVars == other.ReusePrevVars &&
 				this.Service == other.Service &&
-				this.IconFile == other.IconFile &&
+				this.Icon == other.Icon &&
 				this.Actions.SequenceEqual( other.Actions ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				true

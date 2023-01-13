@@ -92,6 +92,7 @@ namespace Dirigent
 				StartupDir = e.Attribute( "StartupDir" )?.Value,
 				CmdLineArgs = e.Attribute( "CmdLineArgs" )?.Value,
 				StartupOrder = e.Attribute( "StartupOrder" )?.Value,
+				Icon = e.Attribute( "Icon" )?.Value,
 				Disabled = e.Attribute( "Disabled" )?.Value,
 				Volatile = e.Attribute( "Volatile" )?.Value,
 				ReusePrevVars = e.Attribute( "ReusePrevVars" )?.Value,
@@ -121,6 +122,7 @@ namespace Dirigent
 			if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
 			if( x.CmdLineArgs != null ) a.CmdLineArgs = x.CmdLineArgs;
 			if( x.StartupOrder != null ) a.StartupOrder = int.Parse( x.StartupOrder );
+			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Disabled != null ) a.Disabled = ( int.Parse( x.Disabled ) != 0 );
 			if( x.Volatile != null ) a.Volatile = ( int.Parse( x.Volatile ) != 0 );
 			if( x.ReusePrevVars != null ) a.ReusePrevVars = ( int.Parse( x.ReusePrevVars ) != 0 );
@@ -450,12 +452,14 @@ namespace Dirigent
 				Name = e.Attribute( "Name" )?.Value,
 				Args = e.Attribute( "Args" )?.Value,
 				HostId = e.Attribute( "HostId" )?.Value,
+				StartupDir = e.Attribute( "StartupDir" )?.Value,
 			};
 
 			
 			if( x.Name != null ) a.Name = x.Name;
 			if( x.Args != null ) a.Args = x.Args;
 			if( x.HostId != null ) a.HostId = x.HostId;
+			if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
 		}
 
 		static void FillToolAction( ref ToolActionDef a, XElement e, string? machineId = null, string? appId = null )

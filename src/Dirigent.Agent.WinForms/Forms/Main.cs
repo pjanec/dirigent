@@ -685,7 +685,25 @@ namespace Dirigent.Gui.WinForms
 			// user-defined items
 			foreach ( var item in _core.ReflStates.MenuItems )
 			{
-				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => _core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, x, _core.MachineId ));
+				// start the action on given host (or on local client if host is null)
+				var hostClientId = _core.MachineId; // by default where this menu was clicked
+				if( item is ActionDef actionDef )
+				{
+					if( !string.IsNullOrEmpty( actionDef.HostId ) )
+					{
+						hostClientId = actionDef.HostId;
+					}
+				}
+
+				// set machine params of THIS machine
+				var vars = new Dictionary<string,string>()
+				{
+					{ "MACHINE_ID", _core.MachineId },
+					{ "MACHINE_IP", _core.ReflStates.FileReg.GetMachineIP( _core.MachineId ) },
+				};
+				
+				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => WFT.GuardedOp( () => { Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, x, hostClientId, vars )); } ) );
+
 				menuItems.Add( menuItem );
 			}
 

@@ -1,3 +1,7 @@
+[DONE] Tool action specified in the ToolsMenu section of the SharedConfig to allow running on different machine than the default local one. Via HostId attrib.
+
+[DONE] Tool actions can override the StartupDir used for starting the tool. Via StartipDir attribute.
+
 [IDEA] When Show Window is clicked, show a dialog that runs script on the remote machine grabbing all windows of selected process. Dialog shows the window titles and user can select what window to show/hide.
 
 [IDEA] Add "Show/Hide Desktop" to Machines context menu. 

@@ -35,6 +35,10 @@ namespace Dirigent
 		//[MessagePack.Key( 23 )]
 		public string? HostId;
 
+		// overrides startup folder for a tool action
+		public string? StartupDir;
+
+
 		public override string ToString()
 		{
 			return $"\"{Title}\" {Name} {Args}";
@@ -45,6 +49,7 @@ namespace Dirigent
 				this.Name == other.Name &&
 				this.Args == other.Args &&
 				this.HostId == other.HostId &&
+				this.StartupDir == other.StartupDir &&
 				true;
 
 		// boilerplate

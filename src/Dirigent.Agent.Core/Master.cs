@@ -132,7 +132,7 @@ namespace Dirigent
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
 			_reflScripts = new ReflectedScriptRegistry( this );
-			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps );
+			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths );
 			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
 
 			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id

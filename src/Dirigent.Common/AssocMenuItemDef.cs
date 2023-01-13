@@ -61,6 +61,7 @@ namespace Dirigent
 		//[MessagePack.Key( 5 )]
 		public string? AppId = null;
 
+
 		// semicolon separated list of "paths" like "main/examples;"GUI might use this for showing scripts in a folder tree
 		//[MessagePack.Key( 6 )]
 		public string Groups = string.Empty;

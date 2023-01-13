@@ -30,9 +30,10 @@ namespace Dirigent.Gui.WinForms
 		public List<MenuTreeNode> GetMenuItemsFromActions( IEnumerable<ActionDef> actions, Action<ActionDef> onClick )
 		{
 			var menuItems = new List<MenuTreeNode>();
-			foreach( var a in actions )
+			foreach( var action in actions )
 			{
-				var menuItem = WFT.ActionDefToMenuItem(a, (x) => onClick(x) );
+				var menuItem = WFT.ActionDefToMenuItem(action, (x) => onClick(x) );
+				SetDefaultIconIfEmpty( ref menuItem, action );
 				menuItems.Add( menuItem );
 			}
 			return menuItems;
@@ -180,7 +181,9 @@ namespace Dirigent.Gui.WinForms
 		{
 			if( mitem is ActionDef action)
 			{
-				return WFT.ActionDefToMenuItem( action, onClick );
+				var menuItem = WFT.ActionDefToMenuItem( action, onClick );
+				SetDefaultIconIfEmpty( ref menuItem, action );
+				return menuItem;
 			}
 			if( mitem is VfsNodeDef vsfNode )
 			{
@@ -188,6 +191,18 @@ namespace Dirigent.Gui.WinForms
 			}
 			
 			throw new Exception( $"Unsupported AssocMenuItem type {mitem.GetType().Name}" );
+		}
+
+		void SetDefaultIconIfEmpty( ref MenuTreeNode mtn, ActionDef action )
+		{
+			// set default icon if none is set
+			if ( string.IsNullOrEmpty( mtn.Icon ) )
+			{
+				if (action is ToolActionDef toolAction)
+				{
+					mtn.Icon = _core.ToolsRegistry.GetToolIcon( toolAction.Name );
+				}
+			}
 		}
 
 	}

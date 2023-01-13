@@ -25,17 +25,19 @@ namespace Dirigent
 		IDirig _ctrl;
 		ScriptFactory _scriptFactory;
 		SynchronousOpProcessor _syncOps;
+		string _scriptRootFolder;
 		
 		// all currently running scripts on this client
 		Dictionary<Guid, LocalScript> _scripts = new();
 		public Dictionary<Guid, LocalScript> Scripts => _scripts;
 		public Dictionary<Guid, ScriptState> ScriptStates => Scripts.Values.ToDictionary( p => p.Instance, p => p.State );
 
-		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps )
+		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder )
 		{
 			_ctrl = ctrl;
 			_scriptFactory = factory;
 			_syncOps = syncOps;
+			_scriptRootFolder = scriptRootFolder;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -97,7 +99,7 @@ namespace Dirigent
 				}
 			}
 
-			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance );
+			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance, _scriptRootFolder );
 			_scripts.Add( instance, entry );
 
 			entry.Start( scriptName, sourceCode, args, title, requestorId );
@@ -127,10 +129,10 @@ namespace Dirigent
 
 			public DateTime LastAliveTime = DateTime.Now;
 
-			public LocalScript( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, Guid instance )
+			public LocalScript( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, Guid instance, string scriptRootFolder )
 			{
 				Instance = instance;
-				Runner = new ScriptRunner( ctrl, instance, factory, syncOps );
+				Runner = new ScriptRunner( ctrl, instance, factory, syncOps, scriptRootFolder );
 			}
 
 			protected override void Dispose( bool disposing )

@@ -83,7 +83,7 @@ namespace Dirigent.Gui.WinForms
 			InitFromLocalConfig( machineId );			
 
 			ScriptFactory = new ScriptFactory( rootForRelativePaths );
-			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps );
+			_localScripts = new LocalScriptRegistry( ReflStates, ScriptFactory, SyncOps, _rootForRelativePaths );
 			
 			bool firstGotPlans = true;
 			ReflStates.OnPlansReceived += () =>

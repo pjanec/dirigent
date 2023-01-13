@@ -35,13 +35,16 @@ namespace Dirigent
 
 		readonly SynchronousOpProcessor _syncOps;
 
+		string _scriptRootFolder;
+
 					
-		public ScriptRunner( IDirig master, Guid instance, ScriptFactory factory, SynchronousOpProcessor syncOps )
+		public ScriptRunner( IDirig master, Guid instance, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder )
 		{
 			ScriptInstance = instance == Guid.Empty ? Guid.NewGuid() : instance;
 			_ctrl = master;
 			_scriptFactory = factory;
 			_syncOps = syncOps;
+			_scriptRootFolder = scriptRootFolder;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -121,7 +124,7 @@ namespace Dirigent
 			{
 				log.Debug( $"Instantiating script \"{title}\" {scriptName} [{ScriptInstance}]" );
 				
-				_script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, null, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ), requestorId );
+				_script = _scriptFactory.Create<Script>( ScriptInstance, title, scriptName, _scriptRootFolder, sourceCode, args, new SynchronousIDirig( _ctrl, _syncOps ), requestorId );
 
 				ct.ThrowIfCancellationRequested();
 

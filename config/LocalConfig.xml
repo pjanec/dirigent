@@ -16,13 +16,20 @@
 
   <!-- This is similar to the App in shared config. Tools run always on local machine.
        The CmdLineArgs specified here can be overridden by ToolActionDef's Args="xxx" attribute.
-       
-       If the tool is assigned a network service, the SVC_IP and SVC_PORT variables hold the network
-       settings for accessing the service. -->
+       StartupDir can be overridden via ToolActionDef's StartupDir="xxx" attribute.
+   -->
+
+  <Tool
+    AppIdTuple = "BatchScript"
+    Icon = "Icons\BatchScript.png"
+    ExeFullPath = "[cmd.file]"
+    CmdLineArgs = "%FILE_PATH%"
+    StartupDir = ""
+  />
+  
   <Tool
     AppIdTuple = "WinExplorer"
-    IconFile = "Icons\WinExplorer.png"
-    Service = ""
+    Icon = "Icons\WinExplorer.png"
     ExeFullPath = "%SystemRoot%\explorer.exe"
     CmdLineArgs = "%FILE_PATH%"
     StartupDir = ""
@@ -30,8 +37,7 @@
 
   <Tool
     AppIdTuple = "VncViewer"
-    IconFile = "Icons\TightVNC.png"
-    Service = "VNC"
+    Icon = "Icons\TightVNC.png"
     ExeFullPath = "%ProgramW6432%\TightVNC\tvnviewer_mouse_pan_zoom.exe"
     CmdLineArgs = "%MACHINE_IP%"
     StartupDir = ""
@@ -39,8 +45,7 @@
 
   <Tool
     AppIdTuple = "Notepad++"
-    IconFile = "Icons\Notepad++.png"
-    Service = ""
+    Icon = "Icons\Notepad++.png"
     ExeFullPath = "%ProgramW6432%\Notepad++\notepad++.exe"
     CmdLineArgs = "%FILE_PATH%"
     StartupDir = ""
@@ -48,33 +53,32 @@
 
   <Tool
     AppIdTuple = "DoubleCommander"
-    IconFile = "Icons\DoubleCommander.png"
-    Service = ""
+    Icon = "Icons\DoubleCommander.png"
     ExeFullPath = "%DIRIGENT_BIN%\tools\doublecmd\doublecmd.exe"
     StartupDir = ""
   />
 
   <!-- These are added to each machine's context menu -->
   <DefaultMachineActions>
-    <Tool Title="Do something with the machine" Name="Notepad" Args="%MACHINE_ID% %MACHINE_IP%"/>
+    <Tool Title="Do something with the machine" Name="Notepad++" Args="%MACHINE_ID% %MACHINE_IP%"/>
   </DefaultMachineActions>
 
   <!-- These are added to each app's context menu -->
   <DefaultAppActions>
-    <Tool Title="Do something with the app++" Name="Notepad" Args="%APP_ID% %APP_PID%"/>
+    <Tool Title="Do something with the app++" Name="Notepad++" Args="%APP_ID% %APP_PID%"/>
   </DefaultAppActions>
 
 
   <!-- These are added to each file's context menu -->
   <DefaultFileActions>
-    <Tool Title="Edit in Notepad++" Name="Notepad" Args="%FILE_PATH%"/>
-    <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" />
+    <Tool Title="Edit in Notepad++" Name="Notepad++" Args="%FILE_PATH%"/>
+    <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" Icon="Icons/Zipped.png" />
   </DefaultFileActions>
 
   <!-- These are added to each file pakage's context menu -->
   <DefaultFilePackageActions>
-    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" />
-    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" />
+    <Script Title="Browse with DoubleCmd" Name="Builtins/BrowseInDblCmdVirtPanel.cs" Icon = "Icons\DoubleCommander.png" />
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" Icon="Icons/Zipped.png" />
   </DefaultFilePackageActions>
 
 </Local>
