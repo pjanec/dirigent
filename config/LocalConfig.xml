@@ -44,6 +44,14 @@
   />
 
   <Tool
+    AppIdTuple = "RemoteDesktop"
+    Icon = "Icons\RemoteDesktop.png"
+    ExeFullPath = "%windir%\\system32\\mstsc.exe"
+    CmdLineArgs = ""
+    StartupDir = ""
+  />
+
+  <Tool
     AppIdTuple = "Notepad++"
     Icon = "Icons\Notepad++.png"
     ExeFullPath = "%ProgramW6432%\Notepad++\notepad++.exe"
@@ -61,6 +69,7 @@
   <!-- These are added to each machine's context menu -->
   <DefaultMachineActions>
     <Tool Title="Do something with the machine" Name="Notepad++" Args="%MACHINE_ID% %MACHINE_IP%"/>
+    <Tool Title="Remote Desktop" Name="RemoteDesktop" Args="/v:%MACHINE_IP%"/>
   </DefaultMachineActions>
 
   <!-- These are added to each app's context menu -->

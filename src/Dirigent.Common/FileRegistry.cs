@@ -247,10 +247,17 @@ namespace Dirigent
 			foreach( var node in VfsNodes.Values )
 			{
 				// empty string equals to null; this allows nullifying the machine/app inherited from parent node in shared config by using empty string
-				if(	(node.Id ?? "") == (Id ?? "") &&
-					(node.MachineId ?? "") == (machineId ?? "") &&
-					(node.AppId ?? "") == (appId ?? "") )
-					return node;
+				if (Id != null && !string.Equals(node.Id, Id, StringComparison.OrdinalIgnoreCase) )
+					continue;
+					
+				if (machineId != null && !string.Equals(node.MachineId, machineId, StringComparison.OrdinalIgnoreCase) )
+					continue;
+
+				if (appId != null && !string.Equals(node.AppId, appId, StringComparison.OrdinalIgnoreCase) )
+					continue;
+
+				// match!
+				return node;
 			}
 			return null;
 		}

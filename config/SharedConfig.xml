@@ -180,6 +180,11 @@
     	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
             <Tool Title="Edit in Notepad++" Icon="Icons\Notepad++.png" Name="Notepad++" Args="%FILE_PATH%"/>
     	</FileRef>
+
+    	<FilePackage Title="All Logs Package">
+    	    <FileRef Id="newest log file"/>
+    	</FilePackage>
+
     </ToolsMenu>
 
     
