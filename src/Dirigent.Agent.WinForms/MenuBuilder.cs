@@ -153,7 +153,7 @@ namespace Dirigent.Gui.WinForms
 		{
 			var title = vfsNodeDef.Title;
 			if (string.IsNullOrEmpty( title )) title = vfsNodeDef.Id;
-			var fileMenu = new MenuTreeNode( title );
+			var fileMenu = new MenuTreeNode( title, icon: vfsNodeDef.Icon );
 			var submenus = BuildVfsNodeActionsMenuItems( vfsNodeDef );
 			if( submenus.Count > 0 )
 			{
