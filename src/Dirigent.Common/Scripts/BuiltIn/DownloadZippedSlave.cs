@@ -119,9 +119,9 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				if( node.IsContainer )
 				{
-					var newDestFolder = Path.Combine( destFolder, node.Title );
 					try
 					{
+						var newDestFolder = Path.Combine( destFolder, node.Title );
 						Directory.CreateDirectory( newDestFolder );
 						CopyLocalFiles( node, newDestFolder, exceptions );
 					}
@@ -137,9 +137,9 @@ namespace Dirigent.Scripts.BuiltIn
 					   (IsGlobalNode(node) && _args!.IncludeGlobals)
 					)
 					{
-						var destFile = Path.Combine( destFolder, Path.GetFileName(node.Path!) );
 						try
 						{
+							var destFile = Path.Combine( destFolder, Path.GetFileName(node.Path!) );
 							File.Copy( node.Path!, destFile );
 						}
 						catch (Exception e)

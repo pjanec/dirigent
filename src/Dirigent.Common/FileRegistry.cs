@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Xml.Linq;
 using System.Threading;
+using System.IO.Enumeration;
 
 namespace Dirigent
 {
@@ -202,8 +203,11 @@ namespace Dirigent
 				// for app-bound files, expand also local vars and define var for app working dir etc.
 				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
 				{
+					// KEEP IN SYNC WITH Launcher.cs
 					vars["MACHINE_ID"] = _localMachineId;
 					vars["MACHINE_IP"] = GetMachineIP( _localMachineId );
+					vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
+					vars["DIRIGENT_MACHINE_IP"] = GetMachineIP( _localMachineId );
 				
 					if( !string.IsNullOrEmpty( fdef.AppId ) )
 					{
@@ -214,6 +218,8 @@ namespace Dirigent
 								vars[k] = v;
 
 							// add some app-special vars
+							vars["DIRIGENT_APPID"] = appDef.Id.AppId;
+							vars["APP_ID"] = appDef.Id.AppId;
 							vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
 							vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
 						}
@@ -242,18 +248,38 @@ namespace Dirigent
 			return MakeUNC( path, machineId, $"FileDef {fdef}" );
 		}
 
+		bool IsMatch( string? pattern, string? str )
+		{
+			if( pattern is null ) // no pattern means anything matches
+				return true;
+
+			if( str is null ) // null string only matches if the pattern allows anything
+				return pattern == "*";
+
+			return FileSystemName.MatchesSimpleExpression( pattern, str );
+
+			// wildcard pattern allowing single asterisk at the end
+			//if (pattern.EndsWith("*") )
+			//{
+			//	string beforeAsterisk = pattern.Substring(0, pattern.Length-1);
+			//	return str.StartsWith( beforeAsterisk, StringComparison.OrdinalIgnoreCase );
+			//}
+
+			//return string.Equals(str, pattern, StringComparison.OrdinalIgnoreCase);
+		}
+
 		VfsNodeDef? FindById( string Id, string? machineId, string? appId )
 		{
 			foreach( var node in VfsNodes.Values )
 			{
 				// empty string equals to null; this allows nullifying the machine/app inherited from parent node in shared config by using empty string
-				if (Id != null && !string.Equals(node.Id, Id, StringComparison.OrdinalIgnoreCase) )
+				if( !IsMatch( Id, node.Id ) )
 					continue;
 					
-				if (machineId != null && !string.Equals(node.MachineId, machineId, StringComparison.OrdinalIgnoreCase) )
+				if( !IsMatch( machineId, node.MachineId ) )
 					continue;
 
-				if (appId != null && !string.Equals(node.AppId, appId, StringComparison.OrdinalIgnoreCase) )
+				if( !IsMatch( appId, node.AppId ) )
 					continue;
 
 				// match!

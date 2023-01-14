@@ -142,7 +142,8 @@ namespace Dirigent.Gui.WinForms
 				_rootForRelativePaths,
 				_internalVars,
 				new AppInitializedDetectorFactory(),
-				Client
+				Client,
+				machineId
 			);
 
 			_toolsReg = new ToolsRegistry( _sharedContext, toolDefs, ReflStates );

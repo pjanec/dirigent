@@ -265,6 +265,19 @@ namespace Dirigent
 			return str;
 		}
 
+		public static void AddOrUpdateVar( Dictionary<string, string> vars, string name, string? value )
+		{
+			// add extra var
+			if( !string.IsNullOrEmpty(value) )
+			{
+				vars[name] = value;
+			}
+			else // uset the var if empty value if provided
+			{
+				vars.Remove(name);
+			}
+		}
+
 		/// <summary>
 		/// Replaces %VARNAME% in a string with actual value of the variable from given disctionary; undefined ones will be replaced with empty string
 		/// </summary>
@@ -736,6 +749,7 @@ namespace Dirigent
 			return s.Substring( 0, pos );
 
 		}
+
 	}
 
 }

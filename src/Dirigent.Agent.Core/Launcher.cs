@@ -67,6 +67,19 @@ namespace Dirigent
 			this._masterIP = _sharedContext.Client.MasterIP;
 
 			_extraVars = extraVars ?? new();
+
+			// set environment variables here so we can use them when expanding process path/args/cwd
+			// KEEP IN SYNC WITH FileRegistry.cs!
+			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_PLAN", _planName );
+			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
+			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_APPID", _appDef.Id.AppId );
+			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_MASTER_IP", _masterIP );
+			Tools.AddOrUpdateVar( _extraVars, "MACHINE_ID", _appDef.Id.MachineId );
+			// note: we are missing MACHINE_IP here - which one of our network interfaces to use? Not clear. Makes sense only for remote machines.
+			Tools.AddOrUpdateVar( _extraVars, "APP_ID", _appDef.Id.AppId );
+			Tools.AddOrUpdateVar( _extraVars, "APP_BINDIR", Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet ));
+			Tools.AddOrUpdateVar( _extraVars, "APP_STARTUPDIR", Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ));
+
 			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars, _extraVars );
 
 			//_cmdRepo = new CommandRepository( ctrl );
@@ -127,21 +140,13 @@ namespace Dirigent
 			// add the local variables from appdef
 			foreach( var kv in appDef.LocalVarsToSet )
 			{
-				res[kv.Key] = kv.Value;
+				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
 			}
 
 			// process explicitly specified variables
 			foreach( var kv in extraVars )
 			{
-				// add extra var
-				if( !String.IsNullOrEmpty(kv.Value) )
-				{
-					res[kv.Key] = kv.Value;
-				}
-				else // uset the var if empty value if provided
-				{
-					res.Remove(kv.Key);
-				}
+				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
 			}
 
 			return res;
@@ -324,13 +329,6 @@ namespace Dirigent
 			// not exited yet
 			_exitCode = 0;
 
-			// set environment variables here so we can use them when expanding process path/args/cwd
-			Environment.SetEnvironmentVariable( "DIRIGENT_PLAN", _planName );
-			Environment.SetEnvironmentVariable( "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
-			Environment.SetEnvironmentVariable( "DIRIGENT_APPID", _appDef.Id.AppId );
-			Environment.SetEnvironmentVariable( "DIRIGENT_MASTER_IP", _masterIP );
-
-
 			var pe = ParseExe();
 
 			switch( pe.ExeType )
@@ -426,14 +424,7 @@ namespace Dirigent
 			{
 				var name = x.Key;
 				var value = ExpandVars( x.Value );
-				if( !String.IsNullOrEmpty( value ) )
-				{
-					psi.EnvironmentVariables[name] = value;
-				}
-				else
-				{
-					psi.EnvironmentVariables.Remove(name);
-				}
+				Tools.AddOrUpdateVar( psi.EnvironmentVariables, x.Key, x.Value );
 			}
 
 			// run the process

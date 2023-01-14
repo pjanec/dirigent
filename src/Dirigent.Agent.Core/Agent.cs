@@ -84,7 +84,8 @@ namespace Dirigent
 				_rootForRelativePaths,
 				_internalVars,
 				new AppInitializedDetectorFactory(),
-				_client
+				_client,
+				machineId
 			);
 
 			_tickers = new TickableCollection();

@@ -20,6 +20,8 @@ namespace Dirigent
 		AppInitializedDetectorFactory AppInitializedDetectorFactory,
 		
 		///<summary>Network communicator used by the agent. Can be used for sending messages.</summary>
-		Net.Client Client
+		Net.Client Client,
+
+		string MachineId
 	);
 }

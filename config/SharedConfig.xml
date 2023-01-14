@@ -182,7 +182,7 @@
     	</FileRef>
 
     	<FilePackage Title="All Logs Package">
-    	    <FileRef Id="newest log file"/>
+    	    <FileRef Id="newest*"/>
     	</FilePackage>
 
     </ToolsMenu>
@@ -240,7 +240,7 @@
           <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
         <!--File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest"-->
-        <File Id="newest log file" Path="C:\Logs\App1XXX" Filter="Newest">
+        <File Id="newest log file" Path="%TEMP%" Filter="Newest">
           <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
         <Folder Id="Docs folder" Path="%USERPROFILE%\Documents">
