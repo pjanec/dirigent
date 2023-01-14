@@ -42,22 +42,6 @@
 			this.killPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
 			this.selectPlanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.reloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.reloadSharedConfigToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.killToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-			this.killAllRunningAppsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.powerToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-			this.rebootAllToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-			this.shutdownAllToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-			this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.exitAndKillAppsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.exitAndLeaveAppsRunningToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.onlineDocumentationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.reinstallToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-			this.reinstallManuallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.tmrTick = new System.Windows.Forms.Timer(this.components);
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabPageApps = new System.Windows.Forms.TabPage();
@@ -125,12 +109,10 @@
 			// 
 			// menuMain
 			// 
-			this.menuMain.ImageScalingSize = new System.Drawing.Size(28, 28);
+			this.menuMain.ImageScalingSize = new System.Drawing.Size(24, 24);
 			this.menuMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
-            this.planToolStripMenuItem,
-            this.toolsToolStripMenuItem,
-            this.helpToolStripMenuItem});
+            this.planToolStripMenuItem});
 			this.menuMain.Location = new System.Drawing.Point(0, 0);
 			this.menuMain.Name = "menuMain";
 			this.menuMain.Padding = new System.Windows.Forms.Padding(8, 3, 0, 3);
@@ -149,7 +131,7 @@
 			// exitToolStripMenuItem1
 			// 
 			this.exitToolStripMenuItem1.Name = "exitToolStripMenuItem1";
-			this.exitToolStripMenuItem1.Size = new System.Drawing.Size(141, 34);
+			this.exitToolStripMenuItem1.Size = new System.Drawing.Size(270, 34);
 			this.exitToolStripMenuItem1.Text = "Exit";
 			this.exitToolStripMenuItem1.Click += new System.EventHandler(this.exitToolStripMenuItem1_Click);
 			// 
@@ -169,166 +151,41 @@
 			// startPlanToolStripMenuItem
 			// 
 			this.startPlanToolStripMenuItem.Name = "startPlanToolStripMenuItem";
-			this.startPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
+			this.startPlanToolStripMenuItem.Size = new System.Drawing.Size(316, 34);
 			this.startPlanToolStripMenuItem.Text = "Start";
 			this.startPlanToolStripMenuItem.Click += new System.EventHandler(this.startPlanMenuItem_Click);
 			// 
 			// stopPlanToolStripMenuItem
 			// 
 			this.stopPlanToolStripMenuItem.Name = "stopPlanToolStripMenuItem";
-			this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
+			this.stopPlanToolStripMenuItem.Size = new System.Drawing.Size(316, 34);
 			this.stopPlanToolStripMenuItem.Text = "Stop (leave apps running)";
 			this.stopPlanToolStripMenuItem.Click += new System.EventHandler(this.stopPlanMenuItem_Click);
 			// 
 			// restartPlanToolStripMenuItem
 			// 
 			this.restartPlanToolStripMenuItem.Name = "restartPlanToolStripMenuItem";
-			this.restartPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
+			this.restartPlanToolStripMenuItem.Size = new System.Drawing.Size(316, 34);
 			this.restartPlanToolStripMenuItem.Text = "Restart";
 			this.restartPlanToolStripMenuItem.Click += new System.EventHandler(this.restartPlanMenuItem_Click);
 			// 
 			// killPlanToolStripMenuItem
 			// 
 			this.killPlanToolStripMenuItem.Name = "killPlanToolStripMenuItem";
-			this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
+			this.killPlanToolStripMenuItem.Size = new System.Drawing.Size(316, 34);
 			this.killPlanToolStripMenuItem.Text = "Kill apps";
 			this.killPlanToolStripMenuItem.Click += new System.EventHandler(this.killPlanMenuItem_Click);
 			// 
 			// toolStripMenuItem1
 			// 
 			this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-			this.toolStripMenuItem1.Size = new System.Drawing.Size(165, 6);
+			this.toolStripMenuItem1.Size = new System.Drawing.Size(313, 6);
 			// 
 			// selectPlanToolStripMenuItem
 			// 
 			this.selectPlanToolStripMenuItem.Name = "selectPlanToolStripMenuItem";
-			this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(168, 34);
+			this.selectPlanToolStripMenuItem.Size = new System.Drawing.Size(316, 34);
 			this.selectPlanToolStripMenuItem.Text = "Select";
-			// 
-			// toolsToolStripMenuItem
-			// 
-			this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.reloadToolStripMenuItem,
-            this.killToolStripMenuItem1,
-            this.powerToolStripMenuItem1,
-            this.exitToolStripMenuItem});
-			this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
-			this.toolsToolStripMenuItem.Size = new System.Drawing.Size(69, 29);
-			this.toolsToolStripMenuItem.Text = "Tools";
-			// 
-			// reloadToolStripMenuItem
-			// 
-			this.reloadToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.reloadSharedConfigToolStripMenuItem});
-			this.reloadToolStripMenuItem.Name = "reloadToolStripMenuItem";
-			this.reloadToolStripMenuItem.Size = new System.Drawing.Size(251, 34);
-			this.reloadToolStripMenuItem.Text = "Reload";
-			// 
-			// reloadSharedConfigToolStripMenuItem
-			// 
-			this.reloadSharedConfigToolStripMenuItem.Name = "reloadSharedConfigToolStripMenuItem";
-			this.reloadSharedConfigToolStripMenuItem.Size = new System.Drawing.Size(227, 34);
-			this.reloadSharedConfigToolStripMenuItem.Text = "Shared Config";
-			this.reloadSharedConfigToolStripMenuItem.Click += new System.EventHandler(this.reloadSharedConfigToolStripMenuItem_Click);
-			// 
-			// killToolStripMenuItem1
-			// 
-			this.killToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.killAllRunningAppsToolStripMenuItem});
-			this.killToolStripMenuItem1.Name = "killToolStripMenuItem1";
-			this.killToolStripMenuItem1.Size = new System.Drawing.Size(251, 34);
-			this.killToolStripMenuItem1.Text = "Kill";
-			// 
-			// killAllRunningAppsToolStripMenuItem
-			// 
-			this.killAllRunningAppsToolStripMenuItem.Name = "killAllRunningAppsToolStripMenuItem";
-			this.killAllRunningAppsToolStripMenuItem.Size = new System.Drawing.Size(252, 34);
-			this.killAllRunningAppsToolStripMenuItem.Text = "All Running Apps";
-			this.killAllRunningAppsToolStripMenuItem.Click += new System.EventHandler(this.killAllRunningAppsToolStripMenuItem_Click);
-			// 
-			// powerToolStripMenuItem1
-			// 
-			this.powerToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.rebootAllToolStripMenuItem1,
-            this.shutdownAllToolStripMenuItem1});
-			this.powerToolStripMenuItem1.Name = "powerToolStripMenuItem1";
-			this.powerToolStripMenuItem1.Size = new System.Drawing.Size(251, 34);
-			this.powerToolStripMenuItem1.Text = "Power";
-			// 
-			// rebootAllToolStripMenuItem1
-			// 
-			this.rebootAllToolStripMenuItem1.Name = "rebootAllToolStripMenuItem1";
-			this.rebootAllToolStripMenuItem1.Size = new System.Drawing.Size(220, 34);
-			this.rebootAllToolStripMenuItem1.Text = "Reboot All";
-			this.rebootAllToolStripMenuItem1.Click += new System.EventHandler(this.rebootAllToolStripMenuItem1_Click);
-			// 
-			// shutdownAllToolStripMenuItem1
-			// 
-			this.shutdownAllToolStripMenuItem1.Name = "shutdownAllToolStripMenuItem1";
-			this.shutdownAllToolStripMenuItem1.Size = new System.Drawing.Size(220, 34);
-			this.shutdownAllToolStripMenuItem1.Text = "Shutdown All";
-			this.shutdownAllToolStripMenuItem1.Click += new System.EventHandler(this.shutdownAllToolStripMenuItem1_Click);
-			// 
-			// exitToolStripMenuItem
-			// 
-			this.exitToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.exitAndKillAppsToolStripMenuItem,
-            this.exitAndLeaveAppsRunningToolStripMenuItem});
-			this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-			this.exitToolStripMenuItem.Size = new System.Drawing.Size(251, 34);
-			this.exitToolStripMenuItem.Text = "Terminate Agents";
-			// 
-			// exitAndKillAppsToolStripMenuItem
-			// 
-			this.exitAndKillAppsToolStripMenuItem.Name = "exitAndKillAppsToolStripMenuItem";
-			this.exitAndKillAppsToolStripMenuItem.Size = new System.Drawing.Size(268, 34);
-			this.exitAndKillAppsToolStripMenuItem.Text = "Kill apps";
-			this.exitAndKillAppsToolStripMenuItem.Click += new System.EventHandler(this.terminateAndKillAppsToolStripMenuItem_Click);
-			// 
-			// exitAndLeaveAppsRunningToolStripMenuItem
-			// 
-			this.exitAndLeaveAppsRunningToolStripMenuItem.Name = "exitAndLeaveAppsRunningToolStripMenuItem";
-			this.exitAndLeaveAppsRunningToolStripMenuItem.Size = new System.Drawing.Size(268, 34);
-			this.exitAndLeaveAppsRunningToolStripMenuItem.Text = "Leave apps running";
-			this.exitAndLeaveAppsRunningToolStripMenuItem.Click += new System.EventHandler(this.terminateAndLeaveAppsRunningToolStripMenuItem_Click);
-			// 
-			// helpToolStripMenuItem
-			// 
-			this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.aboutToolStripMenuItem,
-            this.onlineDocumentationToolStripMenuItem});
-			this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-			this.helpToolStripMenuItem.Size = new System.Drawing.Size(65, 29);
-			this.helpToolStripMenuItem.Text = "Help";
-			// 
-			// aboutToolStripMenuItem
-			// 
-			this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-			this.aboutToolStripMenuItem.Size = new System.Drawing.Size(293, 34);
-			this.aboutToolStripMenuItem.Text = "&About";
-			this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutMenuItem_Click);
-			// 
-			// onlineDocumentationToolStripMenuItem
-			// 
-			this.onlineDocumentationToolStripMenuItem.Name = "onlineDocumentationToolStripMenuItem";
-			this.onlineDocumentationToolStripMenuItem.Size = new System.Drawing.Size(293, 34);
-			this.onlineDocumentationToolStripMenuItem.Text = "Online Documentation";
-			this.onlineDocumentationToolStripMenuItem.Click += new System.EventHandler(this.onlineDocumentationToolStripMenuItem_Click);
-			// 
-			// reinstallToolStripMenuItem
-			// 
-			this.reinstallToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.reinstallManuallyToolStripMenuItem});
-			this.reinstallToolStripMenuItem.Name = "reinstallToolStripMenuItem";
-			this.reinstallToolStripMenuItem.Size = new System.Drawing.Size(293, 40);
-			this.reinstallToolStripMenuItem.Text = "Reinstall Agents";
-			// 
-			// reinstallManuallyToolStripMenuItem
-			// 
-			this.reinstallManuallyToolStripMenuItem.Name = "reinstallManuallyToolStripMenuItem";
-			this.reinstallManuallyToolStripMenuItem.Size = new System.Drawing.Size(197, 34);
-			this.reinstallManuallyToolStripMenuItem.Text = "Manually...";
-			this.reinstallManuallyToolStripMenuItem.Click += new System.EventHandler(this.reinstallManuallyToolStripMenuItem_Click);
 			// 
 			// tmrTick
 			// 
@@ -341,7 +198,6 @@
 			this.tabControl1.Controls.Add(this.tabPagePlans);
 			this.tabControl1.Controls.Add(this.tabPageScripts);
 			this.tabControl1.Controls.Add(this.tabPageMachs);
-			//this.tabControl1.Controls.Add(this.tabPageFiles);
 			this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.tabControl1.Location = new System.Drawing.Point(0, 35);
 			this.tabControl1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -777,8 +633,6 @@
 		private System.Windows.Forms.ToolStripMenuItem restartPlanToolStripMenuItem;
 		private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
 		private System.Windows.Forms.ToolStripMenuItem selectPlanToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
 		private System.Windows.Forms.Timer tmrTick;
 		private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
 		private System.Windows.Forms.ToolStripMenuItem stopPlanToolStripMenuItem;
@@ -809,20 +663,6 @@
 		private Zuby.ADGV.AdvancedDataGridView gridScripts;
 		private Zuby.ADGV.AdvancedDataGridView gridMachs;
 		private Zuby.ADGV.AdvancedDataGridView gridFiles;
-		private System.Windows.Forms.ToolStripMenuItem onlineDocumentationToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem reloadToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem reloadSharedConfigToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem exitAndKillAppsToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem exitAndLeaveAppsRunningToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem killToolStripMenuItem1;
-		private System.Windows.Forms.ToolStripMenuItem killAllRunningAppsToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem powerToolStripMenuItem1;
-		private System.Windows.Forms.ToolStripMenuItem rebootAllToolStripMenuItem1;
-		private System.Windows.Forms.ToolStripMenuItem shutdownAllToolStripMenuItem1;
-		private System.Windows.Forms.ToolStripMenuItem reinstallToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem reinstallManuallyToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem1;
 	}

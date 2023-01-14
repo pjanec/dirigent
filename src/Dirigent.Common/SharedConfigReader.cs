@@ -42,8 +42,8 @@ namespace Dirigent
 			LoadUnboundFiles( _fdReg );
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
-			_cfg.SinglScripts = LoadSingleInstScripts(_root);
-			_cfg.ToolMenuItems = LoadToolMenuItems(_root);
+			_cfg.SingleInstScripts = LoadSingleInstScripts(_root);
+			_cfg.MainMenuItems = LoadMainMenuItems(_root);
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg, string? machineId, string? appId )
@@ -754,13 +754,13 @@ namespace Dirigent
 			return null;
 		}
 
-		static List<AssocMenuItemDef> LoadToolMenuItems( XElement root )
+		static List<AssocMenuItemDef> LoadMainMenuItems( XElement root )
 		{
 			var res = new List<AssocMenuItemDef>();
 
-			foreach( var toolMenuRoot in root.Elements("ToolsMenu") )
+			foreach( var menuRoot in root.Elements("MainMenu") )
 			{
-				foreach( var elem in toolMenuRoot.Elements() )
+				foreach( var elem in menuRoot.Elements() )
 				{
 					var action = LoadToolAction( elem );
 					if( action is not null )

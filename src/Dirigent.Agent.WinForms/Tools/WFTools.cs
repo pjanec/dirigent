@@ -102,9 +102,14 @@ namespace Dirigent.Gui.WinForms
 
 		// Convert a tree of menu items into a tree of tool strips.
 		// Note: if a menu item is both a leaf (having action) and a parent (having submenus), we create 2 separate strips
-		public static ToolStripMenuItem[] MenuItemToToolStrips( MenuTreeNode menuItem )
+		public static ToolStripItem[] MenuItemToToolStrips( MenuTreeNode menuItem )
 		{
-			var res = new List<ToolStripMenuItem>();
+			var res = new List<ToolStripItem>();
+
+			if( menuItem.Title.StartsWith( "---" ) )
+			{
+				return new ToolStripSeparator[] { new ToolStripSeparator() };
+			}
 
 			if( menuItem.Action != null )
 			{
@@ -136,9 +141,9 @@ namespace Dirigent.Gui.WinForms
 		}
 		
 
-		public static List<ToolStripMenuItem> MenuItemsToToolStrips( List<MenuTreeNode> menuItems )
+		public static List<ToolStripItem> MenuItemsToToolStrips( List<MenuTreeNode> menuItems )
 		{
-			var res = new List<ToolStripMenuItem>();
+			var res = new List<ToolStripItem>();
 			foreach( var item in menuItems )
 			{
 				res.AddRange( MenuItemToToolStrips( item ) );

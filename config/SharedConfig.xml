@@ -166,26 +166,26 @@
     <Script Id="3204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #4" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
     <Script Id="4204745E-8867-4168-AE91-81B7D3449A1B" Title="DemoX - not found" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/UnexistingScriptFile.cs" Args="řidič" Groups="Examples;;Common/Demo"/>
 
-    <ToolsMenu>
+    <MainMenu>
         <!-- script invoked on defined machine -->
-        <Script Title="Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>
+        <Script Title="Tools/Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>
         
         <!-- tool invoked on the machine where the menu was clicked unless non-empty HostId is specified. -->
-    	<Tool Title="VNC to self" Name="VncViewer" Args="%MACHINE_IP%" HostId="m1" StartupDir="C:\TEMP" />
-    	<Tool Title="VNC to self/sub 1" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptRed.png" />
-    	<Tool Title="VNC to self/sub 2" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptGreen.png"/>
-    	<Tool Title="sample batch script" Name="BatchScript" Args="test1.bat" StartupDir="C:\TEMP" HostId="m1" />
+    	<Tool Title="Tools/VNC to self" Name="VncViewer" Args="%MACHINE_IP%" HostId="m1" StartupDir="C:\TEMP" />
+    	<Tool Title="Tools/VNC to self/sub 1" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptRed.png" />
+    	<Tool Title="Tools/VNC to self/sub 2" Name="VncViewer" Args="%MACHINE_IP%" Icon="Icons/ScriptGreen.png"/>
+    	<Tool Title="Tools/sample batch script" Name="BatchScript" Args="test1.bat" StartupDir="C:\TEMP" HostId="m1" />
 
         <!-- tool invoked on the machine where the menu was clicked, started in context of given file -->
-    	<FileRef Title="Shared Config" Id="DirigentSharedConfig">
+    	<FileRef Title="File/Shared Config" Id="DirigentSharedConfig">
             <Tool Title="Edit in Notepad++" Icon="Icons\Notepad++.png" Name="Notepad++" Args="%FILE_PATH%"/>
     	</FileRef>
 
-    	<FilePackage Title="All Logs Package">
+    	<FilePackage Title="File/All Logs Package">
     	    <FileRef Id="newest*"/>
     	</FilePackage>
 
-    </ToolsMenu>
+    </MainMenu>
 
     
     <AppTemplate Name="apps.notepad"

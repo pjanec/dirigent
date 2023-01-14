@@ -1,3 +1,7 @@
+[TODO] Add "Power > Reboot" to machine context menu.
+
+[TODO] Add "Power > Wake On Lan" to machine context menu. Add MAC="2C:D8:5D:CE:F0:B8" attribute to `<Machine/>` section. Show WakeOnLAN menu only if MAC is defined tor the machine. https://benniroth.com/blog/2021-6-21-csharp-wake-over-lan/
+
 [DONE] Tool action specified in the ToolsMenu section of the SharedConfig to allow running on different machine than the default local one. Via HostId attrib.
 
 [DONE] Tool actions can override the StartupDir used for starting the tool. Via StartipDir attribute.

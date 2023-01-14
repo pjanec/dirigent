@@ -737,14 +737,14 @@ namespace Dirigent
 
 
 			// import predefined scripts
-			_reflScripts.SetScriptDefs( sharedConfig.SinglScripts );
-			_singlScripts.SetAll( sharedConfig.SinglScripts );
+			_reflScripts.SetScriptDefs( sharedConfig.SingleInstScripts );
+			_singlScripts.SetAll( sharedConfig.SingleInstScripts );
 
 			_files.SetVfsNodes( sharedConfig.VfsNodes );
 			_files.SetMachines( sharedConfig.Machines );
 
 			_machineDefs = sharedConfig.Machines;
-			_menuItemDefs = sharedConfig.ToolMenuItems;
+			_menuItemDefs = sharedConfig.MainMenuItems;
 
 			// reset
 			var m = new Net.ResetMessage();

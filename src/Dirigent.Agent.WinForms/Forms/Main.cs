@@ -70,8 +70,8 @@ namespace Dirigent.Gui.WinForms
 			ShowJustAppFromCurrentPlan = Tools.BoolFromString( Common.Properties.Settings.Default.ShowJustAppsFromCurrentPlan );
 
 
-			UpdateToolsMenu(); // initial menus
-			_core.ReflStates.OnActionsReceived += () => UpdateToolsMenu(); // when Action arrived from master, we rebuild the menu
+			UpdateMainMenu(); // initial menus
+			_core.ReflStates.OnActionsReceived += () => UpdateMainMenu(); // when Action arrived from master, we rebuild the menu
 
 
 			_tabApps = new MainAppsTab( this, _core, gridApps );
@@ -664,23 +664,27 @@ namespace Dirigent.Gui.WinForms
 		}
 
 
-		void UpdateToolsMenu()
+		void UpdateMainMenu()
 		{
 			var menuItems = new List<MenuTreeNode>();
-			
-			// hardcoded items
-			var orig = new List<MenuTreeNode>()
-			{
-				new MenuTreeNode( "Reload/Shared Config", action: () => this.reloadSharedConfigToolStripMenuItem_Click( null, null ) ),
-				new MenuTreeNode( "Kill/All running apps", action: () => this.killAllRunningAppsToolStripMenuItem_Click( null, null ) ),
-				new MenuTreeNode( "Power/Reboot All", action: () => this.rebootAllToolStripMenuItem1_Click( null, null ) ),
-				new MenuTreeNode( "Power/Shutdown All", action: () => this.shutdownAllToolStripMenuItem1_Click( null, null ) ),
-			};
 
-			foreach( var item in orig )
-			{
-				menuItems.Add( MenuTreeNode.MakeTreeFromTitle( item ) );
-			}
+			// make sure File is the leftmost menu
+			menuItems.Add( new MenuTreeNode( "File" ) );
+
+			menuItems.Add( new MenuTreeNode( "Plan/Select", action: () => this.selectPlanMenuItem_Click( null, null ) ) );
+
+			//menuItems.Add( new MenuTreeNode( "Plan/Start", action: () => this.startPlanMenuItem_Click( null, null ) ) );
+			//menuItems.Add( new MenuTreeNode( "Plan/Stop", action: () => this.stopPlanMenuItem_Click( null, null ) ) );
+			//menuItems.Add( new MenuTreeNode( "Plan/Restart", action: () => this.restartPlanMenuItem_Click( null, null ) ) );
+			//menuItems.Add( new MenuTreeNode( "Plan/Kill", action: () => this.killPlanMenuItem_Click( null, null ) ) );
+
+			menuItems.Add( new MenuTreeNode( "Tools/Reload/Shared Config", action: () => this.reloadSharedConfigToolStripMenuItem_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Tools/Kill/All running apps", action: () => this.killAllRunningAppsToolStripMenuItem_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Tools/Kill/Agents on all computers", action: () => this.terminateAndKillAppsToolStripMenuItem_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Tools/Power/Reboot All", action: () => this.rebootAllToolStripMenuItem1_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Tools/Power/Shutdown All", action: () => this.shutdownAllToolStripMenuItem1_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Tools/---FIRST" ) );
+
 
 			// user-defined items
 			foreach ( var item in _core.ReflStates.MenuItems )
@@ -707,15 +711,24 @@ namespace Dirigent.Gui.WinForms
 				menuItems.Add( menuItem );
 			}
 
+			// closure of the Files menu (before some used define menu items could be added)
+			menuItems.Add( new MenuTreeNode( "File/---LAST1" ) );
+			menuItems.Add( new MenuTreeNode( "File/Exit", action: () => this.exitToolStripMenuItem1_Click( null, null ) ) );
+
+			// hardcoded help menu items should go last as the rightmost item (unless some user-defined Help menu items are specified)
+			menuItems.Add( new MenuTreeNode( "Help/About", action: () => this.aboutMenuItem_Click( null, null ) ) );
+			menuItems.Add( new MenuTreeNode( "Help/Online Documentation", action: () => this.onlineDocumentationToolStripMenuItem_Click( null, null ) ) );
+
+
 			// merge menus into a single tree
 			var combinedMenuTree = MenuTreeNode.CombineMenuItems( menuItems ); // just the children matter
 
 			// convert to toolstrips
-			var toolStripsMenuItems = WFT.MenuItemsToToolStrips( combinedMenuTree.Children );
+			var toolStrips = WFT.MenuItemsToToolStrips( combinedMenuTree.Children );
 
-			// replace the Tools menu with a new one
-			this.toolsToolStripMenuItem.DropDownItems.Clear();
-			this.toolsToolStripMenuItem.DropDownItems.AddRange( toolStripsMenuItems.ToArray() );
+			// replace the main menu with a new one
+			this.menuMain.Items.Clear();
+			this.menuMain.Items.AddRange( toolStrips.ToArray() );
 
 		}
 
