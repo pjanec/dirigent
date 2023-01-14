@@ -34,9 +34,6 @@ namespace Dirigent
 	{
 		//[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before terminating
-
-		//[MessagePack.Key( 2 )]
-		public string MachineId; // where to kill the apps; null or empty means everywhere
 	}
 
 	public enum EDownloadMode

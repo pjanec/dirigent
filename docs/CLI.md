@@ -302,18 +302,18 @@ This does not affect the apps that are already running. Should the app definitio
 
 ### Shutdown
 
-Reboots or shuts down all computers where the dirigent agent is running
+Reboots or shuts down all computers where the dirigent agent is running or just one specified machine.
 
- `Shutdown mode=PowerOff|Reboot`
+ `Shutdown mode=PowerOff|Reboot` [machineId=<machineId>]`
 
 ##### Examples
 
 	Shutdown mode=PowerOff
-	Shutdown mode=Reboot
+	Shutdown mode=Reboot machineId=m1
 
 ### Terminate
 
-Terminates Dirigent agents on the computers, optionally killing all the apps managed by the Dirigent. To be used before reinstalling the dirigent app.
+Terminates Dirigent agents on all the computers (or just on specified machine), optionally killing all the apps managed by the Dirigent. To be used before reinstalling the dirigent app.
 
  `Terminate [killApps=0|1] [machineId=<machineId>]`
 

@@ -232,13 +232,19 @@ namespace Dirigent
 
 				case Net.ShutdownMessage m:
 				{
-					Shutdown( m.Args );
+					if( string.IsNullOrEmpty( m.MachineId ) || m.MachineId == _clientIdent.Name )
+					{
+						Shutdown( m.Args );
+					}
 					break;
 				}
 
 				case Net.TerminateMessage m:
 				{
-					Terminate( m.Args );
+					if( string.IsNullOrEmpty( m.MachineId ) || m.MachineId == _clientIdent.Name )
+					{
+						Terminate( m.Args );
+					}
 					break;
 				}
 
@@ -337,10 +343,7 @@ namespace Dirigent
 
         public void Terminate( TerminateArgs args )
         {
-			if( !String.IsNullOrEmpty( args.MachineId ) && _clientIdent.Sender != args.MachineId )
-				return;
-
-	        log.DebugFormat("Terminate killApps={0} machineId={1}", args.KillApps, args.MachineId);
+	        log.DebugFormat("Terminate killApps={0}", args.KillApps );
 
 			if( args.KillApps )
 			{

@@ -441,13 +441,13 @@ namespace Dirigent
 
 				case TerminateMessage m:
 				{
-					Terminate( m.Sender, m.Args );
+					Terminate( m.Sender, m.Args, m.MachineId );
 					break;
 				}
 
 				case ShutdownMessage m:
 				{
-					Shutdown( m.Sender, m.Args );
+					Shutdown( m.Sender, m.Args, m.MachineId );
 					break;
 				}
 
@@ -958,15 +958,15 @@ namespace Dirigent
 			InitFromConfig( sharedConfig );
 		}
 
-		public void Terminate( string requestorId, TerminateArgs args )
+		public void Terminate( string requestorId, TerminateArgs args, string? machineId )
 		{
-			var msg = new Net.TerminateMessage( requestorId, args );
+			var msg = new Net.TerminateMessage( requestorId, args, machineId );
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 		}
 
-		public void Shutdown( string requestorId, ShutdownArgs args )
+		public void Shutdown( string requestorId, ShutdownArgs args, string? machineId )
 		{
-			var msg = new Net.ShutdownMessage( requestorId, args );
+			var msg = new Net.ShutdownMessage( requestorId, args, machineId );
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 		}
 

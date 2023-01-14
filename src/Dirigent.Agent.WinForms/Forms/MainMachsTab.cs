@@ -260,8 +260,41 @@ namespace Dirigent.Gui.WinForms
 				if( e.Button == MouseButtons.Right )
 				{
 					// build popup menu
-					var popup = new System.Windows.Forms.ContextMenuStrip( _form.Components );
+					var popup = new ContextMenuStrip( _form.Components );
 
+					{
+						var powerMenu = new ToolStripMenuItem( "Power" );
+						popup.Items.Add( powerMenu );
+
+						var rebootMenu = new ToolStripMenuItem( "Reboot" );
+						rebootMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
+						{
+							var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
+							Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+						});
+						powerMenu.DropDownItems.Add( rebootMenu );
+
+						var shutdownMenu = new ToolStripMenuItem( "Shut down" );
+						shutdownMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
+						{
+							var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
+							Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+						});
+						powerMenu.DropDownItems.Add( shutdownMenu );
+
+						var machDef = ReflStates.GetMachineDef( id );
+						if( machDef != null && !string.IsNullOrEmpty(machDef.MAC) )
+						{
+							var wakeUpMenu = new ToolStripMenuItem( "Wake Up" );
+							wakeUpMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
+							{
+								Tools.SendWakeOnLanMagicPacket( machDef.MAC );
+							} );
+							powerMenu.DropDownItems.Add( wakeUpMenu );
+						}
+					}
+
+					// File/Folder/Package menu items
 					{
 						if( isMachineId( id ) )
 						{
@@ -281,6 +314,7 @@ namespace Dirigent.Gui.WinForms
 						}
 					}
 
+					// tools menu items
 					{
 						if( isMachineId( id ) )
 						{

@@ -808,6 +808,7 @@ namespace Dirigent
 				index++;
 				var id = X.getStringAttr( p, "Name", "" );
 				var ip = X.getStringAttr( p, "IP", "" );
+				var MAC = X.getStringAttr( p, "MAC", "" );
 				var shares = LoadShares( p );
 
 				if ( string.IsNullOrEmpty(id) )
@@ -824,6 +825,7 @@ namespace Dirigent
 					{
 						Id = id,
 						IP = ip,
+						MAC = MAC,
 						FileShares = shares,
 						VfsNodes = vfsNodes,
 						Actions = LoadActions( p, id, null ),

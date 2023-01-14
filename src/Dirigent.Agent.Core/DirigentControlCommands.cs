@@ -358,7 +358,14 @@ namespace Dirigent.Commands
 				}
 			}
 
-			ctrl.Shutdown( _requestorId, argsStruct );
+			string valStr;
+			string machineId = "";
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
+			{
+				machineId = valStr;
+			}
+
+			ctrl.Shutdown( _requestorId, argsStruct, machineId );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -381,12 +388,13 @@ namespace Dirigent.Commands
 				if ( valStr == "1" ) argsStruct.KillApps = true;
 			}
 
+			string machineId = "";
 			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "machineId", out valStr ) )
 			{
-				argsStruct.MachineId = valStr;
+				machineId = valStr;
 			}
 
-			ctrl.Terminate( _requestorId, argsStruct );
+			ctrl.Terminate( _requestorId, argsStruct, machineId );
 			WriteResponse( "ACK" );
 		}
 	}

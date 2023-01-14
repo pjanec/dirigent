@@ -262,7 +262,7 @@
 
      </Machine>
 
-    <Machine Name="m2" IP="127.0.0.1">
+    <Machine Name="m2" IP="127.0.0.1" MAC="00-15-5D-00-0A-01">
         <Share Name="C" Path="C:\"/>
      </Machine>
 

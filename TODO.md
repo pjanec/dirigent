@@ -1,12 +1,12 @@
-[TODO] Add "Power > Reboot" to machine context menu.
+[DONE] Add "Power > Reboot" to machine context menu.
 
-[TODO] Add "Power > Wake On Lan" to machine context menu. Add MAC="2C:D8:5D:CE:F0:B8" attribute to `<Machine/>` section. Show WakeOnLAN menu only if MAC is defined tor the machine. https://benniroth.com/blog/2021-6-21-csharp-wake-over-lan/
+[DONE] Add "Power > Wake On Lan" to machine context menu. Add MAC="2C:D8:5D:CE:F0:B8" attribute to `<Machine/>` section. Show WakeOnLAN menu only if MAC is defined tor the machine. https://benniroth.com/blog/2021-6-21-csharp-wake-over-lan/
 
 [DONE] Tool action specified in the ToolsMenu section of the SharedConfig to allow running on different machine than the default local one. Via HostId attrib.
 
 [DONE] Tool actions can override the StartupDir used for starting the tool. Via StartipDir attribute.
 
-[IDEA] When Show Window is clicked, show a dialog that runs script on the remote machine grabbing all windows of selected process. Dialog shows the window titles and user can select what window to show/hide.
+[IDEA] When Show Window is clicked, show a dialog that runs script on the remote machine grabbing all windows of selected process. Dialog shows the window titles and user can select what window to show/hide. Maybe put then to app's Properties tab.
 
 [IDEA] Add "Show/Hide Desktop" to Machines context menu. 
 
@@ -18,7 +18,7 @@
 
 [IDEA] Implement some tools as standard part of the Dirigent, always available. 
 
-[TODO] In App Properties window show also the actual startup info used for starting the app last time. Read that via remote script, use WMI etc.; return AppDef, command line string, environment of the process...
+[TODO] In App Properties window show multiple tabs. One of them is the actual startup info used for starting the app last time. Read that via remote script, use WMI etc.; return AppDef, command line string, environment of the process...
 
 [IDEA] Add json viewer as one of internal tools? Or better use Notepad++?
 

@@ -412,7 +412,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Reboot all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
-				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args ) );
+				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, null ) );
 			}
 		}
 
@@ -421,7 +421,7 @@ namespace Dirigent.Gui.WinForms
 			if( MessageBox.Show( "Shut down all computers where Dirigent is running?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 			{
 				var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
-				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args ) );
+				Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, null ) );
 			}
 		}
 

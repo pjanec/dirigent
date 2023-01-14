@@ -29,6 +29,10 @@ namespace Dirigent
 		//[MessagePack.Key( 2 )]
 		public string IP = String.Empty;
 
+		// format: "00:00:00:00:00:00"
+		// empty = not specified
+		public string MAC = String.Empty;
+
 		/// <summary>
 		/// File shares the machine defines; to be used for remote file access
 		/// </summary>
@@ -43,6 +47,8 @@ namespace Dirigent
 
 		public bool ThisEquals( MachineDef other ) =>
 				this.Id == other.Id &&
+				this.IP == other.IP &&
+				this.MAC == other.MAC &&
 				this.FileShares.SequenceEqual( other.FileShares ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				this.Actions.SequenceEqual( other.Actions ) &&

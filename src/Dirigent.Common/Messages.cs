@@ -558,17 +558,19 @@ namespace Dirigent.Net
 	{
 		//[MessagePack.Key( 1 )]
 		public TerminateArgs Args;
+		public string? MachineId; // where to terminate
 
 		public TerminateMessage() {}
-		public TerminateMessage( string requestorId, TerminateArgs args )
+		public TerminateMessage( string requestorId, TerminateArgs args, string? machineId = null )
 		{
 			this.Sender = requestorId;
 			this.Args = args;
+			this.MachineId = machineId;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "Terminate killApps={0} machineId={1}", Args.KillApps, Args.MachineId );
+			return string.Format( "Terminate killApps={0} machineId={1}", Args.KillApps, MachineId );
 		}
 
 	}
@@ -582,16 +584,19 @@ namespace Dirigent.Net
 		//[MessagePack.Key( 1 )]
 		public ShutdownArgs Args;
 
+		public string? MachineId; // where to kill the apps; null or empty means everywhere
+
 		public ShutdownMessage() {}
-		public ShutdownMessage( string requestorId, ShutdownArgs args )
+		public ShutdownMessage( string requestorId, ShutdownArgs args, string? machineId )
 		{
 			this.Sender = requestorId;
 			this.Args = args;
+			this.MachineId = machineId;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "Shutdown mode={0}", Args.Mode.ToString() );
+			return string.Format( "Shutdown mode={0}, machine={1}", Args.Mode.ToString(), MachineId );
 		}
 
 	}
