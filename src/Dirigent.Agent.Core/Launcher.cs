@@ -28,8 +28,11 @@ namespace Dirigent
 		bool _dying = false;	// already killed but still in the system
 		int _exitCode = 0; // cached exit code from last run
 
-		Dictionary<string, string> _internalVars;
-		Dictionary<string, string> _extraVars;
+		// not exported to the process environment, usable for used for expansion of various paths and cmd line arguments
+		Dictionary<string, string> _expansionVars;
+
+		// exported to the process environment, usable for used for expansion of various paths and cmd line arguments
+		Dictionary<string, string> _publishedVars;
 
 		SoftKiller _softKiller;
 
@@ -66,21 +69,22 @@ namespace Dirigent
 			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
 
-			_extraVars = extraVars ?? new();
+			_publishedVars = extraVars ?? new();
 
 			// set environment variables here so we can use them when expanding process path/args/cwd
 			// KEEP IN SYNC WITH FileRegistry.cs!
-			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_PLAN", _planName );
-			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
-			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_APPID", _appDef.Id.AppId );
-			Tools.AddOrUpdateVar( _extraVars, "DIRIGENT_MASTER_IP", _masterIP );
-			Tools.AddOrUpdateVar( _extraVars, "MACHINE_ID", _appDef.Id.MachineId );
-			// note: we are missing MACHINE_IP here - which one of our network interfaces to use? Not clear. Makes sense only for remote machines.
-			Tools.AddOrUpdateVar( _extraVars, "APP_ID", _appDef.Id.AppId );
-			Tools.AddOrUpdateVar( _extraVars, "APP_BINDIR", Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet ));
-			Tools.AddOrUpdateVar( _extraVars, "APP_STARTUPDIR", Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ));
+			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_PLAN", _planName );
+			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
+			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_APPID", _appDef.Id.AppId );
+			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_MASTER_IP", _masterIP );
 
-			this._internalVars = BuildVars( appDef, _sharedContext.InternalVars, _extraVars );
+			this._expansionVars = BuildVars( appDef, _sharedContext.ExpansionVars, _publishedVars );
+
+			Tools.AddOrUpdateVar( _expansionVars, "MACHINE_ID", _appDef.Id.MachineId );
+			// note: we are missing MACHINE_IP here - which one of our network interfaces to use? Not clear. Makes sense only for remote machines.
+			Tools.AddOrUpdateVar( _expansionVars, "APP_ID", _appDef.Id.AppId );
+			Tools.AddOrUpdateVar( _expansionVars, "APP_BINDIR", Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet ));
+			Tools.AddOrUpdateVar( _expansionVars, "APP_STARTUPDIR", Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ));
 
 			//_cmdRepo = new CommandRepository( ctrl );
 			//DirigentCommandRegistrator.Register( _cmdRepo );
@@ -154,7 +158,7 @@ namespace Dirigent
 
 		string ExpandVars( String str )
 		{
-			return Tools.ExpandEnvAndInternalVars( str, _internalVars );
+			return Tools.ExpandEnvAndInternalVars( str, _expansionVars );
 		}
 
 		string BuildAbsolutePath( string anyPath )
@@ -420,7 +424,7 @@ namespace Dirigent
 				psi.EnvironmentVariables[name] = prefix + ";" + psi.EnvironmentVariables[name];
 			}
 
-			foreach( var x in _extraVars )
+			foreach( var x in _publishedVars )
 			{
 				var name = x.Key;
 				var value = ExpandVars( x.Value );

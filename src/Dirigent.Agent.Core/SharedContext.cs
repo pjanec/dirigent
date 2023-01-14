@@ -14,7 +14,7 @@ namespace Dirigent
 		string RootForRelativePaths,
 
 		///<summary>Variables not published to started process environment but still usable for expansion within exe file name, cmd line args, startup dirs etc.</summary>
-		Dictionary<string, string> InternalVars,
+		Dictionary<string, string> ExpansionVars,
 
 		///<summary>Factory for one type af app watchers</summary>
 		AppInitializedDetectorFactory AppInitializedDetectorFactory,
