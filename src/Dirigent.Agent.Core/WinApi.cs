@@ -251,11 +251,13 @@ namespace Dirigent
         public static uint MF_BYPOSITION = 0x400;
         public static uint MF_REMOVE = 0x1000;
         public static int GWL_STYLE = -16;
+        public static int GWL_EXSTYLE = -20;
         public static int WS_CHILD = 0x40000000; //child window
         public static int WS_BORDER = 0x00800000; //window with border
         public static int WS_DLGFRAME = 0x00400000; //window with double border but no title
         public static int WS_CAPTION = WS_BORDER | WS_DLGFRAME; //window with a title bar 
         public static int WS_SYSMENU = 0x00080000; //window menu 
+        public static int WS_DISABLED = 0x8000000;
 
         //Sets window attributes
         [DllImport("USER32.DLL")]
@@ -263,7 +265,7 @@ namespace Dirigent
 
         //Gets window attributes
         [DllImport("USER32.DLL")]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        public static extern long GetWindowLong(IntPtr hWnd, int nIndex);
 
         public const int SW_HIDE = 0; // Hides the window and activates another window.
         public const int SW_SHOWNORMAL = 1; // Activates and displays a window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when displaying the window for the first time.

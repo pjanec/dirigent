@@ -1000,23 +1000,23 @@ namespace Dirigent.Net
 	//[MessagePack.MessagePackObject]
 	public class SetWindowStyleMessage : Message
 	{
-		// if empty, the plan is applied to all the apps from the plan
-		//[MessagePack.Key( 1 )]
 		public AppIdTuple AppIdTuple;
 
-		//[MessagePack.Key( 2 )]
+		public long Handle; // if 0, app's main window will be used
+
 		public EWindowStyle WindowStyle = EWindowStyle.NotSet;
 
 		public SetWindowStyleMessage() { }
-		public SetWindowStyleMessage( AppIdTuple appIdTuple, EWindowStyle windowStyle )
+		public SetWindowStyleMessage( AppIdTuple appIdTuple, EWindowStyle windowStyle, long handle = 0 )
 		{
 			this.AppIdTuple = appIdTuple;
 			this.WindowStyle = windowStyle;
+			this.Handle = handle;
 		}
 
 		public override string ToString()
 		{
-			return string.Format( "SeWindowStyle of {0} to {1}", AppIdTuple, WindowStyle );
+			return string.Format( "SeWindowStyle of {0} to {1} (handle {2})", AppIdTuple, WindowStyle, Handle );
 		}
 
 	}

@@ -18,37 +18,19 @@ namespace Dirigent
 
 		string _scriptRootFolder;
 
+		Dictionary<string, Func<Script>> _scriptCreators = new Dictionary<string, Func<Script>>(StringComparer.OrdinalIgnoreCase);
+
 		public ScriptFactory( string scriptRootFolder )
 		{
 			_scriptRootFolder = scriptRootFolder;
+			AddBuiltIns();
 		}
 
-		//private static string? GetScriptClassName( string[] scriptLines )
-		//{
-		//	// get class name as the first class derived from Script
+		public void AddScript( string scriptName, Func<Script> scriptCreator )
+		{
+			_scriptCreators.Add( scriptName, scriptCreator );
+		}
 
-		//	// catches something like:
-		//	//    public class MyClass : Script
-		//	var regex = new Regex( @"\s*(?:(?:public\s+)|(?:static\s+))*class\s+([a-zA-Z_0-9]+)\s*\:\s*([a-zA-Z_0-9]+)");
-
-		//	foreach( var line in scriptLines )
-		//	{
-		//		Match match = regex.Match(line);
-  //              if( match.Success )
-  //              {
-  //                  string className = match.Groups[1].Value;
-		//			string baseClassName = match.Groups[2].Value;
-
-		//			if( baseClassName == "Script" )
-		//			{
-		//				return className;
-		//			}
-		//		}
-		//	}
-		//	return null;
-
-		//}
-		
 		void SetupScript( Script script, string title, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
 		{
 			script.Dirig = ctrl;
@@ -60,12 +42,6 @@ namespace Dirigent
 
 		public T CreateFromLines<T>( string title, string[] codeLines, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T: Script
 		{
-			//string? scriptClassName = GetScriptClassName( codeLines );
-			//if( string.IsNullOrEmpty( scriptClassName ) )
-			//{
-			//	throw new Exception($"Script does not contain a class derived from Script (class MyClass : Script). {scriptOrigin}");
-			//}
-
 			IScript scriptIntf = CSScriptLib.CSScript.Evaluator
 								.ReferenceAssemblyByName("System")
 								.ReferenceAssemblyByName("log4net")
@@ -107,20 +83,13 @@ namespace Dirigent
 			return script;
 		}
 
-		Script? TryBuiltIns( string scriptName )
+		void AddBuiltIns()
 		{
-			if( scriptName == "BuiltIns/DemoScript1.cs" )
-				return new DemoScript1();
-			if(string.Equals( scriptName, Scripts.BuiltIn.ResolveVfsPath._Name, StringComparison.InvariantCultureIgnoreCase ))
-				return new Scripts.BuiltIn.ResolveVfsPath();
-			if( string.Equals( scriptName, Scripts.BuiltIn.DownloadZipped._Name, StringComparison.InvariantCultureIgnoreCase ))
-				return new Scripts.BuiltIn.DownloadZipped();
-			if(string.Equals( scriptName, Scripts.BuiltIn.DownloadZippedSlave._Name, StringComparison.InvariantCultureIgnoreCase ))
-				return new Scripts.BuiltIn.DownloadZippedSlave();
-			if(string.Equals( scriptName, Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, StringComparison.InvariantCultureIgnoreCase ))
-				return new Scripts.BuiltIn.BrowseInDblCmdVirtPanel();
-
-			return null;				
+			AddScript( "BuiltIns/DemoScript1.cs", () => new DemoScript1() );
+			AddScript( Scripts.BuiltIn.ResolveVfsPath._Name, () => new Scripts.BuiltIn.ResolveVfsPath() );
+			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
+			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
+			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );
 		}
 
 		/// <summary>
@@ -138,7 +107,12 @@ namespace Dirigent
 		/// <exception cref="Exception"></exception>
 		public T Create<T>( Guid taskInstance, string title, string scriptName, string? scriptRootFolder, string? scriptCode, byte[]? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
 		{
-			T? script = TryBuiltIns( scriptName ) as T;
+			T? script = null;
+			if( _scriptCreators.TryGetValue( scriptName, out var scriptCreator ) )
+			{
+				script = scriptCreator() as T;
+			}
+			
 			if( script != null )
 			{
 				SetupScript( script, title, args, ctrl, scriptName, requestorId );

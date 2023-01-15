@@ -188,8 +188,8 @@ namespace Dirigent
 			return instance;
 		}
 
-		// Runs script on given machine and return the task that completed when the script terminates
-		// Returns deserialized return value fromo the script
+		// Runs script on given machine and return the task that completes when the script terminates
+		// Taks result is the deserialized return value fromo the script
 		// This task throws
 		//   - ScriptException on failure
 		//   - TimeoutException on timeout

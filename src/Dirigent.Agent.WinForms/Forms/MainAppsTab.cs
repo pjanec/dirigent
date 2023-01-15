@@ -500,14 +500,14 @@ namespace Dirigent.Gui.WinForms
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal, 0 ) ) );
 						item.Enabled = isAccessible && st.Running;
 						popup.Items.Add( item );
 					}
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden ) ) );
+						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden, 0 ) ) );
 						item.Enabled = isAccessible && st.Running;
 						popup.Items.Add( item );
 					}
@@ -542,7 +542,7 @@ namespace Dirigent.Gui.WinForms
 						item.Click += ( s, a ) => WFT.GuardedOp( () => 
 						{
 							var appDef = Ctrl.GetAppDef( id );
-							var frm = new frmAppProperties( appDef );
+							var frm = new frmAppProperties( _core, appDef );
 							frm.Show();
 						});
 						item.Enabled = true;

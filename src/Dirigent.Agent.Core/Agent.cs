@@ -106,6 +106,8 @@ namespace Dirigent
 
 			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths );
 			
+			AddBuiltInScripts();
+			
 		}
 
 		protected override void Dispose(bool disposing)
@@ -138,6 +140,14 @@ namespace Dirigent
 			_toolsReg?.Tick();
 
 			PublishAgentState();
+		}
+
+		void AddBuiltInScripts()
+		{
+			#if Windows
+			ScriptFactory.AddScript( Scripts.BuiltIn.GetProcessInfo._Name, () => new Scripts.BuiltIn.GetProcessInfo() );
+			ScriptFactory.AddScript( Scripts.BuiltIn.GetProcessWindows._Name, () => new Scripts.BuiltIn.GetProcessWindows() );
+			#endif
 		}
 
 		void PublishAgentState()
@@ -251,7 +261,7 @@ namespace Dirigent
 				case Net.SetWindowStyleMessage m:
 				{
 					var la = _localApps.FindApp( m.AppIdTuple );
-					la.SetWindowStyle( m.WindowStyle );
+					la.SetWindowStyle( m.WindowStyle, m.Handle );
 					break;
 				}
 

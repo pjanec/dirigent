@@ -365,7 +365,7 @@ namespace Dirigent
             }
         }
 
-        public void SetWindowStyle( EWindowStyle style )
+        public void SetWindowStyle( EWindowStyle style, long handle=0 )
         {
 
             if( Launcher == null ||
@@ -378,8 +378,12 @@ namespace Dirigent
             }
 
             #if Windows
+            IntPtr hwnd = Launcher.Process.MainWindowHandle;
+            if( handle != 0 )
+                hwnd = new IntPtr(handle);
+                
             MainWindowStyler.SetWindowStyle(
-                Launcher.Process.MainWindowHandle,
+                hwnd,
                 style,
                 Launcher.Process.Id,
                 moveToFront: true // user requested to show the window, make sure it goes to the top
