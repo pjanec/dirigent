@@ -126,7 +126,9 @@ namespace Dirigent.Gui.WinForms
 					lbWindows.Items.Clear();
 					foreach (var w in _windows)
 					{
-						lbWindows.Items.Add( w.Title );
+						var title = w.Title;
+						if (string.IsNullOrEmpty( title )) title = "<no title>";
+						lbWindows.Items.Add( title );
 					}
 					if (lbWindows.Items.Count > 0)
 					{
@@ -267,6 +269,15 @@ namespace Dirigent.Gui.WinForms
 			if (tabControl1.SelectedTab == pageAppDef)
 			{
 				InitAppDefPage();
+			}
+		}
+
+		private void lbWindows_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			int index = this.lbWindows.IndexFromPoint(e.Location);
+			if (index != ListBox.NoMatches)
+			{
+				SetSelectedWinStyle( EWindowStyle.Normal );
 			}
 		}
 	}

@@ -17,7 +17,7 @@ namespace Dirigent
 
         // from http://stackoverflow.com/questions/2531828/how-to-enumerate-all-windows-belonging-to-a-particular-process-using-net/2584672#2584672
 
-        public delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
+        public delegate bool EnumWindowsProcDelegate(IntPtr hWnd, IntPtr lParam);
 
         static public IEnumerable<IntPtr> EnumerateProcessWindowHandles(int processId)
         {
@@ -115,9 +115,68 @@ namespace Dirigent
         }
 
 
+        // slower method traversing all windows and using longer timeout for getting titles
+        static public List<WinInfo> GetProcessWindows2( int processId )
+        {
+            // get all existing windows
+            var handles = new List<IntPtr>();
+            EnumWindows( 
+                (hWnd, lParam) =>
+			    {
+                    GetWindowThreadProcessId( hWnd, out var pid );
+					if (pid == processId)
+					{
+						handles.Add( hWnd );
+					}
+				    return true;
+			    },
+				IntPtr.Zero
+			);
+
+            // filter those belonging to our process
+			var list = new List<WinInfo>();
+            foreach( var handle in handles )
+            {
+				StringBuilder className = new StringBuilder( 1000 );
+				GetClassName( handle, className, 1000 );
+
+				// get window title
+				StringBuilder title = new StringBuilder( 1000 );
+				UIntPtr result;
+				if (SendMessageTimeout(
+					handle,
+					WM_GETTEXT,
+					title.Capacity,
+					title,
+					SendMessageTimeoutFlags.SMTO_NORMAL,
+					100, // timeout
+					out result
+				).ToInt32() > 0)
+				{
+					list.Add( new WinInfo() { Handle = handle, Title = title.ToString() } );
+				}
+				else
+				{
+					list.Add( new WinInfo() { Handle = handle, Title = $"<Couldn't get title; class='{className}'; handle=0x{handle.ToInt64().ToString( "X" )}>" } );
+				}
+			}
+            
+            return list;
+        }
+
+
+        [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
+        public static extern bool EnumWindows(EnumWindowsProcDelegate callback, IntPtr extraData);
+
+        [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
+        public static extern int GetWindowThreadProcessId( IntPtr handle, out int processId );
+
         [DllImport("user32.dll")]
-        static public extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn,
+        static public extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProcDelegate lpfn,
             IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName,int nMaxCount);
 
         public const uint WM_GETTEXT = 0x000D;
 

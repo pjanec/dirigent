@@ -102,7 +102,7 @@
 			this.btnWindowsMinimize.Location = new System.Drawing.Point(672, 71);
 			this.btnWindowsMinimize.Name = "btnWindowsMinimize";
 			this.btnWindowsMinimize.Size = new System.Drawing.Size(112, 39);
-			this.btnWindowsMinimize.TabIndex = 8;
+			this.btnWindowsMinimize.TabIndex = 5;
 			this.btnWindowsMinimize.Text = "Mi&nimize";
 			this.btnWindowsMinimize.UseVisualStyleBackColor = true;
 			this.btnWindowsMinimize.Click += new System.EventHandler(this.btnWindowsMinimize_Click);
@@ -113,7 +113,7 @@
 			this.btnWindowsMaximize.Location = new System.Drawing.Point(672, 132);
 			this.btnWindowsMaximize.Name = "btnWindowsMaximize";
 			this.btnWindowsMaximize.Size = new System.Drawing.Size(112, 39);
-			this.btnWindowsMaximize.TabIndex = 7;
+			this.btnWindowsMaximize.TabIndex = 6;
 			this.btnWindowsMaximize.Text = "Ma&ximize";
 			this.btnWindowsMaximize.UseVisualStyleBackColor = true;
 			this.btnWindowsMaximize.Click += new System.EventHandler(this.btnWindowsMaximize_Click);
@@ -124,7 +124,7 @@
 			this.btnWindowsRefresh.Location = new System.Drawing.Point(672, 331);
 			this.btnWindowsRefresh.Name = "btnWindowsRefresh";
 			this.btnWindowsRefresh.Size = new System.Drawing.Size(112, 39);
-			this.btnWindowsRefresh.TabIndex = 6;
+			this.btnWindowsRefresh.TabIndex = 8;
 			this.btnWindowsRefresh.Text = "&Refresh";
 			this.btnWindowsRefresh.UseVisualStyleBackColor = true;
 			this.btnWindowsRefresh.Click += new System.EventHandler(this.btnWindowsRefresh_Click);
@@ -135,7 +135,7 @@
 			this.btnWindowsHide.Location = new System.Drawing.Point(672, 193);
 			this.btnWindowsHide.Name = "btnWindowsHide";
 			this.btnWindowsHide.Size = new System.Drawing.Size(112, 39);
-			this.btnWindowsHide.TabIndex = 5;
+			this.btnWindowsHide.TabIndex = 7;
 			this.btnWindowsHide.Text = "&Hide";
 			this.btnWindowsHide.UseVisualStyleBackColor = true;
 			this.btnWindowsHide.Click += new System.EventHandler(this.btnWindowsHide_Click);
@@ -162,6 +162,7 @@
 			this.lbWindows.Name = "lbWindows";
 			this.lbWindows.Size = new System.Drawing.Size(656, 404);
 			this.lbWindows.TabIndex = 3;
+			this.lbWindows.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lbWindows_MouseDoubleClick);
 			// 
 			// pageProcessInfo
 			// 

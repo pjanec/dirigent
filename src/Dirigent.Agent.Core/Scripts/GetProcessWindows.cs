@@ -44,7 +44,7 @@ namespace Dirigent.Scripts.BuiltIn
 			if( args.PID == 0 ) throw new NullReferenceException("Args.PID is 0");
 
 			var result = new TResult();
-			foreach( var x in  WinApi.GetProcessWindows( args.PID ) )
+			foreach( var x in  WinApi.GetProcessWindows2( args.PID ) )
 			{
 				var wi = new WinInfo()
 				{
