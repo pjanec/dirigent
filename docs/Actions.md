@@ -36,7 +36,7 @@ In case of a script these variables are passed to the script as script arguments
 | ----------- | ----------- | ------------------------------------------------------------ |
 | File        | FILE_PATH   | Resolved full path to the file. UNC path if the file is located on different machine or if it is a 'global' file. |
 | Folder      | FILE_PATH   | Resolved full path of the folder. UNC path if the file is located on different machine or if it is a 'global' folder. |
-| FilePackage | N/A         | FilePackages not supported by ToolAction. But they are by the ScriptAction! |
+| FilePackage | FILE_PATH   | All files paths, each double-quoted, separated with space.   |
 |             |             |                                                              |
 | App         | MACHINE_ID  | Name of the machine where the app is located.                |
 |             | MACHINE_IP  | IP address of the machine where the app is located.          |

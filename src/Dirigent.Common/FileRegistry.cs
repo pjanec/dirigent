@@ -436,6 +436,7 @@ namespace Dirigent
 			if (string.IsNullOrEmpty( fileDef.Filter ))
 			{
 				var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
+				r.IsContainer = false;
 				r.Path = ResolveFilePath( fileDef, forceUNC );
 				if( r.Path is null ) return null;
 				return r;
@@ -495,10 +496,11 @@ namespace Dirigent
 
 		async Task<VfsNodeDef> ResolveVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids )
 		{
-			var rootNode = EmptyFrom<ResolvedVfsNodeDef>( folderDef );
+			var rootNode = EmptyFrom<ResolvedVfsNodeDef>( folderDef ); // this produces Iscontainer=false (ResolvedVfsNode does not say if it is a container or not)
+			rootNode.IsContainer = true;
 
 			// FIXME: group children by machineId, resolve whole group by single remote script call
-			foreach( var child in folderDef.Children )
+			foreach ( var child in folderDef.Children )
 			{
 				var resolved = await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
 				if( resolved is not null )

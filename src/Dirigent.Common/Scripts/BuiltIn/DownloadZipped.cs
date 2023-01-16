@@ -99,7 +99,7 @@ namespace Dirigent.Scripts.BuiltIn
 				if (vfsResolvedDownloadFolder is null) throw new Exception( "Folder resolution failed." );
 
 				// get the name of the archive file to download
-				string zipFileBase = title + "_" + DateTime.Now.ToString("yyMMddHHmm");
+				string zipFileBase = System.IO.Path.GetFileName(title) + DateTime.Now.ToString("_yyMMdd_HHmm");
 
 				// start a slave script on each machine
 				var slaveTasks = new List<SlaveTask>();
