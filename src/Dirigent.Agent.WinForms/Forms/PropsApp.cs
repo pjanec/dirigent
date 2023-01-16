@@ -106,9 +106,9 @@ namespace Dirigent.Gui.WinForms
 							out var instance
 						);
 				}
-				catch( Exception e )
+				catch//( Exception e )
 				{
-					int i=0;
+					//int i=0;
 				}
 
 				_windows = (from x in result.Windows where (
@@ -128,7 +128,10 @@ namespace Dirigent.Gui.WinForms
 					{
 						lbWindows.Items.Add( w.Title );
 					}
-					lbWindows.SelectedIndex = 0;
+					if (lbWindows.Items.Count > 0)
+					{
+						lbWindows.SelectedIndex = 0;
+					}
 				} ));
 			}
 

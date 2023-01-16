@@ -29,6 +29,8 @@
 		private void InitializeComponent()
 		{
 			this.tabControl1 = new System.Windows.Forms.TabControl();
+			this.pageAppDef = new System.Windows.Forms.TabPage();
+			this.rtbAppDef = new System.Windows.Forms.RichTextBox();
 			this.pageWindows = new System.Windows.Forms.TabPage();
 			this.btnWindowsMinimize = new System.Windows.Forms.Button();
 			this.btnWindowsMaximize = new System.Windows.Forms.Button();
@@ -38,12 +40,10 @@
 			this.lbWindows = new System.Windows.Forms.ListBox();
 			this.pageProcessInfo = new System.Windows.Forms.TabPage();
 			this.rtbProcInfo = new System.Windows.Forms.RichTextBox();
-			this.pageAppDef = new System.Windows.Forms.TabPage();
-			this.rtbAppDef = new System.Windows.Forms.RichTextBox();
 			this.tabControl1.SuspendLayout();
+			this.pageAppDef.SuspendLayout();
 			this.pageWindows.SuspendLayout();
 			this.pageProcessInfo.SuspendLayout();
-			this.pageAppDef.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// tabControl1
@@ -58,6 +58,27 @@
 			this.tabControl1.Size = new System.Drawing.Size(800, 450);
 			this.tabControl1.TabIndex = 1;
 			this.tabControl1.Selecting += new System.Windows.Forms.TabControlCancelEventHandler(this.tabControl1_Selecting);
+			// 
+			// pageAppDef
+			// 
+			this.pageAppDef.Controls.Add(this.rtbAppDef);
+			this.pageAppDef.Location = new System.Drawing.Point(4, 34);
+			this.pageAppDef.Name = "pageAppDef";
+			this.pageAppDef.Padding = new System.Windows.Forms.Padding(3);
+			this.pageAppDef.Size = new System.Drawing.Size(792, 412);
+			this.pageAppDef.TabIndex = 0;
+			this.pageAppDef.Text = "App Def";
+			this.pageAppDef.UseVisualStyleBackColor = true;
+			// 
+			// rtbAppDef
+			// 
+			this.rtbAppDef.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.rtbAppDef.Location = new System.Drawing.Point(3, 3);
+			this.rtbAppDef.Name = "rtbAppDef";
+			this.rtbAppDef.ReadOnly = true;
+			this.rtbAppDef.Size = new System.Drawing.Size(786, 406);
+			this.rtbAppDef.TabIndex = 1;
+			this.rtbAppDef.Text = "";
 			// 
 			// pageWindows
 			// 
@@ -78,7 +99,7 @@
 			// btnWindowsMinimize
 			// 
 			this.btnWindowsMinimize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnWindowsMinimize.Location = new System.Drawing.Point(672, 189);
+			this.btnWindowsMinimize.Location = new System.Drawing.Point(672, 71);
 			this.btnWindowsMinimize.Name = "btnWindowsMinimize";
 			this.btnWindowsMinimize.Size = new System.Drawing.Size(112, 39);
 			this.btnWindowsMinimize.TabIndex = 8;
@@ -89,7 +110,7 @@
 			// btnWindowsMaximize
 			// 
 			this.btnWindowsMaximize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnWindowsMaximize.Location = new System.Drawing.Point(672, 134);
+			this.btnWindowsMaximize.Location = new System.Drawing.Point(672, 132);
 			this.btnWindowsMaximize.Name = "btnWindowsMaximize";
 			this.btnWindowsMaximize.Size = new System.Drawing.Size(112, 39);
 			this.btnWindowsMaximize.TabIndex = 7;
@@ -111,7 +132,7 @@
 			// btnWindowsHide
 			// 
 			this.btnWindowsHide.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnWindowsHide.Location = new System.Drawing.Point(672, 74);
+			this.btnWindowsHide.Location = new System.Drawing.Point(672, 193);
 			this.btnWindowsHide.Name = "btnWindowsHide";
 			this.btnWindowsHide.Size = new System.Drawing.Size(112, 39);
 			this.btnWindowsHide.TabIndex = 5;
@@ -163,27 +184,6 @@
 			this.rtbProcInfo.TabIndex = 2;
 			this.rtbProcInfo.Text = "";
 			// 
-			// pageAppDef
-			// 
-			this.pageAppDef.Controls.Add(this.rtbAppDef);
-			this.pageAppDef.Location = new System.Drawing.Point(4, 34);
-			this.pageAppDef.Name = "pageAppDef";
-			this.pageAppDef.Padding = new System.Windows.Forms.Padding(3);
-			this.pageAppDef.Size = new System.Drawing.Size(792, 412);
-			this.pageAppDef.TabIndex = 0;
-			this.pageAppDef.Text = "App Def";
-			this.pageAppDef.UseVisualStyleBackColor = true;
-			// 
-			// rtbAppDef
-			// 
-			this.rtbAppDef.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.rtbAppDef.Location = new System.Drawing.Point(3, 3);
-			this.rtbAppDef.Name = "rtbAppDef";
-			this.rtbAppDef.ReadOnly = true;
-			this.rtbAppDef.Size = new System.Drawing.Size(786, 406);
-			this.rtbAppDef.TabIndex = 1;
-			this.rtbAppDef.Text = "";
-			// 
 			// frmAppProperties
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
@@ -194,9 +194,9 @@
 			this.Text = "Properties";
 			this.Load += new System.EventHandler(this.frmAppProperties_Load);
 			this.tabControl1.ResumeLayout(false);
+			this.pageAppDef.ResumeLayout(false);
 			this.pageWindows.ResumeLayout(false);
 			this.pageProcessInfo.ResumeLayout(false);
-			this.pageAppDef.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}

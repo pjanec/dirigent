@@ -105,6 +105,10 @@ namespace Dirigent
 				{
 					list.Add( new WinInfo() { Handle = handle, Title = message.ToString() } );
 				}
+                else
+                {
+					list.Add( new WinInfo() { Handle = handle, Title = $"<Title unknown (window unresposive); handle=0x{handle.ToInt64().ToString("X")}>" } );
+                }
             }
 
             return list;

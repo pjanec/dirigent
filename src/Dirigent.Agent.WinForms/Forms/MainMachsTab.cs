@@ -269,16 +269,22 @@ namespace Dirigent.Gui.WinForms
 						var rebootMenu = new ToolStripMenuItem( "Reboot" );
 						rebootMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 						{
-							var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
-							Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+							if( MessageBox.Show( $"Reboot machine {id}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+							{
+								var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
+								Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+							}
 						});
 						powerMenu.DropDownItems.Add( rebootMenu );
 
 						var shutdownMenu = new ToolStripMenuItem( "Shut down" );
 						shutdownMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 						{
-							var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
-							Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+							if( MessageBox.Show( $"Shut down machine {id}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+							{
+								var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
+								Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+							}
 						});
 						powerMenu.DropDownItems.Add( shutdownMenu );
 
