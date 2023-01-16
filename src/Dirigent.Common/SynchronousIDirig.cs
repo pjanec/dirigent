@@ -93,7 +93,7 @@ namespace Dirigent
 		public async Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _ctrl.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent );
+		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent );
 
 #pragma warning restore CS8603 // Possible null reference return.
 	}

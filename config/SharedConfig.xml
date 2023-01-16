@@ -240,8 +240,14 @@
           <Tool Title="Open in Notepad" Name="Notepad++" />
         </File>
         <!--File Id="newest log file" Path="C:\Logs\App1" Mask="*.txt" Recursive="1" Filter="Newest"-->
-        <File Id="newest log file" Path="%TEMP%" Filter="Newest">
+        <File Id="newest temp file (1)" Path="%TEMP%" Filter="Newest">
           <Tool Title="Open in Notepad" Name="Notepad++" />
+        </File>
+        <File Id="newest temp files (max. 5)" Path="%TEMP%" Filter="Newest" MaxFiles="5">
+          <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" Icon="Icons/Zipped.png"/>
+        </File>
+        <File Title="fresh temp files only (max. 5, max. 10 minutes old)" Path="%TEMP%" Filter="Newest" MaxFiles="5" MaxSeconds="600" >
+          <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" Icon="Icons/Zipped.png"/>
         </File>
         <Folder Id="Docs folder" Path="%USERPROFILE%\Documents">
           <Tool Title="Open in Explorer" Name="WinExplorer"/>

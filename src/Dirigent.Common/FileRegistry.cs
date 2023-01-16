@@ -9,6 +9,7 @@ using System.IO;
 using System.Xml.Linq;
 using System.Threading;
 using System.IO.Enumeration;
+using X = Dirigent.XmlConfigReaderUtils;
 
 namespace Dirigent
 {
@@ -173,7 +174,7 @@ namespace Dirigent
 		/// <param name="fdef"></param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		string ResolveFilePath( VfsNodeDef fdef, bool forceUNC )
+		string? ResolveFilePath( VfsNodeDef fdef, bool forceUNC )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -290,13 +291,12 @@ namespace Dirigent
 
 		static T EmptyFrom<T>( VfsNodeDef x ) where T: VfsNodeDef, new()
 		{
-			return new T {
-				Guid = x.Guid,
-				Id = x.Id,
-				Title = x.Title,
-				MachineId = x.MachineId,
-				IsContainer = x.IsContainer
-			};
+			var r = new T();
+			r.Guid = x.Guid;
+			r.Id = x.Id;
+			r.Title = x.Title;
+			r.MachineId = x.MachineId;
+			return r;
 		}
 
 		bool IsLocalMachine( string clientId )
@@ -331,7 +331,7 @@ namespace Dirigent
 		///  Folders - VFolder will have just the Title (vfolder name).
 		/// Files will have the Title and Path (link to physical file).
 		/// </returns>
-		public async Task<VfsNodeDef> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids )
+		public async Task<VfsNodeDef?> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids )
 		{
 			if (nodeDef is null)
 				throw new ArgumentNullException( nameof( nodeDef ) );
@@ -408,7 +408,7 @@ namespace Dirigent
 			}
 		}
 
-		private async Task<VfsNodeDef> ResolvePackageRef( IDirigAsync iDirig, bool forceUNC, List<Guid>? usedGuids, FilePackageRef fpref )
+		private async Task<VfsNodeDef?> ResolvePackageRef( IDirigAsync iDirig, bool forceUNC, List<Guid>? usedGuids, FilePackageRef fpref )
 		{
 			var def = FindById( fpref.Id, fpref.MachineId, fpref.AppId ) as FilePackageDef;
 			if (def is null)
@@ -417,7 +417,7 @@ namespace Dirigent
 			return await ResolveAsync( iDirig, def, forceUNC, true, usedGuids );
 		}
 
-		private async Task<VfsNodeDef> ResolveFileRef( IDirigAsync iDirig, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileRef fref )
+		private async Task<VfsNodeDef?> ResolveFileRef( IDirigAsync iDirig, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileRef fref )
 		{
 			var def = FindById( fref.Id, fref.MachineId, fref.AppId ) as FileDef;
 			if (def is null)
@@ -426,7 +426,7 @@ namespace Dirigent
 			return await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
 		}
 
-		private VfsNodeDef ResolveFileDef( bool forceUNC, FileDef fileDef )
+		private VfsNodeDef? ResolveFileDef( bool forceUNC, FileDef fileDef )
 		{
 			if (string.IsNullOrEmpty( fileDef.Path )) throw new Exception( $"FileDef.Path is empty. {fileDef.Xml}" );
 
@@ -437,21 +437,57 @@ namespace Dirigent
 			{
 				var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
 				r.Path = ResolveFilePath( fileDef, forceUNC );
+				if( r.Path is null ) return null;
 				return r;
 			}
 
+			// newest file(s) from folder?
+			//  - if just one file is requested, return one single FileDef or null
+			//  - if multiple files allowed, return VFolder
 			if (fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ))
 			{
 				var folder = ResolveFilePath( fileDef, forceUNC );
+				if( folder is null )
+					return null;
 
 				if (string.IsNullOrEmpty( fileDef.Xml )) throw new Exception( $"FileDef.Xml is empty. {fileDef.Xml}" );
-				var xel = XElement.Parse( fileDef.Xml );
-				string? mask = xel.Attribute( "Mask" )?.Value;
-				if (mask is null) mask = "*.*";
+				var xml = XElement.Parse( fileDef.Xml );
 
-				var r = EmptyFrom<FileDef>( fileDef );
-				r.Path = GetNewestFileInFolder( folder, mask );
-				return r;
+				string mask = X.getStringAttr( xml, "Mask", "*.*" );
+				int maxFiles = X.getIntAttr( xml, "MaxFiles", 1 ); // by default a single file only
+				if (maxFiles < 1) maxFiles = 1;
+				double maxSeconds = X.getDoubleAttr( xml, "MaxSeconds", double.MaxValue ); // by default whatever age
+
+				var newestFiles = GetNewestFilesInFolder( folder, mask, maxFiles, maxSeconds );
+
+				// if just one single file requested, return FileDef
+				if( maxFiles <= 1 )
+				{
+					if( newestFiles.Count == 0 )
+					{
+						return null;
+					}
+					else
+					{
+						var r = EmptyFrom<FileDef>( fileDef );
+						r.Path = newestFiles[0];
+						return r;
+					}
+				}
+				else
+				// if more files possible, put them in VFolder
+				{
+					var pack = EmptyFrom<VFolderDef>( fileDef );
+					if( string.IsNullOrEmpty(pack.Title) ) pack.Title = pack.Id;
+					if( string.IsNullOrEmpty(pack.Title) ) pack.Title = pack.Guid.ToString();
+					foreach( var fpath in newestFiles )
+					{
+						var r = EmptyFrom<FileDef>( fileDef );
+						r.Path = fpath;
+						pack.Children.Add( r );
+					}
+					return pack;
+				}
 			}
 
 			throw new Exception( $"Unsupported filter. {fileDef.Xml}" );
@@ -465,13 +501,16 @@ namespace Dirigent
 			foreach( var child in folderDef.Children )
 			{
 				var resolved = await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
-				rootNode.Children.Add( resolved );
+				if( resolved is not null )
+				{
+					rootNode.Children.Add( resolved );
+				}
 			}
 
 			return rootNode;
 		}
 
-		VfsNodeDef ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
+		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
 		{
 			var rootNode = EmptyFrom<VFolderDef>( folderDef );
 			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
@@ -483,51 +522,91 @@ namespace Dirigent
 				// filter by glob-style mask
 				// convert into vfs tree structure
 				var folderName = ResolveFilePath( folderDef, forceUNC );
+				if( string.IsNullOrEmpty(folderName) )
+					return null;
 				// ....
 
 				var mask = folderDef.Mask;
 				if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
 
-				var dirs = FindDirectories( folderName );
-				foreach (var dir in dirs)
+				try
 				{
-					var dirDef = new FolderDef
+					var dirs = FindDirectories( folderName );
+					foreach (var dir in dirs)
 					{
-						//Id = dir.Name,
-						Path = dir.FullName,
-						MachineId = folderDef.MachineId,
-						AppId = folderDef.AppId,
-						IsContainer = true,
-						Title = dir.Name,
-					};
-					var vfsFolder = ResolveFolder( dirDef, forceUNC, includeContent );
-					rootNode.Children.Add( vfsFolder );
+						var dirDef = new FolderDef
+						{
+							//Id = dir.Name,
+							Path = dir.FullName,
+							MachineId = folderDef.MachineId,
+							AppId = folderDef.AppId,
+							IsContainer = true,
+							Title = dir.Name,
+						};
+						var vfsFolder = ResolveFolder( dirDef, forceUNC, includeContent );
+						if( vfsFolder is not null )
+						{
+							rootNode.Children.Add( vfsFolder );
+						}
+					}
+				}
+				catch( Exception ex ) // folder not exists or not accessible?
+				{
+					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
+					return null;
 				}
 
-				var files = FindMatchingFileInfos( folderName, mask, false );
-				foreach (var file in files)
+				try
 				{
-					var fileDef = new FileDef
+					var files = FindMatchingFileInfos( folderName, mask, false );
+					foreach (var file in files)
 					{
-						//Id = file.Name,
-						Path = file.FullName,
-						MachineId = folderDef.MachineId,
-						AppId = folderDef.AppId,
-						IsContainer = false,
-						Title = file.Name,
-					};
-					rootNode.Children.Add( fileDef );
+						var fileDef = new FileDef
+						{
+							//Id = file.Name,
+							Path = file.FullName,
+							MachineId = folderDef.MachineId,
+							AppId = folderDef.AppId,
+							IsContainer = false,
+							Title = file.Name,
+						};
+						rootNode.Children.Add( fileDef );
+					}
 				}
+				catch( Exception ex ) // folder not exists or not accessible?
+				{
+					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
+					return null;
+				}
+
 			}
 			
 			return rootNode;
 		}
 
-		string? GetNewestFileInFolder( string folderName, string mask )
+		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds )
 		{
+			var res = new List<string>();
 			var files = FindMatchingFileInfos( folderName, mask, false );
-			var newest = GetNewest( files );
-			return newest;
+
+			if( files.Length == 0 ) return res;
+			
+			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
+
+			int numFiles = 0;
+			foreach (var file in files)
+			{
+				if (maxAgeSeconds > 0)
+				{
+					var age = (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds;
+					if (age > maxAgeSeconds) continue;
+				}
+
+				res.Add( file.FullName );
+				numFiles++;
+				if (numFiles >= maxFiles) break;
+			}
+			return res;
 		}
 
 		static FileInfo[] FindMatchingFileInfos( string folderName, string mask, bool recursive )

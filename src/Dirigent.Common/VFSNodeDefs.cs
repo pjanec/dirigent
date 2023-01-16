@@ -156,7 +156,9 @@ namespace Dirigent
 			base.ThisEquals(o) &&
 			this.Mask == o.Mask &&
 			true;
-			
+
+		public FolderDef() : base() { IsContainer=true; }
+
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
 		public bool Equals(FolderDef? o) => object.Equals(this, o);
 		public override int GetHashCode() => base.GetHashCode();
@@ -164,12 +166,15 @@ namespace Dirigent
 
 	/// <summary>
 	/// Definition of a virtual folder.
+	/// Title is used as a name of the folder.
 	/// Path field is ignored.
 	/// </summary>
 	//[MessagePack.MessagePackObject]
 	public class VFolderDef : VfsNodeDef, IEquatable<VFolderDef>
 	{
-		public override string ToString() =>$"[VFolder] {base.ToString()}";
+		public override string ToString() => $"[VFolder] {$"{Title}@{MachineId}.{AppId}"}";
+
+		public VFolderDef() : base() { IsContainer=true; }
 
 		public bool ThisEquals(VFolderDef o) => base.ThisEquals(o);
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
@@ -183,7 +188,9 @@ namespace Dirigent
 	//[MessagePack.MessagePackObject]
 	public class FilePackageDef : VfsNodeDef, IEquatable<FilePackageDef>
 	{
-		public override string ToString() =>$"[FilePackage] {base.ToString()}";
+		public override string ToString() =>$"[FilePackage] {$"{Title}@{MachineId}.{AppId}"}";
+
+		public FilePackageDef() : base() { IsContainer=true; }
 
 		public bool ThisEquals(FilePackageDef o) => base.ThisEquals(o);
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);

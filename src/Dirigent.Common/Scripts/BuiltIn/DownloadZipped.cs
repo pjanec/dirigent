@@ -96,6 +96,7 @@ namespace Dirigent.Scripts.BuiltIn
 				};
 
 				var vfsResolvedDownloadFolder = await Dirig.ResolveAsync( vfsDownloadFolder, true, false );
+				if (vfsResolvedDownloadFolder is null) throw new Exception( "Folder resolution failed." );
 
 				// get the name of the archive file to download
 				string zipFileBase = title + "_" + DateTime.Now.ToString("yyMMddHHmm");

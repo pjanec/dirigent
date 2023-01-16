@@ -189,7 +189,32 @@ namespace Dirigent
 			{
 				vars["FILE_PATH"] = _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" );
 			}
+			else
+			{
+				List<string> list = new();
+				MakeFileList( list, boundTo );
+				// space separated quoted paths
+				vars["FILE_PATH"] = string.Join( " ", list.Select( s => $"\"{s}\"" ) );
+			}
+
 			StartAction( requestorId, action, vars, boundTo );
+		}
+
+		// puts all files to a plain list
+		void MakeFileList( List<string> list, VfsNodeDef folder )
+		{
+			foreach( var node in folder.Children )
+			{
+				if( node.IsContainer )
+				{
+					MakeFileList( list, node );
+				}
+				else
+				{
+					var fname = _fileReg.MakeUNCIfNotLocal( node.Path!, node.MachineId, $"{node}" );
+					list.Add( fname );
+				}
+			}
 		}
 
 		public void Tick()

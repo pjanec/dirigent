@@ -139,7 +139,7 @@ namespace Dirigent
 		IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return new List<VfsNodeDef>(); }
 
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
-		Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
+		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
 
 	}
 
@@ -236,6 +236,6 @@ namespace Dirigent
 		Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid );
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
-		Task<VfsNodeDef> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
+		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
 	}
 }

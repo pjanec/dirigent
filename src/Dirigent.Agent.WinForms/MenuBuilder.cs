@@ -113,13 +113,16 @@ namespace Dirigent.Gui.WinForms
 				GetAllVfsNodeActions(vfsNodeDef),
 				async (action) => await WFT.GuardedOpAsync( async () => {
 						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, false, true, null );
-						if( !vfsNodeDef.IsContainer )
+						if( resolved is not null )
 						{
-							_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
-						}
-						else
-						{
-							_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved ) ;
+							if( !resolved.IsContainer )
+							{
+								_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
+							}
+							else
+							{
+								_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved ) ;
+							}
 						}
 					}
 				)

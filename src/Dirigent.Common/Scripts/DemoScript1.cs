@@ -43,7 +43,7 @@ public class DemoScript1 : Script
 		// run action on where this script was issued from
 		await RunAction(
 			Requestor,	// we are starting the action on behalf of the original requestor of this script
-			new ToolActionDef { Name= "Notepad", Args="C:/Request/From/DemoScript1.cs" },
+			new ToolActionDef { Name= "Notepad++", Args="C:/Request/From/DemoScript1.cs" },
 			Requestor // we want the action to run on requestor's machine
 		);
 
