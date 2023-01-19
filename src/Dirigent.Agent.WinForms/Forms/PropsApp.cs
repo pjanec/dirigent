@@ -114,7 +114,7 @@ namespace Dirigent.Gui.WinForms
 				_windows = (from x in result.Windows where (
 					((x.Style & WinApi.WS_CHILD) == 0) &&
 					((x.Style & WinApi.WS_DISABLED) == 0) &&
-					(x.Style & WinApi.WS_CAPTION) != 0 &&
+					//(x.Style & WinApi.WS_CAPTION) != 0 &&
 					true
 				) select x).ToList();
 

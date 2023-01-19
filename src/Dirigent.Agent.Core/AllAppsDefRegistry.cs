@@ -52,16 +52,17 @@ namespace Dirigent
 		/// <summary>
 		/// Finds app definition by id. Throws if failed.
 		/// </summary>
-		public AppDef FindApp( AppIdTuple id )
+		public AppDef? FindApp( AppIdTuple id, bool throwOnError=true )
 		{
 			if( _appDefs.TryGetValue( id, out var existingAdr ) )
 			{
 				return existingAdr;
 			}
-			else
+			if (throwOnError)
 			{
 				throw new UnknownAppIdException( id );
 			}
+			return null;
 		}						  
 
 	}

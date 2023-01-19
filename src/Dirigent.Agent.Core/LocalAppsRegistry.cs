@@ -86,13 +86,17 @@ namespace Dirigent
 		/// Finds a LocalApp record by appIdTuple.
 		/// Throws on failure.
 		/// </summary>
-		public LocalApp FindApp( AppIdTuple id )
+		public LocalApp? FindApp( AppIdTuple id, bool throwOnError=true )
 		{
 			if( _apps.TryGetValue( id, out var la ) )
 			{
 				return la;
 			}
-			throw new UnknownAppIdException( id );
+			if (throwOnError)
+			{
+				throw new UnknownAppIdException( id );
+			}
+			return null;
 		}
 
 	}

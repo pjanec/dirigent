@@ -207,7 +207,7 @@ namespace Dirigent
 
 				case Net.StartAppMessage m:
 				{
-					var la = _localApps.FindApp( m.Id );
+					var la = _localApps.FindApp( m.Id )!;
 					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
 					la.StartApp( flags: m.Flags, vars: vars );
 					break;
@@ -215,14 +215,14 @@ namespace Dirigent
 
 				case Net.KillAppMessage m:
 				{
-					var la = _localApps.FindApp( m.Id );
+					var la = _localApps.FindApp( m.Id )!;
 					la.KillApp( m.Flags );
 					break;
 				}
 
 				case Net.RestartAppMessage m:
 				{
-					var la = _localApps.FindApp( m.Id );
+					var la = _localApps.FindApp( m.Id )!;
 					var vars = m.UseVars ? m.Vars ?? new() : null; // pass null if not vars change is required
 					la.RestartApp( vars );
 					break;
@@ -260,8 +260,14 @@ namespace Dirigent
 
 				case Net.SetWindowStyleMessage m:
 				{
-					var la = _localApps.FindApp( m.AppIdTuple );
-					la.SetWindowStyle( m.WindowStyle, m.Handle );
+					if( m.AppIdTuple.MachineId == _clientIdent.Name )
+ 					{
+						var la = _localApps.FindApp( m.AppIdTuple, throwOnError: false );
+						if( la != null )
+						{
+							la.SetWindowStyle( m.WindowStyle, m.Handle );
+						}
+					}
 					break;
 				}
 
