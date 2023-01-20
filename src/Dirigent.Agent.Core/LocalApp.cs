@@ -110,7 +110,7 @@ namespace Dirigent
             //  1. explicitly specified in the StartApp
             //  2. empty list if Unset option forces the clean env
             //  3. recent ones from previous run
-            var varsNew = vars; // explicitly specified ones
+            Dictionary<string,string>? varsNew = vars is null ? null : new(vars); // explicitly specified ones
             if( varsNew is null && !appDef.ReusePrevVars ) // no new vars provided but we are not allowed to use the previous ones
             {
                 varsNew = new(); // empty (clean env)

@@ -69,7 +69,7 @@ namespace Dirigent
 			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
 
-			_publishedVars = extraVars ?? new();
+			_publishedVars = extraVars is null ? new() : new( extraVars );   // we modify the _publishedVars dictionary later => copy necessary!
 
 			// set environment variables here so we can use them when expanding process path/args/cwd
 			// KEEP IN SYNC WITH FileRegistry.cs!
