@@ -414,14 +414,6 @@ namespace Dirigent
 				return a;
 			}
 			else
-			if (e.Name == "FilePackageRef")
-			{
-				var a = new FilePackageRef();
-				var vfsNode = (VfsNodeDef) a;
-				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
-				return a;
-			}
-			else
 			return null;
 		}
 

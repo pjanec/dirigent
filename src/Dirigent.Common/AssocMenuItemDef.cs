@@ -34,7 +34,7 @@ namespace Dirigent
 		/// Unique id within the system (generated when loading the item from config)
 		/// </summary>
 		//[MessagePack.Key( 1 )]
-		public Guid Guid;
+		public Guid Guid = new Guid();
 
 		/// <summary>
 		/// Display name of the item.

@@ -198,19 +198,4 @@ namespace Dirigent
 		public override int GetHashCode() => base.GetHashCode();
 	}
 
-	/// <summary>
-	/// Reference to existing package (via Id, AppId, MachineId)
-	/// Path field is ignored.
-	/// </summary>
-	//[MessagePack.MessagePackObject]
-	public class FilePackageRef : VfsNodeDef, IEquatable<FilePackageRef>
-	{
-		public override string ToString() =>$"[FilePackageRef] {base.ToString()}";
-
-		public bool ThisEquals(FilePackageRef o) => base.ThisEquals(o);
-		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
-		public bool Equals(FilePackageRef? o) => object.Equals(this, o);
-		public override int GetHashCode() => base.GetHashCode();
-	}
-
 }

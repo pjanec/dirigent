@@ -19,8 +19,7 @@ VfsNodes are shown in different context menus around the Dirigent's UI. They all
 | Folder         | Physical folder containing physical files and subfolders; by default all included recursively. |
 | FilePackage    | A set of files, folders, references to files etc. May include virtual subfolders. The main purpose of the FilePackage is to bundle files from possibly multiple different machines into  one package for easy download/browsing. |
 | VFolder        | Virtual folder. Used for organizing the content of a package into subfolders. Can contain same stuff as the package. |
-| FileRef        | Reference to a file defined on another place in SharedConfig. |
-| FilePackageRef | Reference to a package defined on another place in SharedConfig. Avoids definition duplication if same package is part of multiple different packages. |
+| FileRef        | Reference to a file/folder/package defined on another place in SharedConfig. |
 
 See examples in [SharedConfig.xml](../config/SharedConfig.xml).
 

@@ -1,10 +1,10 @@
-[DONE] Add "Power > Reboot" to machine context menu.
 
-[DONE] Add "Power > Wake On Lan" to machine context menu. Add MAC="2C:D8:5D:CE:F0:B8" attribute to `<Machine/>` section. Show WakeOnLAN menu only if MAC is defined tor the machine. https://benniroth.com/blog/2021-6-21-csharp-wake-over-lan/
-
-[DONE] Tool action specified in the ToolsMenu section of the SharedConfig to allow running on different machine than the default local one. Via HostId attrib.
-
-[DONE] Tool actions can override the StartupDir used for starting the tool. Via StartipDir attribute.
+[BUG] Default menus for files, machines etc. should be moved from LocalConfig to to SharedConfig and should be sent to gui clients.
+[BUG] When running in --mode gui, Exception: Could not find IP of machine . in UpdateMainMenu. Just basic menu shown, no configurable extensions.
+[IDEA] Let the dirigent client connected via SSH gateway to a target system to open files behind the gateway via WinScp.
+Converting the local UNC paths like \\192.168.0.110\folder\file.txt into ssh://gateway/C/IT/Links/110/folder/file.txt.
+Add script creating on the gateway necessary symlinks to individual machines as defined in the SharedConfig.
+Support also files downloaded to the gateway, meaning translating gateway
 
 [IDEA] When Show Window is clicked, show a dialog that runs script on the remote machine grabbing all windows of selected process. Dialog shows the window titles and user can select what window to show/hide. Maybe put then to app's Properties tab.
 
@@ -37,13 +37,43 @@
 [IDEA] Connecting with dirigent GUI client to a master using SSH port forwarding.
 
 * Use port forwarding also for direct access to individual machine services. (as Remoter is doing).
-* Check why Dirigent TCP comm fails to go through the SSH gateway.
+ * For a machine define what services are available on what ports (VNC, RDP, DIRIGENT etc.)
+ * For each service on each machine estabilish a port tunelling via a unique local port.
+ * For a tool specify what service it is using 
+ * When the tool is invoked in the context of a machine, find the local port previously assigned to the service & machine number and pass it to the tool on cmd line
+
+ * New menu item "Open SSH port tunnel". 
+    * Lets the user to select a file where the following is defined
+      * SSH server IP, name & password (the gateway computer accessible from outside)
+      * Dirigent master IP and port
+    * Opens port tunnel for dirigent master by starting plink
+    * Gui connects to the master and receives the definitions of machines & services.
+    * Gui disconnects from dirigent master, plink is closed.
+    * List of port forwarding is updated to include the machines & services.
+    * Port tunnel is opened again (plink started again)
+    * Gui reconnects to the dirigent master
+    * This ends the port tunnel setup sequence;
+    * From now on, gui operates normally.
+    * When a tool is started in relation to the machine, it receives the local port which is tunelled to tha remote machine
+      * Machine specific tools like VNC
+      * Access to file which is located on that machine
+
 * Try tunelling SMB file sharing over SSH - that would allow for remote file access to any computer
   * See https://sites.google.com/site/sbobovyc/home/windows-guides/tunnel-samba-over-ssh
-  * For each computer behind a gateway we need specific local port to address port 139 on given computer
+  * For each computer behind a gateway we need unique local IP to address port 139 on remote computer
   * Requires installing Microsoft Loopback Adapter for each computer (to have one special IP per computer).
-  * Or we could 
-  * 
+    * For example 192.168.100.XXX with subnet mask 255.255.255.0 (where XXX is the last byte of the IP in remote LAN)
+    * Could be done on demand from Dirigent UI, just for the duration of the connection to Dirigent Master.
+      * power shell script with internet access can do it: 
+        * https://gbe0.com/posts/windows/server-windows/create-loopback-interface-with-powershell/
+  * Setup ssh port fwd
+      LoopBackAdapterIP:139 => RemoteHostIP:139
+      For example
+      \\192.168.100.100\folder\file.txt  brings us to  \\192.168.0.100\folder\file.txt
+      \\192.168.100.150\folder\file.txt  brings us to  \\192.168.0.150\folder\file.txt
+
+  * Translate IP address in UNC paths - replace RemoteHostIP with corresponding LoopBackAdapterIP 
+
 
 * https://github.com/variar/klogg/releases/download/v22.06/klogg-22.06.0.1289-Win-x64-Qt5-setup.exe
 * 

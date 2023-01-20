@@ -130,7 +130,11 @@
     		Volatile = "1"
     		InitCondition = "exitcode 0"
     		Dependencies = "m1.a"
-    	/>
+    	>
+            <File Id="Greetings" Path="%USERPROFILE%\Documents\Greetings2.txt">
+              <Tool Title="Open in Notepad" Name="Notepad++" />
+            </File>
+    	</App>
     </Plan>
 
     <Plan Name="plan3">
@@ -300,6 +304,9 @@
           <Tool Title="Open in Explorer" Name="WinExplorer"/>
         </Folder>
 
+        <!-- empty machine & app => matches any machine or app; if not used, will match the files from this app record only -->
+        <FileRef Id="pack_m1" MachineId="" AppId="" />
+        
         <Tool Title="Open some file in Notepad" Name="Notepad++" Args="somefile.txt"/>
 
         <Script Title="Run some script" Name="Scripts/DemoScript1.cs" Args="somefile.txt" Icon="Icons\ScriptRed.png"/>
@@ -310,9 +317,12 @@
     	    <!-- reference to machine-specific file-->
     	    <FileRef Id="Greetings" MachineId="m1" AppId="" />
 
-            <Folder Title="Books folder" Path="%USERPROFILE%\Documents\Books">
+    	    <!-- reference to possibly multiple files -->
+    	    <FileRef Id="Greetings" MachineId="" AppId="" />
+
+            <!--Folder Title="Books folder" Path="%USERPROFILE%\Documents\Books">
               <Tool Title="Open in Explorer" Name="WinExplorer"/>
-            </Folder>
+            </Folder-->
     	    <!-- reference to file defined within another app -->
     	    <FileRef Id="xxx" AppIdTuple="m1.a" />
 
@@ -337,9 +347,13 @@
 	<!-- Note: FilePackage and VFolder can include the same stuff -->
 	<FilePackage Id="pack1">
 	    <!-- reference to machine-specific file-->
-	    <FileRef Machine="m1" Id="Greetings"/>
+	    <FileRef MachineId="m1" AppId="Greetings"/>
 	    <!-- reference to application-specific file-->
-	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
+	    <FileRef Id="xxx" MachineId="m1" AppId="appWithFile"/>
+
+	    <!-- reference to file package-->
+	    <FileRef Id="xxx" MachineId="m1" AppId="appWithFile"/>
+
 	    <!-- direct definition of independent file using UNC path-->
    	    <File Id="global2" Path="\\server\share\path\to\file.txt"/>
 

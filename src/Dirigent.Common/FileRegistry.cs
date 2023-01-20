@@ -251,7 +251,7 @@ namespace Dirigent
 
 		bool IsMatch( string? pattern, string? str )
 		{
-			if( pattern is null ) // no pattern means anything matches
+			if( string.IsNullOrEmpty( pattern ) ) // empty pattern means that anything matches
 				return true;
 
 			if( str is null ) // null string only matches if the pattern allows anything
@@ -269,8 +269,9 @@ namespace Dirigent
 			//return string.Equals(str, pattern, StringComparison.OrdinalIgnoreCase);
 		}
 
-		VfsNodeDef? FindById( string Id, string? machineId, string? appId )
+		List<VfsNodeDef> FindById( string Id, string? machineId, string? appId )
 		{
+			var res = new List<VfsNodeDef>();
 			foreach( var node in VfsNodes.Values )
 			{
 				// empty string equals to null; this allows nullifying the machine/app inherited from parent node in shared config by using empty string
@@ -284,15 +285,15 @@ namespace Dirigent
 					continue;
 
 				// match!
-				return node;
+				res.Add( node );
 			}
-			return null;
+			return res;
 		}
 
 		static T EmptyFrom<T>( VfsNodeDef x ) where T: VfsNodeDef, new()
 		{
 			var r = new T();
-			r.Guid = x.Guid;
+			//r.Guid = x.Guid; // gud should stay unique
 			r.Id = x.Id;
 			r.Title = x.Title;
 			r.MachineId = x.MachineId;
@@ -338,7 +339,10 @@ namespace Dirigent
 				
 			if (usedGuids == null) usedGuids = new List<Guid>();
 			if (usedGuids.Contains( nodeDef.Guid ))
-				throw new Exception( $"Circular reference in VFS tree: {nodeDef}" );
+			{
+				//	throw new Exception( $"Circular reference in VFS tree: {nodeDef}" );
+				return null;
+			}
 			
 			usedGuids.Add( nodeDef.Guid );
 
@@ -398,32 +402,39 @@ namespace Dirigent
 				return await ResolveVFolder( iDirig, fpdef, forceUNC, usedGuids );
 			}
 			else
-			if( nodeDef is FilePackageRef fpref )
-			{
-				return await ResolvePackageRef( iDirig, forceUNC, usedGuids, fpref );
-			}
-			else
 			{
 				throw new Exception( $"Unknown VfsNodeDef type: {nodeDef}" );
 			}
 		}
 
-		private async Task<VfsNodeDef?> ResolvePackageRef( IDirigAsync iDirig, bool forceUNC, List<Guid>? usedGuids, FilePackageRef fpref )
-		{
-			var def = FindById( fpref.Id, fpref.MachineId, fpref.AppId ) as FilePackageDef;
-			if (def is null)
-				throw new Exception( $"{fpref} points to non-existing FilePackage" );
-
-			return await ResolveAsync( iDirig, def, forceUNC, true, usedGuids );
-		}
-
 		private async Task<VfsNodeDef?> ResolveFileRef( IDirigAsync iDirig, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileRef fref )
 		{
-			var def = FindById( fref.Id, fref.MachineId, fref.AppId ) as FileDef;
-			if (def is null)
-				throw new Exception( $"{fref} points to non-existing FileDef" );
+			var defs = FindById( fref.Id, fref.MachineId, fref.AppId );
 
-			return await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+			// remove reference to self
+			defs.RemoveAll( x => x.Guid == fref.Guid );
+
+			if( defs.Count == 0 )
+				return null;
+
+			if ( defs.Count == 1 )
+				return await ResolveAsync( iDirig, defs[0], forceUNC, includeContent, usedGuids );
+
+			{
+				var pack = new VFolderDef();
+				pack.Title = fref.Title;
+				if ( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Id;
+				if( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Guid.ToString();
+				foreach( var def in defs )
+				{
+					var resolved = await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+					if( resolved is not null )
+						pack.Children.Add( resolved );
+				}
+				return pack;
+			}
+				
+			
 		}
 
 		private VfsNodeDef? ResolveFileDef( bool forceUNC, FileDef fileDef )
@@ -437,6 +448,7 @@ namespace Dirigent
 			{
 				var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
 				r.IsContainer = false;
+				r.Guid = fileDef.Guid;
 				r.Path = ResolveFilePath( fileDef, forceUNC );
 				if( r.Path is null ) return null;
 				return r;
@@ -471,6 +483,7 @@ namespace Dirigent
 					else
 					{
 						var r = EmptyFrom<FileDef>( fileDef );
+						r.Guid = fileDef.Guid;
 						r.Path = newestFiles[0];
 						return r;
 					}
@@ -484,6 +497,7 @@ namespace Dirigent
 					foreach( var fpath in newestFiles )
 					{
 						var r = EmptyFrom<FileDef>( fileDef );
+						r.Guid = fileDef.Guid;
 						r.Path = fpath;
 						pack.Children.Add( r );
 					}

@@ -140,6 +140,21 @@ namespace Dirigent.Scripts.BuiltIn
 						try
 						{
 							var destFile = Path.Combine( destFolder, Path.GetFileName(node.Path!) );
+							
+							if( File.Exists( destFile ) )
+							{
+								destFile = Path.Combine(
+									destFolder,
+									Path.GetFileNameWithoutExtension( node.Path! )
+										+ "_"
+										+ node.MachineId ?? ""
+										+ "_"
+										+ node.AppId ?? ""
+										+ "_"
+										+ node.Guid.ToString().Substring( 0, 8 )
+										+ Path.GetExtension( node.Path! )
+									);
+							}
 							File.Copy( node.Path!, destFile );
 						}
 						catch (Exception e)
