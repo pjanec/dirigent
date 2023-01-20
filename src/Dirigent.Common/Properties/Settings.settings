@@ -47,6 +47,9 @@
     <Setting Name="LocalConfigFile" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="GatewayConfigFile" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
     <Setting Name="ShowJustAppsFromCurrentPlan" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>

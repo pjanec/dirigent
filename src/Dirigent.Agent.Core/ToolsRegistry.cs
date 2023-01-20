@@ -17,6 +17,7 @@ namespace Dirigent
 	public class ToolsRegistry : Disposable
 	{
         private SharedContext _sharedContext;
+		public SharedContext SharedContext => _sharedContext;
 
 		// all individual instances of some tool apps
 		private Dictionary<Guid, LocalApp> _instances = new();
@@ -58,6 +59,15 @@ namespace Dirigent
 					break;
 				}
 			}
+		}
+
+		public AppDef? GetAppDef( string toolName )
+		{
+			if (_defs.TryGetValue( toolName, out var def ))
+			{
+				return def;
+			}
+			return null;
 		}
 
 		public string? GetToolIcon( string toolName )

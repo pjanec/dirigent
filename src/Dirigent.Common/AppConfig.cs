@@ -55,6 +55,9 @@ namespace Dirigent
 		[Option( "localConfigFile", Required = false, Default = "", HelpText = "local config file name." )]
 		public string LocalConfigFile { get; set; } = string.Empty;
 
+		[Option( "gatewayConfigFile", Required = false, Default = "", HelpText = "gateway config file name." )]
+		public string GatewayConfigFile { get; set; } = string.Empty;
+
 		[Option( "rootForRelativePaths", Required = false, Default = "", HelpText = "root folder for relative paths if used in StartupDir, FullExeName etc." )]
 		public string RootForRelativePaths { get; set; } = string.Empty;
 
@@ -103,6 +106,7 @@ namespace Dirigent
 		// start with default settings
 		public string SharedCfgFileName = ""; // Path.Combine(Application.StartupPath, "SharedConfig.xml");
 		public string LocalCfgFileName = ""; // empty by default - we won't try to load it
+		public string GatewayCfgFileName = ""; // empty by default - we won't try to load it
 		public string MachineId = System.Environment.MachineName;
 		public string ClientId = "";
 		public int MasterPort = 5045;
@@ -153,6 +157,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.MasterPort != 0 ) MasterPort = Common.Properties.Settings.Default.MasterPort;
 			if( Common.Properties.Settings.Default.SharedConfigFile != "" ) SharedCfgFileName = Common.Properties.Settings.Default.SharedConfigFile;
 			if( Common.Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Common.Properties.Settings.Default.LocalConfigFile;
+			if( Common.Properties.Settings.Default.GatewayConfigFile != "" ) GatewayCfgFileName = Common.Properties.Settings.Default.GatewayConfigFile;
 			if( Common.Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Common.Properties.Settings.Default.RootForRelativePaths;
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
 			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlan = Common.Properties.Settings.Default.StartupPlan;
@@ -180,6 +185,7 @@ namespace Dirigent
 				if( options.MasterPort != 0 ) MasterPort = options.MasterPort;
 				if( options.SharedConfigFile != "" ) SharedCfgFileName = options.SharedConfigFile;
 				if( options.LocalConfigFile != "" ) LocalCfgFileName = options.LocalConfigFile;
+				if( options.GatewayConfigFile != "" ) GatewayCfgFileName = options.GatewayConfigFile;
 				if( options.LogFile != "" ) LogFileName = options.LogFile;
 				if( options.StartupPlan != "" ) StartupPlan = options.StartupPlan;
 				if( options.StartupScript != "" ) StartupScript = options.StartupScript;
@@ -213,6 +219,11 @@ namespace Dirigent
 			if( LocalCfgFileName != "" )
 			{
 				LocalCfgFileName = Path.GetFullPath( LocalCfgFileName );
+			}
+
+			if( GatewayCfgFileName != "" )
+			{
+				GatewayCfgFileName = Path.GetFullPath( GatewayCfgFileName );
 			}
 
 			//if( LocalCfgFileName != "" )

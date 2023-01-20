@@ -45,6 +45,16 @@ namespace Dirigent
 		//[MessagePack.Key( 6 )]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
+        /// <summary>
+        /// Is the IP not accessible directly but just via the gateway
+        /// </summary>
+        public bool AlwaysLocal;
+
+        /// <summary>
+        /// What network services are running on the computer
+        /// </summary>
+        public List<ServiceDef> Services = new List<ServiceDef>(); // just those configured in the config
+
 		public bool ThisEquals( MachineDef other ) =>
 				this.Id == other.Id &&
 				this.IP == other.IP &&
@@ -52,6 +62,7 @@ namespace Dirigent
 				this.FileShares.SequenceEqual( other.FileShares ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				this.Actions.SequenceEqual( other.Actions ) &&
+				this.Services.SequenceEqual( other.Services ) &&
 				true;
 
 		// boilerplate

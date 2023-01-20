@@ -846,6 +846,15 @@ namespace Dirigent
 			_proc.PriorityClass = prioClassNum;
 		}
 
+        public void MoveToForeground()
+        {
+			#if Windows
+            if( _proc == null ) return;
+            if( _proc.HasExited ) return;
+            if( _proc.MainWindowHandle == IntPtr.Zero ) return;
+            WinApi.SetForegroundWindow( _proc.MainWindowHandle );
+			#endif
+        }
 	}
 
 }
