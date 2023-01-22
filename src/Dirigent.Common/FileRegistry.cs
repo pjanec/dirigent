@@ -174,7 +174,7 @@ namespace Dirigent
 		/// <param name="fdef"></param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		string? ResolveFilePath( VfsNodeDef fdef, bool forceUNC )
+		string? TranslatePathToThisMachinePerspective( VfsNodeDef fdef, bool forceUNC )
 		{
 			// global file? must be UNC path already...
 			if( string.IsNullOrEmpty( fdef.MachineId ) )
@@ -449,7 +449,7 @@ namespace Dirigent
 				var r = EmptyFrom<ResolvedVfsNodeDef>( fileDef );
 				r.IsContainer = false;
 				r.Guid = fileDef.Guid;
-				r.Path = ResolveFilePath( fileDef, forceUNC );
+				r.Path = TranslatePathToThisMachinePerspective( fileDef, forceUNC );
 				if( r.Path is null ) return null;
 				return r;
 			}
@@ -459,53 +459,58 @@ namespace Dirigent
 			//  - if multiple files allowed, return VFolder
 			if (fileDef.Filter.Equals( "newest", StringComparison.OrdinalIgnoreCase ))
 			{
-				var folder = ResolveFilePath( fileDef, forceUNC );
-				if( folder is null )
-					return null;
-
-				if (string.IsNullOrEmpty( fileDef.Xml )) throw new Exception( $"FileDef.Xml is empty. {fileDef.Xml}" );
-				var xml = XElement.Parse( fileDef.Xml );
-
-				string mask = X.getStringAttr( xml, "Mask", "*.*" );
-				int maxFiles = X.getIntAttr( xml, "MaxFiles", 1 ); // by default a single file only
-				if (maxFiles < 1) maxFiles = 1;
-				double maxSeconds = X.getDoubleAttr( xml, "MaxSeconds", double.MaxValue ); // by default whatever age
-
-				var newestFiles = GetNewestFilesInFolder( folder, mask, maxFiles, maxSeconds );
-
-				// if just one single file requested, return FileDef
-				if( maxFiles <= 1 )
-				{
-					if( newestFiles.Count == 0 )
-					{
-						return null;
-					}
-					else
-					{
-						var r = EmptyFrom<FileDef>( fileDef );
-						r.Guid = fileDef.Guid;
-						r.Path = newestFiles[0];
-						return r;
-					}
-				}
-				else
-				// if more files possible, put them in VFolder
-				{
-					var pack = EmptyFrom<VFolderDef>( fileDef );
-					if( string.IsNullOrEmpty(pack.Title) ) pack.Title = pack.Id;
-					if( string.IsNullOrEmpty(pack.Title) ) pack.Title = pack.Guid.ToString();
-					foreach( var fpath in newestFiles )
-					{
-						var r = EmptyFrom<FileDef>( fileDef );
-						r.Guid = fileDef.Guid;
-						r.Path = fpath;
-						pack.Children.Add( r );
-					}
-					return pack;
-				}
+				return ResolveFileDef_Newest( forceUNC, fileDef );
 			}
 
 			throw new Exception( $"Unsupported filter. {fileDef.Xml}" );
+		}
+
+		private VfsNodeDef? ResolveFileDef_Newest( bool forceUNC, FileDef fileDef )
+		{
+			var folder = TranslatePathToThisMachinePerspective( fileDef, forceUNC );
+			if (folder is null)
+				return null;
+
+			if (string.IsNullOrEmpty( fileDef.Xml )) throw new Exception( $"FileDef.Xml is empty. {fileDef.Xml}" );
+			var xml = XElement.Parse( fileDef.Xml );
+
+			string mask = X.getStringAttr( xml, "Mask", "*.*" );
+			int maxFiles = X.getIntAttr( xml, "MaxFiles", 1 ); // by default a single file only
+			if (maxFiles < 1) maxFiles = 1;
+			double maxSeconds = X.getDoubleAttr( xml, "MaxSeconds", double.MaxValue ); // by default whatever age
+
+			var newestFiles = GetNewestFilesInFolder( folder, mask, maxFiles, maxSeconds );
+
+			// if just one single file requested, return FileDef
+			if (maxFiles <= 1)
+			{
+				if (newestFiles.Count == 0)
+				{
+					return null;
+				}
+				else
+				{
+					var r = EmptyFrom<FileDef>( fileDef );
+					r.Guid = fileDef.Guid;
+					r.Path = newestFiles[0];
+					return r;
+				}
+			}
+			else
+			// if more files possible, put them in VFolder
+			{
+				var pack = EmptyFrom<VFolderDef>( fileDef );
+				if (string.IsNullOrEmpty( pack.Title )) pack.Title = pack.Id;
+				if (string.IsNullOrEmpty( pack.Title )) pack.Title = pack.Guid.ToString();
+				foreach (var fpath in newestFiles)
+				{
+					var r = EmptyFrom<FileDef>( fileDef );
+					r.Guid = fileDef.Guid;
+					r.Path = fpath;
+					pack.Children.Add( r );
+				}
+				return pack;
+			}
 		}
 
 		async Task<VfsNodeDef> ResolveVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids )
@@ -529,7 +534,7 @@ namespace Dirigent
 		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
 		{
 			var rootNode = EmptyFrom<VFolderDef>( folderDef );
-			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
+			rootNode.Path = TranslatePathToThisMachinePerspective( folderDef, forceUNC );
 			
 			if( includeContent )
 			{
@@ -537,7 +542,7 @@ namespace Dirigent
 				// traverse all files & folders 
 				// filter by glob-style mask
 				// convert into vfs tree structure
-				var folderName = ResolveFilePath( folderDef, forceUNC );
+				var folderName = TranslatePathToThisMachinePerspective( folderDef, forceUNC );
 				if( string.IsNullOrEmpty(folderName) )
 					return null;
 				// ....
