@@ -33,7 +33,7 @@ public class ExpandVfsPath : Script
 	public class TResult
 	{
 		//[MessagePack.Key( 1 )]
-		public VfsNodeDef? VfsNode;
+		public ExpandedVfsNodeDef? VfsNode;
 
 		public override string ToString() => $"{VfsNode}";
 		public byte[] Serialize() => Tools.Serialize( this );

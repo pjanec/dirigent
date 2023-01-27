@@ -1,10 +1,20 @@
-
 [BUG] Default menus for files, machines etc. should be moved from LocalConfig to to SharedConfig and should be sent to gui clients.
+
 [BUG] When running in --mode gui, Exception: Could not find IP of machine . in UpdateMainMenu. Just basic menu shown, no configurable extensions.
+
 [IDEA] Let the dirigent client connected via SSH gateway to a target system to open files behind the gateway via WinScp.
-Converting the local UNC paths like \\192.168.0.110\folder\file.txt into ssh://gateway/C/IT/Links/110/folder/file.txt.
+
+Convert the local UNC paths like \\192.168.0.110\folder\file.txt into ssh://gateway/C/IT/Links/110/folder/file.txt.
+
 Add script creating on the gateway necessary symlinks to individual machines as defined in the SharedConfig.
-Support also files downloaded to the gateway, meaning translating gateway
+
+[IDEA] Local edits for files behind SSH gateway. Download the file via SFPT to a local temp folder, launch selected tool, monitor the temp file for changes (as long as the tool is running), on local change copy the file back to the remote host via SFTP. Launched tools would need to be tracked (their launcher not forgotten) and associated with the temp files to be monitored. On tool exit delete the temp file.
+
+Allows using standard tools working with local files. No need to select the tool based on whether the file is behind a SSH gateway.
+
+[IDEA] Dirigent's local package browser. File packages produced by dirigent to be opened in Dirigent's internal browser. The browser supports local edits for SFPT files (see the idea above).
+
+
 
 [IDEA] When Show Window is clicked, show a dialog that runs script on the remote machine grabbing all windows of selected process. Dialog shows the window titles and user can select what window to show/hide. Maybe put then to app's Properties tab.
 

@@ -454,7 +454,7 @@ namespace Dirigent
 			if( x.StartupDir != null ) a.StartupDir = x.StartupDir;
 		}
 
-		static void FillToolAction( ref ToolActionDef a, XElement e, string? machineId = null, string? appId = null )
+		static void FillToolAction( ref ToolAppActionDef a, XElement e, string? machineId = null, string? appId = null )
 		{
 			var act = (ActionDef) a;
 			FillActionBase( ref act, e, machineId, appId );
@@ -480,7 +480,7 @@ namespace Dirigent
 		{
 			if (e.Name == "Tool")
 			{
-				var a = new ToolActionDef();
+				var a = new ToolAppActionDef();
 				FillToolAction( ref a, e, machineId, appId );
 				return a;
 			}
@@ -766,7 +766,7 @@ namespace Dirigent
 			else
 			if (e.Name == "Tool")
 			{
-				var a = new ToolActionDef();
+				var a = new ToolAppActionDef();
 				FillToolAction( ref a, e );
 				return a;
 			}

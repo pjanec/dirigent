@@ -123,7 +123,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// tell the user it's all done
 				var downloadedFiles = (from x in results orderby x.ZipFileName select x.ZipFileName).ToList();
-				var clickAction = new ToolActionDef { Name = "WineXplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
+				var clickAction = new ToolAppActionDef { Name = "WineXplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
 
 				var  infoMsg = $"Files downloaded:\n\n";
 				foreach (var x in downloadedFiles) infoMsg += $"    {x}\n";

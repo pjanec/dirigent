@@ -18,7 +18,7 @@ namespace Dirigent
 	[MessagePack.Union( 101, typeof( ActionDef ) )]
 	[MessagePack.Union( 102, typeof( VfsNodeDef ) )]
 	[MessagePack.Union( 103, typeof( ScriptActionDef ) )]
-	[MessagePack.Union( 104, typeof( ToolActionDef ) )]
+	[MessagePack.Union( 104, typeof( ToolAppActionDef ) )]
 	[MessagePack.Union( 105, typeof( ScriptDef ) )]
 	
 	[MessagePack.Union( 111, typeof( FileDef ) )]

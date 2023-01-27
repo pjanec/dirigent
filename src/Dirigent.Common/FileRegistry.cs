@@ -130,7 +130,7 @@ namespace Dirigent
 		///   Folders - VFolder will have just the Title (vfolder name). Path only if the folder represents physical folder (not a virtual one).
 		///   Files will have the Title and Path (link to physical file).
 		/// </returns>
-		public async Task<VfsNodeDef?> ExpandPathsAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool includeContent, List<Guid>? usedGuids )
+		public async Task<ExpandedVfsNodeDef?> ExpandPathsAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool includeContent, List<Guid>? usedGuids )
 		{
 			if (nodeDef is null)
 				throw new ArgumentNullException( nameof( nodeDef ) );
@@ -238,7 +238,7 @@ namespace Dirigent
 			}
 		}
 
-		private async Task<VfsNodeDef?> ExpandFileRef( IDirigAsync iDirig, bool includeContent, List<Guid>? usedGuids, FileRef fref )
+		private async Task<ExpandedVfsNodeDef?> ExpandFileRef( IDirigAsync iDirig, bool includeContent, List<Guid>? usedGuids, FileRef fref )
 		{
 			var defs = FindById( fref.Id, fref.MachineId, fref.AppId );
 
@@ -252,7 +252,7 @@ namespace Dirigent
 				return await ExpandPathsAsync( iDirig, defs[0], includeContent, usedGuids );
 
 			{
-				var pack = new VFolderDef();
+				var pack = new ExpandedVfsNodeDef() { IsContainer = true };
 				pack.Title = fref.Title;
 				if ( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Id;
 				if( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Guid.ToString();
@@ -268,7 +268,7 @@ namespace Dirigent
 			
 		}
 
-		private VfsNodeDef? ExpandFileDef( FileDef fileDef )
+		private ExpandedVfsNodeDef? ExpandFileDef( FileDef fileDef )
 		{
 			if (string.IsNullOrEmpty( fileDef.Path )) throw new Exception( $"FileDef.Path is empty. {fileDef.Xml}" );
 
@@ -297,7 +297,7 @@ namespace Dirigent
 		}
 
 		// get newest file(s) from given folder (fileDef.Path = name of the folder)
-		private VfsNodeDef? ExpandFileDef_Newest( FileDef fileDef )
+		private ExpandedVfsNodeDef? ExpandFileDef_Newest( FileDef fileDef )
 		{
 			var folder = fileDef.Path;
 			if (folder is null)
@@ -322,16 +322,17 @@ namespace Dirigent
 				}
 				else
 				{
-					var r = EmptyFrom<FileDef>( fileDef );
+					var r = EmptyFrom<ExpandedVfsNodeDef>( fileDef );
 					r.Guid = fileDef.Guid;
 					r.Path = newestFiles[0];
 					return r;
 				}
 			}
 			else
-			// if more files possible, put them in VFolder
+			// if more files possible, put them in container
 			{
-				var pack = EmptyFrom<VFolderDef>( fileDef );
+				var pack = EmptyFrom<ExpandedVfsNodeDef>( fileDef );
+				pack.IsContainer = true;
 				if (string.IsNullOrEmpty( pack.Title )) pack.Title = pack.Id;
 				if (string.IsNullOrEmpty( pack.Title )) pack.Title = pack.Guid.ToString();
 				foreach (var fpath in newestFiles)
@@ -345,7 +346,7 @@ namespace Dirigent
 			}
 		}
 
-		async Task<VfsNodeDef> ExpandVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, List<Guid>? usedGuids )
+		async Task<ExpandedVfsNodeDef> ExpandVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, List<Guid>? usedGuids )
 		{
 			var rootNode = EmptyFrom<ExpandedVfsNodeDef>( folderDef ); // this produces Iscontainer=false (ExpandedVfsNode does not say if it is a container or not)
 			rootNode.IsContainer = true;
@@ -363,9 +364,10 @@ namespace Dirigent
 			return rootNode;
 		}
 
-		VfsNodeDef? ExpandFolder( FolderDef folderDef, bool includeContent )
+		ExpandedVfsNodeDef? ExpandFolder( FolderDef folderDef, bool includeContent )
 		{
-			var rootNode = EmptyFrom<VFolderDef>( folderDef );
+			var rootNode = EmptyFrom<ExpandedVfsNodeDef>( folderDef );
+			rootNode.IsContainer = true;
 			rootNode.Path = folderDef.Path;
 			
 			if( includeContent )

@@ -77,7 +77,7 @@ DC.ExecuteCommand(""cm_ExecuteCmdLine"", ""<load {vpConfFilePath.Replace("\\", "
 			await Dirig.SendAsync( new Net.RunActionMessage
 			{
 				HostClientId = Requestor,
-				Def = new ToolActionDef() { Name = "DoubleCommander", Args = $"--startupscript={scriptFilePath}" },
+				Def = new ToolAppActionDef() { Name = "DoubleCommander", Args = $"--startupscript={scriptFilePath}" },
 			} );
 
 			// all done!

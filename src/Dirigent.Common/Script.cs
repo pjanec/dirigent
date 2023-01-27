@@ -234,7 +234,7 @@ namespace Dirigent
 		/// Runs an action on given host machine. Just sends a command and returns immediately.
 		/// </summary>
 		/// <param name="requestorId">Client name of where to report potential trouble.</param>
-		/// <param name="actionDef">What action to run. The action can be a tool (<see cref="ToolActionDef"/> or a script (<see cref="ScriptActionDef)"/>.</param>
+		/// <param name="actionDef">What action to run. The action can be a tool (<see cref="ToolAppActionDef"/> or a script (<see cref="ScriptActionDef)"/>.</param>
 		/// <param name="hostClientId">Machine where to run the action.</param>
 		/// <param name="vars">Optional variables passed to the action. They are used for expansion in the exe path and args.</param>
 		/// <returns></returns>

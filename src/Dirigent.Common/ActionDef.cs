@@ -13,7 +13,7 @@ namespace Dirigent
 	/// Definition of an action associated with some dirigent item (app, file, machine..)
 	/// </summary>
 	//[MessagePack.MessagePackObject]
-	[MessagePack.Union( 201, typeof( ToolActionDef ) )]
+	[MessagePack.Union( 201, typeof( ToolAppActionDef ) )]
 	[MessagePack.Union( 202, typeof( ScriptActionDef ) )]
 	[MessagePack.Union( 203, typeof( ScriptDef ) )]
 	public abstract class ActionDef : AssocMenuItemDef, IEquatable<ActionDef>
@@ -61,13 +61,13 @@ namespace Dirigent
 	}
 
 	//[MessagePack.MessagePackObject]
-	public class ToolActionDef : ActionDef, IEquatable<ToolActionDef>
+	public class ToolAppActionDef : ActionDef, IEquatable<ToolAppActionDef>
 	{
-		public override string ToString() =>$"[ToolAction] {base.ToString()}";
+		public override string ToString() =>$"[ToolAppAction] {base.ToString()}";
 
-		public bool ThisEquals(ToolActionDef o) => base.ThisEquals(o) && true;
+		public bool ThisEquals(ToolAppActionDef o) => base.ThisEquals(o) && true;
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
-		public bool Equals(ToolActionDef? o) => object.Equals(this, o);
+		public bool Equals(ToolAppActionDef? o) => object.Equals(this, o);
 		public override int GetHashCode() => base.GetHashCode();
 	}
 

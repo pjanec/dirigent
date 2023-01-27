@@ -109,7 +109,7 @@ namespace Dirigent
 
 
 		// translate the Path of the given VfsNodeDef its children
-		public void PerspectivizePath( VfsNodeDef vfsNode, EPathType to )
+		public void PerspectivizePath( VfsNodeDef vfsNode, EPathType to=EPathType.Auto )
 		{
 			if( vfsNode.IsContainer )
 			{

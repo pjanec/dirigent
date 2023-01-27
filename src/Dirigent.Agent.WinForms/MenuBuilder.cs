@@ -205,7 +205,7 @@ namespace Dirigent.Gui.WinForms
 			// set default icon if none is set
 			if ( string.IsNullOrEmpty( mtn.Icon ) )
 			{
-				if (action is ToolActionDef toolAction)
+				if (action is ToolAppActionDef toolAction)
 				{
 					mtn.Icon = _core.ToolsRegistry.GetToolIcon( toolAction.Name );
 				}
