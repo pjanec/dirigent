@@ -41,23 +41,7 @@ namespace Dirigent.Scripts.BuiltIn
 			if( args.VfsNode is null ) throw new NullReferenceException("Args.VfsNode is null");
 
 			// if a single file, create artificial container containing this single file
-			var title = args.VfsNode.Title;
-			var titleSource = args.VfsNode;
-			VfsNodeDef container;
-			if( args.VfsNode.IsContainer )
-			{
-				container = args.VfsNode;
-				titleSource = args.VfsNode;
-			}
-			else
-			{
-				container = new VFolderDef() { Title = title, Children = new List<VfsNodeDef>() { args.VfsNode } };
-			}
-			if (string.IsNullOrEmpty( title )) title = Path.GetFileName(titleSource.Path??"");
-			if (string.IsNullOrEmpty( title )) title = titleSource.Id;
-			if (string.IsNullOrEmpty( title )) title = "file";
-			container.Title = title;
-
+			var container = Tools.Containerize( args.VfsNode );
 
 			// create our own temp folder
 			var tempFolder = Path.Combine( Path.GetTempPath(), TempFilePrefix );

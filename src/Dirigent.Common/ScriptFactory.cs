@@ -86,7 +86,7 @@ namespace Dirigent
 		void AddBuiltIns()
 		{
 			AddScript( "BuiltIns/DemoScript1.cs", () => new DemoScript1() );
-			AddScript( Scripts.BuiltIn.ResolveVfsPath._Name, () => new Scripts.BuiltIn.ResolveVfsPath() );
+			AddScript( Scripts.BuiltIn.ExpandVfsPath._Name, () => new Scripts.BuiltIn.ExpandVfsPath() );
 			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
 			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
 			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );

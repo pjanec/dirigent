@@ -9,20 +9,17 @@ using Dirigent;
 namespace Dirigent.Scripts.BuiltIn
 {
 
-public class ResolveVfsPath : Script
+public class ExpandVfsPath : Script
 {
 	private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-	public static readonly string _Name = "BuiltIns/ResolveVfsPath.cs";
+	public static readonly string _Name = "BuiltIns/ExpandVfsPath.cs";
 
 	//[MessagePack.MessagePackObject]
 	public class TArgs
 	{
 		//[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
-
-		//[MessagePack.Key( 2 )]
-		public bool ForceUNC;
 
 		//[MessagePack.Key( 3 )]
 		public bool IncludeContent;
@@ -52,7 +49,7 @@ public class ResolveVfsPath : Script
 		if( vfsNode is null ) throw new NullReferenceException("vfsNode == null");
 
 
-		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, args.ForceUNC, args.IncludeContent ) };
+		var result = new TResult { VfsNode = await Dirig.ExpandPathsAsync( vfsNode, args.IncludeContent ) };
 		return result.Serialize();
 	}
 }

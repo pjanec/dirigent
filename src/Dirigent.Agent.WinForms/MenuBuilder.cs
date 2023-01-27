@@ -20,10 +20,12 @@ namespace Dirigent.Gui.WinForms
 		protected ReflectedStateRepo ReflStates => _core.ReflStates;
 		protected List<PlanDef> PlanRepo => _core.PlanRepo;
 		protected List<ScriptDef> ScriptRepo => _core.ScriptRepo;
+		protected PathPerspectivizer _pathPerspectivizer;
 
 		public MenuBuilder( GuiCore core )
 		{
 			_core = core;
+			_pathPerspectivizer = _core.ReflStates.PathPerspectivizer;
 		}
 
 		// returns a menu tree constructed from given action defs (where action.Title is the slash separated path in the menu tree)
@@ -112,10 +114,12 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				GetAllVfsNodeActions(vfsNodeDef),
 				async (action) => await WFT.GuardedOpAsync( async () => {
-						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, false, true, null );
+						var resolved = await ReflStates.FileRegistry.ExpandPathsAsync( CtrlAsync, vfsNodeDef, true, null );
 						if( resolved is not null )
 						{
-							if( !resolved.IsContainer )
+							_pathPerspectivizer.PerspectivizePath( resolved, EPathType.Auto );
+							
+							if ( !resolved.IsContainer )
 							{
 								_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
 							}

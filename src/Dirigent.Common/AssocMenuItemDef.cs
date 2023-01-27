@@ -26,7 +26,7 @@ namespace Dirigent
 	[MessagePack.Union( 113, typeof( FolderDef ) )]
 	[MessagePack.Union( 114, typeof( VFolderDef ) )]
 	[MessagePack.Union( 115, typeof( FilePackageDef ) )]
-	[MessagePack.Union( 116, typeof( ResolvedVfsNodeDef ) )]
+	[MessagePack.Union( 116, typeof( ExpandedVfsNodeDef ) )]
 
 	public abstract class AssocMenuItemDef : IEquatable<AssocMenuItemDef>
 	{

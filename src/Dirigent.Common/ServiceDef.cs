@@ -5,7 +5,7 @@
 	/// </summary>
 	public class ServiceDef
     {
-        public string Name;
+        public string Name="";
         public int Port;
         //public string UserName;
         //public string Password;

@@ -21,7 +21,7 @@ namespace Dirigent
 	[MessagePack.Union( 103, typeof( FolderDef ) )]
 	[MessagePack.Union( 104, typeof( VFolderDef ) )]
 	[MessagePack.Union( 105, typeof( FilePackageDef ) )]
-	[MessagePack.Union( 106, typeof( ResolvedVfsNodeDef ) )]
+	[MessagePack.Union( 106, typeof( ExpandedVfsNodeDef ) )]
 	public abstract class VfsNodeDef : AssocMenuItemDef, IEquatable<VfsNodeDef>
 	{
 		/// <summary>
@@ -81,17 +81,17 @@ namespace Dirigent
 
 
 	//[MessagePack.MessagePackObject]
-	public class ResolvedVfsNodeDef : VfsNodeDef, IEquatable<ResolvedVfsNodeDef>
+	public class ExpandedVfsNodeDef : VfsNodeDef, IEquatable<ExpandedVfsNodeDef>
 	{
-		public bool ThisEquals( ResolvedVfsNodeDef other ) =>
+		public bool ThisEquals( ExpandedVfsNodeDef other ) =>
 			base.ThisEquals( other ) &&
 			true;
 
 		// boilerplate
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);
-		public bool Equals(ResolvedVfsNodeDef? o) => object.Equals(this, o);
-		public static bool operator ==(ResolvedVfsNodeDef o1, ResolvedVfsNodeDef o2) => object.Equals(o1, o2);
-		public static bool operator !=(ResolvedVfsNodeDef o1, ResolvedVfsNodeDef o2) => !object.Equals(o1, o2);
+		public bool Equals(ExpandedVfsNodeDef? o) => object.Equals(this, o);
+		public static bool operator ==(ExpandedVfsNodeDef o1, ExpandedVfsNodeDef o2) => object.Equals(o1, o2);
+		public static bool operator !=(ExpandedVfsNodeDef o1, ExpandedVfsNodeDef o2) => !object.Equals(o1, o2);
 		public override int GetHashCode() => Guid.GetHashCode();
 	}
 	

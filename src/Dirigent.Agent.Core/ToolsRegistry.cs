@@ -25,6 +25,8 @@ namespace Dirigent
 		// all tool types available
 		private Dictionary<string, AppDef> _defs; // toolId => AppDef
 
+		MachineRegistry _machineRegistry;
+		PathPerspectivizer _pathPerspectivizer;
 		FileRegistry _fileReg;
 		ReflectedScriptRegistry _reflScriptReg;
 		ReflectedStateRepo _reflStates;
@@ -33,9 +35,11 @@ namespace Dirigent
 		{
 			_sharedContext = shCtx;
 			_defs = new( toolDefs.ToDictionary( x => x.Id.AppId ), StringComparer.OrdinalIgnoreCase); // toolId is stored as the AppId
-			_fileReg = reflStates.FileReg;
-			_reflScriptReg = reflStates.ScriptReg;
+			_fileReg = reflStates.FileRegistry;
 			_reflStates = reflStates;
+			_reflScriptReg = _reflStates.ScriptReg;
+			_machineRegistry = _reflStates.MachineRegistry;
+			_pathPerspectivizer = _reflStates.PathPerspectivizer;
 			_reflStates.Client.MessageReceived += OnMessage;
 		}
 
@@ -131,6 +135,7 @@ namespace Dirigent
 
 		}
 
+		// starts script on the node defined by the action or (if not specified) then on the requestor (falls back to master if neither specified)
 		public void StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNodeDef=null )
 		{
 			//var argsString = vars != null ? Tools.ExpandEnvAndInternalVars( script.Args, vars ) : script.Args;
@@ -142,7 +147,7 @@ namespace Dirigent
 				VfsNode = vfsNodeDef,
 			};
 
-			_reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
+			_reflScriptReg.RunScriptNoWait( script.HostId ?? requestorId ?? "", script.Name, null, args, script.Title );
 		}
 
 		public void StartAppBoundAction( string? requestorId, ActionDef action, AppDef boundTo )
@@ -150,11 +155,11 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id.MachineId },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id.MachineId ) },
+				{ "MACHINE_IP", _machineRegistry.GetMachineIP( boundTo.Id.MachineId ) },
 				{ "APP_IDTUPLE", boundTo.Id.ToString() },
 				{ "APP_ID", boundTo.Id.AppId },
 				{ "APP_PID", (_reflStates.GetAppState(boundTo.Id)?.PID ?? -1).ToString() },
-				// TODO: resolve app workdir etc. on app's-local computer?
+				// Note: app workdir variable also available?
 			};
 			StartAction( requestorId, action, vars );
 		}
@@ -164,7 +169,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", localMachineId },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId ) },
+				{ "MACHINE_IP", _machineRegistry.GetMachineIP( localMachineId ) },
 			};
 			StartAction( requestorId, action, vars );
 		}
@@ -174,7 +179,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id },
-				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id ) },
+				{ "MACHINE_IP", _machineRegistry.GetMachineIP( boundTo.Id ) },
 			};
 			StartAction( requestorId, action, vars );
 		}
@@ -184,7 +189,7 @@ namespace Dirigent
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
-				{ "FILE_PATH", _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" ) },
+				{ "FILE_PATH", _pathPerspectivizer.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId ) },
 			};
 			StartAction( requestorId, action, vars, boundTo );
 		}
@@ -197,7 +202,7 @@ namespace Dirigent
 
 			if( !string.IsNullOrEmpty( boundTo.Path ) )
 			{
-				vars["FILE_PATH"] = _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" );
+				vars["FILE_PATH"] = _pathPerspectivizer.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId );
 			}
 			else
 			{
@@ -221,7 +226,7 @@ namespace Dirigent
 				}
 				else
 				{
-					var fname = _fileReg.MakeUNCIfNotLocal( node.Path!, node.MachineId, $"{node}" );
+					var fname = _pathPerspectivizer.MakeUNCIfNotLocal( node.Path!, node.MachineId );
 					list.Add( fname );
 				}
 			}

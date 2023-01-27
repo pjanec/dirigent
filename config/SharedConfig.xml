@@ -272,8 +272,9 @@
 
      </Machine>
 
-    <Machine Name="m2" IP="127.0.0.1" MAC="00-15-5D-00-0A-01">
-        <Share Name="C" Path="C:\"/>
+    <Machine Name="m2" IP="127.0.0.1" MAC="00-15-5D-00-0A-01" SshUserName="" SshPassword="" SshKey="" SshPort="22">
+        <Share Path="C:\" Name="C" />
+        <SshUrl Path="C:\" UrlPrefix="sftp://%GW_USERNAME%:%GW_PASSWORD%@%GW_IP%:%GW_PORT%/C:/Users/%MACHINE_USERNAME%/MachineLinks/%MACHINE_IP%_C" />
      </Machine>
 
    	<App

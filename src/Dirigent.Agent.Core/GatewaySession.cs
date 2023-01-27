@@ -145,7 +145,7 @@ namespace Dirigent
 			};
 		}
 
-		// returns null if cariables can't be resolved (machine not found etc.)
+		// returns null if variables can't be resolved (machine not found etc.)
 		public Dictionary<string, string>? GetVariables( string machineId, string serviceName )
 		{
 			var vars = new Dictionary<string, string>();

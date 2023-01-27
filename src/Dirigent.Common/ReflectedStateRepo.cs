@@ -20,23 +20,23 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
-		public ScriptState? GetScriptState( Guid Id ) { return _scriptReg.GetScriptState(Id); }
-		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scriptReg.GetAllScriptStates(); }
+		public ScriptState? GetScriptState( Guid Id ) { return _scriptRegistry.GetScriptState(Id); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scriptRegistry.GetAllScriptStates(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
 		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
-		public ScriptDef? GetScriptDef( Guid Id ) { return _scriptReg.ScriptDefs.Find((x) => x.Guid==Id); }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptReg.ScriptDefs; }
-		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
-		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
-		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
-		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineDefs; }
+		public ScriptDef? GetScriptDef( Guid Id ) { return _scriptRegistry.ScriptDefs.Find((x) => x.Guid==Id); }
+		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptRegistry.ScriptDefs; }
+		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileRegistry.GetVfsNodeDef(guid); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileRegistry.GetAllVfsNodeDefs(); }
+		public MachineDef? GetMachineDef( string Id ) { return _machineRegistry.GetMachineDef( Id ); }
+		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineRegistry.GetAllMachineDefs(); }
 		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
-		  => _scriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
-
+		  => _scriptRegistry.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
+		public Task<VfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent ) => _fileRegistry.ExpandPathsAsync( _syncIDirig, nodeDef, includeContent, null );
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to ) => _pathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public string Name => _client.Ident.Name;
@@ -74,17 +74,24 @@ namespace Dirigent
 
 		//private Dictionary<Guid, ScriptState> _scriptStates = new Dictionary<Guid, ScriptState>();
 
-		private ReflectedScriptRegistry _scriptReg;
-		public ReflectedScriptRegistry ScriptReg => _scriptReg;
+		private ReflectedScriptRegistry _scriptRegistry;
+		public ReflectedScriptRegistry ScriptReg => _scriptRegistry;
 
-		private FileRegistry _fileReg;
-		public FileRegistry FileReg => _fileReg;
+		private MachineRegistry _machineRegistry;
+		public MachineRegistry MachineRegistry => _machineRegistry;
+
+		private PathPerspectivizer _pathPerspectivizer;
+		public PathPerspectivizer PathPerspectivizer => _pathPerspectivizer;
+		
+		private FileRegistry _fileRegistry;
+		public FileRegistry FileRegistry => _fileRegistry;
+		
 		SynchronousOpProcessor _syncOps;
 		SynchronousIDirig _syncIDirig;
 
 		
 
-		private List<MachineDef> _machineDefs = new List<MachineDef>();
+		//private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<string, MachineState> _machineStates = new(); // id => state
 
 		public ReflectedStateRepo( Net.Client client, string localMachineId, string rootForRelativePaths )
@@ -95,16 +102,23 @@ namespace Dirigent
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 			
-			_scriptReg = new ReflectedScriptRegistry( this );
+			_scriptRegistry = new ReflectedScriptRegistry( this );
 
-			_fileReg = new FileRegistry( this, localMachineId, rootForRelativePaths, (string machineId) =>
-			{
-				if( _clientStates.TryGetValue( machineId, out var state ) )
+			_machineRegistry = new MachineRegistry(
+				localMachineId,
+				(string machineId) =>
 				{
-					return state.IP;
+					if( _clientStates.TryGetValue( machineId, out var state ) )
+					{
+						return state.IP;
+					}
+					return null;
 				}
-				return null;
-			});
+			);
+
+			_pathPerspectivizer = new PathPerspectivizer( localMachineId, _machineRegistry );
+
+			_fileRegistry = new FileRegistry( this, _machineRegistry, _pathPerspectivizer );
 		}
 
 		protected override void Dispose( bool disposing )
@@ -190,13 +204,13 @@ namespace Dirigent
 
 				case Net.ScriptStateMessage m:
 				{
-					_scriptReg.UpdateScriptState( m.Instance, m.State );
+					_scriptRegistry.UpdateScriptState( m.Instance, m.State );
 					break;
 				}
 
 				case Net.ScriptDefsMessage m:
 				{
-					_scriptReg.SetScriptDefs( m.ScriptDefs, m.Incremental );
+					_scriptRegistry.SetScriptDefs( m.ScriptDefs, m.Incremental );
 					OnScriptsReceived?.Invoke();
 					break;
 				}
@@ -210,15 +224,15 @@ namespace Dirigent
 
 				case Net.VfsNodesMessage m:
 				{
-					_fileReg.SetVfsNodes( m.VfsNodes );
+					_fileRegistry.SetVfsNodes( m.VfsNodes );
 					OnFilesReceived?.Invoke();
 					break;
 				}
 
 				case Net.MachineDefsMessage m:
 				{
-					_machineDefs = m.Machines.ToList();
-					_fileReg.SetMachines( _machineDefs );
+					var machineDefs = m.Machines.ToList();
+					_machineRegistry.SetMachines( machineDefs );
 					OnMachinesReceived?.Invoke();
 					break;
 				}
@@ -251,9 +265,9 @@ namespace Dirigent
 					_planDefs.Clear();
 					_appStates.Clear();
 					_planStates.Clear();
-					_scriptReg.Clear();
-					_machineDefs.Clear();
-					_fileReg.Clear();
+					_scriptRegistry.Clear();
+					_machineRegistry.Clear();
+					_fileRegistry.Clear();
 					OnReset?.Invoke();
 					break;
 				}

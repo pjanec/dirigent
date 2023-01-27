@@ -27,6 +27,7 @@ namespace Dirigent.Scripts.BuiltIn
 		public class TArgs
 		{
 			// vfsnode contained (package, folder, virtual folder..); only the child nodes matter
+			// paths needs to be resolved already
 			//[MessagePack.Key( 1 )]
 			public VfsNodeDef? Container;
 
@@ -72,6 +73,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
+
 				// traverse the vfs tree, create folders and copy local files to the temp folder
 				CopyLocalFiles( _args.Container!, tempFolder, exceptions );
 

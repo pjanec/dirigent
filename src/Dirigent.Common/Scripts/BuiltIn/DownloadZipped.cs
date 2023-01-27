@@ -16,6 +16,14 @@ namespace Dirigent.Scripts.BuiltIn
 	* Let then upload machine-specific zip files to our folder we create in Downloads folder.
 	* Wait for the slave scripts to finish and show a "download finished" bubble.
 	*/
+
+	// FIXME: if GUI client is behind SSH gateway, first copy the partial zip files to the gateway machine
+	// using UNC (gateway computer needs to be an agent with file share defined in Machine section of SharedConfig),
+	// then download the zips to the GUI from the gateway via SFPT
+	// So we create a temp folder in gateways's download folder (must be accessible via UNC path from the agents),
+	// let the slaves to copy their zip file there. The use winscp (packed with dirigent, 27MB) to download the whole folder
+	// to GUIs Downloads folder.
+	
 	public class DownloadZipped : Script
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -40,6 +48,7 @@ namespace Dirigent.Scripts.BuiltIn
 			public DownloadZippedSlave.TResult? Result;
 		}
 
+	
 
 		protected async override Task<byte[]?> Run()
 		{
@@ -49,23 +58,8 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
-				// if a single file, create artificial container containing this single file
-				var title = args.VfsNode.Title;
-				var titleSource = args.VfsNode;
-				VfsNodeDef container;
-				if( args.VfsNode.IsContainer )
-				{
-					container = args.VfsNode;
-					titleSource = args.VfsNode;
-				}
-				else
-				{
-					container = new VFolderDef() { Title = title, Children = new List<VfsNodeDef>() { args.VfsNode } };
-				}
-				if (string.IsNullOrEmpty( title )) title = Path.GetFileName(titleSource.Path??"");
-				if (string.IsNullOrEmpty( title )) title = titleSource.Id;
-				if (string.IsNullOrEmpty( title )) title = "file";
-				container.Title = title;
+				// make a folder out of a single file
+				var container = Tools.Containerize( args.VfsNode );
 
 				// collect all individual machines
 				var allMachines = new HashSet<string>();
@@ -95,11 +89,12 @@ namespace Dirigent.Scripts.BuiltIn
 					MachineId = Requestor // FIXME: we need our local machine name here!
 				};
 
-				var vfsResolvedDownloadFolder = await Dirig.ResolveAsync( vfsDownloadFolder, true, false );
-				if (vfsResolvedDownloadFolder is null) throw new Exception( "Folder resolution failed." );
+				var vfsExpandedDownloadFolder = await Dirig.ExpandPathsAsync( vfsDownloadFolder, false );
+				if (vfsExpandedDownloadFolder is null) throw new Exception( "Folder path expansion failed." );
+				await Dirig.PerspectivizePathAsync( vfsExpandedDownloadFolder, EPathType.LocalOrUNC );
 
 				// get the name of the archive file to download
-				string zipFileBase = System.IO.Path.GetFileName(title) + DateTime.Now.ToString("_yyMMdd_HHmm");
+				string zipFileBase = System.IO.Path.GetFileName(container.Title) + DateTime.Now.ToString("_yyMMdd_HHmm");
 
 				// start a slave script on each machine
 				var slaveTasks = new List<SlaveTask>();
@@ -109,7 +104,7 @@ namespace Dirigent.Scripts.BuiltIn
 					var slaveScriptArgs = new DownloadZippedSlave.TArgs()
 					{
 						Container = container,
-						DestinationFolder = vfsResolvedDownloadFolder.Path,
+						DestinationFolder = vfsExpandedDownloadFolder.Path,
 						ZipFileBaseName = zipFileBase,
 						IncludeGlobals = mach == onlineMachines.First(), // first machine will do the global files
 					};

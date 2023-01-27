@@ -39,6 +39,8 @@ namespace Dirigent
 		//[MessagePack.Key( 3 )]
 		public List<FileShareDef> FileShares = new List<FileShareDef>();
 
+		public List<SshUrlDef> SshUrls = new List<SshUrlDef>();
+
 		//[MessagePack.Key( 4 )]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
@@ -60,6 +62,7 @@ namespace Dirigent
 				this.IP == other.IP &&
 				this.MAC == other.MAC &&
 				this.FileShares.SequenceEqual( other.FileShares ) &&
+				this.SshUrls.SequenceEqual( other.SshUrls ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				this.Actions.SequenceEqual( other.Actions ) &&
 				this.Services.SequenceEqual( other.Services ) &&

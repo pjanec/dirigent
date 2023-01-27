@@ -549,6 +549,34 @@ namespace Dirigent
 			a.Name = x.Name;
 			a.Path = x.Path;
 
+			if( !PathUtils.IsPathAbsolute(a.Path)  )
+				throw new Exception($"Share path '{a.Path}' not absolute. {e}");
+
+			return a;
+		}
+
+		static SshUrlDef LoadSshUrl( XElement e )
+		{
+			SshUrlDef a = new();
+
+			var x = new 
+			{
+				UrlPrefix = e.Attribute( "UrlPrefix" )?.Value,
+				Path = e.Attribute( "Path" )?.Value,
+			};
+
+			if( x.UrlPrefix == null )
+				throw new Exception( $"SshUrl definition missing the UrlPrefix attribute: {e}" );
+
+			if( x.Path == null )
+				throw new Exception( $"SshUrl share definition missing the Path attribute: {e}" );
+
+			a.UrlPrefix = x.UrlPrefix;
+			a.Path = x.Path;
+
+			if( !PathUtils.IsPathAbsolute(a.Path)  )
+				throw new Exception($"SshUrl path '{a}' not absolute. {e}");
+
 			return a;
 		}
 
@@ -787,6 +815,21 @@ namespace Dirigent
 			return res;
 		}
 
+		static List<SshUrlDef> LoadSshUrls( XElement root )
+		{
+			var res = new List<SshUrlDef>();
+
+			var elems = from e in root.Elements( "SshUrl" )
+						select e;
+			foreach( var e in elems )
+			{
+				var def = LoadSshUrl( e );
+				res.Add(def);
+			}
+
+			return res;
+		}
+
 		void LoadMachines( FileDefReg fdReg )
 		{
 			_cfg.Machines.Clear();
@@ -802,6 +845,7 @@ namespace Dirigent
 				var ip = X.getStringAttr( p, "IP", "" );
 				var MAC = X.getStringAttr( p, "MAC", "" );
 				var shares = LoadShares( p );
+				var sshUrls = LoadSshUrls( p );
 
 				if ( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing machine name in {p} #{index}");
@@ -819,6 +863,7 @@ namespace Dirigent
 						IP = ip,
 						MAC = MAC,
 						FileShares = shares,
+						SshUrls = sshUrls,
 						VfsNodes = vfsNodes,
 						Actions = LoadActions( p, id, null ),
 					}

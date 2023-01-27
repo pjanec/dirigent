@@ -571,7 +571,12 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			MessageBox.Show(
-				"Dirigent app launcher\nby pjanec\nMIT license\n\nver." + version + "\n\n" + verStampText,
+				$"Dirigent by pjanec, MIT license\n"+
+				"\n"+
+				"WinScp by Martin Prikryl, GPL license\n"+
+				"\n\n" +
+				verStampText +
+				"",
 				"About Dirigent",
 				MessageBoxButtons.OK,
 				MessageBoxIcon.Information );
@@ -703,7 +708,7 @@ namespace Dirigent.Gui.WinForms
 				var vars = new Dictionary<string,string>()
 				{
 					{ "MACHINE_ID", _core.MachineId },
-					{ "MACHINE_IP", _core.ReflStates.FileReg.GetMachineIP( _core.MachineId ) },
+					{ "MACHINE_IP", _core.ReflStates.MachineRegistry.GetMachineIP( _core.MachineId ) },
 				};
 				
 				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => WFT.GuardedOp( () => { Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, x, hostClientId, vars )); } ) );

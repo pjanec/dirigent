@@ -784,6 +784,34 @@ namespace Dirigent
 			udpClient.Send(dgram, dgram.Length, new System.Net.IPEndPoint( System.Net.IPAddress.Broadcast, 7));
 			udpClient.Close();
 		}
-}
+
+
+		// return a folder-type vfsNode, even if the input is a file
+		public static VfsNodeDef Containerize( VfsNodeDef vfsNode )
+		{
+			// if a single file, create artificial container containing this single file
+			VfsNodeDef container;
+			if( vfsNode.IsContainer )
+			{
+				container = vfsNode;
+			}
+			else
+			{
+				container = new VFolderDef() { Children = new List<VfsNodeDef>() { vfsNode } };
+			}
+			
+			// make up the title if not already specified
+			var title = vfsNode.Title;
+			var titleSource = vfsNode;
+			if (string.IsNullOrEmpty( title )) title = Path.GetFileName(titleSource.Path??"");
+			if (string.IsNullOrEmpty( title )) title = titleSource.Id;
+			if (string.IsNullOrEmpty( title )) title = "file-"+Guid.NewGuid().ToString();
+
+			container.Title = title;
+
+			return container;
+		}
+
+	}
 
 }

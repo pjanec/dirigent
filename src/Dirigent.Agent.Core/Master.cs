@@ -30,8 +30,8 @@ namespace Dirigent
 		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
 		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Guid == Id); }
 		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _reflScripts.ScriptDefs; }
-		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
-		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
+		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileRegistry.GetVfsNodeDef(guid); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileRegistry.GetAllVfsNodeDefs(); }
 		public string Name => string.Empty;
 		
 		/// <summary>
@@ -48,7 +48,7 @@ namespace Dirigent
 		}
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _reflScripts.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+		public Task<VfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent )
 		{
 			//// if node not associated with any machine, resolve on master's machine
 			//if( string.IsNullOrEmpty(nodeDef.MachineId) )
@@ -56,9 +56,11 @@ namespace Dirigent
 			//	nodeDef = Tools.Clone( nodeDef )!;
 			//	nodeDef.MachineId = _machineId;	
 			//}
-			return _files.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
+			return _fileRegistry.ExpandPathsAsync( _syncIDirig, nodeDef, includeContent, null );
 		}
 					
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to )
+			=> _pathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
 		#endregion
 
 		public bool WantsQuit { get; set; }
@@ -68,6 +70,7 @@ namespace Dirigent
 		public string RootForRelativePaths => _rootForRelativePaths;
 		public Dictionary<string, string> InternalVars => _internalVars;
 
+		
 		#region Private fields
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -83,7 +86,7 @@ namespace Dirigent
 		private ReflectedScriptRegistry _reflScripts;
 		private LocalScriptRegistry _localScripts;
 		private SingletonScriptRegistry _singlScripts;
-		private FileRegistry _files;
+		private FileRegistry _fileRegistry;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
@@ -101,6 +104,8 @@ namespace Dirigent
 		private SynchronousIDirig _syncIDirig;
 		private string _machineId; // empty if we run master standalone on an unidentified machine (this never happens as we always run master as part of some agent on a machine with a known id)
 		private bool _debug = false; // do not catch exceptions etc.
+		private MachineRegistry _machineRegistry;
+		private PathPerspectivizer _pathPerspectivizer;
 
 		#endregion
 
@@ -138,10 +143,9 @@ namespace Dirigent
 			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id
 			if (string.IsNullOrEmpty( _machineId )) throw new Exception($"MachineId not specified for Master!");
 
-			_files = new FileRegistry(
-				this,
-				_machineId, // empty if we run master standalone on an unidentified machine
-				_rootForRelativePaths,
+
+			_machineRegistry = new MachineRegistry(
+				_machineId,
 				(string machineId) =>
 				{
 					if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
@@ -151,6 +155,10 @@ namespace Dirigent
 					return null;
 				}
 			);
+
+			_pathPerspectivizer = new PathPerspectivizer( _machineId, _machineRegistry );
+
+			_fileRegistry = new FileRegistry( this, _machineRegistry, _pathPerspectivizer );
  
 			_server = new Server( ac.MasterPort );
 			_swClientRefresh = new Stopwatch();
@@ -633,7 +641,7 @@ namespace Dirigent
 
 			// send full list of VFS nodes
 			{
-				var m = new Net.VfsNodesMessage( _files.VfsNodes.Values );
+				var m = new Net.VfsNodesMessage( _fileRegistry.VfsNodes.Values );
 				_server.SendToSingle( m, ident.Name );
 			}
 
@@ -740,8 +748,9 @@ namespace Dirigent
 			_reflScripts.SetScriptDefs( sharedConfig.SingleInstScripts );
 			_singlScripts.SetAll( sharedConfig.SingleInstScripts );
 
-			_files.SetVfsNodes( sharedConfig.VfsNodes );
-			_files.SetMachines( sharedConfig.Machines );
+			_fileRegistry.SetVfsNodes( sharedConfig.VfsNodes );
+
+			_machineRegistry.SetMachines( sharedConfig.Machines );
 
 			_machineDefs = sharedConfig.Machines;
 			_menuItemDefs = sharedConfig.MainMenuItems;
