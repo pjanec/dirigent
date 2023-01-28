@@ -45,7 +45,13 @@ namespace Dirigent.Gui.WinForms
 			{
 				await asyncAction();
 			}
-			catch( Exception ex )
+			catch (TaskCanceledException) {} // ignore }
+			//catch (TargetInvocationException ex )
+			//{
+			//	log.Error( ex.InnerException );
+			//	ExceptionDialog.showExceptionWithStackTrace( ex.InnerException, "Exception", "" );
+			//}
+			catch ( Exception ex )
 			{
 				log.Error( ex );
 				ExceptionDialog.showExceptionWithStackTrace( ex, "Exception", "" );

@@ -33,7 +33,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />
-    <PackageReference Include="WinSCP" Version="5.21.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />

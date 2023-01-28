@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace Dirigent
 {
 
+
 	/// <summary>
 	/// Handles tool app instances on a client (usually a GUI as tools are invoked interactively by the users from dirigent's UI)
 	/// </summary>
@@ -16,11 +17,25 @@ namespace Dirigent
 	/// </remarks>
 	public partial class ToolsRegistry : Disposable
 	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
         private SharedContext _sharedContext;
 		public SharedContext SharedContext => _sharedContext;
+
+		// Instance will be disposed when Running=false
+		class ToolInstanceRecord
+		{
+			public IToolInstance Instance;
+			public Func<Task?>? OnFinishedAsync; // started in a new task when the tool finishes
+			public ToolInstanceRecord( IToolInstance inst, Func<Task?>? onFinishedAsync )
+			{
+				Instance = inst;
+				OnFinishedAsync = onFinishedAsync;
+			}
+		}
 		
-		// all individual instances of some tool apps
-		private Dictionary<Guid, IActionInstance> _actionInstances = new();
+		// all individual instances of running tools
+		private Dictionary<Guid, ToolInstanceRecord> _toolInstances = new();
 
 		// all tool types available
 		private Dictionary<string, AppDef> _appDefs; // toolId => AppDef
@@ -29,6 +44,7 @@ namespace Dirigent
 		PathPerspectivizer _pathPerspectivizer;
 		ReflectedScriptRegistry _reflScriptReg;
 		ReflectedStateRepo _reflStates;
+
 
 		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolAppDefs, ReflectedStateRepo reflStates )
 		{
@@ -87,12 +103,12 @@ namespace Dirigent
 		{
 			var toRemove = new List<Guid>();
 
-			foreach( var (guid, toolInst) in _actionInstances )
+			foreach( var (guid, rec) in _toolInstances )
 			{
-				toolInst.Tick();
+				rec.Instance.Tick();
 
 				// remove those tool instances not running any more
-				if( !toolInst.Running )
+				if( !rec.Instance.Running )
 				{
 					toRemove.Add( guid );
 				}
@@ -101,15 +117,21 @@ namespace Dirigent
 			// remove those tool local apps not running any more (houskeeping)
 			foreach( var guid in toRemove )
 			{
-				var li = _actionInstances[guid];
-				li.Dispose();
-				_actionInstances.Remove( guid );
+				var li = _toolInstances[guid];
+				li.Instance.Dispose();
+				
+				if( li.OnFinishedAsync is not null )
+				{
+					Task.Run( li.OnFinishedAsync );
+				}
+				
+				_toolInstances.Remove( guid );
 			}
 		}
 
 		public void Clear()
 		{
-			_actionInstances.Clear();
+			_toolInstances.Clear();
 		}
 	}
 }

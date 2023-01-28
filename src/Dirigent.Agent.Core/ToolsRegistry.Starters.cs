@@ -2,32 +2,37 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dirigent
 {
 	public partial class ToolsRegistry
 	{
-		public void StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null, ExpandedVfsNodeDef? vfsNode=null,
-						string? tempFileName=null, Action? onFileChanged=null  // FIXME: this is only needed for file-based action
+		public Task StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null, ExpandedVfsNodeDef? vfsNode=null,
+						Func<Task?>? onActionFinishedAsync=null
 			)
 		{
 			if (action is ToolAppActionDef toolAction)
 			{
 				var inst = GetToolAppInstance( requestorId, toolAction, vars );
-				StartInstance( inst, tempFileName, onFileChanged );
+				StartInstance( inst, onActionFinishedAsync );
 			}
 			else if (action is ScriptActionDef scriptAction)
 			{
+				// FIXME:
+				//   1. GetScriptInstance
+				//   2. StartInstance
 				StartScript( requestorId, scriptAction, vars, vfsNode );
 			}
 			else
 			{
 				throw new Exception( $"Unknown action type: {action.GetType().Name}" );
 			}
+			return Task.CompletedTask;
 		}
 
-		IActionInstance GetToolAppInstance( string? requestorId, ToolAppActionDef tool, Dictionary<string,string>? vars=null )
+		IToolInstance GetToolAppInstance( string? requestorId, ToolAppActionDef tool, Dictionary<string,string>? vars=null )
 		{
 			if(! _appDefs.TryGetValue( tool.Name, out var toolAppDef ) )
 				throw new Exception( $"Tool '{tool}' not available" );
@@ -45,17 +50,11 @@ namespace Dirigent
 				}
 			}
 
-			IActionInstance toolInst = new ToolAppInstance( _sharedContext, toolAppDef, vars );
+			IToolInstance toolInst = new ToolAppInstance( _sharedContext, toolAppDef, vars );
 
 			return toolInst;
 		}
 		
-		//void StartToolApp( string? requestorId, ToolAppActionDef tool, Dictionary<string,string>? vars=null, string? tempFileName=null, Action? onFileChanged=null )
-		//{
-		//	var inst = GetToolAppInstance( requestorId, tool, vars );
-		//	StartInstance( inst, tempFileName, onFileChanged );
-		//}
-
 		// starts script on the node defined by the action or (if not specified) then on the requestor (falls back to master if neither specified)
 		void StartScript( string? requestorId, ScriptActionDef scriptDef, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNodeDef=null, string? tempFileName=null, Action? onFileChanged=null )
 		{
@@ -72,24 +71,15 @@ namespace Dirigent
 		}
 
 
-		void StartInstance( IActionInstance toolInst, string? tempFileName=null, Action? onFileChanged=null )
+		void StartInstance( IToolInstance toolInst, Func<Task?>? onActionFinishedAsync )
 		{
-			if( !string.IsNullOrEmpty(tempFileName) )
-			{
-				toolInst = new ActionInstanceTempFileDecorator(
-					toolInst,
-					tempFileName,
-					onFileChanged
-				);
-			}
-			
 			try
 			{
 				toolInst.Start();
 
 				// store
 				var guid = Guid.NewGuid();
-				_actionInstances[guid] = toolInst;
+				_toolInstances[guid] = new ToolInstanceRecord( toolInst, onActionFinishedAsync );
 			}
 			catch
 			{
@@ -133,24 +123,76 @@ namespace Dirigent
 			StartAction( requestorId, action, vars );
 		}
 
-		public void StartFileBoundAction( string requestorId, ActionDef action, ExpandedVfsNodeDef boundTo )
+		void ShowError( string clientId, string msg, Exception ex )
 		{
+			_reflStates.Send( new Net.UserNotificationMessage
+			{
+				HostClientId = clientId,
+				Category=Net.UserNotificationMessage.ECategory.Error, 
+				PresentationType = Net.UserNotificationMessage.EPresentationType.MessageBox,
+				Message = $"{msg}\n\n[{ex.GetType().Name}]\n\n{ex.Message}\n\n{ex.StackTrace}",
+			});
+		}
+
+		public async Task StartFileBoundAction( string requestorId, ActionDef action, ExpandedVfsNodeDef boundTo )
+		{
+			if (boundTo.Path is null)
+			{
+				throw new Exception( $"Cannot start action on a file node with no path. {action}" );
+			}
+			
 			_pathPerspectivizer.PerspectivizePath( boundTo );
-			// TODO:
+
 			// if the path is SSH
-			//   - download the file to a temp location
-			//   - start the action with the temp file, on file change event upload the file back
+			//   - download the file to a temp location (await async)
+			//   - start the action with the temp file
+			//   - on file change event upload the file back
+			//   - on action finished delete the temp file
 			// if the path in local or UNC, start the tool with this path directly
+
+
+			string localPath = boundTo.Path;
+			Func<Task?>? onActionFinishedAsync = null;
+			if( PathPerspectivizer.IsSshPath( boundTo.Path ) )
+			{
+				var sshPath = boundTo.Path;
+
+				// download
+				var sshFileHandler = new SshFileHandler( sshPath );
+				await sshFileHandler.DownloadAsync( CancellationToken.None );
+				localPath = sshFileHandler.LocalPath!;
+
+				Func<CancellationToken, Task> onFileChanged = async (CancellationToken ct) =>
+				{
+					try	{ await sshFileHandler.UploadAsync( ct ); }
+					catch( Exception ex ) {	ShowError(requestorId, $"File upload failed. {sshPath}", ex); }
+				};
+
+				var changeMonitor = new FileChangeMonitor( localPath, onFileChanged );
+
+				onActionFinishedAsync = async () => // note: this delegate captures both the changeMonitor and the sshFileHandler, keeping them alive until the action finishes
+				{
+					await changeMonitor.ForceCheckAsync( CancellationToken.None ); // if the file has changed, this fires the change handler to upload the file
+					
+					changeMonitor.Dispose(); // stops checking for change
+					sshFileHandler.Dispose(); // deletes the temp file
+				};
+				
+			}
 
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
-				{ "FILE_PATH", boundTo.Path }, // THIS NEEDS TO BE LOCAL/UNC PATH 
+				{ "FILE_PATH", localPath },	// full path to the file
+				{ "FILE_DIR", System.IO.Path.GetDirectoryName( localPath )??"" }, // just the directory name (no file name)
+				{ "FILE_NAME", System.IO.Path.GetFileName( localPath )??"" }, // just the file name with extension, no directory
 			};
-			StartAction( requestorId, action, vars, boundTo );
+			
+			await StartAction( requestorId, action, vars, boundTo, onActionFinishedAsync  );
 		}
+		
 
-		public void StartFilePackageBoundAction( string requestorId, ActionDef action, ExpandedVfsNodeDef boundTo )
+		public Task StartFilePackageBoundAction( string requestorId, ActionDef action, ExpandedVfsNodeDef boundTo )
 		{
 			// this gets called also for physical folders (then the vsfNode.Path is non-empty)
 			
@@ -168,7 +210,7 @@ namespace Dirigent
 				vars["FILE_PATH"] = string.Join( " ", list.Select( s => $"\"{s}\"" ) );
 			}
 
-			StartAction( requestorId, action, vars, boundTo );
+			return StartAction( requestorId, action, vars, boundTo );
 		}
 
 		// puts all files to a plain list

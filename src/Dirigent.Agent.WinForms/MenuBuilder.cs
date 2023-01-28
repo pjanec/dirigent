@@ -121,11 +121,11 @@ namespace Dirigent.Gui.WinForms
 							
 							if ( !resolved.IsContainer )
 							{
-								_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
+								await _core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
 							}
 							else
 							{
-								_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved ) ;
+								await _core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved ) ;
 							}
 						}
 					}

@@ -62,6 +62,30 @@ namespace Dirigent
 				throw new Exception( $"Unknown path type: {path}" );
 			}
 
+			if( to == EPathType.Auto )
+			{
+				try
+				{
+					var result = TranslatePath( path, machineId, EPathType.Local );
+					if (result is not null) return result;
+				}
+				catch {}
+				try
+				{
+					var result = TranslatePath( path, machineId, EPathType.UNC );
+					if (result is not null) return result;
+				}
+				catch {}
+				try
+				{
+					var result = TranslatePath( path, machineId, EPathType.SSH );
+					if (result is not null) return result;
+				}
+				catch {}
+				throw new Exception( $"Failed to auto-convert the path '{path}' from {from}" );
+			}
+			
+
 			if( from == EPathType.UNC )
 			{
 				if (to == EPathType.UNC )
@@ -167,6 +191,12 @@ namespace Dirigent
 				return EPathType.Unknown;
 			}
 		}
+
+		public static bool IsSshPath( string? path )
+		{
+			return GetPathType(path) == EPathType.SSH;
+		}
+		
 
 		public string MakeUNC( string path, string? machineId )
 		{

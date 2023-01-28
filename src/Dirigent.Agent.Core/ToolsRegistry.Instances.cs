@@ -9,14 +9,14 @@ namespace Dirigent
 		/// <summary>
 		/// App or script that can be started and then watched for temination
 		/// </summary>
-		interface IActionInstance : IDisposable
+		interface IToolInstance : IDisposable
 		{
 			bool Running { get; }
 			void Start();
 			void Tick();
 		}
 
-		class ToolAppInstance : Disposable, IActionInstance
+		class ToolAppInstance : Disposable, IToolInstance
 		{
 			protected Launcher _launcher;
 			public bool Running => _launcher.Running;

@@ -285,7 +285,7 @@
 		CmdLineArgs = "xxx.txt"
 	    >
 
-        <File Id="xxx" Title="user's doc" Path="..\xxx.txt" Icon="Icons/LogFile.png">
+        <File Id="xxx" Title="user's doc" Path="%USERPROFILE%\Documents\xxx.txt" Icon="Icons/LogFile.png">
           <Tool Title="Open in Notepad" Name="Notepad++"/>
         </File>
 

@@ -39,6 +39,7 @@ namespace Dirigent
 		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to ) => _pathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
+		public Task SendAsync( Net.Message msg ) { _client.Send( msg ); return Task.CompletedTask; }
 		public string Name => _client.Ident.Name;
 
 		// Fired awhen plan defs received/updated

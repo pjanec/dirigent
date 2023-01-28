@@ -118,6 +118,54 @@ namespace Dirigent
 			return _machineRegistry.IsLocal( clientId );
 		}
 
+		Dictionary<string,string> GetExpansionVariables( VfsNodeDef nodeDef )
+		{
+			var vars = new Dictionary<string, string>();
+
+			// expand variables in local context
+			if( _machineRegistry.IsLocal( nodeDef.MachineId ) )
+			{
+
+				var localMachineIP = _machineRegistry.GetMachineIP( _machineRegistry.LocalMachineId );
+
+				// for app-bound files, expand also local vars and define var for app working dir etc.
+				{
+					// KEEP IN SYNC WITH Launcher.cs
+					vars["MACHINE_ID"] = _machineRegistry.LocalMachineId;
+					vars["MACHINE_IP"] = localMachineIP;
+					vars["DIRIGENT_MACHINE_ID"] = _machineRegistry.LocalMachineId;
+					vars["DIRIGENT_MACHINE_IP"] = localMachineIP;
+				
+					if( !string.IsNullOrEmpty( nodeDef.AppId ) )
+					{
+						var appDef = _ctrl.GetAppDef( new AppIdTuple( nodeDef.MachineId!, nodeDef.AppId ) );
+						if( appDef is not null )
+						{
+							foreach( var (k,v) in appDef.EnvVarsToSet )
+								vars[k] = v;
+
+							// add some app-special vars
+							vars["DIRIGENT_APPID"] = appDef.Id.AppId;
+							vars["APP_ID"] = appDef.Id.AppId;
+							vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
+							vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
+						}
+					}
+				}
+			}
+			
+			return vars;
+		}
+
+		string? GetExpandedPath( VfsNodeDef vfsNode )
+		{
+			if (vfsNode.Path is null)
+				return null;
+			var vars = GetExpansionVariables( vfsNode );
+			return Tools.ExpandEnvAndInternalVars( vfsNode.Path, vars );
+		}
+		
+
 		/// <summary>
 		///   Converts given VfsNode into a tree of virtual folders containing links to physical files.
 		///   Resolves all links, scans the folders (remembering the contained files and subfolders if requested), expands variables.
@@ -174,38 +222,6 @@ namespace Dirigent
 
 			// from here on, we are on local machine (or master)
 
-			// expand variables in local context
-			if( _machineRegistry.IsLocal( nodeDef.MachineId ) )
-			{
-				var vars = new Dictionary<string, string>();
-
-				var localMachineIP = _machineRegistry.GetMachineIP( _machineRegistry.LocalMachineId );
-
-				// for app-bound files, expand also local vars and define var for app working dir etc.
-				{
-					// KEEP IN SYNC WITH Launcher.cs
-					vars["MACHINE_ID"] = _machineRegistry.LocalMachineId;
-					vars["MACHINE_IP"] = localMachineIP;
-					vars["DIRIGENT_MACHINE_ID"] = _machineRegistry.LocalMachineId;
-					vars["DIRIGENT_MACHINE_IP"] = localMachineIP;
-				
-					if( !string.IsNullOrEmpty( nodeDef.AppId ) )
-					{
-						var appDef = _ctrl.GetAppDef( new AppIdTuple( nodeDef.MachineId!, nodeDef.AppId ) );
-						if( appDef is not null )
-						{
-							foreach( var (k,v) in appDef.EnvVarsToSet )
-								vars[k] = v;
-
-							// add some app-special vars
-							vars["DIRIGENT_APPID"] = appDef.Id.AppId;
-							vars["APP_ID"] = appDef.Id.AppId;
-							vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
-							vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
-						}
-					}
-				}
-			}
 			
 
 			if( nodeDef is FileDef fileDef )
@@ -280,7 +296,7 @@ namespace Dirigent
 				var r = EmptyFrom<ExpandedVfsNodeDef>( fileDef );
 				r.IsContainer = false;
 				r.Guid = fileDef.Guid;
-				r.Path = fileDef.Path;
+				r.Path = GetExpandedPath( fileDef );
 				if( r.Path is null ) return null;
 				return r;
 			}
@@ -299,7 +315,7 @@ namespace Dirigent
 		// get newest file(s) from given folder (fileDef.Path = name of the folder)
 		private ExpandedVfsNodeDef? ExpandFileDef_Newest( FileDef fileDef )
 		{
-			var folder = fileDef.Path;
+			var folder = GetExpandedPath( fileDef );
 			if (folder is null)
 				return null;
 
@@ -366,9 +382,11 @@ namespace Dirigent
 
 		ExpandedVfsNodeDef? ExpandFolder( FolderDef folderDef, bool includeContent )
 		{
+			var folderPath = GetExpandedPath( folderDef );
+			
 			var rootNode = EmptyFrom<ExpandedVfsNodeDef>( folderDef );
 			rootNode.IsContainer = true;
-			rootNode.Path = folderDef.Path;
+			rootNode.Path = folderPath;
 			
 			if( includeContent )
 			{
@@ -376,8 +394,7 @@ namespace Dirigent
 				// traverse all files & folders 
 				// filter by glob-style mask
 				// convert into vfs tree structure
-				var folderName = folderDef.Path;
-				if( string.IsNullOrEmpty(folderName) )
+				if( string.IsNullOrEmpty(folderPath) )
 					return null;
 				// ....
 
@@ -386,7 +403,7 @@ namespace Dirigent
 
 				try
 				{
-					var dirs = FindDirectories( folderName );
+					var dirs = FindDirectories( folderPath );
 					foreach (var dir in dirs)
 					{
 						var dirDef = new FolderDef
@@ -413,7 +430,7 @@ namespace Dirigent
 
 				try
 				{
-					var files = FindMatchingFileInfos( folderName, mask, false );
+					var files = FindMatchingFileInfos( folderPath, mask, false );
 					foreach (var file in files)
 					{
 						var fileDef = new FileDef
