@@ -10,8 +10,11 @@
     	ExternalIP="192.168.1.43"
     	InternalIP="192.168.0.150"
     	Port="22"
-    	UserName="user"
+       	UserName="user"
     	Password="password"
+
+    	MasterIP = "192.168.0.110"
+    	MasterPort = "5045"
     	>
         <Machine IP="192.168.0.110">
             <Service Name="VNC" Port="5900"/>
