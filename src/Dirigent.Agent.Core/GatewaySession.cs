@@ -16,9 +16,11 @@ namespace Dirigent
     
 	public class GatewaySession : Disposable, ISshStateProvider
 	{
+		public static string DirigentServiceName = "DIRIGENT";
+
         GatewayDef _def;
-		string _masterIP;
-		int _masterPort;
+		string _masterIP; 
+		int _masterPort; // local behind the gateway
 		List<Machine> _machines = new();
 
 		PortForwarder? _portFwd;
@@ -26,13 +28,19 @@ namespace Dirigent
 		public bool IsConnected => _portFwd is null ? false : _portFwd.IsRunning;
 		public GatewayDef Gateway => _def;
 
+		/// <summary> behind the gateway </summary>
+		public string MasterIP => _masterIP;
+		/// <summary> behind the gateway </summary>
+		public int MasterPort => _masterPort;
+
 		public GatewaySession( GatewayDef def, string masterIP, int masterPort )
 		{
             _def = def;
 			_masterIP = masterIP;
 			_masterPort = masterPort;
 
-			RecalcMachines( _def.Machines );
+			PrepareMachines();
+			PrepareDirigentMasterPortMapping();
 		}
 
 		protected override void Dispose( bool disposing )
@@ -40,7 +48,7 @@ namespace Dirigent
 			base.Dispose( disposing );
 			if( !disposing ) return;
 
-            _portFwd?.Dispose();
+            Close();
         }
 
 		public void Open()
@@ -71,11 +79,11 @@ namespace Dirigent
         }
 
 
-		void RecalcMachines( IEnumerable<MachineDef> machineDefs )
+		void PrepareMachines()
 		{
 			_machines.Clear();
 			
-            foreach( var machDef in machineDefs )
+            foreach( var machDef in _def.Machines )
             {
 				var m = new Machine();
 				m.Id = machDef.Id;
@@ -102,38 +110,37 @@ namespace Dirigent
 				_machines.Add( m );
 			}
 
+		}
+
+		void PrepareDirigentMasterPortMapping()
+		{
+			// add map for dirigent master
+			// search for the machine with the same IP as the master
+			var masterMachine = _machines.Find( m => m.IP == _masterIP );
+			if( masterMachine is null )
 			{
-				// add map for dirigent master
-				// search for the machine with the same IP as the master
-				var masterMachine = _machines.Find( m => m.IP == _masterIP );
-				if( masterMachine is null )
-				{
-					masterMachine = new Machine();
-					masterMachine.IP = _masterIP;
-					_machines.Add( masterMachine );
-				}
-				// search for service with the same port as the master
-				var masterService = masterMachine.Services.Find( s => s.LocalPort == _masterPort );
-				if (masterService is null)
-				{
-					masterService = new Service(
-						"DIRIGENT",
-						masterMachine.IP,
-						_masterPort,
-						"127.0.0.1",
-						++GatewayManager.LocalPortBase
-					);
-					masterMachine.Services.Add( masterService );
-				}
+				masterMachine = new Machine();
+				masterMachine.Id = "DIRIGENT_MASTER";
+				masterMachine.IP = _masterIP;
+				_machines.Add( masterMachine );
+			}
+			// search for service with the same port as the master
+			var masterService = masterMachine.Services.Find( s => s.LocalPort == _masterPort );
+			if (masterService is null)
+			{
+				masterService = new Service(
+					DirigentServiceName,
+					masterMachine.IP,
+					_masterPort,
+					"127.0.0.1",
+					++GatewayManager.LocalPortBase
+				);
+				masterMachine.Services.Add( masterService );
 			}
 		}
 
-		public IPPort? GetPortMap( string machineId, string serviceName )
+		IPPort? GetPortMap( Machine mach, string serviceName )
 		{
-			var mach = _machines.Find( m => string.Equals(m.Id, machineId, StringComparison.OrdinalIgnoreCase) );
-			if( mach is null )
-				return null;
-
 			var svc = mach.Services.Find( s => string.Equals(s.Name, serviceName, StringComparison.OrdinalIgnoreCase) );
 			if( svc is null)
 				return null;
@@ -143,6 +150,24 @@ namespace Dirigent
 				IP = svc.GetIP( IsConnected ),
 				Port = svc.GetPort( IsConnected )
 			};
+		}
+
+		public IPPort? GetPortMapByMachineName( string machineId, string serviceName )
+		{
+			var mach = _machines.Find( m => string.Equals(m.Id, machineId, StringComparison.OrdinalIgnoreCase) );
+			if( mach is null )
+				return null;
+
+			return GetPortMap( mach, serviceName );
+		}
+
+		public IPPort? GetPortMapByMachineIP( string machineIP, string serviceName )
+		{
+			var mach = _machines.Find( m => string.Equals(m.IP, machineIP, StringComparison.OrdinalIgnoreCase) );
+			if( mach is null )
+				return null;
+
+			return GetPortMap( mach, serviceName );
 		}
 
 		// returns null if variables can't be resolved (machine not found etc.)

@@ -57,6 +57,8 @@ namespace Dirigent
 			g.Port = X.getIntAttr( p, "Port", 0 );
 			g.UserName = X.getStringAttr( p, "UserName", "" );
 			g.Password = X.getStringAttr( p, "Password", "" );
+			g.MasterIP = X.getStringAttr( p, "MasterIP", "" );
+			g.MasterPort = X.getIntAttr( p, "MasterPort", 0 );
 			g.Machines = LoadMachines( p );
 			return g;
 		}

@@ -225,7 +225,7 @@ namespace Dirigent.Gui.WinForms
 
 			if ( IsConnected )
 			{
-				text = $"Connected to {_core.Client.MasterIP}:{_core.Client.MasterPort}";
+				text = $"Connected to {_core.Client.MasterIP}:{_core.Client.MasterPort}.";
 			}
 			else
 			{
@@ -235,7 +235,7 @@ namespace Dirigent.Gui.WinForms
 			if (_core.GatewayManager.IsConnected)
 			{
 				var gw = _core.GatewayManager.CurrentSession.Gateway;
-				text += $" through SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
+				text += $"  SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
 			}
 
 			toolStripStatusLabel1.Text = text;
@@ -678,6 +678,18 @@ namespace Dirigent.Gui.WinForms
 					try
 					{
 						_core.GatewayManager.Connect( gw );
+
+						// find the port mapping for the master IP and port
+						var gws = _core.GatewayManager.CurrentSession;
+						if( gws is null )
+							throw new Exception( "Gateway session not loaded." );
+
+						var localFwdIpAndPort = gws.GetPortMapByMachineIP( gws.MasterIP, GatewaySession.DirigentServiceName );
+						if (localFwdIpAndPort is null)
+							throw new Exception( $"Gateway session does not contain port mapping for service '{GatewaySession.DirigentServiceName}' on machine {gws.MasterIP}." );
+
+						_core.Client.Reconnect( localFwdIpAndPort.IP, localFwdIpAndPort.Port );
+						
 					}
 					catch( Exception ex )
 					{

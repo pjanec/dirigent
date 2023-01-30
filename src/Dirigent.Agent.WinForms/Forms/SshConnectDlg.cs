@@ -14,7 +14,7 @@ namespace Dirigent.Gui.WinForms
 	{
 		GatewayManager _gatewayManager;
 		List<GatewayDef> _gateways;
-		public GatewayDef? SelectedGateway;
+		public GatewayDef SelectedGateway;
 
 		
 		

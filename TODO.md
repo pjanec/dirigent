@@ -1,4 +1,6 @@
-[TODO] After successful SSH connect we should disconnect from current master and start connecting to a new one using the forwarded port.
+[BUG] After successful SSH connect we disconnect from current master and start connecting to a new one using the forwarded port. Connection succeeds, but machines and other data not received from the new master!
+
+[TODO] Add File/Connect to master... dialog preconfigured for current master IP/port.
 
 
 

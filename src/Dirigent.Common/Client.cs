@@ -41,9 +41,10 @@ namespace Dirigent.Net
 		public Net.ClientIdent Ident => _ident;
 
 		private Net.ClientIdent _ident;
-		private string _masterIP;
-		private int _masterPort;
-		private MessageClient _messageClient;
+		private string _masterIP = null!;
+		private int _masterPort = 0;
+		private bool _autoConn = false;
+		private MessageClient _messageClient = null!;
 		private List<Net.Message> _messagesReceived = new List<Net.Message>();
 
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
@@ -56,9 +57,17 @@ namespace Dirigent.Net
 		public Client( Net.ClientIdent ident, string masterIP, int masterPort, bool autoConn = false )
 		{
 			_ident = ident;
+
+			SetupComm( masterIP, masterPort, autoConn );
+		}
+
+		void SetupComm( string masterIP, int masterPort, bool autoConn )
+		{
 			_masterIP = masterIP;
 			_masterPort = masterPort;
+			_autoConn = autoConn;
 
+			_messageClient?.Dispose();
 			_messageClient = new MessageClient( _masterIP, _masterPort, autoConn );
 
 			if( string.IsNullOrEmpty( _ident.Name ) )
@@ -87,9 +96,17 @@ namespace Dirigent.Net
 			}
 		}
 
+
 		public bool Connect()
 		{
 			return _messageClient.Connect();
+		}
+
+		public bool Reconnect( string masterIP, int masterPort )
+		{
+			Disconnect();
+			SetupComm( masterIP, masterPort, _autoConn );
+			return Connect();
 		}
 
 		public void Disconnect()

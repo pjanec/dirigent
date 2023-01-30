@@ -10,6 +10,9 @@ namespace Dirigent
 		public int Port;
 		public string UserName = "";
 		public string Password = "";
+		
+		public string MasterIP = "";
+		public int MasterPort = 0;
 
 		/// <summary>
 		/// List of machines that are accessible through this gateway.

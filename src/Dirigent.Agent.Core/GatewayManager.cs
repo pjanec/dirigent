@@ -78,11 +78,32 @@ namespace Dirigent
 		//   compare with existing gatewaydefs; if different, update gateway config and restart the port forwarder
 		//   offer the port mapping lookups (machineId, service name) -> (ip, port)
 
+		void LoadSession( GatewayDef gatewayDef )
+		{
+			_currentDef = gatewayDef;
+
+
+			// use master IP and port if defined for the gateway
+			string masterIP = gatewayDef.MasterIP;
+			int masterPort = gatewayDef.MasterPort;
+						
+			// otherwise use the command-line configured ones
+			if( string.IsNullOrEmpty(masterIP) ) masterIP = _ac.MasterIP;
+			if( masterPort <= 0 ) masterPort = _ac.MasterPort;
+
+			_currentSession = new GatewaySession( gatewayDef, masterIP, masterPort );
+		}
 
 		public void Connect( GatewayDef gatewayDef )
 		{
-			_currentDef = gatewayDef;
-			_currentSession = new GatewaySession( gatewayDef, _ac.MasterIP, _ac.MasterPort );
+			LoadSession( gatewayDef );
+			Connect();
+		}
+
+		public void Connect()
+		{
+			if (_currentSession is null)
+				throw new Exception($"No current session, load the session first");
 			_currentSession.Open();
 		}
 
