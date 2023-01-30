@@ -59,8 +59,8 @@ namespace Dirigent
 			return _fileRegistry.ExpandPathsAsync( _syncIDirig, nodeDef, includeContent, null );
 		}
 					
-		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to )
-			=> _pathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef )
+			=> _pathPerspectivizer.PerspectivizePathAsync( nodeDef );
 		#endregion
 
 		public bool WantsQuit { get; set; }

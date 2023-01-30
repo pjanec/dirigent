@@ -142,16 +142,10 @@ namespace Dirigent
 			var res = new Dictionary<string, string>( internalVars );
 
 			// add the local variables from appdef
-			foreach( var kv in appDef.LocalVarsToSet )
-			{
-				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
-			}
+			Tools.ExtendVars( res, appDef.LocalVarsToSet );
 
 			// process explicitly specified variables
-			foreach( var kv in extraVars )
-			{
-				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
-			}
+			Tools.ExtendVars( res, extraVars );
 
 			return res;
 		}

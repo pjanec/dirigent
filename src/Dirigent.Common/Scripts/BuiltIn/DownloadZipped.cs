@@ -91,7 +91,8 @@ namespace Dirigent.Scripts.BuiltIn
 
 				var vfsExpandedDownloadFolder = await Dirig.ExpandPathsAsync( vfsDownloadFolder, false );
 				if (vfsExpandedDownloadFolder is null) throw new Exception( "Folder path expansion failed." );
-				await Dirig.PerspectivizePathAsync( vfsExpandedDownloadFolder, EPathType.LocalOrUNC );
+				await Dirig.PerspectivizePathAsync( vfsExpandedDownloadFolder );
+				if( !PathPerspectivizer.IsPathLocalOrUNC( vfsExpandedDownloadFolder.Path )) throw new Exception( "Download folder must be local or UNC." );
 
 				// get the name of the archive file to download
 				string zipFileBase = System.IO.Path.GetFileName(container.Title) + DateTime.Now.ToString("_yyMMdd_HHmm");

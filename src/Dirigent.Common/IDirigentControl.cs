@@ -141,7 +141,7 @@ namespace Dirigent
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<ExpandedVfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent );
 
-		Task PerspectivizePathAsync( VfsNodeDef vfsNode, EPathType to );
+		Task PerspectivizePathAsync( VfsNodeDef vfsNode );
 	}
 
 
@@ -238,6 +238,6 @@ namespace Dirigent
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<ExpandedVfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent );
-		Task PerspectivizePathAsync( VfsNodeDef vfsNode, EPathType to );
+		Task PerspectivizePathAsync( VfsNodeDef vfsNode );
 	}
 }

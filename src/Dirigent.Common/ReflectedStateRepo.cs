@@ -36,7 +36,7 @@ namespace Dirigent
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 		  => _scriptRegistry.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
 		public Task<ExpandedVfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent ) => _fileRegistry.ExpandPathsAsync( _syncIDirig, nodeDef, includeContent, null );
-		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to ) => _pathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef ) => _pathPerspectivizer.PerspectivizePathAsync( nodeDef );
 
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public Task SendAsync( Net.Message msg ) { _client.Send( msg ); return Task.CompletedTask; }

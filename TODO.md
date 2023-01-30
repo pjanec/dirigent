@@ -1,3 +1,7 @@
+[TODO] After successful SSH connect we should disconnect from current master and start connecting to a new one using the forwarded port.
+
+
+
 [BUG] Default menus for files, machines etc. should be moved from LocalConfig to to SharedConfig and should be sent to gui clients.
 
 [BUG] When running in --mode gui, Exception: Could not find IP of machine . in UpdateMainMenu. Just basic menu shown, no configurable extensions.
@@ -7,6 +11,10 @@
 Convert the local UNC paths like \\192.168.0.110\folder\file.txt into ssh://gateway/C/IT/Links/110/folder/file.txt.
 
 Add script creating on the gateway necessary symlinks to individual machines as defined in the SharedConfig.
+
+[IDEA] Use SSH.NET for both port forwarding
+
+[IDEA] Use SSH.NET for sftp file operations. It works well if the remote path contains a symlink.
 
 [IDEA] Local edits for files behind SSH gateway. Download the file via SFPT to a local temp folder, launch selected tool, monitor the temp file for changes (as long as the tool is running), on local change copy the file back to the remote host via SFTP. Launched tools would need to be tracked (their launcher not forgotten) and associated with the temp files to be monitored. On tool exit delete the temp file.
 

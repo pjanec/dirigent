@@ -3,78 +3,89 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Renci.SshNet;
+using Renci.SshNet.Common;
 
 namespace Dirigent
 {
-	public class PortForwarder
+	public class PortForwarder : Disposable
 	{
-		Launcher Launcher;
-
+		SshClient _sshClient;
 		GatewayDef _gwDef;
 		List<GatewaySession.Machine> _machines;
+		List<ForwardedPortLocal> _forwardedPorts = new List<ForwardedPortLocal>();
 
-		public PortForwarder( GatewayDef gwDef, IEnumerable<GatewaySession.Machine> machines, ToolsRegistry toolsReg )
+
+		public PortForwarder( GatewayDef gwDef, IEnumerable<GatewaySession.Machine> machines )
 		{
 			_gwDef = gwDef;
 			_machines = new( machines );
-			var plinkAppDef = toolsReg.GetAppDef("plink");
-			if( plinkAppDef is null ) throw new Exception( "plink tool not defined" );
-			var appDefClone = plinkAppDef.Clone();
-			appDefClone.CmdLineArgs = BuildPlinkArgs();
-			appDefClone.WindowStyle = EWindowStyle.Minimized;
-			Launcher = new Launcher( appDefClone, toolsReg.SharedContext, new Dictionary<string, string>() );
+			
+			_sshClient = new SshClient( _gwDef.ExternalIP, _gwDef.Port, _gwDef.UserName, _gwDef.Password );
+			_sshClient.ConnectionInfo.Timeout = TimeSpan.FromSeconds( 5 );
+			_forwardedPorts = BuildPortForwardList();
 		}
 
-		public void Dispose()
+		protected override void Dispose( bool disposing )
 		{
-			Launcher?.Kill();
-			Launcher?.Dispose();
+			base.Dispose( disposing );
+			if( !disposing ) return;
+			Stop();
+			_sshClient.Dispose();
 		}
 
-		string BuildPlinkArgs()
+		List<ForwardedPortLocal> BuildPortForwardList()
 		{
-			var sb = new StringBuilder();
-			// 
-			//&plink.exe 10.0.103.7 -l student -pw Zaq1Xsw2 -P 22 -no-antispoof `
-			sb.Append( $"{_gwDef.ExternalIP} -P {_gwDef.Port} -l {_gwDef.UserName} -pw {_gwDef.Password} -no-antispoof ");
+			var list = new List<ForwardedPortLocal>();
+
 			foreach( var comp in _machines )
 			{
 				if( !comp.AlwaysLocal )
 				{
 					foreach( var svc in comp.Services )
 					{
-						// -L 7101:192.168.0.101:5900 
-						var fwdArg = $"-L {svc.FwdPort}:{svc.LocalIP}:{svc.LocalPort} ";
-						sb.Append( fwdArg );
+						var pf = new ForwardedPortLocal( "127.0.0.1", (uint)svc.FwdPort, svc.LocalIP, (uint)svc.LocalPort );
+						list.Add( pf );
 					}
 				}
 			}
 
-			return sb.ToString();
+			return list;
 		}
 
 		
-		public bool IsRunning => Launcher != null && Launcher.Running;
+		public bool IsRunning => _sshClient.IsConnected;
 		
 		public void Start()
 		{
-			if( Launcher == null ) return;
+			if( _sshClient.IsConnected ) return;
+			
+			bool hadFwdPorts = _sshClient.ForwardedPorts.Any();
 
-            if( !Launcher.Running )
-            {
-                Launcher.Launch();
-            }
+			if( hadFwdPorts )
+			{
+				Stop();	// removes the ports
+			}
 
-            if( Launcher.Running )
-            {
-                Launcher.MoveToForeground();
-            }
+			_sshClient.Connect();
+
+			foreach (var pf in _forwardedPorts)
+			{
+				_sshClient.AddForwardedPort( pf );
+				pf.Start();
+			}
 		}
 
 		public void Stop()
 		{
-			if( Launcher == null ) return;
-			Launcher.Kill();
+			var pfList = _sshClient.ForwardedPorts.ToList();
+			foreach( var pf in pfList )
+			{
+				pf.Stop();
+				_sshClient.RemoveForwardedPort( pf );
+			}
+
+			_sshClient.Disconnect();
 		}
 
 	}

@@ -84,7 +84,7 @@ namespace Dirigent.Gui.WinForms
 
 						// agent + gui
 						default:
-						case "agent":
+						case "agentgui":
 						case "traygui":  // for compatibility with Dirigent 1.x
 						case "trayapp":  // for compatibility with Dirigent 1.x
 						{
@@ -94,7 +94,8 @@ namespace Dirigent.Gui.WinForms
 						}
 
 						// just agent (no gui)
-						case "daemon":
+						case "daemon": // for compatibility with Dirigent 1.x
+						case "agent":
 						{
 							runAgent = true;
 							runGui = false;

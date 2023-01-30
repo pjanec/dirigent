@@ -279,6 +279,14 @@ namespace Dirigent
 			}
 		}
 
+		public static void ExtendVars( Dictionary<string, string> origVars, Dictionary<string, string> extensionVars )
+		{
+			foreach (var kv in extensionVars)
+			{
+				AddOrUpdateVar( origVars, kv.Key, kv.Value );
+			}
+		}
+
 		/// <summary>
 		/// Replaces %VARNAME% in a string with actual value of the variable from given disctionary; undefined ones will be replaced with empty string
 		/// </summary>

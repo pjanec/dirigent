@@ -14,7 +14,7 @@ namespace Dirigent
 	}
 		
     
-	public class GatewaySession : Disposable
+	public class GatewaySession : Disposable, ISshStateProvider
 	{
         GatewayDef _def;
 		string _masterIP;
@@ -22,14 +22,13 @@ namespace Dirigent
 		List<Machine> _machines = new();
 
 		PortForwarder? _portFwd;
-		ToolsRegistry _toolsReg;
 
 		public bool IsConnected => _portFwd is null ? false : _portFwd.IsRunning;
+		public GatewayDef Gateway => _def;
 
-		public GatewaySession( GatewayDef def, string masterIP, int masterPort, ToolsRegistry toolsReg )
+		public GatewaySession( GatewayDef def, string masterIP, int masterPort )
 		{
             _def = def;
-			_toolsReg = toolsReg;
 			_masterIP = masterIP;
 			_masterPort = masterPort;
 
@@ -48,7 +47,8 @@ namespace Dirigent
 		{
 			if( _portFwd is null )
 			{
-				_portFwd = new PortForwarder( _def, _machines, _toolsReg );
+				_portFwd = new PortForwarder( _def, _machines );
+				_portFwd.Start();
 			}
 		}
 
@@ -146,13 +146,13 @@ namespace Dirigent
 		}
 
 		// returns null if variables can't be resolved (machine not found etc.)
-		public Dictionary<string, string>? GetVariables( string machineId, string serviceName )
+		public Dictionary<string, string> GetVariables( string machineId, string serviceName )
 		{
 			var vars = new Dictionary<string, string>();
 
 			var comp = _machines.Find( m => string.Equals(m.Id, machineId, StringComparison.OrdinalIgnoreCase) );
 			if (comp is null)
-				return null;
+				return vars;
 
 			
 			bool remote = IsConnected;

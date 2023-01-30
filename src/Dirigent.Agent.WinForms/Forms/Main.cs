@@ -221,15 +221,24 @@ namespace Dirigent.Gui.WinForms
 
 		void refreshStatusBar()
 		{
-			if( IsConnected )
-			{
-				toolStripStatusLabel1.Text = "Connected.";
+			string text = "";
 
+			if ( IsConnected )
+			{
+				text = $"Connected to {_core.Client.MasterIP}:{_core.Client.MasterPort}";
 			}
 			else
 			{
-				toolStripStatusLabel1.Text = "Disconnected.";
+				text = "Not connected.";
 			}
+
+			if (_core.GatewayManager.IsConnected)
+			{
+				var gw = _core.GatewayManager.CurrentSession.Gateway;
+				text += $" through SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
+			}
+
+			toolStripStatusLabel1.Text = text;
 
 		}
 
@@ -572,8 +581,6 @@ namespace Dirigent.Gui.WinForms
 
 			MessageBox.Show(
 				$"Dirigent by pjanec, MIT license\n"+
-				"\n"+
-				"WinScp by Martin Prikryl, GPL license\n"+
 				"\n\n" +
 				verStampText +
 				"",
@@ -640,6 +647,46 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		void connectViaSSH()
+		{
+			//if( !string.IsNullOrEmpty(_core.MachineId) )
+			//{
+			//	MessageBox.Show(
+			//		$"This GUI is running on top a Dirigent Agent on machine '{_core.MachineId}'.\n" +
+			//		$"SSH connection is only possible if the GUI is running standalone, without an agent'.\n" +
+			//		$"Please run the GUI without an agent (--mode gui).",
+			//		"Dirigent",
+			//		MessageBoxButtons.OK,
+			//		MessageBoxIcon.Information );
+			//	return;
+			//}
+
+			if ( _core.GatewayManager.IsConnected )
+			{
+				var dlg = new SshDisconnectDlg( _core.GatewayManager );
+				if (dlg.ShowDialog() == DialogResult.OK)
+				{
+					_core.GatewayManager.Disconnect();
+				}
+			}
+			else
+			{
+				var dlg = new SshConnectDlg( _core.GatewayManager );
+				if (dlg.ShowDialog() == DialogResult.OK)
+				{
+					var gw = dlg.SelectedGateway;
+					try
+					{
+						_core.GatewayManager.Connect( gw );
+					}
+					catch( Exception ex )
+					{
+						ExceptionDialog.showException( ex, $"SSH connection to {gw.ExternalIP}:{gw.Port} failed.", "" );
+					}
+				}
+			}
+		}
+
 		void addPlanSelectionMenuItem( int index, string planName )
 		{
 			EventHandler clickHandler = ( sender, args ) => WFT.GuardedOp( () => { _core.SelectPlan( planName); } );
@@ -675,6 +722,7 @@ namespace Dirigent.Gui.WinForms
 
 			// make sure File is the leftmost menu
 			menuItems.Add( new MenuTreeNode( "File" ) );
+			menuItems.Add( new MenuTreeNode( "File/Connect via SSH...", action: () => connectViaSSH() ) );
 
 			menuItems.Add( new MenuTreeNode( "Plan/Select", action: () => this.selectPlanMenuItem_Click( null, null ) ) );
 

@@ -12,17 +12,19 @@ using System.IO.Enumeration;
 
 namespace Dirigent
 {
-
 	public enum EPathType
 	{
 		Unknown,
-		Auto,	// first possible in this order: local, unc, ssh
 		Local,  // C:\path
 		UNC,    // \\server\share\path or 
 		SSH,    // sftp://user@host:port/path or scp://user@host:port/path
-		LocalOrUNC, // can't be used as 'from' type, only as 'to' type
 	}
 
+	public interface ISshStateProvider
+	{
+		bool IsConnected { get; }
+		Dictionary<string,string> GetVariables( string machineId, string serviceName );
+	}
 
 	/// <summary>
 	/// Translates paths to be accessible from local machine
@@ -33,11 +35,12 @@ namespace Dirigent
 		
 		// these should be set from outside
 		
-		public bool IsConnectedViaSSH { get; set; }
-
 		string _localMachineId; // null or empty = not on any known local machine
 
 		MachineRegistry _machineRegistry;
+
+
+		public ISshStateProvider? SshStateProvider { get; set; }
 
 		
 		public PathPerspectivizer( string localMachineId, MachineRegistry machineRegistry )
@@ -45,115 +48,150 @@ namespace Dirigent
 			_localMachineId = localMachineId;
 			_machineRegistry = machineRegistry;
 		}
-		
 
-		// converts given path to local machine perspective
-		// returns null if path can't be translated
-		public string TranslatePath( string? path, string? machineId, EPathType to )
+		public static bool IsPathLocalOrUNC( string? path )
 		{
-			if( string.IsNullOrEmpty( path ) )
-			{
-				throw new Exception($"Can't translate null path!");
-			}
-
-			var from = GetPathType( path );
-			if( from == EPathType.Unknown || to == EPathType.Unknown )
-			{
-				throw new Exception( $"Unknown path type: {path}" );
-			}
-
-			if( to == EPathType.Auto )
-			{
-				try
-				{
-					var result = TranslatePath( path, machineId, EPathType.Local );
-					if (result is not null) return result;
-				}
-				catch {}
-				try
-				{
-					var result = TranslatePath( path, machineId, EPathType.UNC );
-					if (result is not null) return result;
-				}
-				catch {}
-				try
-				{
-					var result = TranslatePath( path, machineId, EPathType.SSH );
-					if (result is not null) return result;
-				}
-				catch {}
-				throw new Exception( $"Failed to auto-convert the path '{path}' from {from}" );
-			}
-			
-
-			if( from == EPathType.UNC )
-			{
-				if (to == EPathType.UNC )
-				{
-					return path;
-				}
-				throw new Exception( $"Can't translate UNC path to {to}: {path}@{machineId}" );
-			}
-
-			if( from == EPathType.Local )
-			{
-				if( to == EPathType.Local )
-				{
-					if( machineId == _localMachineId )
-					{
-						return path;
-					}
-					else throw new Exception( $"Can't get local path '{path}' for another machine {machineId}." );
-				}
-
-				if( to == EPathType.LocalOrUNC )
-				{
-					if( machineId == _localMachineId )
-					{
-						return path;
-					}
-					to = EPathType.UNC;
-				}
-
-				if( to == EPathType.UNC ) // use <Share/> if we know the machine
-				{
-					return MakeUNC( path, machineId );
-				}
-
-				if( to == EPathType.SSH ) // use <SshPaths/> if we know the machine
-				{
-					return MakeSsh( path, machineId );
-				}
-
-				throw new Exception($"Can't translate from {from} to {to}: {path}@{machineId}");
-			}
-
-			throw new Exception($"Can't translate {from} to {to}: {path}@{machineId}");
+			var type = GetPathType( path );
+			return type == EPathType.Local || type == EPathType.UNC;
 		}
+		
+		public static bool IsPathSsh( string? path )
+		{
+			return GetPathType(path) == EPathType.SSH;
+		}
+
+		bool IsConnectedViaSSH => SshStateProvider is null ? false : SshStateProvider.IsConnected;
+
+
+		//// converts given path to local machine perspective
+		//// returns null if path can't be translated
+		//public string TranslatePath( string? path, string? machineId, EPathType to )
+		//{
+		//	if( string.IsNullOrEmpty( path ) )
+		//	{
+		//		throw new Exception($"Can't translate null path!");
+		//	}
+
+		//	var from = GetPathType( path );
+		//	if( from == EPathType.Unknown || to == EPathType.Unknown )
+		//	{
+		//		throw new Exception( $"Unknown path type: {path}" );
+		//	}
+
+		//	if( from == EPathType.UNC )
+		//	{
+		//		if( to == EPathType.UNC )
+		//		{
+		//			return path;
+		//		}
+		//		{
+		//			return path;
+		//		}
+		//		throw new Exception( $"Can't translate UNC path to {to}: {path}@{machineId}" );
+		//	}
+
+		//	if( from == EPathType.Local )
+		//	{
+		//		if( to == EPathType.Local )
+		//		{
+		//			if( machineId == _localMachineId )
+		//			{
+		//				return path;
+		//			}
+		//			else throw new Exception( $"Can't get local path '{path}' for another machine {machineId}." );
+		//		}
+
+		//		//if( to == EPathType.LocalOrUNC )
+		//		//{
+		//		//	if( machineId == _localMachineId )
+		//		//	{
+		//		//		return path;
+		//		//	}
+		//		//	to = EPathType.UNC;
+		//		//}
+
+		//		if( to == EPathType.UNC ) // use <Share/> if we know the machine
+		//		{
+		//			return MakeUNC( path, machineId );
+		//		}
+
+		//		if( to == EPathType.SSH ) // use <SshPaths/> if we know the machine
+		//		{
+		//			return MakeSsh( path, machineId );
+		//		}
+
+		//		throw new Exception($"Can't translate from {from} to {to}: {path}@{machineId}");
+		//	}
+
+		//	throw new Exception($"Can't translate {from} to {to}: {path}@{machineId}");
+		//}
 
 
 		// translate the Path of the given VfsNodeDef its children
-		public void PerspectivizePath( VfsNodeDef vfsNode, EPathType to=EPathType.Auto )
+		public void PerspectivizePath( VfsNodeDef vfsNode )
 		{
 			if( vfsNode.IsContainer )
 			{
 				foreach (var child in vfsNode.Children)
 				{
-					PerspectivizePath( child, to );
+					PerspectivizePath( child );
 				}
 			}
 			else
 			{
 				if( !string.IsNullOrEmpty(vfsNode.Path) )
 				{
-					vfsNode.Path = TranslatePath( vfsNode.Path, vfsNode.MachineId, to );
+					vfsNode.Path = PerspectivizePath( vfsNode.Path, vfsNode.MachineId );
 				}
 			}
 		}
 
-		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to )
+		string PerspectivizePath( string path, string? machineId )
 		{
-			PerspectivizePath( nodeDef, to );
+			// empty path stays empty no matter what
+			if( string.IsNullOrEmpty( path ) )
+			{
+				return path;
+			}
+
+			var from = GetPathType( path );
+			switch( from )
+			{
+				case EPathType.Local:
+				{
+					// if we go through SSH, always SSH
+					if( IsConnectedViaSSH )
+					{
+						return MakeSsh( path, machineId );
+					}
+					return MakeUNCIfNotLocal( path, machineId );
+				}
+
+				case EPathType.UNC:
+				{
+					// UNC is fine as is unless we go through SSH
+					if( !IsConnectedViaSSH )
+					{
+						return path;
+					}
+					throw new Exception( $"UNC path can't be used while connected via SSH" );
+				}
+
+				case EPathType.SSH:
+				{
+					// SSH path can't be simplified
+					return path;
+				}
+			}
+
+			throw new Exception( $"Failed to convert path '{path}@{machineId}' to the perspective of machine {_localMachineId}" );
+		}
+		
+
+
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef )
+		{
+			PerspectivizePath( nodeDef );
 			return Task.CompletedTask;
 		}
 
@@ -191,12 +229,6 @@ namespace Dirigent
 				return EPathType.Unknown;
 			}
 		}
-
-		public static bool IsSshPath( string? path )
-		{
-			return GetPathType(path) == EPathType.SSH;
-		}
-		
 
 		public string MakeUNC( string path, string? machineId )
 		{
@@ -243,6 +275,9 @@ namespace Dirigent
 			if( machineId is null )
 				throw new Exception($"Null machine id");
 
+			if (!IsConnectedViaSSH)
+				throw new Exception( $"Not connected via SSH" );
+
 			// find machine IP
 			var IP = _machineRegistry.GetMachineIP( machineId );
 
@@ -257,10 +292,10 @@ namespace Dirigent
 					var pathRelativeToShare = path.Substring( rec.Path.Length ).Replace("\\", "/");
 
 					var vars = new Dictionary<string,string>();
-					vars["GW_USERNAME"] = "";  // from gateway session
-					vars["GW_PASSWORD"] = "";
-					vars["GW_IP"] = "";
-					vars["GW_PORT"] = "";
+
+					var sshVars = SshStateProvider is null ? new Dictionary<string, string>() : SshStateProvider.GetVariables( machineId, "" );
+					Tools.ExtendVars( vars, sshVars );
+
 					vars["MACHINE_USERNAME"] = ""; // from machine
 					vars["MACHINE_PASSWORD"] = "";
 					vars["MACHINE_IP"] = IP;

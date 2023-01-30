@@ -94,7 +94,7 @@ namespace Dirigent
 		public		 Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 							=> _ctrl.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
 		public		 Task<ExpandedVfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent ) => _ctrl.ExpandPathsAsync( nodeDef, includeContent );
-		public		 Task PerspectivizePathAsync( VfsNodeDef vfsNode, EPathType to ) => _ctrl.PerspectivizePathAsync( vfsNode, to );
+		public		 Task PerspectivizePathAsync( VfsNodeDef vfsNode ) => _ctrl.PerspectivizePathAsync( vfsNode );
 
 #pragma warning restore CS8603 // Possible null reference return.
 	}

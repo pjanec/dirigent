@@ -125,6 +125,7 @@ namespace Dirigent
 
 		void ShowError( string clientId, string msg, Exception ex )
 		{
+			// shows the exception in a dialog window
 			_reflStates.Send( new Net.UserNotificationMessage
 			{
 				HostClientId = clientId,
@@ -141,19 +142,16 @@ namespace Dirigent
 				throw new Exception( $"Cannot start action on a file node with no path. {action}" );
 			}
 			
-			_pathPerspectivizer.PerspectivizePath( boundTo );
-
 			// if the path is SSH
 			//   - download the file to a temp location (await async)
 			//   - start the action with the temp file
 			//   - on file change event upload the file back
 			//   - on action finished delete the temp file
-			// if the path in local or UNC, start the tool with this path directly
-
+			// otherwise (i.e. if path is local or UNC), start the tool with this path directly
 
 			string localPath = boundTo.Path;
 			Func<Task?>? onActionFinishedAsync = null;
-			if( PathPerspectivizer.IsSshPath( boundTo.Path ) )
+			if( PathPerspectivizer.IsPathSsh( boundTo.Path ) )
 			{
 				var sshPath = boundTo.Path;
 

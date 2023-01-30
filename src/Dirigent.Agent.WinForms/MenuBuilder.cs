@@ -117,7 +117,7 @@ namespace Dirigent.Gui.WinForms
 						var resolved = await ReflStates.FileRegistry.ExpandPathsAsync( CtrlAsync, vfsNodeDef, true, null );
 						if( resolved is not null )
 						{
-							_pathPerspectivizer.PerspectivizePath( resolved, EPathType.Auto );
+							_pathPerspectivizer.PerspectivizePath( resolved );
 							
 							if ( !resolved.IsContainer )
 							{

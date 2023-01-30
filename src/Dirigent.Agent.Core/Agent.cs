@@ -26,8 +26,8 @@ namespace Dirigent
 			=> _reflStates.ScriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
 		public Task<ExpandedVfsNodeDef?> ExpandPathsAsync( VfsNodeDef nodeDef, bool includeContent )
 			=> _reflStates.FileRegistry.ExpandPathsAsync( _syncIDirig, nodeDef, includeContent, null );
-		public Task PerspectivizePathAsync( VfsNodeDef nodeDef, EPathType to )
-			=> _reflStates.PathPerspectivizer.PerspectivizePathAsync( nodeDef, to );
+		public Task PerspectivizePathAsync( VfsNodeDef nodeDef )
+			=> _reflStates.PathPerspectivizer.PerspectivizePathAsync( nodeDef );
 
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;

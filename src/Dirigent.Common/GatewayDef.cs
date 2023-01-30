@@ -11,6 +11,11 @@ namespace Dirigent
 		public string UserName = "";
 		public string Password = "";
 
+		/// <summary>
+		/// List of machines that are accessible through this gateway.
+		/// Cached in GatewayConfig, updated from SharedConfig as soon as we connect to the gateway,
+		/// reach Dirigent and get the list of machines from it.
+		/// </summary>
 		public List<MachineDef> Machines = new List<MachineDef>();
 	}
 }

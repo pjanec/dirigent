@@ -51,6 +51,8 @@ namespace Dirigent.Gui.WinForms
 
 		LocalConfig _localConfig;
 		public LocalConfig LocalConfig => _localConfig;
+		GatewayManager _gatewayManager;
+		public GatewayManager GatewayManager => _gatewayManager;
 
 
 		public GuiCore(
@@ -105,13 +107,24 @@ namespace Dirigent.Gui.WinForms
 			ReflStates.OnScriptsReceived += () =>
 			{
 			};
-		}
 
+			_gatewayManager = new GatewayManager( ac );
+			_gatewayManager.Connected += () =>
+			{
+				ReflStates.PathPerspectivizer.SshStateProvider = _gatewayManager.CurrentSession;
+			};
+			_gatewayManager.Disconnected += () =>
+			{
+				ReflStates.PathPerspectivizer.SshStateProvider = null;
+			};
+		}
+		
 		protected override void Dispose( bool disposing )
 		{
 			base.Dispose( disposing );
 			if (!disposing) return;
 
+			_gatewayManager.Dispose();
 			_toolsReg?.Dispose();
 			_localScripts.Dispose();
 			ReflStates.Dispose();
@@ -176,6 +189,7 @@ namespace Dirigent.Gui.WinForms
 		{
 			Client.Tick();
 			_toolsReg?.Tick();
+			_gatewayManager.Tick();
 		}
 
 		public void SelectPlan( string planName )
