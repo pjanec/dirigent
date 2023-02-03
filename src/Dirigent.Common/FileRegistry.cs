@@ -298,6 +298,7 @@ namespace Dirigent
 				r.Guid = fileDef.Guid;
 				r.Path = GetExpandedPath( fileDef );
 				if( r.Path is null ) return null;
+				UpdateStats( r );
 				return r;
 			}
 
@@ -341,6 +342,7 @@ namespace Dirigent
 					var r = EmptyFrom<ExpandedVfsNodeDef>( fileDef );
 					r.Guid = fileDef.Guid;
 					r.Path = newestFiles[0];
+					UpdateStats( r );
 					return r;
 				}
 			}
@@ -353,9 +355,10 @@ namespace Dirigent
 				if (string.IsNullOrEmpty( pack.Title )) pack.Title = pack.Guid.ToString();
 				foreach (var fpath in newestFiles)
 				{
-					var r = EmptyFrom<FileDef>( fileDef );
+					var r = EmptyFrom<ExpandedVfsNodeDef>( fileDef );
 					r.Guid = fileDef.Guid;
 					r.Path = fpath;
+					UpdateStats( r );
 					pack.Children.Add( r );
 				}
 				return pack;
@@ -430,18 +433,19 @@ namespace Dirigent
 
 				try
 				{
-					var files = FindMatchingFileInfos( folderPath, mask, false );
-					foreach (var file in files)
+					var fileInfos = FindMatchingFileInfos( folderPath, mask, false );
+					foreach (var fi in fileInfos)
 					{
-						var fileDef = new FileDef
+						var fileDef = new ExpandedVfsNodeDef
 						{
 							//Id = file.Name,
-							Path = file.FullName,
+							Path = fi.FullName,
 							MachineId = folderDef.MachineId,
 							AppId = folderDef.AppId,
 							IsContainer = false,
-							Title = file.Name,
+							Title = fi.Name,
 						};
+						UpdateStats( fileDef, fi );
 						rootNode.Children.Add( fileDef );
 					}
 				}
@@ -508,6 +512,37 @@ namespace Dirigent
 			if( files.Length == 0 ) return null;
 			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
 			return files[files.Length-1].FullName;
+		}
+
+		static void UpdateStats( ExpandedVfsNodeDef node, FileInfo fi )
+		{
+			node.Length = fi.Length;
+			node.LastWriteTimeUtc = fi.LastWriteTimeUtc;
+		}
+
+		static void UpdateStats( ExpandedVfsNodeDef node )
+		{
+			if (node is null) return;
+			if (node.IsContainer)
+			{
+				foreach (var child in node.Children)
+				{
+					if( child is ExpandedVfsNodeDef expChild ) // should always be...
+						UpdateStats( expChild );
+				}
+			}
+			else // should be physical file
+			{
+				// get file stats
+				if( node.Path is not null )
+				{
+					try {
+						var fi = new FileInfo( node.Path );
+						UpdateStats( node, fi );
+					}
+					catch {}
+				}
+			}
 		}
 	}
 }

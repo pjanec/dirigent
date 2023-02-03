@@ -1,3 +1,7 @@
+[IDEA] Quick Launch tab, definable from SharedConfig, showing icons for most commonly used tasks (System Star, System Stop etc...) Icon click runs predefined action (command, tool, user script...) Each icon supporting Disabled state and tooltip (status text). Maybe an individual (optional) user script running on GUI that can modify the status, set disable state etc? With grouping, shown in "explorer like style" (tree view on left and list view on right?)
+
+
+
 [BUG] After successful SSH connect we disconnect from current master and start connecting to a new one using the forwarded port. Connection succeeds, but machines and other data not received from the new master!
 
 [TODO] Add File/Connect to master... dialog preconfigured for current master IP/port.

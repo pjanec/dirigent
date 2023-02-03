@@ -83,8 +83,13 @@ namespace Dirigent
 	//[MessagePack.MessagePackObject]
 	public class ExpandedVfsNodeDef : VfsNodeDef, IEquatable<ExpandedVfsNodeDef>
 	{
+		public long Length;
+		public DateTime LastWriteTimeUtc;
+		
 		public bool ThisEquals( ExpandedVfsNodeDef other ) =>
 			base.ThisEquals( other ) &&
+			this.Length == other.Length &&
+			this.LastWriteTimeUtc == other.LastWriteTimeUtc &&
 			true;
 
 		// boilerplate
