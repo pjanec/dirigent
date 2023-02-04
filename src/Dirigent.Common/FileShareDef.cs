@@ -5,6 +5,7 @@ using System.Text;
 using System.Net;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Xml.Serialization;
 
 namespace Dirigent
 {
@@ -19,12 +20,14 @@ namespace Dirigent
 		/// Unique name of the share
 		/// </summary>
 		//[MessagePack.Key( 2 )]
+		[XmlAttribute]
 		public string Name = String.Empty;
 
 		/// <summary>
 		/// Local folder path (full one, from root, including drive letter)
 		/// </summary>
 		//[MessagePack.Key( 3 )]
+		[XmlAttribute]
 		public string Path = String.Empty;
 
 		public bool ThisEquals( FileShareDef other ) =>

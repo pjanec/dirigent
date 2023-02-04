@@ -5,6 +5,7 @@ using System.Text;
 using System.Net;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Xml.Serialization;
 
 namespace Dirigent
 {
@@ -19,6 +20,7 @@ namespace Dirigent
 		/// Unique machine id in the system
 		/// </summary>
 		//[MessagePack.Key( 1 )]
+		[XmlAttribute]
 		public string Id = String.Empty;
 
 		/// <summary>
@@ -27,10 +29,12 @@ namespace Dirigent
 		/// If not empty, it overrides the auto-determined IP
 		/// </summary>
 		//[MessagePack.Key( 2 )]
+		[XmlAttribute]
 		public string IP = String.Empty;
 
 		// format: "00:00:00:00:00:00"
 		// empty = not specified
+		[XmlIgnore]
 		public string MAC = String.Empty;
 
 		/// <summary>
@@ -39,17 +43,18 @@ namespace Dirigent
 		//[MessagePack.Key( 3 )]
 		public List<FileShareDef> FileShares = new List<FileShareDef>();
 
-		public List<SshUrlDef> SshUrls = new List<SshUrlDef>();
-
 		//[MessagePack.Key( 4 )]
+		[XmlIgnore]
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>();
 
 		//[MessagePack.Key( 6 )]
+		[XmlIgnore]
 		public List<ActionDef> Actions = new List<ActionDef>();
 
         /// <summary>
         /// Is the IP not accessible directly but just via the gateway
         /// </summary>
+		[XmlIgnore]
         public bool AlwaysLocal;
 
         /// <summary>
@@ -62,7 +67,6 @@ namespace Dirigent
 				this.IP == other.IP &&
 				this.MAC == other.MAC &&
 				this.FileShares.SequenceEqual( other.FileShares ) &&
-				this.SshUrls.SequenceEqual( other.SshUrls ) &&
 				this.VfsNodes.SequenceEqual( other.VfsNodes ) &&
 				this.Actions.SequenceEqual( other.Actions ) &&
 				this.Services.SequenceEqual( other.Services ) &&

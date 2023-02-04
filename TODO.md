@@ -1,3 +1,15 @@
+[TODO] SSH-enabledpackage downloads. 
+
+1. User action starts a GUI download script.
+2. GUI script starts the master download script on master.
+   1. Master picks local-network download location
+      1. Best on the GUI machine if it is running on one of agent machines
+      2. Otherwise the master's machine if master is running on a agent machine
+      3. Otherwise any agent machine
+   2. Then asks machines to zip their files and upload the zip to selected download location
+   3. Then returns the download location to the GUI script.
+3. GUI script downloads the package to GUI-local download location (if not already downloaded there). GUI script calls IDirigent.CopyFileAsync. It uses SSH download if it is a ssh path, otherwise UNC download.
+
 [IDEA] Quick Launch tab, definable from SharedConfig, showing icons for most commonly used tasks (System Star, System Stop etc...) Icon click runs predefined action (command, tool, user script...) Each icon supporting Disabled state and tooltip (status text). Maybe an individual (optional) user script running on GUI that can modify the status, set disable state etc? With grouping, shown in "explorer like style" (tree view on left and list view on right?)
 
 

@@ -246,11 +246,11 @@ namespace Dirigent.Gui.WinForms
 
 			if ( IsConnected )
 			{
-				text = $"Connected to {_core.Client.MasterIP}:{_core.Client.MasterPort}.";
+				text = $"Connected to [{_core.Client.MasterIP}:{_core.Client.MasterPort}]";
 			}
 			else
 			{
-				text = $"Disconnected from {_core.Client.MasterIP}:{_core.Client.MasterPort}.";
+				text = $"Disconnected from [{_core.Client.MasterIP}:{_core.Client.MasterPort}]";
 			}
 			AppMessenger.Instance.Send( new AppMessages.StatusText( "", text ) );
 
@@ -258,7 +258,7 @@ namespace Dirigent.Gui.WinForms
 			if (_core.GatewayManager.IsConnected)
 			{
 				var gw = _core.GatewayManager.CurrentSession.Gateway;
-				text = $"  SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
+				text = $"SSH {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
 			}
 			AppMessenger.Instance.Send( new AppMessages.StatusText( "SSH", text ) );
 

@@ -1,17 +1,32 @@
 ﻿using System.Collections.Generic;
+using System.Xml.Serialization;
 
 namespace Dirigent
 {
 	public class GatewayDef
 	{
+		[XmlAttribute]
 		public string Label = "";
+
+		[XmlAttribute]
 		public string ExternalIP = "";
+
+		[XmlAttribute]
 		public string InternalIP = "";
+
+		[XmlAttribute]
 		public int Port;
+
+		[XmlAttribute]
 		public string UserName = "";
+
+		[XmlAttribute]
 		public string Password = "";
 		
+		[XmlAttribute]
 		public string MasterIP = "";
+
+		[XmlAttribute]
 		public int MasterPort = 0;
 
 		/// <summary>

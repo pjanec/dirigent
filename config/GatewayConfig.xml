@@ -1,24 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  This file can be overwritten by Dirigent!
-  Dirigent caches here the machines and services as received from the master when connected via gateway.
--->
-<GatewayConfig>
-
-    <Gateway
-        Label="GW-1"
-    	ExternalIP="192.168.1.43"
-    	InternalIP="192.168.0.150"
-    	Port="22"
-       	UserName="user"
-    	Password="password"
-
-    	MasterIP = "192.168.0.110"
-    	MasterPort = "5045"
-    	>
-        <Machine IP="192.168.0.110">
-            <Service Name="VNC" Port="5900"/>
-        </Machine>
-    </Gateway>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<GatewayConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Gateways>
+    <GatewayDef Label="GW-1" ExternalIP="192.168.1.43" InternalIP="192.168.0.150" Port="22" UserName="user" Password="password" MasterIP="192.168.0.110" MasterPort="5045">
+      <Machines>
+      </Machines>
+    </GatewayDef>
+  </Gateways>
+  <!--This file gets overwritten by Dirigent upon connecting to the gateway!-->
 </GatewayConfig>

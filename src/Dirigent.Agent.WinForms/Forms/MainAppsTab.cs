@@ -416,6 +416,10 @@ namespace Dirigent.Gui.WinForms
 				{
 					cell.Style = new DataGridViewCellStyle { ForeColor = Color.Blue, SelectionForeColor = Color.Blue, BackColor = defst.BackColor };
 				}
+				else if( txt.Contains( "Offline" ) )
+				{
+					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGray, SelectionForeColor = Color.DarkGray, BackColor = defst.BackColor };
+				}
 				else
 				{
 					cell.Style = defst;

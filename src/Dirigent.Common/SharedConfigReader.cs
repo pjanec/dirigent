@@ -863,7 +863,6 @@ namespace Dirigent
 						IP = ip,
 						MAC = MAC,
 						FileShares = shares,
-						SshUrls = sshUrls,
 						VfsNodes = vfsNodes,
 						Actions = LoadActions( p, id, null ),
 					}
