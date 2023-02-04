@@ -6,6 +6,7 @@ using System.IO;
 using System.Reflection;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 namespace Dirigent
 {
@@ -279,7 +280,7 @@ namespace Dirigent
 			}
 		}
 
-		public static void ExtendVars( Dictionary<string, string> origVars, Dictionary<string, string> extensionVars )
+		public static void ExtendVars( Dictionary<string, string> origVars, IDictionary<string, string> extensionVars )
 		{
 			foreach (var kv in extensionVars)
 			{
@@ -818,6 +819,11 @@ namespace Dirigent
 			container.Title = title;
 
 			return container;
+		}
+
+		public static string RemoveAnsiEscapeSequences( string s )
+		{
+			return Regex.Replace( s, @"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "" );
 		}
 
 	}

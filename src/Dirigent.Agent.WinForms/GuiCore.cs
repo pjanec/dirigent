@@ -111,12 +111,20 @@ namespace Dirigent.Gui.WinForms
 			_gatewayManager = new GatewayManager( ac );
 			_gatewayManager.Connected += () =>
 			{
+				ReflStates.Reset(); // reset the state of all information
 				ReflStates.PathPerspectivizer.SshStateProvider = _gatewayManager.CurrentSession;
 			};
 			_gatewayManager.Disconnected += () =>
 			{
+				ReflStates.Reset(); // reset the state of all information
 				ReflStates.PathPerspectivizer.SshStateProvider = null;
 			};
+
+			ReflStates.OnMachinesReceived += () =>
+			{
+				_gatewayManager.UpdateMachines( ReflStates.GetAllMachineDefs() );
+			};
+
 		}
 		
 		protected override void Dispose( bool disposing )

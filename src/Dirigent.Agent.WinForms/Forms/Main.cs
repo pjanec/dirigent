@@ -25,6 +25,8 @@ namespace Dirigent.Gui.WinForms
 
 		public System.ComponentModel.IContainer Components => components;
 
+		StatusBarManager _statusBarManager;
+		
 		GuiCore _core;
 
 		private MainAppsTab _tabApps;
@@ -72,6 +74,7 @@ namespace Dirigent.Gui.WinForms
 
 			UpdateMainMenu(); // initial menus
 			_core.ReflStates.OnActionsReceived += () => UpdateMainMenu(); // when Action arrived from master, we rebuild the menu
+			_core.ReflStates.OnReset += () => Reset();
 
 
 			_tabApps = new MainAppsTab( this, _core, gridApps );
@@ -98,6 +101,13 @@ namespace Dirigent.Gui.WinForms
 			tmrTick.Enabled = false;
 
 			_core.Dispose();
+
+			_statusBarManager?.Dispose();
+		}
+
+		private void frmMain_Load( object sender, EventArgs e )
+		{
+			_statusBarManager = new StatusBarManager( this.statusStrip );
 		}
 
 		void OnMessage( Net.Message msg )
@@ -166,7 +176,13 @@ namespace Dirigent.Gui.WinForms
 		}
 		
 
-
+		void Reset()
+		{
+			_tabApps.Reset();
+			_tabFiles.Reset();
+			_tabMachs.Reset();
+			_tabPlans.Reset();
+		}
 
 		void setTitle()
 		{
@@ -193,11 +209,16 @@ namespace Dirigent.Gui.WinForms
 			log.ErrorFormat( "Exception: {0}\n{1}", ex.Message, ex.StackTrace );
 		}
 
+		void Tick()
+		{
+			_core.Tick();
+		}
+
 		private void tmrTick_Tick( object sender, EventArgs e )
 		{
 			try
 			{
-				_core.Tick();
+				Tick();
 			}
 			catch( RemoteOperationErrorException ex ) // operation exception (not necesarily remote, could be also local
 				// as all operational requests always go through the network if
@@ -229,16 +250,17 @@ namespace Dirigent.Gui.WinForms
 			}
 			else
 			{
-				text = "Not connected.";
+				text = $"Disconnected from {_core.Client.MasterIP}:{_core.Client.MasterPort}.";
 			}
+			AppMessenger.Instance.Send( new AppMessages.StatusText( "", text ) );
 
+			text = "";
 			if (_core.GatewayManager.IsConnected)
 			{
 				var gw = _core.GatewayManager.CurrentSession.Gateway;
-				text += $"  SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
+				text = $"  SSH gateway {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
 			}
-
-			toolStripStatusLabel1.Text = text;
+			AppMessenger.Instance.Send( new AppMessages.StatusText( "SSH", text ) );
 
 		}
 
@@ -263,6 +285,7 @@ namespace Dirigent.Gui.WinForms
 			refreshStatusBar();
 			refreshMenu();
 			setTitle();
+			_statusBarManager?.Tick();
 		}
 
 		private void frmMain_Resize( object sender, EventArgs e )
@@ -583,6 +606,8 @@ namespace Dirigent.Gui.WinForms
 				$"Dirigent by pjanec, MIT license\n"+
 				"\n\n" +
 				verStampText +
+				"\n\n" +
+				"Icons https://icons8.com\n"+
 				"",
 				"About Dirigent",
 				MessageBoxButtons.OK,

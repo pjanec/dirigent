@@ -42,6 +42,10 @@ namespace Dirigent.Gui.WinForms
 			_menuBuilder = new MenuBuilder( _core );
 		}
 
+		public virtual void Reset()
+		{
+		}
+
 
 	}
 }

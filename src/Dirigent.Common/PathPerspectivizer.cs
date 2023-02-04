@@ -20,10 +20,19 @@ namespace Dirigent
 		SSH,    // sftp://user@host:port/path or scp://user@host:port/path
 	}
 
+	public class SshSymLink
+	{
+		public string Name = ""; // what the link is called ("mylink1")
+		public string TargetPath = ""; // where the link leads ("\\10.0.0.1\C\mydir")
+		public string LocalPath = ""; // full path on the target machine ("C:\mydir")
+		public string GatewayDir = ""; // full path to the folder where the link is stored on the gateway; in sftp compatible format ("/c/links/"); empty = failure; set when the links are created on the gw machine
+	}
+
 	public interface ISshStateProvider
 	{
 		bool IsConnected { get; }
-		Dictionary<string,string> GetVariables( string machineId, string serviceName );
+		IDictionary<string,string> GetVariables( string machineId, string serviceName );
+		IEnumerable<SshSymLink> GetSymLinks( string machineId );
 	}
 
 	/// <summary>
@@ -248,9 +257,11 @@ namespace Dirigent
 			foreach( var rec in m.Def.FileShares )
 			{
 				// get path relative to share
-				if( path.StartsWith( rec.Path, StringComparison.OrdinalIgnoreCase ) )
+				path = Path.GetFullPath( path ); // normalizes slashes
+				var recPath = Path.GetFullPath(rec.Path);
+				if( path.StartsWith( recPath, StringComparison.OrdinalIgnoreCase ) )
 				{
-					var pathRelativeToShare = path.Substring( rec.Path.Length );
+					var pathRelativeToShare = path.Substring( recPath.Length );
 					return $"\\\\{IP}\\{rec.Name}\\{pathRelativeToShare}";
 				}
 			}
@@ -278,20 +289,47 @@ namespace Dirigent
 			if (!IsConnectedViaSSH)
 				throw new Exception( $"Not connected via SSH" );
 
+			if (SshStateProvider is null)
+				throw new Exception( $"No SshStateProvider registered" );
+
 			// find machine IP
 			var IP = _machineRegistry.GetMachineIP( machineId );
 
-			if ( !_machineRegistry.Machines.TryGetValue( machineId, out var m ) )
-				throw new Exception($"Machine {machineId} not found for {path}@{machineId}");
+			//if ( !_machineRegistry.Machines.TryGetValue( machineId, out var m ) )
+			//	throw new Exception($"Machine {machineId} not found for {path}@{machineId}");
 
-						
-			foreach( var rec in m.Def.SshUrls )
+
+			//foreach( var rec in m.Def.SshUrls )
+			//{
+			//	if( path.StartsWith( rec.Path, StringComparison.OrdinalIgnoreCase ) )
+			//	{
+			//		var pathRelativeToShare = path.Substring( rec.Path.Length ).Replace("\\", "/");
+
+			//		var vars = new Dictionary<string,string>();
+
+			//		var sshVars = SshStateProvider is null ? new Dictionary<string, string>() : SshStateProvider.GetVariables( machineId, "" );
+			//		Tools.ExtendVars( vars, sshVars );
+
+			//		vars["MACHINE_USERNAME"] = ""; // from machine
+			//		vars["MACHINE_PASSWORD"] = "";
+			//		vars["MACHINE_IP"] = IP;
+
+			//		var urlPrefix = Tools.ExpandEnvAndInternalVars( rec.UrlPrefix , vars);
+			//		return $"{urlPrefix}/{pathRelativeToShare}";
+			//	}
+			//}
+
+			//throw new Exception($"Can't construct SSH path, no <SshPath/> record matching {path}@{machineId}");
+
+			path = Path.GetFullPath( path ); // normalizes slashes
+			var links = SshStateProvider.GetSymLinks( machineId );
+			foreach (var link in links)
 			{
-				if( path.StartsWith( rec.Path, StringComparison.OrdinalIgnoreCase ) )
+				if (path.StartsWith( link.LocalPath, StringComparison.OrdinalIgnoreCase ))
 				{
-					var pathRelativeToShare = path.Substring( rec.Path.Length ).Replace("\\", "/");
+					var pathRelativeToShare = path.Substring( link.LocalPath.Length ).Replace( "\\", "/" );
 
-					var vars = new Dictionary<string,string>();
+					var vars = new Dictionary<string, string>();
 
 					var sshVars = SshStateProvider is null ? new Dictionary<string, string>() : SshStateProvider.GetVariables( machineId, "" );
 					Tools.ExtendVars( vars, sshVars );
@@ -300,12 +338,25 @@ namespace Dirigent
 					vars["MACHINE_PASSWORD"] = "";
 					vars["MACHINE_IP"] = IP;
 
-					var urlPrefix = Tools.ExpandEnvAndInternalVars( rec.UrlPrefix , vars);
+					var urlPrefix = $"sftp://%GW_USERNAME%:%GW_PASSWORD%@%GW_IP%:%GW_PORT%{link.GatewayDir}/{link.Name}";
+					urlPrefix = Tools.ExpandEnvAndInternalVars( urlPrefix, vars );
+
 					return $"{urlPrefix}/{pathRelativeToShare}";
 				}
 			}
 
-			throw new Exception($"Can't construct SSH path, no <SshPath/> record matching {path}@{machineId}");
+			throw new Exception( $"Failed to construct SSH path for {path}@{machineId}, no matching file share" );
+		}
+
+		// "C:\myDir" => "/c:/myDir"
+		public static string ConvertWindowsPathToSshPath( string path )
+		{
+			if(path.Length >= 3 && Char.IsLetter( path[0] ) && path[1] == ':' && (path[2] == '\\' || path[2] == '/') )
+			{
+				path = $"/{path[0].ToString().ToLower()}:/{path.Substring( 3 )}";
+				return path.Replace( '\\', '/' );
+			}
+			return "";
 		}
 	}
 }

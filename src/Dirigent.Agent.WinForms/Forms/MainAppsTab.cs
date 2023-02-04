@@ -41,6 +41,16 @@ namespace Dirigent.Gui.WinForms
 			_grid = grid;
 		}
 
+		// no need as app list will update itself
+		//public override void Reset()
+		//{
+		//	base.Reset();
+		//	if( _dataTable != null )
+		//	{
+		//		_dataTable.Rows.Clear();
+		//	}
+		//}
+
 		void initGrid()
 		{
 			_grid.SetDoubleBuffered();
@@ -141,7 +151,6 @@ namespace Dirigent.Gui.WinForms
 			}
 
 		}
-
 
 		struct UPD
 		{

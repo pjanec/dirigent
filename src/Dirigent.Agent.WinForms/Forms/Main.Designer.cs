@@ -31,7 +31,6 @@
 			this.components = new System.ComponentModel.Container();
 			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
 			this.statusStrip = new System.Windows.Forms.StatusStrip();
-			this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
 			this.menuMain = new System.Windows.Forms.MenuStrip();
 			this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.exitToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -70,6 +69,8 @@
 			this.gridFiles = new Zuby.ADGV.AdvancedDataGridView();
 			this.toolStripFiles = new Dirigent.Gui.WinForms.MyToolStrip();
 			this.btnFilesKillAll = new System.Windows.Forms.ToolStripButton();
+			this.stblbMain = new System.Windows.Forms.ToolStripStatusLabel();
+			this.stblbSSH = new System.Windows.Forms.ToolStripStatusLabel();
 			this.statusStrip.SuspendLayout();
 			this.menuMain.SuspendLayout();
 			this.tabControl1.SuspendLayout();
@@ -94,18 +95,14 @@
 			// 
 			this.statusStrip.ImageScalingSize = new System.Drawing.Size(28, 28);
 			this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripStatusLabel1});
-			this.statusStrip.Location = new System.Drawing.Point(0, 494);
+            this.stblbMain,
+            this.stblbSSH});
+			this.statusStrip.Location = new System.Drawing.Point(0, 484);
 			this.statusStrip.Name = "statusStrip";
 			this.statusStrip.Padding = new System.Windows.Forms.Padding(1, 0, 18, 0);
-			this.statusStrip.Size = new System.Drawing.Size(889, 22);
+			this.statusStrip.Size = new System.Drawing.Size(889, 32);
 			this.statusStrip.TabIndex = 0;
 			this.statusStrip.Text = "statusStrip1";
-			// 
-			// toolStripStatusLabel1
-			// 
-			this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-			this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 15);
 			// 
 			// menuMain
 			// 
@@ -131,7 +128,7 @@
 			// exitToolStripMenuItem1
 			// 
 			this.exitToolStripMenuItem1.Name = "exitToolStripMenuItem1";
-			this.exitToolStripMenuItem1.Size = new System.Drawing.Size(270, 34);
+			this.exitToolStripMenuItem1.Size = new System.Drawing.Size(141, 34);
 			this.exitToolStripMenuItem1.Text = "Exit";
 			this.exitToolStripMenuItem1.Click += new System.EventHandler(this.exitToolStripMenuItem1_Click);
 			// 
@@ -203,7 +200,7 @@
 			this.tabControl1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
 			this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
-			this.tabControl1.Size = new System.Drawing.Size(889, 459);
+			this.tabControl1.Size = new System.Drawing.Size(889, 449);
 			this.tabControl1.TabIndex = 4;
 			// 
 			// tabPageApps
@@ -214,7 +211,7 @@
 			this.tabPageApps.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
 			this.tabPageApps.Name = "tabPageApps";
 			this.tabPageApps.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
-			this.tabPageApps.Size = new System.Drawing.Size(881, 421);
+			this.tabPageApps.Size = new System.Drawing.Size(881, 411);
 			this.tabPageApps.TabIndex = 0;
 			this.tabPageApps.Text = "Apps";
 			this.tabPageApps.UseVisualStyleBackColor = true;
@@ -238,7 +235,7 @@
 			this.gridApps.RowHeadersWidth = 72;
 			this.gridApps.RowTemplate.Height = 24;
 			this.gridApps.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-			this.gridApps.Size = new System.Drawing.Size(875, 376);
+			this.gridApps.Size = new System.Drawing.Size(875, 366);
 			this.gridApps.SortStringChangedInvokeBeforeDatasourceUpdate = true;
 			this.gridApps.TabIndex = 6;
 			this.gridApps.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridApps_CellFormatting);
@@ -340,7 +337,7 @@
 			this.tabPagePlans.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
 			this.tabPagePlans.Name = "tabPagePlans";
 			this.tabPagePlans.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
-			this.tabPagePlans.Size = new System.Drawing.Size(881, 421);
+			this.tabPagePlans.Size = new System.Drawing.Size(881, 415);
 			this.tabPagePlans.TabIndex = 1;
 			this.tabPagePlans.Text = "Plans";
 			this.tabPagePlans.UseVisualStyleBackColor = true;
@@ -364,7 +361,7 @@
 			this.gridPlans.RowHeadersWidth = 72;
 			this.gridPlans.RowTemplate.Height = 24;
 			this.gridPlans.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-			this.gridPlans.Size = new System.Drawing.Size(875, 376);
+			this.gridPlans.Size = new System.Drawing.Size(875, 370);
 			this.gridPlans.SortStringChangedInvokeBeforeDatasourceUpdate = true;
 			this.gridPlans.TabIndex = 6;
 			this.gridPlans.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridPlans_CellFormatting);
@@ -400,7 +397,7 @@
 			this.tabPageScripts.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
 			this.tabPageScripts.Name = "tabPageScripts";
 			this.tabPageScripts.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
-			this.tabPageScripts.Size = new System.Drawing.Size(881, 421);
+			this.tabPageScripts.Size = new System.Drawing.Size(881, 415);
 			this.tabPageScripts.TabIndex = 1;
 			this.tabPageScripts.Text = "Scripts";
 			this.tabPageScripts.UseVisualStyleBackColor = true;
@@ -424,7 +421,7 @@
 			this.gridScripts.RowHeadersWidth = 72;
 			this.gridScripts.RowTemplate.Height = 24;
 			this.gridScripts.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-			this.gridScripts.Size = new System.Drawing.Size(875, 376);
+			this.gridScripts.Size = new System.Drawing.Size(875, 370);
 			this.gridScripts.SortStringChangedInvokeBeforeDatasourceUpdate = true;
 			this.gridScripts.TabIndex = 6;
 			this.gridScripts.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridScripts_CellFormatting);
@@ -460,7 +457,7 @@
 			this.tabPageMachs.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
 			this.tabPageMachs.Name = "tabPageMachs";
 			this.tabPageMachs.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
-			this.tabPageMachs.Size = new System.Drawing.Size(881, 421);
+			this.tabPageMachs.Size = new System.Drawing.Size(881, 415);
 			this.tabPageMachs.TabIndex = 1;
 			this.tabPageMachs.Text = "Machines";
 			this.tabPageMachs.UseVisualStyleBackColor = true;
@@ -484,7 +481,7 @@
 			this.gridMachs.RowHeadersWidth = 72;
 			this.gridMachs.RowTemplate.Height = 24;
 			this.gridMachs.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-			this.gridMachs.Size = new System.Drawing.Size(875, 376);
+			this.gridMachs.Size = new System.Drawing.Size(875, 370);
 			this.gridMachs.SortStringChangedInvokeBeforeDatasourceUpdate = true;
 			this.gridMachs.TabIndex = 6;
 			this.gridMachs.CellFormatting += new System.Windows.Forms.DataGridViewCellFormattingEventHandler(this.gridMachs_CellFormatting);
@@ -572,6 +569,22 @@
 			this.btnFilesKillAll.Text = "Kill All";
 			this.btnFilesKillAll.Click += new System.EventHandler(this.btnFilesKillAll_Click);
 			// 
+			// stblbMain
+			// 
+			this.stblbMain.AutoSize = false;
+			this.stblbMain.Name = "stblbMain";
+			this.stblbMain.Size = new System.Drawing.Size(300, 25);
+			this.stblbMain.Text = "stblbMain";
+			this.stblbMain.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+			// 
+			// stblbSSH
+			// 
+			this.stblbSSH.Name = "stblbSSH";
+			this.stblbSSH.Size = new System.Drawing.Size(524, 25);
+			this.stblbSSH.Spring = true;
+			this.stblbSSH.Text = "stblbSSH";
+			this.stblbSSH.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+			// 
 			// frmMain
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
@@ -587,6 +600,7 @@
 			this.Text = "Dirigent";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
 			this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.frmMain_FormClosed);
+			this.Load += new System.EventHandler(this.frmMain_Load);
 			this.Resize += new System.EventHandler(this.frmMain_Resize);
 			this.statusStrip.ResumeLayout(false);
 			this.statusStrip.PerformLayout();
@@ -634,7 +648,6 @@
 		private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
 		private System.Windows.Forms.ToolStripMenuItem selectPlanToolStripMenuItem;
 		private System.Windows.Forms.Timer tmrTick;
-		private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
 		private System.Windows.Forms.ToolStripMenuItem stopPlanToolStripMenuItem;
 		private System.Windows.Forms.TabControl tabControl1;
 		private System.Windows.Forms.TabPage tabPageApps;
@@ -665,6 +678,8 @@
 		private Zuby.ADGV.AdvancedDataGridView gridFiles;
 		private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem1;
+		private System.Windows.Forms.ToolStripStatusLabel stblbMain;
+		private System.Windows.Forms.ToolStripStatusLabel stblbSSH;
 	}
 }
 

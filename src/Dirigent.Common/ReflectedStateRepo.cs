@@ -129,6 +129,19 @@ namespace Dirigent
 			_client.MessageReceived -= OnMessage;
 		}
 
+		public void Reset()
+		{
+			_appDefs.Clear(); 
+			_planDefs.Clear();
+			_appStates.Clear();
+			_planStates.Clear();
+			_scriptRegistry.Clear();
+			_machineRegistry.Clear();
+			_fileRegistry.Clear();
+			_clientStates.Clear();
+			OnReset?.Invoke();
+		}
+
 		void OnMessage( Net.Message msg )
 		{
 			switch( msg )
@@ -262,14 +275,7 @@ namespace Dirigent
 
 				case Net.ResetMessage m:
 				{
-					_appDefs.Clear(); 
-					_planDefs.Clear();
-					_appStates.Clear();
-					_planStates.Clear();
-					_scriptRegistry.Clear();
-					_machineRegistry.Clear();
-					_fileRegistry.Clear();
-					OnReset?.Invoke();
+					Reset();
 					break;
 				}
 			}

@@ -37,6 +37,15 @@ namespace Dirigent.Gui.WinForms
 			_grid = grid;
 		}
 
+		public override void Reset()
+		{
+			base.Reset();
+			if( _dataTable != null )
+			{
+				_dataTable.Rows.Clear();
+			}
+		}
+
 		void initGrid()
 		{
 			// when using DataTables the ADGV can properly filter rows

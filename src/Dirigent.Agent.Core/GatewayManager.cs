@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Renci.SshNet;
+using Renci.SshNet.Common;
 
 namespace Dirigent
 {
@@ -43,6 +45,7 @@ namespace Dirigent
 		public GatewayManager( AppConfig ac )
         {
 			_ac = ac;
+			
 			var reader = new GatewayConfigReader( ac.GatewayCfgFileName );
 			_config = reader.Config;
 		}
@@ -116,7 +119,7 @@ namespace Dirigent
 
 
 		// to be called when a new list of machines is received from the master
-		public void MachinesReceived( IEnumerable<MachineDef> machines )
+		public void UpdateMachines( IEnumerable<MachineDef> machines )
 		{
 			if (_currentSession is null) return;
 			
@@ -140,11 +143,15 @@ namespace Dirigent
 
 		}
 
-		public Dictionary<string, string>? GetVariables( string machineId, string serviceName )
+		public IDictionary<string, string>? GetVariables( string machineId, string serviceName )
 		{
 			if (_currentSession is null) return null;
 			return _currentSession.GetVariables( machineId, serviceName );
 		}
 
+		void SetStatus( string text, string type = "", int timeoutMsec = -1 )
+		{
+			AppMessenger.Instance.Send( new AppMessages.StatusText( "SSH", "" ) );
+		}
 	}
 }

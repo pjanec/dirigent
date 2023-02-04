@@ -52,6 +52,7 @@ namespace Dirigent
 		GatewayDef LoadGateway( XElement p )
 		{
 			var g = new GatewayDef();
+			g.Label = X.getStringAttr( p, "Label", "" );
 			g.ExternalIP = X.getStringAttr( p, "ExternalIP", "" );
 			g.InternalIP = X.getStringAttr( p, "InternalIP", "" );
 			g.Port = X.getIntAttr( p, "Port", 0 );
