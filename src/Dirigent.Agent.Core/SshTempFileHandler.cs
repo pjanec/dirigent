@@ -12,16 +12,25 @@ namespace Dirigent
 	/// Deletes the temp file on Dispose.
 	/// WARNING! the caller should make sure the tasks are cancelled before calling Dispose.
 	/// </summary>
-	public class SshFileHandler : Disposable
+	public class SshTempFileHandler : Disposable
 	{
 		public string? LocalPath { get; protected set; }
 		public string RemotePath { get; protected set; }
 
 		SemaphoreSlim _busySemaphore = new( 1 ); // up to one operation at a time
+		ISshProvider _sshProvider;
 
-		public SshFileHandler( string sshPath )
+		public SshTempFileHandler( ISshProvider sshProvider, string sshPath )
 		{
-			RemotePath = sshPath;
+			_sshProvider = sshProvider;
+
+			if( !PathTools.TryParseSshPath( sshPath, out var pp ) )
+				throw new Exception($"Invalid ssh path: {sshPath}");
+
+			if( !_sshProvider.IsCompatiblePath( sshPath ) )
+				throw new Exception($"Ssh path can't be handled: {sshPath}");
+
+			RemotePath = pp.Path;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -77,7 +86,7 @@ namespace Dirigent
 			finally { ReleaseBusy(); }
 		}
 
-		async Task DoDownloadAsync( CancellationToken ct )
+		Task DoDownloadAsync( CancellationToken ct )
 		{
 			// get temp file name, add extension from remote path
 			var tempFileName = Path.GetTempFileName();
@@ -90,15 +99,16 @@ namespace Dirigent
 
 			LocalPath = tempFileName;
 
-			// simulate the download
-			await Task.Delay( 1000, ct );
-			File.WriteAllText( tempFileName, "Hello World!" );
+			return _sshProvider.DownloadAsync( LocalPath, RemotePath );
 		}
 
-		async Task DoUploadAsync( CancellationToken ct )
+		Task DoUploadAsync( CancellationToken ct )
 		{
-			// simulate the upload
-			await Task.Delay( 1000, ct );
+			if (LocalPath is null)
+			{
+				throw new Exception( $"Cannot upload file, no local copy exists, download it first." );
+			}
+			return _sshProvider.UploadAsync( LocalPath, RemotePath );
 		}
 		
 

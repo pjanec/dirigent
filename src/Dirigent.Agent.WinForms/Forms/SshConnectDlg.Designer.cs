@@ -66,6 +66,7 @@
 			this.listGateways.Name = "listGateways";
 			this.listGateways.Size = new System.Drawing.Size(426, 279);
 			this.listGateways.TabIndex = 7;
+			this.listGateways.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listGateways_MouseDoubleClick);
 			// 
 			// SshConnectDlg
 			// 

@@ -36,7 +36,7 @@ namespace Dirigent.Gui.WinForms
 			listGateways.SelectedIndex = listGateways.Items.Count > 0 ? 0 : -1;
 		}
 
-		private void btnConnect_Click( object sender, EventArgs e )
+		void ConnectToSelected()
 		{
 			var idx = listGateways.SelectedIndex;
 			if( idx < 0 || idx >= _gateways.Count ) return;
@@ -47,6 +47,11 @@ namespace Dirigent.Gui.WinForms
 			Close();
 		}
 
+		private void btnConnect_Click( object sender, EventArgs e )
+		{
+			ConnectToSelected();
+		}
+
 		private void btnCancel_Click( object sender, EventArgs e )
 		{
 			SelectedGateway = null;
@@ -54,5 +59,9 @@ namespace Dirigent.Gui.WinForms
 			Close();
 		}
 
+		private void listGateways_MouseDoubleClick( object sender, MouseEventArgs e )
+		{
+			ConnectToSelected();
+		}
 	}
 }

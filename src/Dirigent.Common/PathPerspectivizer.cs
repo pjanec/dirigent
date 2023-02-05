@@ -12,27 +12,24 @@ using System.IO.Enumeration;
 
 namespace Dirigent
 {
-	public enum EPathType
-	{
-		Unknown,
-		Local,  // C:\path
-		UNC,    // \\server\share\path or 
-		SSH,    // sftp://user@host:port/path or scp://user@host:port/path
-	}
-
 	public class SshSymLink
 	{
 		public string Name = ""; // what the link is called ("mylink1")
 		public string TargetPath = ""; // where the link leads ("\\10.0.0.1\C\mydir")
 		public string LocalPath = ""; // full path on the target machine ("C:\mydir")
-		public string GatewayDir = ""; // full path to the folder where the link is stored on the gateway; in sftp compatible format ("/c/links/"); empty = failure; set when the links are created on the gw machine
+		public string GatewayDir = ""; // full path to the folder where the link is stored on the gateway; in sftp compatible format ("/c:/links/"); empty = failure; set when the links are created on the gw machine
 	}
 
-	public interface ISshStateProvider
+	public interface ISshProvider
 	{
 		bool IsConnected { get; }
+		//string Host { get; }
+		//string User { get; }
+		bool IsCompatiblePath( string sshPath );
 		IDictionary<string,string> GetVariables( string machineId, string serviceName );
 		IEnumerable<SshSymLink> GetSymLinks( string machineId );
+		Task DownloadAsync( string localPath, string remotePath );
+		Task UploadAsync( string localPath, string remotePath );
 	}
 
 	/// <summary>
@@ -49,7 +46,7 @@ namespace Dirigent
 		MachineRegistry _machineRegistry;
 
 
-		public ISshStateProvider? SshStateProvider { get; set; }
+		public ISshProvider? SshStateProvider { get; set; }
 
 		
 		public PathPerspectivizer( string localMachineId, MachineRegistry machineRegistry )
@@ -58,83 +55,7 @@ namespace Dirigent
 			_machineRegistry = machineRegistry;
 		}
 
-		public static bool IsPathLocalOrUNC( string? path )
-		{
-			var type = GetPathType( path );
-			return type == EPathType.Local || type == EPathType.UNC;
-		}
-		
-		public static bool IsPathSsh( string? path )
-		{
-			return GetPathType(path) == EPathType.SSH;
-		}
-
 		bool IsConnectedViaSSH => SshStateProvider is null ? false : SshStateProvider.IsConnected;
-
-
-		//// converts given path to local machine perspective
-		//// returns null if path can't be translated
-		//public string TranslatePath( string? path, string? machineId, EPathType to )
-		//{
-		//	if( string.IsNullOrEmpty( path ) )
-		//	{
-		//		throw new Exception($"Can't translate null path!");
-		//	}
-
-		//	var from = GetPathType( path );
-		//	if( from == EPathType.Unknown || to == EPathType.Unknown )
-		//	{
-		//		throw new Exception( $"Unknown path type: {path}" );
-		//	}
-
-		//	if( from == EPathType.UNC )
-		//	{
-		//		if( to == EPathType.UNC )
-		//		{
-		//			return path;
-		//		}
-		//		{
-		//			return path;
-		//		}
-		//		throw new Exception( $"Can't translate UNC path to {to}: {path}@{machineId}" );
-		//	}
-
-		//	if( from == EPathType.Local )
-		//	{
-		//		if( to == EPathType.Local )
-		//		{
-		//			if( machineId == _localMachineId )
-		//			{
-		//				return path;
-		//			}
-		//			else throw new Exception( $"Can't get local path '{path}' for another machine {machineId}." );
-		//		}
-
-		//		//if( to == EPathType.LocalOrUNC )
-		//		//{
-		//		//	if( machineId == _localMachineId )
-		//		//	{
-		//		//		return path;
-		//		//	}
-		//		//	to = EPathType.UNC;
-		//		//}
-
-		//		if( to == EPathType.UNC ) // use <Share/> if we know the machine
-		//		{
-		//			return MakeUNC( path, machineId );
-		//		}
-
-		//		if( to == EPathType.SSH ) // use <SshPaths/> if we know the machine
-		//		{
-		//			return MakeSsh( path, machineId );
-		//		}
-
-		//		throw new Exception($"Can't translate from {from} to {to}: {path}@{machineId}");
-		//	}
-
-		//	throw new Exception($"Can't translate {from} to {to}: {path}@{machineId}");
-		//}
-
 
 		// translate the Path of the given VfsNodeDef its children
 		public void PerspectivizePath( VfsNodeDef vfsNode )
@@ -163,7 +84,7 @@ namespace Dirigent
 				return path;
 			}
 
-			var from = GetPathType( path );
+			var from = PathTools.GetPathType( path );
 			switch( from )
 			{
 				case EPathType.Local:
@@ -202,41 +123,6 @@ namespace Dirigent
 		{
 			PerspectivizePath( nodeDef );
 			return Task.CompletedTask;
-		}
-
-		public static EPathType GetPathType( string? path )
-		{
-			if( path is null )
-				return EPathType.Unknown;
-				
-			if (path.StartsWith( @"\\", StringComparison.Ordinal ))
-			{
-				return EPathType.UNC;
-			}
-			else if (path.StartsWith( @"sftp://", StringComparison.OrdinalIgnoreCase ))
-			{
-				return EPathType.SSH;
-			}
-			else if (path.StartsWith( @"scp://", StringComparison.OrdinalIgnoreCase ))
-			{
-				return EPathType.SSH;
-			}
-			else if (path.StartsWith( @"winscp-sftp://", StringComparison.OrdinalIgnoreCase ))
-			{
-				return EPathType.SSH;
-			}
-			else if (path.StartsWith( @"winscp-scp://", StringComparison.OrdinalIgnoreCase ))
-			{
-				return EPathType.SSH;
-			}
-			else if (path.Length >= 3 && Char.IsLetter( path[0] ) && path[1] == ':' && (path[2] == '\\' || path[2] == '/') )
-			{
-				return EPathType.Local;
-			}
-			else
-			{
-				return EPathType.Unknown;
-			}
 		}
 
 		public string MakeUNC( string path, string? machineId )
@@ -295,32 +181,6 @@ namespace Dirigent
 			// find machine IP
 			var IP = _machineRegistry.GetMachineIP( machineId );
 
-			//if ( !_machineRegistry.Machines.TryGetValue( machineId, out var m ) )
-			//	throw new Exception($"Machine {machineId} not found for {path}@{machineId}");
-
-
-			//foreach( var rec in m.Def.SshUrls )
-			//{
-			//	if( path.StartsWith( rec.Path, StringComparison.OrdinalIgnoreCase ) )
-			//	{
-			//		var pathRelativeToShare = path.Substring( rec.Path.Length ).Replace("\\", "/");
-
-			//		var vars = new Dictionary<string,string>();
-
-			//		var sshVars = SshStateProvider is null ? new Dictionary<string, string>() : SshStateProvider.GetVariables( machineId, "" );
-			//		Tools.ExtendVars( vars, sshVars );
-
-			//		vars["MACHINE_USERNAME"] = ""; // from machine
-			//		vars["MACHINE_PASSWORD"] = "";
-			//		vars["MACHINE_IP"] = IP;
-
-			//		var urlPrefix = Tools.ExpandEnvAndInternalVars( rec.UrlPrefix , vars);
-			//		return $"{urlPrefix}/{pathRelativeToShare}";
-			//	}
-			//}
-
-			//throw new Exception($"Can't construct SSH path, no <SshPath/> record matching {path}@{machineId}");
-
 			path = Path.GetFullPath( path ); // normalizes slashes
 			var links = SshStateProvider.GetSymLinks( machineId );
 			foreach (var link in links)
@@ -346,17 +206,6 @@ namespace Dirigent
 			}
 
 			throw new Exception( $"Failed to construct SSH path for {path}@{machineId}, no matching file share" );
-		}
-
-		// "C:\myDir" => "/c:/myDir"
-		public static string ConvertWindowsPathToSshPath( string path )
-		{
-			if(path.Length >= 3 && Char.IsLetter( path[0] ) && path[1] == ':' && (path[2] == '\\' || path[2] == '/') )
-			{
-				path = $"/{path[0].ToString().ToLower()}:/{path.Substring( 3 )}";
-				return path.Replace( '\\', '/' );
-			}
-			return "";
 		}
 	}
 }

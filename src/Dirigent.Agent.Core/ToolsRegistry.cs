@@ -44,6 +44,8 @@ namespace Dirigent
 		PathPerspectivizer _pathPerspectivizer;
 		ReflectedScriptRegistry _reflScriptReg;
 		ReflectedStateRepo _reflStates;
+		ISshProvider? _sshProvider;
+		public ISshProvider? SshProvider { get => _sshProvider; set => _sshProvider = value; }
 
 
 		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolAppDefs, ReflectedStateRepo reflStates )

@@ -113,11 +113,13 @@ namespace Dirigent.Gui.WinForms
 			{
 				ReflStates.Reset(); // reset the state of all information
 				ReflStates.PathPerspectivizer.SshStateProvider = _gatewayManager.CurrentSession;
+				_toolsReg.SshProvider = _gatewayManager.CurrentSession;
 			};
 			_gatewayManager.Disconnected += () =>
 			{
 				ReflStates.Reset(); // reset the state of all information
 				ReflStates.PathPerspectivizer.SshStateProvider = null;
+				_toolsReg.SshProvider = null;
 			};
 
 			ReflStates.OnMachinesReceived += () =>

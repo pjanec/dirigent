@@ -119,7 +119,7 @@ namespace Dirigent.Gui.WinForms
 						{
 							_pathPerspectivizer.PerspectivizePath( resolved );
 							
-							if ( !resolved.IsContainer )
+							if( !resolved.IsContainer )
 							{
 								await _core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
 							}

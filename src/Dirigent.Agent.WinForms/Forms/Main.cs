@@ -759,7 +759,7 @@ namespace Dirigent.Gui.WinForms
 
 			// make sure File is the leftmost menu
 			menuItems.Add( new MenuTreeNode( "File" ) );
-			menuItems.Add( new MenuTreeNode( "File/Connect via SSH...", action: () => connectViaSSH() ) );
+			menuItems.Add( new MenuTreeNode( "File/SSH Gateway...", action: () => connectViaSSH() ) );
 
 			menuItems.Add( new MenuTreeNode( "Plan/Select", action: () => this.selectPlanMenuItem_Click( null, null ) ) );
 

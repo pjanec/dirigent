@@ -16,7 +16,7 @@ namespace Dirigent
 	}
 		
     
-	public class GatewaySession : Disposable, ISshStateProvider
+	public class GatewaySession : Disposable, ISshProvider
 	{
 		public static string DirigentServiceName = "DIRIGENT";
 
@@ -35,6 +35,10 @@ namespace Dirigent
 		/// <summary> behind the gateway </summary>
 		public int MasterPort => _masterPort;
 
+		public string Host => _gwdef.ExternalIP;
+		public string User => _gwdef.UserName;
+		public int Port => _gwdef.Port;
+		
 		public GatewaySession( GatewayDef def, string masterIP, int masterPort )
 		{
             _gwdef = def;
@@ -258,11 +262,12 @@ namespace Dirigent
 			var linksDir = "";	// empty = failure
 
 			const string MARKER_LINKSDIR="***LINKSDIR***";
+			const string MARKER_EOLN = "***EOLN***";
 			const string MARKER_EOF="***END***";
 			var script = new List<string>();
 			script.Add( $"@echo off" );
 			script.Add( $"set LINKSDIR=%USERPROFILE%\\.dirigent\\Links" );
-			script.Add( $"echo {MARKER_LINKSDIR}%LINKSDIR%" );
+			script.Add( $"echo {MARKER_LINKSDIR}%LINKSDIR%{MARKER_EOLN}" );
 			script.Add( $"" );
 			script.Add( $"mkdir %LINKSDIR%" );
 			script.Add( $"pushd %LINKSDIR%" );
@@ -307,8 +312,14 @@ namespace Dirigent
 						break; // no more lines (timeout)
 						
 					line = Tools.RemoveAnsiEscapeSequences( line );
-					
-					if(line.StartsWith(MARKER_EOF))
+					var lines = line.Split( MARKER_EOLN );
+					foreach (var l in lines)
+					{
+						if (!string.IsNullOrEmpty( l ))
+							output.Add( l );
+					}
+
+					if (line.StartsWith(MARKER_EOF))
 						break;
 						
 					output.Add(line);
@@ -323,7 +334,7 @@ namespace Dirigent
 				if (line.StartsWith( MARKER_LINKSDIR ))
 				{
 					var path = line.Substring( line.IndexOf( MARKER_LINKSDIR ) + MARKER_LINKSDIR.Length );
-					linksDir = PathPerspectivizer.ConvertWindowsPathToSshPath(path);
+					linksDir = PathTools.ConvertWindowsPathToSshPath(path);
 					break;
 				}
 			}
@@ -367,6 +378,29 @@ namespace Dirigent
 		void SetStatus( string text, string type = "", int timeoutMsec = -1 )
 		{
 			AppMessenger.Instance.Send( new AppMessages.StatusText( "SSH", text, type, timeoutMsec ) );
+		}
+
+		public async Task DownloadAsync( string localPath, string remotePath )
+		{
+			using var copier = new SshFileCopier( _gwdef.ExternalIP, _gwdef.Port, _gwdef.UserName, _gwdef.Password );
+			await copier.DownloadAsync( localPath, remotePath );
+		}
+		
+		public async Task UploadAsync( string localPath, string remotePath )
+		{
+			using var copier = new SshFileCopier( _gwdef.ExternalIP, _gwdef.Port, _gwdef.UserName, _gwdef.Password );
+			await copier.UploadAsync( localPath, remotePath );
+		}
+
+		// can we handle given path, is it pointing to our gateway?
+		public bool IsCompatiblePath( string sshPath )
+		{
+			if( PathTools.TryParseSshPath( sshPath, out var pp ) )
+			{
+				if (pp.Host == this.Host && pp.Port == this.Port && pp.User == this.User )
+					return true;
+			}
+			return false;
 		}
 	}
 }

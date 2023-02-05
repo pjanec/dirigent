@@ -55,7 +55,7 @@
     AppIdTuple = "Notepad++"
     Icon = "Icons\Notepad++.png"
     ExeFullPath = "%ProgramW6432%\Notepad++\notepad++.exe"
-    CmdLineArgs = "%FILE_PATH%"
+    CmdLineArgs = "-multiInst -nosession %FILE_PATH%"
     StartupDir = ""
   />
 
@@ -80,7 +80,7 @@
 
   <!-- These are added to each file's context menu -->
   <DefaultFileActions>
-    <Tool Title="Edit in Notepad++" Name="Notepad++" Args="%FILE_PATH%"/>
+    <Tool Title="Edit in Notepad++" Name="Notepad++"/>
     <Script Title="Download zipped file" Name="BuiltIns/DownloadZipped.cs" Icon="Icons/Zipped.png" />
   </DefaultFileActions>
 

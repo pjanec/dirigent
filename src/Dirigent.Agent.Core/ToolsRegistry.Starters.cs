@@ -151,18 +151,23 @@ namespace Dirigent
 
 			string localPath = boundTo.Path;
 			Func<Task?>? onActionFinishedAsync = null;
-			if( PathPerspectivizer.IsPathSsh( boundTo.Path ) )
+			if( PathTools.IsPathSsh( boundTo.Path ) )
 			{
 				var sshPath = boundTo.Path;
 
+				if( _sshProvider is null || !_sshProvider.IsConnected )
+				{
+					throw new Exception( $"No SSH active, can't start action on a file with an SSH path. {action}" );
+				}
+
 				// download
-				var sshFileHandler = new SshFileHandler( sshPath );
-				await sshFileHandler.DownloadAsync( CancellationToken.None );
-				localPath = sshFileHandler.LocalPath!;
+				var stfh = new SshTempFileHandler( _sshProvider, sshPath );
+				await stfh.DownloadAsync( CancellationToken.None );
+				localPath = stfh.LocalPath!;
 
 				Func<CancellationToken, Task> onFileChanged = async (CancellationToken ct) =>
 				{
-					try	{ await sshFileHandler.UploadAsync( ct ); }
+					try	{ await stfh.UploadAsync( ct ); }
 					catch( Exception ex ) {	ShowError(requestorId, $"File upload failed. {sshPath}", ex); }
 				};
 
@@ -173,7 +178,7 @@ namespace Dirigent
 					await changeMonitor.ForceCheckAsync( CancellationToken.None ); // if the file has changed, this fires the change handler to upload the file
 					
 					changeMonitor.Dispose(); // stops checking for change
-					sshFileHandler.Dispose(); // deletes the temp file
+					stfh.Dispose(); // deletes the temp file
 				};
 				
 			}
