@@ -131,6 +131,9 @@ namespace Dirigent
 			var machines = machinesEnun.ToList(); // make sure out machines will not disappear (happens on Disconnect)
 			
 			if (_currentSession is null) return;
+
+			// add port tunnels for the network services on the machines just received
+			//UpdatePortForwarding();
 			
 			// compare with existing gatewaydefs; if different, update gateway config and restart the port forwarder
 			if( !_currentSession.AreMachinesSame( machines ) )
@@ -152,6 +155,7 @@ namespace Dirigent
 			}
 
 		}
+
 
 		public IDictionary<string, string>? GetVariables( string machineId, string serviceName )
 		{

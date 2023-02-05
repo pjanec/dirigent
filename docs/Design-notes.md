@@ -1,4 +1,5 @@
 ﻿# Dirigent.NetCore
+Warning: These are initial thoughts. Not up to date, not complete. Just for illustration of the concepts.
 
 [TOC]
 

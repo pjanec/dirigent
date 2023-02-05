@@ -1,3 +1,7 @@
+[IDEA] Replace the exception message box with a simplified dialog showing just the main message. The type of exception and the call stack could be shown upon clicking the [Details] button.
+
+[IDEA] When connecting to SSH gateway, just the Dirigent port needs to be forwarded initially. Once the list of all machines & their services is received, additional port forwarding can be established (leaving the one for the Dirigent intact). This would avoid reconnecting to SSH server and caching the machine info. GatewayConfig file would be just read-only.
+
 [IDEA] Services defined for a machine not just for port forwarding, but also allows activating given service on the machine (for example starting a some windows service, or running a custom network service directly within the dirigent etc.)
 
 [TODO] SSH-enabledpackage downloads. 

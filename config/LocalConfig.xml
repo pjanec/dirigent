@@ -47,7 +47,7 @@
     AppIdTuple = "RemoteDesktop"
     Icon = "Icons\RemoteDesktop.png"
     ExeFullPath = "%windir%\\system32\\mstsc.exe"
-    CmdLineArgs = ""
+    CmdLineArgs = "/v:%SVC_IP%:%SVC_PORT%"
     StartupDir = ""
   />
 
