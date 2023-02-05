@@ -60,6 +60,11 @@ namespace Dirigent
 
 		public void Tick()
 		{
+			EvaluateConnectDisconnect();
+		}
+
+		void EvaluateConnectDisconnect()
+		{
 			// evaluate connection status change & call Connected/Disconnected
 			if( _wasConnected && (CurrentSession is null || !CurrentSession.IsConnected) )
 			{
@@ -108,6 +113,7 @@ namespace Dirigent
 			if (_currentSession is null)
 				throw new Exception($"No current session, load the session first");
 			_currentSession.Open();
+			EvaluateConnectDisconnect(); // makes sure we correctly call Connected event
 		}
 
 		public void Disconnect()
@@ -115,23 +121,27 @@ namespace Dirigent
 			_currentSession?.Dispose();
 			_currentSession = null;
 			_currentDef = null;
+			EvaluateConnectDisconnect(); // makes sure we correctly call Disconnected event
 		}
 
 
 		// to be called when a new list of machines is received from the master
-		public void UpdateMachines( IEnumerable<MachineDef> machines )
+		public void UpdateMachines( IEnumerable<MachineDef> machinesEnun )
 		{
+			var machines = machinesEnun.ToList(); // make sure out machines will not disappear (happens on Disconnect)
+			
 			if (_currentSession is null) return;
 			
 			// compare with existing gatewaydefs; if different, update gateway config and restart the port forwarder
 			if( !_currentSession.AreMachinesSame( machines ) )
 			{
+				// save when it still exists (cleared on Disconnect)
 				var def = _currentDef;
 
 				// close the current session
 				Disconnect();
 
-				// update the gateway config
+				// update the gateway config (it is the one linked to the _config)
 				def!.Machines = new( machines );
 
 				// write the gateway config (now with updated machines)

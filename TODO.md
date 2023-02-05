@@ -1,3 +1,5 @@
+[IDEA] Services defined for a machine not just for port forwarding, but also allows activating given service on the machine (for example starting a some windows service, or running a custom network service directly within the dirigent etc.)
+
 [TODO] SSH-enabledpackage downloads. 
 
 1. User action starts a GUI download script.

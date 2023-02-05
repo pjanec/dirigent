@@ -722,16 +722,7 @@ namespace Dirigent.Gui.WinForms
 			{
 				_core.GatewayManager.Connect( gw );
 
-				// find the port mapping for the master IP and port
-				var gws = _core.GatewayManager.CurrentSession;
-				if( gws is null )
-					throw new Exception( "Gateway session not loaded." );
-
-				var localFwdIpAndPort = gws.GetPortMapByMachineIP( gws.MasterIP, GatewaySession.DirigentServiceName );
-				if (localFwdIpAndPort is null)
-					throw new Exception( $"Gateway session does not contain port mapping for service '{GatewaySession.DirigentServiceName}' on machine {gws.MasterIP}." );
-
-				_core.Client.Reconnect( localFwdIpAndPort.IP, localFwdIpAndPort.Port );
+				// once gw manager fires "connected" event, we reconnect the dirigent client using newly allocated  forwarder port numbers
 						
 			}
 			catch( Exception ex )

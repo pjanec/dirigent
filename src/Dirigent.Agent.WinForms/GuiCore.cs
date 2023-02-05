@@ -114,6 +114,17 @@ namespace Dirigent.Gui.WinForms
 				ReflStates.Reset(); // reset the state of all information
 				ReflStates.PathPerspectivizer.SshStateProvider = _gatewayManager.CurrentSession;
 				_toolsReg.SshProvider = _gatewayManager.CurrentSession;
+
+				// find the port mapping for the master IP and port and reconnect the dirigent client using newly allocated forwarded port
+				var gws = _gatewayManager.CurrentSession;
+				if( gws is null )
+					throw new Exception( "Gateway session not loaded." ); // should not happen as we have just connected!
+
+				var localFwdIpAndPort = gws.GetPortMapByMachineIP( gws.MasterIP, GatewaySession.DirigentServiceName );
+				if (localFwdIpAndPort is null)
+					throw new Exception( $"Gateway session does not contain port mapping for service '{GatewaySession.DirigentServiceName}' on machine {gws.MasterIP}." );
+
+				Client.Reconnect( localFwdIpAndPort.IP, localFwdIpAndPort.Port );
 			};
 			_gatewayManager.Disconnected += () =>
 			{
