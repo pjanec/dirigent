@@ -26,7 +26,7 @@ namespace Dirigent.Gui.WinForms
 			if (sess != null)
 			{
 				var gw = sess.Gateway;
-				txtGateway.Text = $"{gw.Label} [{gw.ExternalIP}]";
+				txtGateway.Text = $"{gw.Id} [{gw.ExternalIP}]";
 			}
 			else
 			{

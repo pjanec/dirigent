@@ -31,7 +31,7 @@ namespace Dirigent.Gui.WinForms
 			listGateways.Items.Clear();
 			foreach( var gw in _gateways )
 			{
-				listGateways.Items.Add( $"{gw.Label} [{gw.ExternalIP}]" );
+				listGateways.Items.Add( $"{gw.Id} [{gw.ExternalIP}]" );
 			}
 			listGateways.SelectedIndex = listGateways.Items.Count > 0 ? 0 : -1;
 		}

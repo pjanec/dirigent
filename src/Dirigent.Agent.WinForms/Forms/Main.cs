@@ -28,6 +28,7 @@ namespace Dirigent.Gui.WinForms
 		StatusBarManager _statusBarManager;
 		
 		GuiCore _core;
+		AppConfig _ac;
 
 		private MainAppsTab _tabApps;
 		private MainPlansTab _tabPlans;
@@ -54,6 +55,7 @@ namespace Dirigent.Gui.WinForms
 			string rootForRelativePaths
 		)
 		{
+			_ac = ac;
 			_core = new GuiCore( ac, machineId, rootForRelativePaths );
 		
 			_notifyIconHandler = Handler;
@@ -108,6 +110,11 @@ namespace Dirigent.Gui.WinForms
 		private void frmMain_Load( object sender, EventArgs e )
 		{
 			_statusBarManager = new StatusBarManager( this.statusStrip );
+
+			if( !string.IsNullOrEmpty( _ac.GatewayId) )
+			{
+				ConnectViaSSH( _ac.GatewayId );
+			}
 		}
 
 		void OnMessage( Net.Message msg )
@@ -258,7 +265,7 @@ namespace Dirigent.Gui.WinForms
 			if (_core.GatewayManager.IsConnected)
 			{
 				var gw = _core.GatewayManager.CurrentSession.Gateway;
-				text = $"SSH {gw.Label} [{gw.ExternalIP}:{gw.Port}]";
+				text = $"SSH {gw.Id} [{gw.ExternalIP}:{gw.Port}]";
 			}
 			AppMessenger.Instance.Send( new AppMessages.StatusText( "SSH", text ) );
 
@@ -700,27 +707,36 @@ namespace Dirigent.Gui.WinForms
 				if (dlg.ShowDialog() == DialogResult.OK)
 				{
 					var gw = dlg.SelectedGateway;
-					try
-					{
-						_core.GatewayManager.Connect( gw );
-
-						// find the port mapping for the master IP and port
-						var gws = _core.GatewayManager.CurrentSession;
-						if( gws is null )
-							throw new Exception( "Gateway session not loaded." );
-
-						var localFwdIpAndPort = gws.GetPortMapByMachineIP( gws.MasterIP, GatewaySession.DirigentServiceName );
-						if (localFwdIpAndPort is null)
-							throw new Exception( $"Gateway session does not contain port mapping for service '{GatewaySession.DirigentServiceName}' on machine {gws.MasterIP}." );
-
-						_core.Client.Reconnect( localFwdIpAndPort.IP, localFwdIpAndPort.Port );
-						
-					}
-					catch( Exception ex )
-					{
-						ExceptionDialog.showException( ex, $"SSH connection to {gw.ExternalIP}:{gw.Port} failed.", "" );
-					}
+					ConnectViaSSH( gw.Id );
 				}
+			}
+		}
+
+		void ConnectViaSSH( string gatewayId )
+		{
+			var gw = _core.GatewayManager.Gateways.First( x => string.Equals( x.Id, gatewayId, StringComparison.OrdinalIgnoreCase ) );
+			if (gw is null)
+				throw new Exception( $"Gateway '{gatewayId}' not found." );
+			
+			try
+			{
+				_core.GatewayManager.Connect( gw );
+
+				// find the port mapping for the master IP and port
+				var gws = _core.GatewayManager.CurrentSession;
+				if( gws is null )
+					throw new Exception( "Gateway session not loaded." );
+
+				var localFwdIpAndPort = gws.GetPortMapByMachineIP( gws.MasterIP, GatewaySession.DirigentServiceName );
+				if (localFwdIpAndPort is null)
+					throw new Exception( $"Gateway session does not contain port mapping for service '{GatewaySession.DirigentServiceName}' on machine {gws.MasterIP}." );
+
+				_core.Client.Reconnect( localFwdIpAndPort.IP, localFwdIpAndPort.Port );
+						
+			}
+			catch( Exception ex )
+			{
+				ExceptionDialog.showException( ex, $"SSH connection to {gw.ExternalIP}:{gw.Port} failed.", "" );
 			}
 		}
 

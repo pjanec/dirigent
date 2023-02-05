@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <GatewayConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Gateways>
-    <GatewayDef Label="GW-1" ExternalIP="192.168.1.43" InternalIP="192.168.0.150" Port="22" UserName="user" Password="password" MasterIP="192.168.0.110" MasterPort="5045">
-      <Machines>
-      </Machines>
+    <GatewayDef Id="GW-1" ExternalIP="192.168.1.43" InternalIP="192.168.0.150" Port="22" UserName="user" Password="password" MasterIP="192.168.0.110" MasterPort="5045">
+    </GatewayDef>
+    <GatewayDef Id="VM-1" ExternalIP="172.28.255.66" InternalIP="172.28.255.66" Port="22" UserName="user" Password="user" MasterIP="172.28.255.66" MasterPort="5045">
+    </GatewayDef>
+    <GatewayDef Id="VM-2" ExternalIP="172.28.244.69" InternalIP="172.28.244.69" Port="22" UserName="user" Password="user" MasterIP="172.28.255.66" MasterPort="5045">
     </GatewayDef>
   </Gateways>
   <!--This file gets overwritten by Dirigent upon connecting to the gateway!-->

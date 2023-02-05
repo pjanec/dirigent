@@ -285,6 +285,17 @@ namespace Dirigent.Common.Properties
 			}
 		}
 
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string GatewayId
+		{
+			get
+			{
+				return ( ( string )( this["GatewayId"] ) );
+			}
+		}
+
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "" )]

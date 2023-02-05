@@ -6,7 +6,7 @@ namespace Dirigent
 	public class GatewayDef
 	{
 		[XmlAttribute]
-		public string Label = "";
+		public string Id = "";
 
 		[XmlAttribute]
 		public string ExternalIP = "";
