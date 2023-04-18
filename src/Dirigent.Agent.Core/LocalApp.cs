@@ -275,7 +275,7 @@ namespace Dirigent
             {
                 if (Launcher.Running)
                 {
-                    AppState.Killed = true;
+                    AppState.Killed = true; // it might not be dead yet, but we have just made killing attempt
                 }
 
                 log.DebugFormat("Killing app {0}", Id);
@@ -305,6 +305,8 @@ namespace Dirigent
 			// after this explicit Kill (the user wants the app to stop until said otherwie)
             _watchers.RemoveWatchersOfType<AppRestarter>();
             _watchers.RemoveWatchersOfType<CrashWatcher>();
+
+
 
             if( (flags & Net.KillAppFlags.ResetAppState) != 0 )
             {

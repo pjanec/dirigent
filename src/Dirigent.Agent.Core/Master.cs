@@ -941,7 +941,10 @@ namespace Dirigent
 			{
 				if( string.IsNullOrEmpty(args.MachineId) || ad.Id.MachineId == args.MachineId )
 				{
-					KillApp( requestorId, ad.Id );
+					// we reset the app state so the Initialized goes to 0,
+					// causing the next StartPlan to start from scratch
+					// (instead of thinking that some apps have already been initialized)
+					KillApp( requestorId, ad.Id, KillAppFlags.ResetAppState );
 				}
 			}
 
