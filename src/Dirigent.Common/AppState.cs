@@ -103,6 +103,7 @@ namespace Dirigent
 
 		/// <summary>
 		/// forced to terminate	by KillApp request (not by a KillPlan)
+		/// if Dying=1, the app has not yet terminated, but the termination request has been sent
 		/// </summary>
 		[MessagePack.IgnoreMember]
 		public bool Killed
