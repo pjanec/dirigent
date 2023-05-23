@@ -441,13 +441,18 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			var argsStruct = new ReloadSharedConfigArgs() { };
+			var argsStruct = new ReloadSharedConfigArgs() { KillApps=true };
 
 			var argsDict = Tools.ParseKeyValList( args );
 			string valStr;
 			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
 			{
-				if ( valStr == "1" ) argsStruct.KillApps = true;
+				argsStruct.KillApps = valStr == "1";
+			}
+
+			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "file", out valStr ) )
+			{
+				argsStruct.FileName = valStr;
 			}
 
 			ctrl.ReloadSharedConfig( _requestorId, argsStruct );
