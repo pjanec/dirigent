@@ -188,7 +188,14 @@ namespace Dirigent
                 #if Windows
                 IntPtr h = proc.MainWindowHandle;
                 SetForegroundWindow(h);
-                System.Windows.Forms.SendKeys.SendWait( keys );
+                try
+                {
+                    System.Windows.Forms.SendKeys.SendWait( keys );
+                }
+                catch (Exception e)
+                {
+                    log.Error($"Error sending keys '{keys}' to the app '{appDef}': {e.Message}");
+                }
                 #endif
 			}
         }
