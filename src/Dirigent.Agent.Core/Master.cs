@@ -957,11 +957,16 @@ namespace Dirigent
 
 		public void ReloadSharedConfig( string requestorId, ReloadSharedConfigArgs args )
 		{
+			var fileName = !string.IsNullOrEmpty(args.FileName) ? args.FileName : _sharedConfigFileName;
+			
 			// load (may throw an exception on error)
-			var sharedConfig = LoadSharedConfig( _sharedConfigFileName );
+			var sharedConfig = LoadSharedConfig( fileName );
 
-			// send kill to all
-			KillAll( requestorId, new KillAllArgs() );
+			if( args.KillApps )
+			{
+				// send kill to all
+				KillAll( requestorId, new KillAllArgs() );
+			}
 
 			// wait a while to give the apps the time to die
 			Thread.Sleep(3000);

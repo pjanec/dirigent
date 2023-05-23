@@ -296,9 +296,19 @@ Kills all running apps on all computers, stops all plans
 
 Reloads the shared config.
 
-This does not affect the apps that are already running. Should the app definition change, it is applied the next time the app is started/restarted.
+If *file* option is used, dirigent will load this file (otherwise the currently used one gets reloaded).
 
-  `ReloadSharedConfig`
+If *killApps* option is "1", Dirigent tries to kill all apps before reloading the shared config. Default = "1".
+
+If *killApps* is not specified or 0, the reload does not affect the apps that are already running. Should the app definition change, it is applied the next time the app is started/restarted.
+
+  `ReloadSharedConfig  [file=c:\Path\To\SharedConfig.xml] [killApps=0|1]`
+
+##### Examples
+
+	ReloadSharedConfig
+	ReloadSharedConfig killApps=0
+	ReloadSharedConfig file=C:\dirigent\sharedConfig.xml killApps=0
 
 ### Shutdown
 

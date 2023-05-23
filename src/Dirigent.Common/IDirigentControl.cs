@@ -57,6 +57,8 @@ namespace Dirigent
 	{
 		//[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before reloading
+
+		public string FileName;
 	}
 
 	public enum EAppDefType
