@@ -28,6 +28,9 @@ namespace Dirigent
 	/// </summary>
 	public class ProcessInfoRegistry : Disposable
 	{
+		// logger
+		private static readonly log4net.ILog Log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
 		const double UPDATE_PERIOD = 3.0; // do not update too often, takes a lot of CPU
 		CancellationTokenSource _cts; 
 		Thread _thread;
@@ -81,7 +84,17 @@ namespace Dirigent
 		{
 			while( !_cts.IsCancellationRequested )
 			{
-				Update();
+				try
+				{
+					Update();
+				}
+				catch( Exception ex )
+				{
+					Log.Error( "ProcessInfoRegistry.Update() failed.", ex );
+					
+					// stops further attempts
+					break; 
+				}
 
 				const double sleepTimeSec = 0.1;
 				for (int i=0; i < UPDATE_PERIOD/sleepTimeSec; i++ )
