@@ -162,7 +162,14 @@ namespace Dirigent
 					if( launch )
 					{
 						// start the app again (and leave the number of restarts as is)
-						_app.StartApp( false, vars:_vars );
+						try
+						{
+							_app.StartApp( false, vars:_vars );
+						}
+						catch( Exception ex )
+						{
+	                        log.Error($"AppRestarter: Failed to launch {_app.Id}: {ex.Message}" );
+						}
 					}
 					
 					// deactivate itself
