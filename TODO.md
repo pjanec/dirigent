@@ -1,3 +1,8 @@
+[BUG?] Adpoting apps by plans. A plan now does not restart an app if it is already running, started from another plan,
+event if the settings are different. This creates inconsistency with the StartApp command that restarts the app
+if the evn vars are different from the ones used what starting the app. Also it may lead to confusion because
+the app is left running with different settings than defined in the plan...
+
 [IDEA] Introduce the concept of a "service". Defined using <svc/> node. Behaves like an app (status can be initializing, running, dying, killed/nut running...) just the Launch/Kill operations are implemented differently. Both launch and kill operation execute specific tool process (specified using <Tool/> node in shared config) having different settings for Launch and different for Kill (can be the same process with different parameters passed as variables, or two completely different processes...) The process is expected to finish ASAP. Once the tool process finishes with no error (definable exit code), the service is considered to be in expected state (started if Start tool was run, killed if Stop tool was run). Start and stop tool are by default run for each Launch/Kill request no matter what the service status is. The status can not be determined on another way but running the start/stop tool.
 
 [IDEA] Replace the exception message box with a simplified dialog showing just the main message. The type of exception and the call stack could be shown upon clicking the [Details] button.

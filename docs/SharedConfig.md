@@ -67,7 +67,7 @@ Attributes:
   - `[powershell.file]` - launches `powershell.exe -file <CmdLineArgs>`.
     Example: `ExeFullPath = "[powershell.file]" CmdLineArgs = "test1.ps1"`
   - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.CLI command line (but parsed and executed internally by the dirigent agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
-    Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "LaunchApp m1.a; KillPlan plan2" Volatile="1"`
+    Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "StartApp m1.a; KillPlan plan2" Volatile="1"`
 
 - `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
@@ -129,7 +129,7 @@ App sub-sections:
 
 - `ReusePrevVars 0|1` - controls whether to reuse cached environment variables used last time when launching the app again. 0 by default.
 
-  * 1 = The cached env. variables  (used for previous launch of this app) are applied again if no vars are explicitly specified in the `LaunchApp` command.
+  * 1 = The cached env. variables  (used for previous launch of this app) are applied again if no vars are explicitly specified in the `StartApp` command.
   * 0 = The cached env. variables are unset before launching the app. The app will NOT inherit any variables from it's previous launches, will always start with clean environment.
 
 - `LeaveRunningWithPrevVars 0|1` - controls how to handle situation when the app is already running but with different set of environment variables. 0 by default.
@@ -215,7 +215,7 @@ App sub-sections:
   - `maxTries` - how many restart attempts are made before the Dirigent gives up restarting. -1 means 'try forever'. Default is -1.
   - `delay` - how long time in seconds to wait before the Dirigent attempts to restart a crashed app. Default is 1 sec.
 
-  Upon an `StartPlan` or `LaunchApp` request the number of remaining restart attempts is reset to the `maxTries` value.
+  Upon an `StartPlan` or `StartApp` request the number of remaining restart attempts is reset to the `maxTries` value.
 
   `KillApp` or `KillPlan` requests deactivate any pending restart operation.
 
@@ -231,7 +231,7 @@ The standalone ones are useful in cases like
 Standalone apps definition is used by the Dirigent if
 
 * If the app is not part of any plan but is defined as standalone
-* The app is started with explicitly specified empty plan (`LaunchApp m1.a@`)
+* The app is started with explicitly specified empty plan (`StartApp m1.a@`)
 
 
 #### Launch plan

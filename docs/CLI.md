@@ -1,35 +1,47 @@
-# Command Line Interface
+# Commands
+Dirigent can be controlled remotely using commands.
 
-### Dirigent.CLI Console Command Line Utility
+The commands can come from different sources:
+  1. Dirigent UI
+  2. Command line client app called Dirigent.CLI
+  3. Over TCP connection from a remote control app.
 
- `Dirigent.CLI.exe` is specialized for sending commands to agents. It connects to the master via the TCP CLI interface and sends a command specified either on the command line.
+Commands are received by Dirigent master agent. The master then asks dirigent agent app to perform necessary operations on the machines affected by the command.
 
-    Dirigent.CLI.exe <command> <arg1> <arg2>; <command> <arg1>...
+| Command                 | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| [ApplyPlan](#ApplyPlan) | Changes the app definitions to the one from given plan.      |
+| [GetAllAppsState](#GetAllAppsState)         | returns status of all apps known to dirigent.                |
+| [GetAllPlansState](#GetAllPlansState)        | Gathers the status of all plans known to the Dirigent.       |
+| [GetAppState](#GetAppState)             | returns the status of an app. |
+| [GetPlanState](#GetPlanState)            | Returns the status of a plan. |
+| [KillAll](#KillAll)                 | Kills all running apps on all computers, stops all plans. |
+| [KillApp](#KillApp)                 | Kills single app. |
+| [KillPlan](#KillPlan)                | Kills all apps in the plan. |
+| [ReloadSharedConfig](#ReloadSharedConfig)      | Reloads the shared config file. |
+| [RestartApp](#RestartApp)              | Restarts an app. |
+| [RestartPlan](#RestartPlan)             | Kills all apps from the plan and starts the plan again. |
+| [SelectPlan](#SelectPlan)              | Informs the Dirigent about the plan selection in a GUI. |
+| [SetVars](#SetVars)                 | Sets environment variable(s) to be inherited by the apps launched afterwards. |
+| [Shutdown](#Shutdown)                | Reboots or shuts down computer (or all computers) where dirigent agent is running. |
+| [StartApp](#StartApp)                | Starts given single application if not already running. Might restart it if running with different environment than the desired one. |
+| [StartPlan](#StartPlan)               | Starts launching apps from a plan according to the plan rules. |
+| [StopPlan](#StopPlan)                | Stops starting next applications from the plan. Does not kill any app! |
+| [Terminate](#Terminate)               | Terminates Dirigent agents on computers, optionally killing all the apps managed by the Dirigent. |
 
-Zero exit code is returned on success, positive error code on failure.
 
-For example:
+## Command Line Interface
 
-    Dirigent.CLI.exe --masterIp 10.1.1.2 Start plan1; StartPlan plan2
+CLI uses a text formatted line based commands.
+
+There can be one or more (semicolon separated) commands per line but a single command cannot span multiple lines.
 
 
-Command can be also entered interactively from the console:
-
-    Dirigent.CLI.exe --masterIp 10.1.1.2 --mode telnet
-
-The commands are same as for the CLI TCP connection, see the command reference for examples.
-
-Multiple commands on a single line can be separated by semicolon
-
-    Dirigent.CLI.exe LaunchApp m1.a;StartPlan plan1
-
-## CLI Commands Reference
-
-### LaunchApp (same as StartApp)
+### StartApp (same as StartApp)
 
 Starts given app if not already running. The general syntax is as follows:
 
-	LaunchApp <appId>[@<planid>] [<varlist>]
+	StartApp <appId>[@<planid>] [<varlist>]
 
 Note: the app might get restarted if already running with different set of explicit env vars - see `LeaveRunningWithPrevVars` option.
 
@@ -37,33 +49,33 @@ Note: the app might get restarted if already running with different set of expli
 
 If just the app name is specified, the app is launched with settings defined by the recent plan the app was started from.
 
-	LaunchApp m1.a
+	StartApp m1.a
 
 If the plan name is specified after the ampersand character, Dirigent starts given app with the parameters as defined in given plan (and not those used for the most recent launch)
 
-	LaunchApp m1.a@plan1
+	StartApp m1.a@plan1
 
 If an empty plan is explicitly specified (the ampersand character present but no plan name follows), Dirigent uses the standalone app definition if available (see `Standalone apps` description - they are the `<app>` elements defined outside of any plan in the SharedConfig.xml) 
 
-	LaunchApp m1.a@
+	StartApp m1.a@
 
 #### Explicit Environment Variables
 
 If the list of variables is present, those variables are passed as environment variable to the process started. They can also be used for expansion of the app's `CmdLineArgs` and `ExeFullPath` attributes in the SharedConfig.
 
-	LaunchApp m1.a VAR1=VALUE1
-	LaunchApp m1.a VAR1=VALUE1::VAR2=VALUE2
+	StartApp m1.a VAR1=VALUE1
+	StartApp m1.a VAR1=VALUE1::VAR2=VALUE2
 
 If the list of values is missing, the app can be optionally started with the most recently used explicit env. variables  - if the `ReusePrevVars=1` option is specified in the app definition. Without the option the app will be started without any explicit env var (unless they are specified on the command line).
 
 If you want to explicitly avoid using the variable specified before, pass `::` as the variable list. Or you specify the variable value with empty value:
 
-	LaunchApp m1.a ::
-	LaunchApp m1.a VAR1=
+	StartApp m1.a ::
+	StartApp m1.a VAR1=
 
 Variable value strings containing spaces need to be enclosed in double-quotes. The outer double-quotes are removed. To add a double-quote character in the variable body, use two successive double-quotes.
 
-	LaunchApp m1.a@plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
+	StartApp m1.a@plan1 VAR1="VALUE ""1"""::VAR2="VALUE 2"
 
 The result will be like:
 
@@ -87,7 +99,7 @@ Restarts given app. Optionally passing a new list of values.
 
   `RestartApp <appId> [varlist]`
 
-If the list of values is missing, the app can be optionally started with the most recent explicit environment variables used. See the `LaunchApp` description for more details on explicit environment variables handling.
+If the list of values is missing, the app can be optionally started with the most recent explicit environment variables used. See the `StartApp` description for more details on explicit environment variables handling.
 
 ##### Example
 
@@ -105,7 +117,7 @@ Starts given plan, i.e. start launching apps according the plan rules
 
 If the varlist is specified, the variables are set to each app started from this plan.
 
-See the `LaunchApp` chapter for more details on how the explicit environment variables are handled.
+See the `StartApp` chapter for more details on how the explicit environment variables are handled.
 
 If you want to clear the variable specified before, you pass '::' as a varlist.
 
@@ -195,7 +207,7 @@ Number of seconds since last update of the app state
 
 ###### CPU
 
-Float percentage of CPU usage [NOT IMPLEMENTED, zero]
+Float percentage of CPU usage
 
 ###### GPU
 
@@ -203,7 +215,7 @@ Float percentage of GPU usage [NOT IMPLEMENTED, zero]
 
 ###### MemoryMB
 
-Float number of MBytes used  [NOT IMPLEMENTED, zero]
+Float number of MBytes od system RAM used
 
 
 ###### PlanName
@@ -214,7 +226,7 @@ Float number of MBytes used  [NOT IMPLEMENTED, zero]
 
   Request:   `GetAppState m1.a1`
 
-  Response:     `APP:m1.a:SIP:255:10:34:0:7623:plan1`
+  Response:     `APP:m1.a:SIP:255:10.1:34.7:82.5:7623.7:plan1`
 
 
 
@@ -227,8 +239,8 @@ Float number of MBytes used  [NOT IMPLEMENTED, zero]
 
 One line per application (see GetAppState command). The last line is "END\n"
 
-    APP:m1.a:SIP:1:0:0:0:7623:plan1
-    APP:m1.b::0:0:0:7234:
+    APP:m1.a:SIP:1:0.45:20.1:0:7623.2:plan1
+    APP:m1.b::0:0:0:65.2:
     END
 
 ### GetPlanState
@@ -266,7 +278,7 @@ Returns one line per plan; last line is "END\n"
 
 Sets environment variable(s) to be inherited by the processes launched afterwards. Changes Dirigent's environment so it is applied to all process started later.
 
-Note: This is a different set of variables than the explicit variables that can be set as part of `LaunchApp` or `RestartApp` commands.
+Note: This is a different set of variables than the explicit variables that can be set as part of `StartApp` or `RestartApp` commands.
 
 Multiple variables can be set at once , separated by '::'.
 
@@ -374,14 +386,51 @@ Dirigent performs actions related to a plan selection. For example it might exec
 
 	SelectPlan plan1
 
+
+## Dirigent.CLI Console Command Line Utility
+
+ `Dirigent.CLI.exe` is specialized for sending commands to agents. It connects to the master via the TCP CLI interface and sends a command specified either on the command line.
+
+    Dirigent.CLI.exe <command> <arg1> <arg2>; <command> <arg1>...
+
+Zero exit code is returned on success, positive error code on failure.
+
+For example:
+
+    Dirigent.CLI.exe --masterIp 10.1.1.2 Start plan1; StartPlan plan2
+
+
+Command can be also entered interactively from the console:
+
+    Dirigent.CLI.exe --masterIp 10.1.1.2 --mode telnet
+
+The commands are same as for the CLI TCP connection, see the command reference for examples.
+
+Multiple commands on a single line can be separated by semicolon
+
+    Dirigent.CLI.exe StartApp m1.a;StartPlan plan1
+
+
+
 ## CLI control over TCP line-based connection
 
 Master is running a TCP server providing for controlling agents' operations.
 
-To send a command you can user a generic TCP socket from your app. Or use `Dirigent.CLI.exe` app for testing:
+To send a command open a TCP client connection to the master (server) and send the lines of text commands. Or use `Dirigent.CLI.exe` app sending the content of the command line to the master.
 
+TCP server supports multiple simultaneous clients.
 
-TCP server allows multiple simultaneous clients. Server accepts single text line based requests from clients. Line separation character is `\n`. For each request the server sends back one or more status reply lines depending on the command type. Each request can be optionally marked with request id which is then used to mark appropriate response lines. Requests are buffered and processed sequentially, response may come later. Clients do not need to wait for a response before sending another request.
+Server accepts single text line based requests from each client. Line separation character is `\n`.
+
+Requests from different clients are buffered on the server in a single queue and processed sequentially in reception order. Response for a command may come later, after another commands have already been sent.
+
+Each request can be optionally marked with request id. The request id is used to mark corresponding response lines.
+
+For each request the server sends back one or more reply lines depending on the command type.
+
+There is always a response to each command.  The client knows that the command was processed when a response with matching request id have arrived.
+
+Clients can but do not need to wait for a response before sending another request. If the client marks each command with a unique request id, it can pair incoming response with corresponding request using provided request id.
 
 ##### Request line format:
 
@@ -392,14 +441,17 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
   `[optional-req-id] response text till the end of line\n`
 
 
-##### Response text for non-query commands
+##### Response texts
 
-  `ACK\n` ... command reception was acknowledged, command was issued
+  `ACK\n` ... Command reception was acknowledged, command was issued.
 
   `ERROR: error text here\n`
 
-  `END\n` ..... ends the list in case the command is expected to produce multiple line response
+  `END\n` ..... Ends the list in case the command is expected to produce multiple line response
 
+ACK does not mean that the command finished successfully! Only that it was delivered and processed.
+
+Some commands do not return ERROR even if the command fails (but ACK is returned).
 
 ###### Using request id
 
@@ -440,7 +492,7 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
   Request:   `GetAppStatus m1.a1`
 
-  Response:     `APP:m1.a:SIP:255:10:34:0:7623`
+  Response:     `APP:m1.a:SIP:255:10.9:34.1:0.6:7623`
 
 ###### Setting environment variable
 
@@ -458,6 +510,6 @@ TCP server allows multiple simultaneous clients. Server accepts single text line
 
 ###### Reloading SharedConfig
 
-  Request:   `ReloadSharedConfig
+  Request:   `ReloadSharedConfig`
 
   Response:     `ACK`
