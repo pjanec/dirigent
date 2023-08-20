@@ -89,9 +89,11 @@ When starting an app, Dirigent sets the DIRIGENT_PLAN environment variable to th
 
 ### Adopting apps
 
-If a plan references an app that is already running (possibly started as part of a different plan executed before), the new plan does not try to start the app again or restart it. The app is left running with its original parameters. The new plan acts as if that app have been started by the plan.
+If a plan references an app that is already running (possibly started as part of a different plan executed before), the new plan does not try to start the app again or restart it.
 
-The app parameters as defined in the new plan are remembered and are applied as soon as the app happens to be started again.
+The app is left running with its original parameters. The new plan acts as if that app have been started by the plan.
+
+The app parameters as defined in the new plan are remembered and applied as soon as the app happens to be started again.
 
 ### Utility Plans vs. standard plans
 
@@ -103,4 +105,28 @@ An utility-plan it the one containing just volatile apps (having Volatile="1") i
 
 Such volatile-only plan allows for being started again without prior stop or kill command.
 
+### Starting apps as part of a plan
 
+An app is started from a plan if the is started and contains an app record for this app. Or even later, when such an app was previously run as part of the plan, then terminated and then started again using the StartApp command.
+
+App started from a plan uses the settings from the app record defined inside the plan in the SharecConfig. I.e. not any of the the app records defined outside of the plan.
+
+### Plan-contained apps vs. free apps
+
+The same app can be started with different settings from different plans - each plan defines its own settings for an app.
+
+```xml
+<SharedConfig>
+  <Plan Name="plan1">
+    <AppDef AppIdTuple="Machine1.App1">
+```
+
+A free app is an app whose settings are defined outside of any plan.  
+```xml
+<SharedConfig>
+  <AppDef AppIdTuple="Machine1.App1">
+```
+
+An app can be defined in multiple plans or also as a free app.
+
+When starting an app, it can be specified from what plan the settings shall be taken or if they should be taken from the free app (See the StartApp command)

@@ -29,15 +29,19 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Plans](docs/Plans.md)
 
+[Commands](docs/CLI.md)
+
 [Scripts](docs/Scripts.md)
 
 [Tools](docs/Tools.md)
 
 [Actions](docs/Actions.md)
 
+[Environment Variables](docs/EnvVars.md)
+
 #### Configuration
 
-[Agent](docs/Agent.md)
+[Agent process](docs/Agent.md)
 
 [Shared Config](docs/SharedConfig.md)
 
