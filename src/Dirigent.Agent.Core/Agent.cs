@@ -379,8 +379,8 @@ namespace Dirigent
 
 			#if Windows
 				procName = "shutdown.exe";
-				if( args.Mode == EShutdownMode.PowerOff ) cmdl="-s -t 0";
-				if( args.Mode == EShutdownMode.Reboot ) cmdl="-r -t 0";
+				if( args.Mode == EShutdownMode.PowerOff ) cmdl="-s -f -t 0";
+				if( args.Mode == EShutdownMode.Reboot ) cmdl="-r -f -t 0";
 			#endif 
 			
 			#if Linux
