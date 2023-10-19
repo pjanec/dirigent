@@ -94,7 +94,7 @@ namespace Dirigent
 		private string _rootForRelativePaths;
 		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
 		CancellationTokenSource _webServerCTS;
-		private Task _webServerTask;
+		private Task _webServerTask; // null if no web server started
 		public ScriptFactory ScriptFactory;
 		public SynchronousOpProcessor SyncOps => _syncOps;
 		public SynchronousOpProcessor _syncOps;
@@ -168,14 +168,18 @@ namespace Dirigent
 			_tickers = new TickableCollection();
 
 			_webServerCTS = new CancellationTokenSource();
-			_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, "http://*:8877", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
+			if( ac.HttpPort > 0 )
+			{
+				_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, $"http://*:{ac.HttpPort}", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
+			}
 
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			_webServerCTS.Cancel();
-			Task.WaitAll( _webServerTask );
+			if( _webServerTask != null )
+				Task.WaitAll( _webServerTask );
 
 			_singlScripts.Dispose();
 			_tickers.Dispose();

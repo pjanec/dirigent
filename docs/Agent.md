@@ -54,7 +54,11 @@ The options can be specified either on the command line (prefixed with double da
 
  `--localConfigFile myLocalConfig.xml` ... what local configuration file to use
 
- `--isMaster 0|1` .... run master component `Diregent.Agent.exe` only `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
+ `--isMaster 0|1` .... run master component `Diregent.Agent.exe` only
+ 
+ `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
+
+ `--httpPort 8877` ... Web API port number. -1 to disable the web api. Passed to the master process when `--IsMaster 1` is used.
 
  `--tickPeriod 500` ... Period in milliseconds of commands/plan processing & GUI refresh. Passed to the master process when `--IsMaster 1` is used.
 

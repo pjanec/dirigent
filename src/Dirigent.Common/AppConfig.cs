@@ -73,8 +73,11 @@ namespace Dirigent
 		[Option( "isMaster", Required = false, Default = "", HelpText = "Start Master process automatically [0|1]." )]
 		public string IsMaster { get; set; } = string.Empty;
 
-		[Option( "CLIPort", Required = false, Default = 0, HelpText = "Master's Command Line Interface TCP port (passed to Master process)." )]
+		[Option( "CLIPort", Required = false, Default = 0, HelpText = "Command Line Interface TCP port (master only)." )]
 		public int CLIPort { get; set; }
+
+		[Option( "httpPort", Required = false, Default = 0, HelpText = "Web server port (master only, -1=no web server)." )]
+		public int HttpPort { get; set; }
 
 		[Option( "mode", Required = false, Default = "", HelpText = "Mode of operation. [daemon|trayGui|remoteControlGui]." )]
 		public string Mode { get; set; } = string.Empty;
@@ -107,6 +110,7 @@ namespace Dirigent
 		public string ClientId = "";
 		public int MasterPort = 5045;
 		public int CliPort = 5050;
+		public int HttpPort = 8877;
 		public string MasterIP = "127.0.0.1";
 		public string LogFileName = "";
 		public string StartupPlan = "";
@@ -160,6 +164,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
 			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
 			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
+			if( Common.Properties.Settings.Default.HttpPort != 0 ) HttpPort = Common.Properties.Settings.Default.HttpPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
 			if( Common.Properties.Settings.Default.MasterTickPeriod != 0 ) MasterTickPeriod = Common.Properties.Settings.Default.MasterTickPeriod;
 			if( Common.Properties.Settings.Default.LogFile  != "" ) LogFileName = Common.Properties.Settings.Default.LogFile;
@@ -188,6 +193,7 @@ namespace Dirigent
 				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
+				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
 				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;
 				ParentPid = options.parentPid;

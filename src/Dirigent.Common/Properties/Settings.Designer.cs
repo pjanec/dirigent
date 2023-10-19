@@ -218,6 +218,17 @@ namespace Dirigent.Common.Properties
 			}
 		}
 
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "8877" )]
+		public int HttpPort
+		{
+			get
+			{
+				return ( ( int )( this["HttpPort"] ) );
+			}
+		}
+
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "Control + Shift + Alt + S" )]
