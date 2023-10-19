@@ -7,8 +7,6 @@ Param( $buildconf="Release" )
 $version = (Get-Content -path "$PSScriptRoot\version.txt")
 & "$PSScriptRoot\gen-ver-stamp.ps1" "$PSScriptRoot\VersionStamp.txt" $version
 
-$exePath = "$PSScriptRoot\release\win-x64\$buildconf"
-
 # set the verison for the build processes started below
 $env:RELEASE_VERSION = $version
 
@@ -20,14 +18,17 @@ $env:RELEASE_VERSION = $version
 
 & "$PSScriptRoot\publish-win-x64.ps1" $buildconf
 
+
 # make zip for windows binaries
+$exePath = "$PSScriptRoot\release\win-x64\$buildconf"
 $zippath = "$PSScriptRoot\Dirigent-$version-win-x64.7z"
 Remove-Item -Path $zippath -Force -ErrorAction SilentlyContinue
-& "C:\Program Files\7-Zip\7z.exe" a -r -t7z $zippath "$exePath\*" "-xr!*.log" "-xr!*.config" "-xr!*.zip" "-xr!*.7z"
+& "C:\Program Files\7-Zip\7z.exe" a -r -t7z $zippath "$exePath\*" "-xr!*.log" "-xr!*.config" "-xr!*.xml" "-xr!*.zip" "-xr!*.7z"
 
 # make zip for sample configs
+$exePath = "$PSScriptRoot\release\win-x64\$buildconf"
 $zippath = "$PSScriptRoot\Dirigent-$version-win-x64-configs.7z"
 Remove-Item -Path $zippath -Force -ErrorAction SilentlyContinue
-& "C:\Program Files\7-Zip\7z.exe" a -t7z $zippath "$exePath\*.config"
+& "C:\Program Files\7-Zip\7z.exe" a -t7z $zippath "$exePath\*.config" "$exePath\*.xml"
 
 
