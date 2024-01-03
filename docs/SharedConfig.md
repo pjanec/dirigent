@@ -44,7 +44,12 @@ The file defines
 Example:
 
 ```xml
-<App AppIdTuple = "m1.a" ExeFullPath = "c:\windows\notepad.exe" StartupDir = "c:\" CmdLineArgs = "C:\file1.txt"/>
+<App
+     AppIdTuple = "m1.a"
+     ExeFullPath = "c:\windows\notepad.exe"
+     StartupDir = "c:\"
+     CmdLineArgs = "C:\file1.txt"
+/>
 ```
 
 
@@ -293,7 +298,7 @@ Example:
 
 #### KillAll definitions
 
-This optional section list the action taken when a KillAll command is issued.
+This optional section lists the action taken when a [KillAll](CLI.md#KillAll) command is issued, in addition to killing all running apps and plans.
 
 ##### `<KillAll/>` element
 

@@ -19,6 +19,7 @@
        StartupDir can be overridden via ToolActionDef's StartupDir="xxx" attribute.
    -->
 
+  <!-- Tool uses same format as App definition in SharedConfig -->
   <Tool
     AppIdTuple = "BatchScript"
     Icon = "Icons\BatchScript.png"
