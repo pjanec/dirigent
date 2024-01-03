@@ -304,6 +304,8 @@ Kills all running apps on all computers, stops all plans
 
   `KillAll` 
 
+If defined in the [KillAll section](SharedConfig.md#KillAll-definitions) of the SharedConfig.xml, it also takes a set of extra actions.
+
 ### ReloadSharedConfig
 
 Reloads the shared config.

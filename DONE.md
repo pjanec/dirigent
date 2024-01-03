@@ -277,3 +277,6 @@ GUI action is an async method.
 
 It can call async dirigent API, including starting scripts & waiting for their termination. GUI action can then easily using the result returned from the script for some local UI operation.
 
+# KillAll extra actions
+Run defined actions (start processes) during the KillAll operation on top of killing all running apps and plans.
+Reuse the Tools defined in local config, and in shared config define a list of such tools to run on desired host machine.

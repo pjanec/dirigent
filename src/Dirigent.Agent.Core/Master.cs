@@ -86,6 +86,7 @@ namespace Dirigent
 		private FileRegistry _files;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
+		private List<ActionDef> _killAllExtras = new List<ActionDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
 		private Stopwatch _swClientRefresh;
@@ -749,6 +750,7 @@ namespace Dirigent
 
 			_machineDefs = sharedConfig.Machines;
 			_menuItemDefs = sharedConfig.MainMenuItems;
+			_killAllExtras = sharedConfig.KillAllExtras;
 
 			// reset
 			var m = new Net.ResetMessage();
@@ -948,6 +950,21 @@ namespace Dirigent
 			{
 				KillScript( requestorId, id );
 			}
+
+			// run extra commands defined in the shared config
+			foreach( var ad in _killAllExtras )
+			{
+				if( !string.IsNullOrEmpty(ad.HostId) )
+				{
+					var msg = new Net.RunActionMessage(
+						requestorId,
+						ad,
+						ad.HostId  // run the action on specified host
+					);
+					_server.SendToAllSubscribed( msg, EMsgRecipCateg.Agent );
+				}
+			}
+
 		}
 
 		public void ReloadSharedConfig( string requestorId, ReloadSharedConfigArgs args )

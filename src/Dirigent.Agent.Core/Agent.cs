@@ -94,14 +94,20 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg );
 
-			var toolDefs = new List<AppDef>();
+			var toolDefs = new Dictionary<string, AppDef>( StringComparer.OrdinalIgnoreCase );
+			
+			// add local tools from local config
 			_localConfig = LoadLocalConfig( _ac.LocalCfgFileName, machineId );
 			if( _localConfig is not null )
 			{
 				InitFromLocalConfig();
-				toolDefs = _localConfig.Tools;
+
+				foreach( var td in _localConfig.Tools )
+				{
+					toolDefs[td.Id.AppId] = td; // toolId = only the app id without the machine name
+				}
 			}
-			
+
 			_toolsReg = new ToolsRegistry( _sharedContext, toolDefs, _reflStates );
 
 			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths );

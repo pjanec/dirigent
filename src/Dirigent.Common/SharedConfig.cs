@@ -13,5 +13,6 @@ namespace Dirigent
 		public List<MachineDef> Machines = new List<MachineDef>();
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>(); // all Vfs nodes defined throughout the SharedConfig
 		public List<AssocMenuItemDef> MainMenuItems = new List<AssocMenuItemDef>(); // shown in main menu
+		public List<ActionDef> KillAllExtras = new List<ActionDef>(); // actions to run when KillAll is issued, on top of killing all running apps and plans
 	}
 }

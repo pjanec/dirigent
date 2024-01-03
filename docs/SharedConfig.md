@@ -32,7 +32,8 @@ The file defines
     <Plan ... >
         <App ... />
         <App ... />
-    <Plan/>  
+    <Plan/>
+    <KillAll/>
 </Shared>
 ```
 
@@ -42,7 +43,7 @@ The file defines
 
 Example:
 
-```
+```xml
 <App AppIdTuple = "m1.a" ExeFullPath = "c:\windows\notepad.exe" StartupDir = "c:\" CmdLineArgs = "C:\file1.txt"/>
 ```
 
@@ -105,10 +106,12 @@ App sub-sections:
 
 - `SoftKill`
 
-      <SoftKill>
-         <Keys Timeout="1.5" Keys="^(c)"/>
-         <Close Timeout="0.7"/>
-      </SoftKill>
+  ```xml
+  <SoftKill>
+     <Keys Timeout="1.5" Keys="^(c)"/>
+     <Close Timeout="0.7"/>
+  </SoftKill>
+  ```
 
   Defines a a sequence of "soft" attempts to terminate a process. Dirigent try to terminate the process using the actions from the sequence, starting with the first one defined.
 
@@ -123,7 +126,7 @@ App sub-sections:
   Sub-sections:
 
   - `Keys` - send one or more keys to the main window. See Window.Forms.SendKeys manual for the key name format. 
-
+  
   - `Close` - emulates the close command sent to the main window.
 
 
@@ -142,7 +145,9 @@ App sub-sections:
 
 - `WindowPos`
 
-      <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
+  ```xml
+  <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
+  ```
 
   Finds a window belonging to the application by its title using regular expression search. Affects window settings (position, z-order etc.)
 
@@ -183,12 +188,14 @@ App sub-sections:
 
 - `Env`
 
-      <Env>
-        <Set Variable="TMP" Value="C:\TEMP" />
-        <Set Variable="TEMP" Value="C:\TEMP" />
-        <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
-        <Local Variable="P1" Value="myLocalParam1" />
-      </Env>
+  ```xml
+  <Env>
+    <Set Variable="TMP" Value="C:\TEMP" />
+    <Set Variable="TEMP" Value="C:\TEMP" />
+    <Path Prepend="C:\MYPATH1" Append="C:\MYPATH2;..\sub1"/> 
+    <Local Variable="P1" Value="myLocalParam1" />
+  </Env>
+  ```
 
   Modifies the environment variables for the started process, taking the Dirigent Agent's startup environment as a basis.
 
@@ -204,19 +211,21 @@ App sub-sections:
 
 - `Restarter`
 
-      <Restarter maxTries="2" delay="5"/>
+  ```xml
+  <Restarter maxTries="2" delay="5"/>
+  ```
 
   This settings specifies the parameters of the restart service which is activated upon application crash (when the app terminates without being killed via Dirigent). Such service is enabled only if  `RestartOnCrash='1'`.
 
   Dirigent will try to restart a crashed app for given number of times before it gives up. Upon crash, Dirigent waits for specified time before a restart attempt is made.
 
   Attributes:
-
+  
   - `maxTries` - how many restart attempts are made before the Dirigent gives up restarting. -1 means 'try forever'. Default is -1.
   - `delay` - how long time in seconds to wait before the Dirigent attempts to restart a crashed app. Default is 1 sec.
 
   Upon an `StartPlan` or `StartApp` request the number of remaining restart attempts is reset to the `maxTries` value.
-
+  
   `KillApp` or `KillPlan` requests deactivate any pending restart operation.
 
 #### Standalone app definitions
@@ -242,7 +251,7 @@ Launch plan comprises just a list of apps to be launched in given order. Multipl
 
 Example
 
-```
+```xml
 <Plan Name="plan1" StartTimeout="10">
 ```
 
@@ -270,7 +279,7 @@ App element have same format and meaning as the "standalone" `<App/>` elements d
 
 Example:
 
-```
+```xml
 <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
 ```
 
@@ -282,4 +291,30 @@ Example:
 
 - `Args` - command line arguments string passed to the script; available via the `Args` member variable of the script class.
 
-### 
+#### KillAll definitions
+
+This optional section list the action taken when a KillAll command is issued.
+
+##### `<KillAll/>` element
+
+Example:
+
+```xml
+<KillAll>
+    <!-- HostId is mandatory. The tool needs to be defined in LocalConfig.xml on that host. -->
+    <Tool HostId="m1" Name="BatchScript" Args="start /min kill-all-action-1.bat"/>
+</KillAll>
+
+```
+
+Available sub-elements
+
+* Tool (see [Tools](Tools.md))
+* Script (see [Scripts](#Script-definitions))
+
+Remarks:
+
+The `HostId` attribute needs to specify the machine where to run the tool/script on.
+
+In case of a `<Tool/>` the tool needs to be defined in LocalConfig.xml on that host.
+

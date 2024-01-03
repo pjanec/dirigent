@@ -126,7 +126,7 @@ namespace Dirigent.Gui.WinForms
 
 		void InitFromLocalConfig( string machineId )
 		{
-			var toolDefs = new List<AppDef>();
+			var toolDefs = new Dictionary<string, AppDef>( StringComparer.OrdinalIgnoreCase );
 			
 			if( !string.IsNullOrEmpty( _ac.LocalCfgFileName ) )
 			{
@@ -134,9 +134,11 @@ namespace Dirigent.Gui.WinForms
 				log.DebugFormat( "Loading local config file '{0}'", fullPath );
 				_localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
 
-				toolDefs = _localConfig.Tools;
+				foreach( var td in _localConfig.Tools )
+				{
+					toolDefs[td.Id.AppId] = td; // toolId = only the app id without the machine name
+				}
 			}
-
 
 			_sharedContext = new SharedContext(
 				_rootForRelativePaths,

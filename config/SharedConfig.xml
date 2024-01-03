@@ -400,5 +400,10 @@
         <Tool Title="Open in Explorer" Name="WinExplorer" Args="%FILE_PATH%"/>
 	</Folder>
 
+	<!-- what to do during the KillAll operation on top of killing all running apps & plans -->
+	<KillAll>
+	    <!-- HostId is mandatory. The tool needs to be defined in LocalConfig.xml on that host. -->
+        <Tool HostId="m1" Name="BatchScript" Args="start /min kill-all-action-1.bat"/>
+	</KillAll>
 
 </Shared>

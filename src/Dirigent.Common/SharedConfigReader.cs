@@ -40,6 +40,7 @@ namespace Dirigent
 			CheckDependencies();
 			LoadMachines( _fdReg );
 			LoadUnboundFiles( _fdReg );
+			LoadKillAllExtras();
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
 			_cfg.SingleInstScripts = LoadSingleInstScripts(_root);
@@ -833,6 +834,25 @@ namespace Dirigent
 			foreach ( var vfsNode in LoadVfsNodes( _root, null, null ) )
 			{
 				fdReg.Add( vfsNode );
+			}
+		}
+
+		void LoadKillAllExtras()
+		{
+			_cfg.KillAllExtras.Clear();
+
+			var killAllElem = _root.Element( "KillAll" );
+			if( killAllElem is null ) return;
+
+			foreach( var e in killAllElem.Elements() )
+			{
+				var action = LoadToolAction( e );
+				if( action is not null )
+				{
+					if( string.IsNullOrEmpty(action.HostId) )
+						throw new ConfigurationErrorException( $"Missing HostId in {e}");	
+					_cfg.KillAllExtras.Add( action );
+				}
 			}
 		}
 

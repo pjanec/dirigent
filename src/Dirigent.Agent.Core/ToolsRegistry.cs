@@ -28,10 +28,10 @@ namespace Dirigent
 		ReflectedScriptRegistry _reflScriptReg;
 		ReflectedStateRepo _reflStates;
 
-		public ToolsRegistry( SharedContext shCtx, IEnumerable<AppDef> toolDefs, ReflectedStateRepo reflStates )
+		public ToolsRegistry( SharedContext shCtx, Dictionary<string, AppDef> toolDefs, ReflectedStateRepo reflStates )
 		{
 			_sharedContext = shCtx;
-			_defs = new( toolDefs.ToDictionary( x => x.Id.AppId ), StringComparer.OrdinalIgnoreCase); // toolId is stored as the AppId
+			_defs = toolDefs;
 			_fileReg = reflStates.FileReg;
 			_reflScriptReg = reflStates.ScriptReg;
 			_reflStates = reflStates;
