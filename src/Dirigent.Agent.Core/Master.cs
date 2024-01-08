@@ -103,6 +103,14 @@ namespace Dirigent
 		private string _machineId; // empty if we run master standalone on an unidentified machine (this never happens as we always run master as part of some agent on a machine with a known id)
 		private bool _debug = false; // do not catch exceptions etc.
 
+		// set to true to during the KillAll operation;
+		//   back to false either when all apps are killed or when the KillAll operation times out
+		bool _killAllInProgress;
+		
+		// when to timeout the KillAll operation; used only during the KillAll operation
+		DateTime _killAllMaxTime;
+
+
 		#endregion
 
 		public Master( AppConfig ac, string rootForRelativePaths )
@@ -221,6 +229,8 @@ namespace Dirigent
 			}
 
 			SyncOps.Tick();
+
+			CheckKillAllFinished();
 		}
 
 		// Adds CLI request to be processed by the master during its next tick(s).
@@ -557,7 +567,7 @@ namespace Dirigent
 			}
 		}
 
-		// send all initial data do all connected clients
+		// send all initial data to all connected clients
 		void FeedAllClients()
 		{
 			foreach( var cl in _server.Clients )
@@ -577,6 +587,10 @@ namespace Dirigent
 			{
 				FeedAgent( ident );
 			}
+
+			// feed regardless of client type
+			var m = new Net.KillAllStatus( _killAllInProgress );
+			_server.SendToSingle( m, ident.Name );
 		}
 		
 
@@ -927,6 +941,19 @@ namespace Dirigent
 
 		public void KillAll( string requestorId, KillAllArgs args )
 		{
+			bool alreadyInProgress = _killAllInProgress;
+			
+			// remember we are in the middle of the KillAll operation
+			_killAllInProgress = true;
+			const double KILLALL_TIMEOUT = 5.0; // seconds
+			_killAllMaxTime = DateTime.UtcNow + TimeSpan.FromSeconds( KILLALL_TIMEOUT );
+			
+			if( !alreadyInProgress )
+            {
+				var msg = new Net.KillAllStatus(true);
+				_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+			}
+
 			// stop all plans
 			foreach( var p in _plans.Plans.Values )
 			{
@@ -964,7 +991,6 @@ namespace Dirigent
 					_server.SendToAllSubscribed( msg, EMsgRecipCateg.Agent );
 				}
 			}
-
 		}
 
 		public void ReloadSharedConfig( string requestorId, ReloadSharedConfigArgs args )
@@ -1073,6 +1099,29 @@ namespace Dirigent
 			if( plan.Def.ApplyOnSelect )
 			{
 				ApplyPlanToAllApps( plan );
+			}
+		}
+
+		void CheckKillAllFinished()
+		{
+			if( !_killAllInProgress ) return;
+
+			// check the status of all apps, if all are dead, we are done
+			bool allDead = true;
+			foreach( AppState appState in _allAppStates.AppStates.Values )
+			{
+				if( !appState.IsOffline && appState.Running )
+				{
+					allDead = false;
+					break;
+				}
+			}
+
+			if( allDead || DateTime.UtcNow > _killAllMaxTime )
+			{
+				_killAllInProgress = false;
+				var msg = new Net.KillAllStatus(false);
+				_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 			}
 		}
 

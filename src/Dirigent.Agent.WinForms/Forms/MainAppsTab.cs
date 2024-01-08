@@ -556,31 +556,35 @@ namespace Dirigent.Gui.WinForms
 				else if( e.Button == MouseButtons.Left )
 				{
 					// icon clicks
-					if( currentCol == colIconStart )
+					if( !_core.WarnKillAllInProgress() ) // instead of showing disabled icons (not sure how to do it), we just ignore all clicks during the KillAll operation
 					{
-						if( isAccessible ) // && !st.Running )
+						if( currentCol == colIconStart )
 						{
-							WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
-								Ctrl.Name,
-								id,
-								Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
-							)));
+							if( isAccessible ) // && !st.Running )
+							{
+								WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+									Ctrl.Name,
+									id,
+									Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
+								)));
+							}
+						}
+
+						if( currentCol == colIconRestart )
+						{
+							if( isAccessible ) // && st.Running )
+							{
+								WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
+							}
 						}
 					}
 
+					// kill is enabled anytime
 					if( currentCol == colIconKill )
 					{
 						if( isAccessible ) // && st.Running )
 						{
 							WFT.GuardedOp( () => Ctrl.Send( new Net.KillAppMessage( Ctrl.Name, id ) ) );
-						}
-					}
-
-					if( currentCol == colIconRestart )
-					{
-						if( isAccessible ) // && st.Running )
-						{
-							WFT.GuardedOp( () => Ctrl.Send( new Net.RestartAppMessage( Ctrl.Name, id ) ) );
 						}
 					}
 
@@ -616,11 +620,14 @@ namespace Dirigent.Gui.WinForms
 						var id = getAppTupleFromAppGridRow( focused );
 						var st = Ctrl.GetAppState( id );
 
-						WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
-							Ctrl.Name,
-							id,
-							Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
-						) ) );
+						if( !_core.WarnKillAllInProgress() ) // instead of showing disabled icons (not sure how to do it), we just ignore all clicks during the KillAll operation
+						{
+							WFT.GuardedOp( () => Ctrl.Send( new Net.StartAppMessage(
+								Ctrl.Name,
+								id,
+								Tools.IsAppInPlan(Ctrl, id, CurrentPlan ) ? CurrentPlan.Name : null // prefer selected plan over others
+							) ) );
+						}
 					}
 				}
 			}

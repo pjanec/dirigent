@@ -171,6 +171,12 @@ namespace Dirigent.Gui.WinForms
 				}
 
 				// note: ScriptStateMessage handling is done in ReflectedStateRepo
+
+				case Net.KillAllStatus m:
+				{
+					KillAllInProgress = m.InProgress;
+					break;
+				}
 			}
 		}
 
@@ -186,7 +192,18 @@ namespace Dirigent.Gui.WinForms
 			Ctrl.Send( new Net.SelectPlanMessage( Ctrl.Name, CurrentPlan is null ? string.Empty : CurrentPlan.Name ) );
 		}
 
-		
-		
+		// set to true to disable all action buttons (start/stop/kill/restart) during the KillAll operation
+		public bool KillAllInProgress { get; private set; }
+		public bool WarnKillAllInProgress()
+		{
+			if( KillAllInProgress )
+			{
+				// disable all buttons during the KillAll operation
+				System.Windows.Forms.MessageBox.Show( "KillAll operation in progress. Please wait until it finishes." );
+				return true;
+			}
+			return false;
+		}
+
 	}
 }

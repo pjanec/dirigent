@@ -53,6 +53,7 @@ namespace Dirigent.Net
 	[MessagePack.Union( 139, typeof( MachineStateMessage ) )]
 	[MessagePack.Union( 140, typeof( RunActionMessage ) )]
 	[MessagePack.Union( 141, typeof( UserNotificationMessage ) )]
+	[MessagePack.Union( 142, typeof( KillAllStatus ) )]
 
 
 
@@ -1255,5 +1256,28 @@ namespace Dirigent.Net
 		/// </summary>
 		//[MessagePack.Key( 8 )]
 		public double Timeout;
+	}
+
+	//[MessagePack.MessagePackObject]
+	// Sent from master to all clients whenever KillAll operation is started/finished.
+	// GUIs can use this to disable action buttons until KillAll finishes.
+	public class KillAllStatus : Message
+	{
+		//[MessagePack.Key( 1 )]
+		public bool InProgress;
+		
+		public KillAllStatus() {}
+
+		/// <param name="vars">if null, variables will NOT be changed from last use</param>
+		public KillAllStatus( bool inProgress )
+		{
+			this.InProgress = inProgress;
+		}
+
+		public override string ToString()
+		{
+			return $"KillAllStatus InProgress={InProgress}";
+		}
+
 	}
 }

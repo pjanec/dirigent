@@ -254,6 +254,18 @@ namespace Dirigent.Gui.WinForms
 			refreshStatusBar();
 			refreshMenu();
 			setTitle();
+			EnableDisableButtons();
+		}
+
+
+		void EnableDisableButtons()
+		{
+			// disable start/restart buttons if KillAll is in progress
+			bool startOpsEnabled = !_core.KillAllInProgress;
+			btnStartPlan.Enabled = startOpsEnabled;
+			btnStopPlan.Enabled = startOpsEnabled;
+			//btnKillPlan.Enabled = startOpsEnabled; // kill is always enabled, does not interfere with KillAll
+			btnRestartPlan.Enabled = startOpsEnabled;
 		}
 
 		private void frmMain_Resize( object sender, EventArgs e )

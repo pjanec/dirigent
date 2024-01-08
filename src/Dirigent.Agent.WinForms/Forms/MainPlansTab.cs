@@ -247,28 +247,29 @@ namespace Dirigent.Gui.WinForms
 					var plan = PlanRepo.FirstOrDefault( p => p.Name == planName );
 
 					// icon clicks
-					if( currentCol == colIconStart ) // start
+					if( !_core.WarnKillAllInProgress() ) // instead of showing disabled icons (not sure how to do it), we just ignore all clicks during the KillAll operation
 					{
-						WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
-						WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, plan.Name )  ) );
+						if( currentCol == colIconStart ) // start
+						{
+							WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, plan.Name )  ) );
+						}
+						else if( currentCol == colIconStop ) // stop
+						{
+							WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.StopPlanMessage( Ctrl.Name, plan.Name )  ) );
+						}
+						else if( currentCol == colIconKill ) // kill
+						{
+							WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, plan.Name )  ) );
+						}
+						else if( currentCol == colIconRestart ) // restart
+						{
+							WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
+							WFT.GuardedOp( () => Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, plan.Name )  ) );
+						}
 					}
-					else if( currentCol == colIconStop ) // stop
-					{
-						WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
-						WFT.GuardedOp( () => Ctrl.Send( new Net.StopPlanMessage( Ctrl.Name, plan.Name )  ) );
-					}
-					else if( currentCol == colIconKill ) // kill
-					{
-						WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
-						WFT.GuardedOp( () => Ctrl.Send( new Net.KillPlanMessage( Ctrl.Name, plan.Name )  ) );
-					}
-					else if( currentCol == colIconRestart ) // restart
-					{
-						WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( plan.Name ) );
-						WFT.GuardedOp( () => Ctrl.Send( new Net.RestartPlanMessage( Ctrl.Name, plan.Name )  ) );
-					}
-
-
 				}
 			}
 		}
@@ -288,9 +289,12 @@ namespace Dirigent.Gui.WinForms
 
 				if( e.Button == MouseButtons.Left )
 				{
-					// start the selected plan
-					WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( planName ) );
-					WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, planName )  ) );
+					if( !_core.WarnKillAllInProgress() ) // instead of showing disabled icons (not sure how to do it), we just ignore all clicks during the KillAll operation
+					{
+						// start the selected plan
+						WFT.GuardedOp( () => CurrentPlan = Ctrl.GetPlanDef( planName ) );
+						WFT.GuardedOp( () => Ctrl.Send( new Net.StartPlanMessage( Ctrl.Name, planName )  ) );
+					}
 				}
 			}
 		}
