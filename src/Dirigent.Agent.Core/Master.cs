@@ -945,7 +945,7 @@ namespace Dirigent
 			
 			// remember we are in the middle of the KillAll operation
 			_killAllInProgress = true;
-			const double KILLALL_TIMEOUT = 5.0; // seconds
+			const double KILLALL_TIMEOUT = 10.0; // seconds
 			_killAllMaxTime = DateTime.UtcNow + TimeSpan.FromSeconds( KILLALL_TIMEOUT );
 			
 			if( !alreadyInProgress )
