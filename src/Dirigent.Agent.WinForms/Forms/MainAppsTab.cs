@@ -368,7 +368,11 @@ namespace Dirigent.Gui.WinForms
 			if( e.ColumnIndex == colStatus )
 			{
 				var txt = dataItems[colStatus] as string;
-				if( txt.StartsWith( "Running" ) )
+				if( txt.StartsWith( "Failed to start" ) )
+				{
+					cell.Style = new DataGridViewCellStyle { ForeColor = Color.Red, SelectionForeColor = Color.Red, BackColor = defst.BackColor };
+				}
+				else if( txt.StartsWith( "Running" ) )
 				{
 					cell.Style = new DataGridViewCellStyle { ForeColor = Color.DarkGreen, SelectionForeColor = Color.LightGreen, BackColor = defst.BackColor };
 				}
