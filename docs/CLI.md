@@ -37,13 +37,15 @@ CLI uses a text formatted line based commands.
 There can be one or more (semicolon separated) commands per line but a single command cannot span multiple lines.
 
 
-### StartApp (same as StartApp)
+### StartApp
 
 Starts given app if not already running. The general syntax is as follows:
 
 	StartApp <appId>[@<planid>] [<varlist>]
 
 Note: the app might get restarted if already running with different set of explicit env vars - see `LeaveRunningWithPrevVars` option.
+
+Note: "LaunchApp" is an alias for StartApp.
 
 #### App definitions from different plans
 

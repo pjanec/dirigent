@@ -28,7 +28,7 @@ namespace Dirigent
 		bool _dying = false;	// already killed but still in the system
 		int _exitCode = 0; // cached exit code from last run
 
-		// not exported to the process environment, usable for used for expansion of various paths and cmd line arguments
+		// variables used for expansion of various paths and cmd line arguments; contains _publishedVars
 		Dictionary<string, string> _expansionVars;
 
 		// exported to the process environment, usable for used for expansion of various paths and cmd line arguments
