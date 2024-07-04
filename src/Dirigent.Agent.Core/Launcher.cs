@@ -436,7 +436,26 @@ namespace Dirigent
 			try
 			{
 				log.DebugFormat( "StartProc exe \"{0}\", cmd \"{1}\", dir \"{2}\", windowstyle {3}", psi.FileName, psi.Arguments, psi.WorkingDirectory, psi.WindowStyle );
-				_proc = Process_.Start( psi );
+
+				bool deElevate = false;
+				
+				#if Windows
+				if( _appDef.DeElevate )
+				{
+					if( WinApi.IsRunningElevated() )
+					{
+						deElevate = true;
+						// de-elevation comes with some limitations (see the implementation of process starting via CreateProcessWithToken
+						log.DebugFormat( "Warning: Launching de-elevated. Ignoring env vars settings. Ignoring window style settings." );
+					}
+					else
+					{
+						log.DebugFormat( "Dirigent not running elevated, ignoring 'DeElevate'" );
+					}
+				}
+				#endif
+
+				_proc = Process_.Start( psi, deElevate );
 				if( _proc != null )
 				{
 					log.DebugFormat( "StartProc SUCCESS pid {0}", _proc.Id );

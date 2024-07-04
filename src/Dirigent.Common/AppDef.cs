@@ -165,6 +165,17 @@ namespace Dirigent
 		public bool ReusePrevVars;
 
 		/// <summary>
+		/// If true, runs as non-elevated (only works if Dirigent itself runs with elevation)
+		/// </summary>
+		/// <remarks>
+		/// WARNING! Launching only works like if the process exe was double clicked from the shell.
+		///   - Opens in normal window (ignores window state settings like Minimized, hidden...)
+		///   - Does not set extra env vars
+		/// </remarks>
+		//[MessagePack.Key( 30 )]
+		public bool DeElevate;
+
+		/// <summary>
 		/// Name of the network service the app is using
 		/// </summary>
 		//[MessagePack.Key( 32 )]
@@ -219,6 +230,7 @@ namespace Dirigent
 				this.EnvVarPathToAppend == other.EnvVarPathToAppend &&
 				this.InitDetectors.SequenceEqual( other.InitDetectors ) &&
 				//this.Watchers.SequenceEqual(other.Watchers) &&
+				this.DeElevate == other.DeElevate &&
 				this.LeaveRunningWithPrevVars == other.LeaveRunningWithPrevVars &&
 				this.ReusePrevVars == other.ReusePrevVars &&
 				this.Service == other.Service &&

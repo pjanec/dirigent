@@ -19,6 +19,7 @@
     		XXX_InitCondition = "exitcode 0"
     		Groups="Folder 1"
     		MinKillingTime = "3.5"
+    		DeElevate = "1"
     	    >
     		<WindowPos titleregexp="\s-\sNotepad" rect="10,50,300,200" screen="1" keep="0" />
 

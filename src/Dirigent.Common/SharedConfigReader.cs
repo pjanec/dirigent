@@ -96,6 +96,7 @@ namespace Dirigent
 				Icon = e.Attribute( "Icon" )?.Value,
 				Disabled = e.Attribute( "Disabled" )?.Value,
 				Volatile = e.Attribute( "Volatile" )?.Value,
+				DeElevate = e.Attribute( "DeElevate" )?.Value,
 				ReusePrevVars = e.Attribute( "ReusePrevVars" )?.Value,
 				LeaveRunningWithPrevVars = e.Attribute( "LeaveRunningWithPrevVars" )?.Value,
 				RestartOnCrash = e.Attribute( "RestartOnCrash" )?.Value,
@@ -126,6 +127,7 @@ namespace Dirigent
 			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Disabled != null ) a.Disabled = ( int.Parse( x.Disabled ) != 0 );
 			if( x.Volatile != null ) a.Volatile = ( int.Parse( x.Volatile ) != 0 );
+			if( x.DeElevate != null ) a.DeElevate = ( int.Parse( x.DeElevate ) != 0 );
 			if( x.ReusePrevVars != null ) a.ReusePrevVars = ( int.Parse( x.ReusePrevVars ) != 0 );
 			if( x.LeaveRunningWithPrevVars != null ) a.LeaveRunningWithPrevVars = ( int.Parse( x.LeaveRunningWithPrevVars ) != 0 );
 			if( x.RestartOnCrash != null ) a.RestartOnCrash = ( int.Parse( x.RestartOnCrash ) != 0 );

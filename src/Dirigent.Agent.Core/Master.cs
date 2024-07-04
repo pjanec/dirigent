@@ -95,7 +95,7 @@ namespace Dirigent
 		private string _rootForRelativePaths;
 		private Dictionary<string, string> _internalVars = new Dictionary<string, string>();
 		CancellationTokenSource _webServerCTS;
-		private Task _webServerTask; // null if no web server started
+		private Task? _webServerTask; // null if no web server started
 		public ScriptFactory ScriptFactory;
 		public SynchronousOpProcessor SyncOps => _syncOps;
 		public SynchronousOpProcessor _syncOps;

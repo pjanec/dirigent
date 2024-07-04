@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Management;
+using System.IO;
+using System.Security.Principal;
 
 namespace Dirigent
 {
@@ -167,9 +169,6 @@ namespace Dirigent
 
         [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
         public static extern bool EnumWindows(EnumWindowsProcDelegate callback, IntPtr extraData);
-
-        [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
-        public static extern int GetWindowThreadProcessId( IntPtr handle, out int processId );
 
         [DllImport("user32.dll")]
         static public extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProcDelegate lpfn,
@@ -462,14 +461,14 @@ namespace Dirigent
         public static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        struct STARTUPINFOEX
+        public struct STARTUPINFOEX
         {
             public STARTUPINFO StartupInfo;
             public IntPtr lpAttributeList;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        struct STARTUPINFO
+        public struct STARTUPINFO
         {
             public Int32 cb;
             public string lpReserved;
@@ -515,12 +514,88 @@ namespace Dirigent
             out PROCESS_INFORMATION lpProcessInformation
         );
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool CloseHandle(IntPtr hObject);
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CreateProcessWithTokenW(
+            IntPtr hToken,
+            int dwLogonFlags,
+            string lpApplicationName,
+            string lpCommandLine,
+            int dwCreationFlags,
+            StringBuilder? lpEnvironment,
+            //[In, MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpEnvironment,  // note the LPWStr => we have to use CREATE_UNICODE_ENVIRONMENT in dwCreationFlags!!
+            string lpCurrentDirectory,
+            [In] ref STARTUPINFOEX lpStartupInfo,
+            out PROCESS_INFORMATION lpProcessInformation);
 
         [DllImport("kernel32.dll", SetLastError=true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+
+
+        public struct TOKEN_PRIVILEGES
+        {
+            public UInt32 PrivilegeCount;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+            public LUID_AND_ATTRIBUTES[] Privileges;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct LUID_AND_ATTRIBUTES
+        {
+            public LUID Luid;
+            public UInt32 Attributes;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct LUID
+        {
+            public uint LowPart;
+            public int HighPart;
+        }
+
+        public enum SECURITY_IMPERSONATION_LEVEL
+        {
+            SecurityAnonymous,
+            SecurityIdentification,
+            SecurityImpersonation,
+            SecurityDelegation
+        }
+
+        public enum TOKEN_TYPE
+        {
+            TokenPrimary = 1,
+            TokenImpersonation
+        }
+
+        [DllImport("kernel32.dll", ExactSpelling = true)]
+        public static extern IntPtr GetCurrentProcess();
+
+        [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+        public static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr phtok);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool LookupPrivilegeValue(string? host, string name, ref LUID pluid);
+
+        [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
+        public static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall, ref TOKEN_PRIVILEGES newst, int len, IntPtr prev, IntPtr relen);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetShellWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, uint processId);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, IntPtr lpTokenAttributes, SECURITY_IMPERSONATION_LEVEL impersonationLevel, TOKEN_TYPE tokenType, out IntPtr phNewToken);
 
         public static bool StartProcess(
             string applicationName,
@@ -529,7 +604,8 @@ namespace Dirigent
             string currentDirectory,
             ProcessWindowStyle windowStyle,
             out PROCESS_INFORMATION processInfo,
-            out int win32error 
+            out int win32error,
+            IntPtr? token = null
             )
         {
             var pInfo = new PROCESS_INFORMATION();
@@ -573,21 +649,49 @@ namespace Dirigent
                 }
                 var commandLine = appName+" "+arguments;
 
-                if( !CreateProcess(
-                    applicationName,
-                    commandLine,
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    false,
-                    0x0080410, // (EXTENDED_STARTUPINFO_PERSENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE)
-                    sbEnv,
-                    currentDirectory,
-                    ref sInfoEx,
-                    out processInfo
-                    ) )
+                if( token.HasValue )
+				{
+                    // Unfortunately CreateProcessWithTokenW fails if EXTENDED_STARTUPINFO_PRESENT or if lpEnvironment is not null
+                    // So we run the process with default settings (normal window, no extra env vars)
+
+					if( !CreateProcessWithTokenW(
+						token.Value,
+						0, // dwLogonFlags
+						applicationName,
+						commandLine,
+						0, // only without extra flags it seems to work
+						//0x0000400, //  CREATE_UNICODE_ENVIRONMENT => OK if lpEnvironment=null, otherwise error 740
+                        //0x0080000, // EXTENDED_STARTUPINFO_PRESENT   => error 87
+						null, //sbEnv,  // if not null => error 87 (or 740 if CREATE_UNICODE_ENVIRONMENT used)
+						currentDirectory,
+						ref sInfoEx,
+						out processInfo
+						) )
+					{
+						win32error = Marshal.GetLastWin32Error();
+						return false;
+					}
+					win32error = 0;
+					return true;
+				}
+                else
                 {
-                    win32error = Marshal.GetLastWin32Error();
-                    return false;
+                    if( !CreateProcess(
+                        applicationName,
+                        commandLine,
+                        IntPtr.Zero,
+                        IntPtr.Zero,
+                        false,
+                        0x0080410, // (EXTENDED_STARTUPINFO_PERSENT | CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE)
+                        sbEnv,
+                        currentDirectory,
+                        ref sInfoEx,
+                        out processInfo
+                        ) )
+                    {
+                        win32error = Marshal.GetLastWin32Error();
+                        return false;
+                    }
                 }
                 win32error = 0;
                 return true;
@@ -664,6 +768,12 @@ namespace Dirigent
 			}
 		}
 
+		public static bool IsRunningElevated()
+		{
+			WindowsIdentity identity = WindowsIdentity.GetCurrent();
+			WindowsPrincipal principal = new WindowsPrincipal(identity);
+			return principal.IsInRole(WindowsBuiltInRole.Administrator);
+		}
 	}
 }
 

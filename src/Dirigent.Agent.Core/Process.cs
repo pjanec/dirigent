@@ -75,11 +75,18 @@ namespace Dirigent
 			#endif
 		}
 
-		public static Process_ Start( ProcessStartInfo_ psi )
+		public static Process_? Start( ProcessStartInfo_ psi, bool asNonElevated=false )
 		{
 			var p = new Process_();
 			#if Windows
- 				return p.StartInternal( psi );
+				if( asNonElevated )
+				{
+					return p.StartInternalAsDesktopUser( psi );
+				}
+				else
+				{
+ 					return p.StartInternal( psi );
+				}
 			#else
 				// use native Process only
 				var nativePsi = new ProcessStartInfo();
@@ -127,7 +134,142 @@ namespace Dirigent
 			}
 			return this;
 		}
+
+		// https://stackoverflow.com/questions/11169431/how-to-start-a-new-process-without-administrator-privileges-from-a-process-with?noredirect=1&lq=1
+		// 
+
+		public Process_? StartInternalAsDesktopUser( ProcessStartInfo_ psi)
+		{
+			_hasProcessInfo = false;
+
+			if (string.IsNullOrWhiteSpace(psi.FileName))
+				throw new ArgumentException("Value cannot be null or whitespace.", nameof(psi.FileName));
+
+			// To start process as shell user you will need to carry out these steps:
+			// 1. Enable the SeIncreaseQuotaPrivilege in your current token
+			// 2. Get an HWND representing the desktop shell (GetShellWindow)
+			// 3. Get the Process ID(PID) of the process associated with that window(GetWindowThreadProcessId)
+			// 4. Open that process(OpenProcess)
+			// 5. Get the access token from that process (OpenProcessToken)
+			// 6. Make a primary token with that token(DuplicateTokenEx)
+			// 7. Start the new process with that primary token(CreateProcessWithTokenW)
+
+			var hProcessToken = IntPtr.Zero;
+			// Enable SeIncreaseQuotaPrivilege in this process.  (This won't work if current process is not elevated.)
+			try
+			{
+				var process = WinApi.GetCurrentProcess();
+				if (!WinApi.OpenProcessToken(process, 0x0020, ref hProcessToken))
+				{
+					log.Error("OpenProcessToken failed. Dirigent not elevated?");
+					return null;
+				}
+
+				var tkp = new WinApi.TOKEN_PRIVILEGES
+				{
+					PrivilegeCount = 1,
+					Privileges = new WinApi.LUID_AND_ATTRIBUTES[1]
+				};
+
+				if (!WinApi.LookupPrivilegeValue(null, "SeIncreaseQuotaPrivilege", ref tkp.Privileges[0].Luid))
+				{
+					log.Error("LookupPrivilegeValue failed. Dirigent not elevated?");
+					return null;
+				}
+
+				tkp.Privileges[0].Attributes = 0x00000002;
+
+				if (!WinApi.AdjustTokenPrivileges(hProcessToken, false, ref tkp, 0, IntPtr.Zero, IntPtr.Zero))
+				{
+					log.Error("AdjustTokenPrivileges failed. Dirigent not elevated?");
+					return null;
+				}
+			}
+			finally
+			{
+				WinApi.CloseHandle(hProcessToken);
+			}
+
+			// Get an HWND representing the desktop shell.
+			// CAVEATS:  This will fail if the shell is not running (crashed or terminated), or the default shell has been
+			// replaced with a custom shell.  This also won't return what you probably want if Explorer has been terminated and
+			// restarted elevated.
+			var hwnd = WinApi.GetShellWindow();
+			if (hwnd == IntPtr.Zero)
+			{
+				log.Error("GetShellWindow failed. Explorer.exe not running? Custom shell in use?");
+				return null;
+			}
+
+			var hShellProcess = IntPtr.Zero;
+			var hShellProcessToken = IntPtr.Zero;
+			var hPrimaryToken = IntPtr.Zero;
+			try
+			{
+				// Get the PID of the desktop shell process.
+				uint dwPID;
+				if (WinApi.GetWindowThreadProcessId(hwnd, out dwPID) == 0)
+				{
+					log.Error("GetWindowThreadProcessId failed on the desktop shell process.");
+					return null;
+				}
+
+				// Open the desktop shell process in order to query it (get the token)
+				hShellProcess = WinApi.OpenProcess(WinApi.ProcessAccessFlags.QueryInformation, false, dwPID);
+				if (hShellProcess == IntPtr.Zero)
+				{
+					log.Error("OpenProcess failed on the desktop shell process.");
+					return null;
+				}
+
+				// Get the process token of the desktop shell.
+				if (!WinApi.OpenProcessToken(hShellProcess, 0x0002, ref hShellProcessToken))
+				{
+					log.Error("OpenProcessToken failed on the desktop shell process.");
+					return null;
+				}
+
+				var dwTokenRights = 395U;
+
+				// Duplicate the shell's process token to get a primary token.
+				// Based on experimentation, this is the minimal set of rights required for CreateProcessWithTokenW (contrary to current documentation).
+				if (!WinApi.DuplicateTokenEx(hShellProcessToken, dwTokenRights, IntPtr.Zero, WinApi.SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation, WinApi.TOKEN_TYPE.TokenPrimary, out hPrimaryToken))
+				{
+					log.Error("DuplicateTokenEx failed on the desktop shell process.");
+					return null;
+				}
+
+				// Start the target process with the new token.
+				if( WinApi.StartProcess( psi.FileName, psi.Arguments, psi.EnvironmentVariables, psi.WorkingDirectory, psi.WindowStyle, out _processInfo, out int win32error, hPrimaryToken ) )
+				{
+					_hasProcessInfo = true;
+					try
+					{
+						_process = System.Diagnostics.Process.GetProcessById( _processInfo.dwProcessId );
+					}
+					catch
+					{
+						// the process was created but process object can not be obtained
+						// process might have terminated immediately (or another error, like access right...)
+					}
+				}
+				else
+				{
+					throw new System.ComponentModel.Win32Exception( win32error );
+				}
+			}
+			finally
+			{
+				WinApi.CloseHandle(hShellProcessToken);
+				WinApi.CloseHandle(hPrimaryToken);
+				WinApi.CloseHandle(hShellProcess);
+			}
+
+			return this;
+
+		}
 		#endif
+
 
 		public void Kill()
 		{

@@ -147,6 +147,12 @@ App sub-sections:
   - 1 =  `StartApp` command will keep the already running app intact (**no restart**) even if it was launched with different set of env vars. But Dirigent will remember the new variables and will use them the next time this apps is started.
 
     
+- `DeElevate 0|1` - controls whether the process will be run as non-elevated even if the Dirigent itself is elevated.
+  - 0 = Run with same elevation as the dirigent. (default)
+  - 1 = Run non-elevated. Only works if Dirigent itself runs with elevation. 
+  * WARNING! Launching in non-elevated mode works like if the process exe was started from the desktop shell, i.e.:
+    * Process is opened in normal window (ignoring window state settings like Minimized, Hidden...)
+    * Process does not get any extra env vars provided by the dirigent (ignoring the ENV section from shared config, not setting DIRIGENT_xxx vars etc.)
 
 - `WindowPos`
 
