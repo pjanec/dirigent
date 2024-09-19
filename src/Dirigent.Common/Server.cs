@@ -151,7 +151,7 @@ namespace Dirigent.Net
 		private Dictionary<Guid, MessageSession> _connectedClients = new Dictionary<Guid, MessageSession>();
 
 		/// <summary>Those clients that already connected and already sent ClientInfo</summary>
-		private Dictionary<string, MessageSession> _identifiedClients = new Dictionary<string, MessageSession>();
+		private Dictionary<Guid, MessageSession> _identifiedClients = new Dictionary<Guid, MessageSession>();
 
 		/// <summary>coded for outgoing messages</summary>
 		private MsgPackCodec _msgCodec;
@@ -202,7 +202,7 @@ namespace Dirigent.Net
 		// called synchronously from session's Poll()
 		internal void ClientIdentified( MessageSession session )
 		{
-			_identifiedClients[session.Name] = session;
+			_identifiedClients[session.Id] = session;
 
 			log.Debug( $"Identified: {session.Id} => {session.Name}" );
 
@@ -213,6 +213,18 @@ namespace Dirigent.Net
 		/// </summary>
 		public void Tick( Action<Message>? act = null )
 		{
+			// WARNING:
+			//	We process buffered connections before disconnections independently on the order they were detected by the NetCoreServer lib.
+			//
+			//  If a client connects and disconnects in the same tick, we want to process the connection event first.
+			//
+			//  If a client disconnects and reconnects in a quick succession (few msecs - seen on some weird networks)
+			//  the OnConnected callback for the new TCP session can be fired before the OnDisconnected callback for the old one.
+			//  This then seems like the client is connected twice for a short period of time.
+			//  We need to be robust against this by supporting that situation in our code, for example by sending messages to both TCP sessions
+			//  belonging to the same client. We just hope that it will not happen too often and that the messages will not reach the
+			//  already disconnecting client twice and if they do, that it will not cause any harm.
+
 			// process clients that has connected since last tick
 			lock( _connectingClients )
 			{
@@ -234,10 +246,7 @@ namespace Dirigent.Net
 					log.Debug( $"Disconnected: {s.Id}" );
 
 					_connectedClients.Remove( s.Id );
-					if( !string.IsNullOrEmpty( s.Name ) )
-					{
-						_identifiedClients.Remove( s.Name );
-					}
+					_identifiedClients.Remove( s.Id );
 				}
 			}
 
@@ -287,7 +296,8 @@ namespace Dirigent.Net
 		/// </summary>
 		public void SendToSingle( Net.Message msg, string clientName )
 		{
-			if( _identifiedClients.TryGetValue( clientName, out var session ) )
+			var sessions = _identifiedClients.Values.Where( x => x.Name == clientName );
+			foreach( var session in sessions )
 			{
 				log.Debug( $"[master] => [{clientName}]: {msg}" );
 
@@ -299,7 +309,11 @@ namespace Dirigent.Net
 
 		public Socket? GetClientSocket( string clientName )
 		{
-			if( _identifiedClients.TryGetValue( clientName, out var session ) )
+			// Note: this returns the first client with the given name
+			// In some rare cases (like rapid client disconnection and reconnection) there can be more
+			// client TCP sessions with the same name, hopefully all having the same IP address...
+			var session = _identifiedClients.Values.FirstOrDefault( x => x.Name == clientName );
+			if( session != null )
 			{
 				return session.Socket;
 			}
