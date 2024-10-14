@@ -540,4 +540,42 @@ namespace Dirigent.Commands
 		}
 	}
 
+	public class GetClientState : DirigentControlCommand
+	{
+		public GetClientState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "machine id (or client id) expected." );
+			var clientId = args[0];
+			var state = ctrl.GetClientState( clientId );
+			var stateStr = Tools.GetClientStateString( clientId, state );
+			WriteResponse( stateStr );
+		}
+	}
+
+	public class GetAllClientsState : DirigentControlCommand
+	{
+		public GetAllClientsState( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			foreach( (var id, var state) in ctrl.GetAllClientStates() )
+			{
+				if( state.Ident is null ) continue;
+				if( !state.Ident.IsAgent ) continue; // report just true agents (i.e. machines), not all the GUIs or CLI clients
+				var stateStr = Tools.GetClientStateString( id, state );
+				WriteResponse( stateStr );
+			}
+			WriteResponse( "END" );
+		}
+	}
+
+
 }

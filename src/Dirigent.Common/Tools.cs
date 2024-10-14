@@ -200,6 +200,23 @@ namespace Dirigent
 			return stateStr;
 		}
 
+		public static string GetClientStateString( string machineId, ClientState? state )
+		{
+			if( state is null )
+				return string.Empty;
+
+			double age = ( DateTime.UtcNow - state.LastChange ).TotalSeconds;
+			var stateStr = String.Format(
+							   System.Globalization.CultureInfo.InvariantCulture,
+							   "CLIENT:{0}:{1}:{2:0.0}:{3}",
+							   state.Ident?.Name,
+							   state.Connected?"1":"0",
+							   age,
+							   state.IP
+						   );
+			return stateStr;
+		}
+
 		public static string GetScriptStateText( ScriptState st )
 		{
 			return st.Text ?? "";

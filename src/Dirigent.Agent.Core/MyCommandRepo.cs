@@ -33,6 +33,8 @@ namespace Dirigent
             repo.Register( "KillScript",            (ctrl, requestorId) => new Commands.KillScript(ctrl, requestorId));
             repo.Register( "GetScriptState",        (ctrl, requestorId) => new Commands.GetScriptState(ctrl, requestorId));
             repo.Register( "ApplyPlan",             (ctrl, requestorId) => new Commands.ApplyPlan(ctrl, requestorId));
+            repo.Register( "GetClientState",        (ctrl, requestorId) => new Commands.GetClientState(ctrl, requestorId));
+            repo.Register( "GetAllClientsState",    (ctrl, requestorId) => new Commands.GetAllClientsState(ctrl, requestorId));
         }
 
     }

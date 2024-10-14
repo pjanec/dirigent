@@ -12,8 +12,10 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | ----------------------- | ------------------------------------------------------------ |
 | [ApplyPlan](#ApplyPlan) | Changes the app definitions to the one from given plan.      |
 | [GetAllAppsState](#GetAllAppsState)         | returns status of all apps known to dirigent.                |
+| [GetAllClientsState](#GetAllClientsState) | Gathers the status of all clients/machines known to the Dirigent. |
 | [GetAllPlansState](#GetAllPlansState)        | Gathers the status of all plans known to the Dirigent.       |
 | [GetAppState](#GetAppState)             | returns the status of an app. |
+| [GetClientState](#GetClientState) | Returns the status of a client/machine. |
 | [GetPlanState](#GetPlanState)            | Returns the status of a plan. |
 | [KillAll](#KillAll)                 | Kills all running apps on all computers, stops all plans. |
 | [KillApp](#KillApp)                 | Kills single app. |
@@ -274,6 +276,36 @@ Returns one line per plan; last line is "END\n"
 	PLAN:plan1:None
 	PLAN:plan2:Success
 	PLAN:plan3:Killing
+	END
+
+### GetClientState
+
+Returns the status of given client/machine
+
+  `GetClientState <machineId>`  
+
+##### Response text
+
+  `CLIENT:<ClientName>:<IsConnected>:<ReportedSecondsAgo>:<IP address>`
+
+##### Example
+
+  Request:   `GetClientState m1`
+
+  Response:     `CLIENT:m1:1:0.5:127.0.0.1`
+
+### GetAllClientsState
+
+Gathers the status of all clients/machines known to the Dirigent.
+
+  `GetAllClientsState` 
+
+##### Response text
+
+Returns one line per client/machine; last line is "END\n"
+
+	CLIENT:m1:1:0.3:192.168.1.1
+	CLIENT:m2:0:2.7:192.168.1.2
 	END
 
 ### SetVars
