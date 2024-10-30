@@ -167,6 +167,15 @@ namespace Dirigent
         }
 
 
+        [DllImport("kernel32", SetLastError = true)]
+        public static extern bool AttachConsole(int dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool FreeConsole();
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetConsoleTitle([Out] StringBuilder lpConsoleTitle, uint nSize);
+
         [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
         public static extern bool EnumWindows(EnumWindowsProcDelegate callback, IntPtr extraData);
 

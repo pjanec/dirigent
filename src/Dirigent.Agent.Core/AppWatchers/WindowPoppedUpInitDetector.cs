@@ -76,7 +76,6 @@ namespace Dirigent
 				return false; // do nothing if process has terminated
             }
 
-            bool found = false;
             var windows = WinApi.GetProcessWindows( _processId );
             foreach( var w in windows )
             {
@@ -86,11 +85,42 @@ namespace Dirigent
                 {
                     log.DebugFormat("WindowPoppedUpInitDetector: Found matching window handle 0x{0:X8}, title \"{1}\", pid {2}", w.Handle, w.Title, _processId );
                     
-                    found = true;
                     ShallBeRemoved = true;
+                    return true;
                 }
             }
-            return found;
+
+            // try getting console title in a way compatible with Win11
+            // (Win11 uses WindowsTermial where no standalone console window is created)
+            if( WinApi.AttachConsole( _app.Process.Id ) ) // this fails if the process is not a console app or if this agent has a console
+            {
+                try
+                {
+                    StringBuilder sb = new StringBuilder( 1024 );
+                    if( WinApi.GetConsoleTitle( sb, (uint) sb.Capacity ) > 0 )
+                    {
+						string consoleTitle = sb.ToString();
+						var m = _titleRegExp.Match( consoleTitle );
+						if( m != null && m.Success )
+						{
+							log.DebugFormat("WindowPoppedUpInitDetector: Found matching console title \"{0}\", pid {1}", consoleTitle, _processId );
+							
+							ShallBeRemoved = true;
+							return true;
+						}
+					}
+				}
+				finally
+				{
+					WinApi.FreeConsole();
+				}
+            }
+            else
+            {
+                int err = Marshal.GetLastWin32Error();
+            }
+
+            return false;
         }
 
         bool IAppInitializedDetector.IsInitialized => IsInitialized();
