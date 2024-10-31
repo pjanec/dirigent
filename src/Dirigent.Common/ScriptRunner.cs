@@ -76,7 +76,7 @@ namespace Dirigent
 			}
 		}
 
-		public void Start( string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
+		public void Start( string scriptName, string? sourceCode, string? args, string title, string? requestorId )
 		{
 			// one runner can run max one script at a time
 			if( _runTask is not null ) // already started?
@@ -117,7 +117,7 @@ namespace Dirigent
 			//	_runTask.Wait();
 		}
 
-		async Task ScriptLifeCycle( CancellationToken ct, string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId  )
+		async Task ScriptLifeCycle( CancellationToken ct, string scriptName, string? sourceCode, string? args, string title, string? requestorId  )
 		{
 			// note: we wait for termination of this task in Tick(), then we call Done() from Tick
 			try

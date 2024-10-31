@@ -6,6 +6,7 @@ using System.IO;
 using System.Reflection;
 using System.Globalization;
 using System.Net.Sockets;
+using Newtonsoft.Json;
 
 namespace Dirigent
 {
@@ -639,29 +640,19 @@ namespace Dirigent
 			}
 		}
 
-		public static byte[] Serialize<T>( T data )	
+		public static JsonSerializerSettings JsonSerTypeNameHandlingAuto = new JsonSerializerSettings
 		{
-			using (var stream = new MemoryStream())
-			{
-				try{
-				MessagePack.MessagePackSerializer.Serialize( stream, data );
-				}
-				catch (Exception ex)
-				{
-					log.Error($"MessagePack Serialize failed for {typeof(T).FullName}", ex );
-					throw;
-				}
-				return stream.ToArray();
-			}
+			TypeNameHandling = TypeNameHandling.Auto
+		};
+
+		public static string Serialize<T>( T data )	
+		{
+			return JsonConvert.SerializeObject( data, JsonSerTypeNameHandlingAuto );
 		}
 
-		public static T? Deserialize<T>( byte[]? data )	
+		public static T? Deserialize<T>( string? data )	
 		{
-			if (data is null) return default( T );
-			using (var stream = new MemoryStream( data ))
-			{
-				return MessagePack.MessagePackSerializer.Deserialize<T>( stream );
-			}
+			return JsonConvert.DeserializeObject<T>( data, JsonSerTypeNameHandlingAuto );
 		}
 
 		/// <summary> serialze/deserialize-based cloning </summary>

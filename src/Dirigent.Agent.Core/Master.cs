@@ -426,7 +426,7 @@ namespace Dirigent
 					{
 						if( string.IsNullOrEmpty(m.ScriptName) ) // is it a ScriptDef based single-instance script?
 						{
-							StartSingletonScript( m.Requestor, m.Instance, Tools.Deserialize<string?>(m.Args) );
+							StartSingletonScript( m.Requestor, m.Instance, m.Args );
 						}
 						else // it is a generic script
 						{

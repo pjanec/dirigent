@@ -37,7 +37,7 @@ namespace Dirigent.Scripts.BuiltIn
 			public List<WinInfo> Windows = new List<WinInfo>();
 		}
 
-		protected override Task<byte[]?> Run()
+		protected override Task<string?> Run()
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args is null");
@@ -56,7 +56,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 			};
 
-			return Task.FromResult<byte[]?>( Tools.Serialize(result) );
+			return Task.FromResult<string?>( Tools.Serialize(result) );
 		}
 
 	}

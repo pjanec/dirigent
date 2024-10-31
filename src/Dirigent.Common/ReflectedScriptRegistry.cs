@@ -161,7 +161,7 @@ namespace Dirigent
 		/// <summary>
 		/// Starts script on given client and install its watcher. If the script fails to start, watcher gets removed automatically.
 		/// </summary>
-		public Guid StartScriptWithWatcher( string clientId, string scriptName, string? sourceCode, byte[]? args, string title, ScriptStatusWatcher watcher )
+		public Guid StartScriptWithWatcher( string clientId, string scriptName, string? sourceCode, string? args, string title, ScriptStatusWatcher watcher )
 		{
 			var instance = Guid.NewGuid();
 
@@ -180,10 +180,10 @@ namespace Dirigent
 		public Guid RunScriptNoWait<TArgs>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title )
 		{
 			var instance = Guid.NewGuid();
-			var argsBytes = args is null ? null : Tools.Serialize( args );
+			var argsSerialized = args is null ? null : Tools.Serialize( args );
 
 			// send a request
-			_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, sourceCode, argsBytes, title, clientId ) );
+			_ctrl.Send( new Net.StartScriptMessage( _ctrl.Name, instance, scriptName, sourceCode, argsSerialized, title, clientId ) );
 
 			return instance;
 		}

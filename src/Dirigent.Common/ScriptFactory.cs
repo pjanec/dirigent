@@ -31,7 +31,7 @@ namespace Dirigent
 			_scriptCreators.Add( scriptName, scriptCreator );
 		}
 
-		void SetupScript( Script script, string title, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
+		void SetupScript( Script script, string title, string args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
 		{
 			script.Dirig = ctrl;
 			script.Title = title;
@@ -40,13 +40,14 @@ namespace Dirigent
 			script.Requestor = requestorId ?? "";
 		}
 
-		public T CreateFromLines<T>( string title, string[] codeLines, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T: Script
+		public T CreateFromLines<T>( string title, string[] codeLines, string? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T: Script
 		{
 			IScript scriptIntf = CSScriptLib.CSScript.Evaluator
 								.ReferenceAssemblyByName("System")
 								.ReferenceAssemblyByName("log4net")
 								.ReferenceAssemblyByName("Dirigent.Common")
 								.ReferenceAssemblyByName("Dirigent.Agent.Core")
+								.ReferenceAssemblyByName("Newtonsoft.Json")
 								.LoadCode<IScript>( string.Join("\r\n", codeLines) )
 								;
 			if( scriptIntf == null )
@@ -65,7 +66,7 @@ namespace Dirigent
 			return script;
 		}
 
-		public T CreateFromFile<T>( string title, string fileName, byte[]? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
+		public T CreateFromFile<T>( string title, string fileName, string? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
 		{
 			var lines = File.ReadAllLines( fileName );
 
@@ -74,7 +75,7 @@ namespace Dirigent
 			return script;
 		}
 
-		public T CreateFromString<T>( Guid taskInstance, string id, string scriptCode, byte[]? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T:Script
+		public T CreateFromString<T>( Guid taskInstance, string id, string scriptCode, string? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T:Script
 		{
 			var lines = Tools.ReadAllLinesFromString( scriptCode );
 
@@ -105,7 +106,7 @@ namespace Dirigent
 		/// <param name="ctrl">WARNING must be a unique instance as each script modifies it</param>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public T Create<T>( Guid taskInstance, string title, string scriptName, string? scriptRootFolder, string? scriptCode, byte[]? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
+		public T Create<T>( Guid taskInstance, string title, string scriptName, string? scriptRootFolder, string? scriptCode, string? args, SynchronousIDirig ctrl, string? requestorId ) where T:Script
 		{
 			T? script = null;
 			if( _scriptCreators.TryGetValue( scriptName, out var scriptCreator ) )

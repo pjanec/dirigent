@@ -44,7 +44,7 @@ namespace Dirigent
 			{
 				if (args is null) args = Def.Args;
 				// create a new instance of the script; it will be disposed when it dies
-				_localScriptRegistry.Start( Def.Guid, Def.Name, null, Tools.Serialize( args ), Def.Title, requestorId );
+				_localScriptRegistry.Start( Def.Guid, Def.Name, null, args, Def.Title, requestorId );
 			}
 
 			public void Stop()

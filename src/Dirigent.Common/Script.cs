@@ -16,7 +16,7 @@ namespace Dirigent
 	public interface IScript : IDisposable
 	{
 		string StatusText { get; }
-		byte[]? StatusData { get; }
+		string? StatusData { get; }
 	}
 
 	/// <summary>
@@ -31,10 +31,10 @@ namespace Dirigent
 		#pragma warning restore CS8618
 
 		private string? _statusText = "";
-		private byte[]? _statusData = null;
+		private string? _statusData = null;
 									
 		string IScript.StatusText  => _statusText ?? "";
-		byte[]? IScript.StatusData  => _statusData;
+		string? IScript.StatusData  => _statusData;
 
 		protected override void Dispose( bool disposing )
 		{
@@ -42,7 +42,7 @@ namespace Dirigent
 			if( !disposing ) return;
 		}
 
-		public async Task<byte[]?> CallRun() => await Run();
+		public async Task<string?> CallRun() => await Run();
 
 
 		//////////////////////////////////
@@ -61,7 +61,7 @@ namespace Dirigent
 
 		public string Origin { get; set; } = string.Empty;
 
-		public byte[]? Args { get; set; }
+		public string Args { get; set; }
 
 		/// <summary> Who wanted this script to run </summary>
 		public string Requestor { get; set; } = string.Empty;
@@ -79,23 +79,33 @@ namespace Dirigent
 		/// Runs in async context.
 		/// Should not call any Dirigent's synchronous stuff directly, should always use the API calls defined here in the script class.
 		/// </remarks>
-		protected virtual Task<byte[]?> Run()
+		protected virtual Task<string?> Run()
 		{
 			// by default we finish immediately with no result
-			return Task.FromResult<byte[]?>(null);
+			return Task.FromResult<string?>(null);
+		}
+
+		protected string Serialize<T>( T? result )
+		{
+			return Tools.Serialize( result );
+		}
+
+		protected T? Deserialize<T>( string? json )
+		{
+			return Tools.Deserialize<T>( json );
 		}
 
 		/// <summary>
-		/// Tries to deserialize the script arguments from the Args property.
+		/// Tries to deserialize given JSON string into given type, returns false if failed.
 		/// </summary>
 		/// <returns>true if succeeded</returns>
-		protected bool TryDeserializeArgs<T>( out T? args )
+		protected bool TryDeserialize<T>( string serialized, out T? args )
 		{
 			if (Args != null)
 			{
 				try
 				{
-					args = Tools.Deserialize<T>( Args );
+					args = Tools.Deserialize<T>( serialized );
 					return true;
 				}
 				catch
@@ -110,14 +120,6 @@ namespace Dirigent
 				return false;
 			}
 		}
-		
-		/// <summary>
-		/// Serialize the results to be sent back to the caller waiting for this script.
-		/// </summary>
-		/// <typeparam name="T">Class hoding the result.</typeparam>
-		/// <param name="result">Instanceof the class holding the result.</param>
-		/// <returns>Serialized result.</returns>
-		protected byte[] SerializeResult<T>(T result) => Tools.Serialize<T>(result);
 
 		protected async Task WaitUntilCancelled()
 		{
@@ -136,7 +138,7 @@ namespace Dirigent
 		/// <param name="data">Optional extra data. Script specific. Caller needs to understand the format in order to use it.</param>
 		/// <returns></returns>
 		/// <remarks>The status is sent back to the caller who initiated the script so it can track the script progress.</remarks>
-		protected Task SetStatus( string? text=null, byte[]? data=null )
+		protected Task SetStatus( string? text=null, string? data=null )
 		{
 			lock( this )
 			{
@@ -246,5 +248,19 @@ namespace Dirigent
 			Dictionary<string,string>? vars=null
 			)
 			=> Dirig.SendAsync( new Net.RunActionMessage( requestorId, actionDef, hostClientId, vars ) );
+
+		/// <summary>
+		/// Gets the definition of an app as was last time started.
+		/// </summary>
+		/// <param name="id">machine.app tuple</param>
+		/// <returns>Null if there is no such app.</returns>
+		protected Task<AppDef?> GetAppDef( AppIdTuple id ) => Dirig.GetAppDefAsync( id );
+		
+		/// <summary>
+		/// Gets the definition of a plan.
+		/// </summary>
+		/// <param name="id">plan name</param>
+		/// <returns>Null if there is no such plan.</returns>
+		protected Task<PlanDef?> GetPlanDef( string id ) => Dirig.GetPlanDefAsync( id );
 	}
 }

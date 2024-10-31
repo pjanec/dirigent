@@ -28,8 +28,8 @@ public class ResolveVfsPath : Script
 		public bool IncludeContent;
 
 		public override string ToString() => $"{VfsNode}";
-		public byte[] Serialize() => Tools.Serialize( this );
-		public static TResult? Deserialize( byte[] data ) => Tools.Deserialize<TResult>( data );
+		public string Serialize() => Tools.Serialize( this );
+		public static TResult? Deserialize( string data ) => Tools.Deserialize<TResult>( data );
 	};
 
 	//[MessagePack.MessagePackObject]
@@ -39,11 +39,11 @@ public class ResolveVfsPath : Script
 		public VfsNodeDef? VfsNode;
 
 		public override string ToString() => $"{VfsNode}";
-		public byte[] Serialize() => Tools.Serialize( this );
-		public static TResult? Deserialize( byte[] data ) => Tools.Deserialize<TResult>( data );
+		public string Serialize() => Tools.Serialize( this );
+		public static TResult? Deserialize( string data ) => Tools.Deserialize<TResult>( data );
 	}
 
-	protected async override Task<byte[]?> Run()
+	protected async override Task<string> Run()
 	{
 		var args = Tools.Deserialize<TArgs>( Args );
 		if( args is null ) throw new NullReferenceException("Args == null");

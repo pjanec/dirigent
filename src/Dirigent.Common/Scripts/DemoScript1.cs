@@ -7,17 +7,22 @@ public class DemoScript1 : Script
 			System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType
 		);
 
+	public class TArgs
+	{
+		public string? SomeString;
+	}
+
 	public class Result
 	{
 		public int Code;
 	}
 
-	protected async override System.Threading.Tasks.Task<byte[]?> Run()
+	protected async override System.Threading.Tasks.Task<string?> Run()
 	{
-		if( TryDeserializeArgs<string>( out var strArgs ) )
-		{
-			log.Info($"Init with string args: '{strArgs}'");
-		}
+		var args = Deserialize<TArgs>(Args); // throws if Args is invalid
+		log.Info($"Init with string args: '{args.SomeString}'");
+		await SetStatus($"SomeString={args.SomeString}");
+		await Wait(3000);
 
 		log.Info("Run!");
 
@@ -57,6 +62,6 @@ public class DemoScript1 : Script
 		await KillApp( "m1.a" );
 		await KillApp( "m1.b" );
 
-		return SerializeResult( new Result { Code = 17 } );
+		return Serialize( new Result { Code = 17 } );
 	}
 }

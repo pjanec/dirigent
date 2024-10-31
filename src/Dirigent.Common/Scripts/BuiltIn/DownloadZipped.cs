@@ -41,7 +41,7 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 
-		protected async override Task<byte[]?> Run()
+		protected async override Task<string?> Run()
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args is null");

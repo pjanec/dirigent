@@ -31,17 +31,17 @@ namespace Dirigent
 		public string? Text = null;
 
 		/// <summary>
-		/// Script status info
+		/// Script status info (json format)
 		/// If status == Running, it is the progress info (script-specific format, usually some serialized struct).
 		/// If status == Finished, it is the result (script-specific format, usually some serialized struct).
 		/// If status == Failed, it is the instance of SerializedException (serialized).
 		/// </summary>
 		//[MessagePack.Key( 3 )]
-		public byte[]? Data = null;
+		public string? Data = null;
 
 		public ScriptState() {}
 		
-		public ScriptState( EScriptStatus status, string? text=null, byte[]? data=null )
+		public ScriptState( EScriptStatus status, string? text=null, string? data=null )
 		{
 			Status = status;
 			Text = text;

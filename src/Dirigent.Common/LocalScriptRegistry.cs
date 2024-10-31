@@ -84,7 +84,7 @@ namespace Dirigent
 			_scripts.Remove( entry.Instance );
 		}
 
-		public void Start( Guid instance, string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
+		public void Start( Guid instance, string scriptName, string? sourceCode, string? args, string title, string? requestorId )
 		{
 			if( _scripts.TryGetValue( instance, out var entry ) )
 			{
@@ -144,7 +144,7 @@ namespace Dirigent
 				Runner.Dispose();
 			}
 
-			public void Start( string scriptName, string? sourceCode, byte[]? args, string title, string? requestorId )
+			public void Start( string scriptName, string? sourceCode, string? args, string title, string? requestorId )
 			{
 				Runner.Start( scriptName, sourceCode, args, title, requestorId );
 			}

@@ -847,8 +847,11 @@ namespace Dirigent.Net
 		public string? SourceCode;
 
 
+		/// <summary>
+		/// Json formatted args for the script.
+		/// </summary>
 		//[MessagePack.Key( 5 )]
-		public byte[]? Args;
+		public string? Args;
 
 		/// <summary>
 		/// Client where the script shall be started.
@@ -868,12 +871,12 @@ namespace Dirigent.Net
 		public StartScriptMessage( string requestorId, Guid singletonScriptId, string? args )
 		{
 			this.Instance = singletonScriptId;
-			this.Args = Tools.Serialize( args );
+			this.Args = args;
 			this.Requestor = requestorId;
 		}
 
 		/// <summary> Starts script on given client </summary>
-		public StartScriptMessage( string requestorId, Guid instance, string scriptName, string? scriptCode, byte[]? args, string title, string hostClientId )
+		public StartScriptMessage( string requestorId, Guid instance, string scriptName, string? scriptCode, string? args, string title, string hostClientId )
 		{
 			this.Instance = instance;
 			this.Title = title;

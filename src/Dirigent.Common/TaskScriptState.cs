@@ -12,7 +12,7 @@ namespace Dirigent
 	{
 		public DTaskScriptState() : base() {}
 
-		public DTaskScriptState( EScriptStatus status, string? text, byte[]? data )
+		public DTaskScriptState( EScriptStatus status, string? text, string? data )
 			: base( status, text, data )
 		{
 		}
