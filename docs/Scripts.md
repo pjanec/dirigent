@@ -86,4 +86,37 @@ Singleton script's results are ignored.
 - **Get Script State.** Returns the status of one concrete script.
 - **Get All Script State.** Returns the status of all scripts known to Dirigent.
 
-### 
+# Startup Script
+
+Dirigent master can run on startup one of the scripts predefined in SharedConfig.xml.
+
+```
+  <Script
+    Id="22C526A2-6F7C-4B25-8233-7EF37619E1CB"
+    Title="Run Plan When Machines Online [built-in]"
+    Name="BuiltIns/RunPlanWhenMachinesOnline.cs"
+    Args="{plan:'plan1', timeout:5}"
+    Groups="Examples;Common/Demo"
+  />
+```
+
+On dirigent master command line you specify the GUID of the script record om SharedConfig, and (optionally) you override the arguments:
+```
+--startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB"
+```
+
+ Optionally you can override the default arguments specified in sharedConfig.xml
+```
+--startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB" --startupScriptParams "{plan:'plan2', timeout:10}"
+```
+
+ 
+
+
+
+
+
+
+
+
+

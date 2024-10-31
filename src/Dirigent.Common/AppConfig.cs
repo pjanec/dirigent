@@ -67,6 +67,9 @@ namespace Dirigent
 		[Option( "startupScript", Required = false, Default = "", HelpText = "Script to be started on startup." )]
 		public string StartupScript { get; set; } = string.Empty;
 
+		[Option( "startupScriptParams", Required = false, Default = "", HelpText = "Script to be started on startup." )]
+		public string StartupScriptParams { get; set; } = string.Empty;
+
 		[Option( "startHidden", Required = false, Default = "", HelpText = "Start with Dirigent GUI hidden in tray [0|1]." )]
 		public string StartHidden { get; set; } = string.Empty;
 
@@ -115,6 +118,7 @@ namespace Dirigent
 		public string LogFileName = "";
 		public string StartupPlan = "";
 		public string StartupScript = "";
+		public string StartupScriptParams = ""; // params to be passed to the startup script; json token converted to script's args
 		public string StartHidden = "0"; // "0" or "1"
 		public string Mode = ""; // "", "agent", "master", "cli"
 		//public SharedConfig? SharedConfig = null;
@@ -161,6 +165,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
 			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlan = Common.Properties.Settings.Default.StartupPlan;
 			if( Common.Properties.Settings.Default.StartupScript != "" ) StartupScript = Common.Properties.Settings.Default.StartupScript;
+			if( Common.Properties.Settings.Default.StartupScriptParams != "" ) StartupScriptParams = Common.Properties.Settings.Default.StartupScriptParams;
 			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
 			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
 			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
@@ -188,6 +193,7 @@ namespace Dirigent
 				if( options.LogFile != "" ) LogFileName = options.LogFile;
 				if( options.StartupPlan != "" ) StartupPlan = options.StartupPlan;
 				if( options.StartupScript != "" ) StartupScript = options.StartupScript;
+				if( options.StartupScriptParams != "" ) StartupScriptParams = options.StartupScriptParams;
 				if( options.StartHidden != "" ) StartHidden = options.StartHidden;
 				if( options.Mode != "" ) Mode = options.Mode;
 				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;

@@ -91,6 +91,7 @@ namespace Dirigent
 			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
 			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
 			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );
+			AddScript( Scripts.BuiltIn.RunPlanWhenMachinesOnline._Name, () => new Scripts.BuiltIn.RunPlanWhenMachinesOnline() );
 		}
 
 		/// <summary>

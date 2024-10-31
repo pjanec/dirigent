@@ -171,6 +171,14 @@
     <Script Id="3204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #4" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="{SomeString:'řidič'}" Groups="Examples;;Common/Demo"/>
     <Script Id="4204745E-8867-4168-AE91-81B7D3449A1B" Title="DemoX - not found" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/UnexistingScriptFile.cs" Args="{SomeString:'řidič'}" Groups="Examples;;Common/Demo"/>
 
+    <Script
+        Id="22C526A2-6F7C-4B25-8233-7EF37619E1CB"
+        Title="Run Plan When Machines Online [built-in]"
+        Name="BuiltIns/RunPlanWhenMachinesOnline.cs"
+        Args="{plan:'plan1', timeout:0}"
+        Groups="Examples;;Common/Demo"
+    />
+
     <MainMenu>
         <!-- script invoked on defined machine -->
         <Script Title="Tools/Demo script menu item" Name="Scripts/DemoScript1.cs" Args="řidič" Groups="Examples;;Common/Demo" HostId="m1"/>

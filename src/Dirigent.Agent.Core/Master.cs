@@ -244,6 +244,26 @@ namespace Dirigent
 			return SyncOps.AddSynchronousOp( act );
 		}
 
+		/// <summary>
+		/// Runs a script defined in shared config. Allows overriding the arguments.
+		/// </summary>
+		/// <param name="scriptGuid">script guid defined in sharedConfig</param>
+		/// <param name="scriptArgsOverride">parameters to be used instead the default ones specified in shared config</param>
+		public void RunStartupScript( string scriptGuid, string? scriptArgsOverride )
+		{
+			try
+			{
+				var (id, args) = Tools.ParseScriptIdArgs( scriptGuid );
+				var guid = Guid.Parse(id);
+				if( !string.IsNullOrEmpty(scriptArgsOverride) ) args = scriptArgsOverride;
+				StartSingletonScript( _machineId, guid, args );
+			}
+			catch( Exception ex )
+			{
+				log.Error( $"Failed to start startup script {scriptGuid}", ex );
+			}
+		}
+
 		void HandleDisconnectedClients()
 		{
 			// build a dict of all connected clients
