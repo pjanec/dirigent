@@ -41,14 +41,19 @@ namespace Dirigent
         Plan _plan;
         List<AppWave> _launchWaves;
         LaunchSequencer _launchSequencer;
+        IsMachineOnlineDelegate _isMachineOnline;
 
+        public delegate bool IsMachineOnlineDelegate( string machineId );
+        
         public AppLaunchPlanner(
             Dictionary<AppIdTuple, AppState> appsState,
-            Plan plan
+            Plan plan,
+            IsMachineOnlineDelegate isMachineOnLineDelegate
             )
         {
             _appsState = appsState;
             _plan = plan;
+            _isMachineOnline = isMachineOnLineDelegate;
 
 
 			// reset PlanApplied flag
@@ -111,7 +116,10 @@ namespace Dirigent
                 {
                     if ( !app.State.PlanApplied ) // not yet processed by the plan
                     {
-                        if( AreAllDepsSatisfied( app.Def ) )
+                        if( AreAllDepsSatisfied( app.Def )
+                               &&
+                            _isMachineOnline(app.Def.Id.MachineId) // wait with starting the app until the machine is online
+                           )     
                         {
                             appsToLaunch.Add( app );
                         }    

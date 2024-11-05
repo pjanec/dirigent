@@ -4,6 +4,8 @@ The launch plan specifies a group of apps to launch and keep running, on what co
 
 The dependencies are checked among both local and remote applications. 
 
+Apps planned for a remote machine are started as soon as the machine gets on-line (if the plan has not been stopped before).
+
 Available plans are predefined in SharedConfig.xml.
 
 ## Launch Plan Operations

@@ -126,8 +126,14 @@ namespace Dirigent
 				State.Killing = false;
 				State.TimeStarted = DateTime.UtcNow;
 
-                _appLaunchPlanner = new AppLaunchPlanner( _appsState, this );
+                _appLaunchPlanner = new AppLaunchPlanner( _appsState, this, IsMachineOnline );
             }                    
+		}
+
+		private bool IsMachineOnline( string machineId )
+		{
+			var state = _master.GetClientState(machineId);
+			return state is not null && state.Connected;
 		}
 
         public void Stop( string requestorId )
