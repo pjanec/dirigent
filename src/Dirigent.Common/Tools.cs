@@ -513,27 +513,6 @@ namespace Dirigent
 			}
 		}
 
-		// Input:
-		//   Script1::argument string
-		// Output
-		//   #1: Script1
-		//	 #2: argument string
-		//
-		// Input:
-		//   Script1
-		// Output
-		//   #1: Script1
-		//	 #2: empty
-		public static (string, string?) ParseScriptIdArgs( string input )
-		{
-			var parts = input.Split("::", 2);
-
-			var id = parts.Length > 0 ? parts[0] : string.Empty;
-			var args = parts.Length > 1 ? parts[1] : null;
-
-			return (id, args);
-		}
-
 		/// <summary>
 		/// Parses the stringized value list into a dictionary.
 		/// Format of string: VAR1=VALUE1::VAR2=VALUE2
@@ -642,7 +621,9 @@ namespace Dirigent
 
 		public static JsonSerializerSettings JsonSerTypeNameHandlingAuto = new JsonSerializerSettings
 		{
-			TypeNameHandling = TypeNameHandling.Auto
+			TypeNameHandling = TypeNameHandling.Auto,
+			Converters = new List<JsonConverter> { new Newtonsoft.Json.Converters.StringEnumConverter() },
+			NullValueHandling = NullValueHandling.Ignore
 		};
 
 		public static string Serialize<T>( T data )	

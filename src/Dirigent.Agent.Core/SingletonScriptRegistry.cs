@@ -51,6 +51,12 @@ namespace Dirigent
 			{
 				_localScriptRegistry.Stop( Def.Guid );
 			}
+
+			public ScriptState? GetState()
+			{
+				_localScriptRegistry.ScriptStates.TryGetValue(  Def.Guid, out var state );
+				return state;
+			}
 		}
 		
 		
@@ -120,12 +126,65 @@ namespace Dirigent
 			entry.Start( requestorId, args );
 		}
 
+		/// <summary>
+		/// creates a new instance of the script
+		/// </summary>
+		public void StartScript( string? requestorId, Guid id, string? path, string? args )
+		{
+			//var 
+			// if record already exists, dispose it first
+			if( _scripts.TryGetValue( id, out var entry ) )
+			{
+				entry.Dispose();
+				_scripts.Remove( id );
+			}
+
+			// create a new script def
+			var def = new ScriptDef();
+			if( entry != null ) // used previous definition if available
+			{
+				def = Tools.Clone( entry.Def );
+			}
+
+			if( !string.IsNullOrEmpty( path ) )
+			{
+				def.Name = path;
+			}
+
+			if( args != null ) // do not use IsNullOrEmpty, empty is a valid value, null = unspecified
+			{
+				def.Args = args;
+			}
+
+			if( string.IsNullOrEmpty( def.Title ) )
+			{
+				def.Title = def.Name;
+			}
+
+			if( string.IsNullOrEmpty( def.Name ) )
+			{
+				throw new Exception( "Script path not specified" );
+			}
+
+			// install new script record
+			entry = new Entry( def, _master.ScriptFactory, _localScriptRegistry );
+			_scripts[entry.Guid] = entry;
+
+			// run it
+			entry.Start( requestorId, args );
+		}
+
 		public void KillScript( string requestorId, Guid id )
 		{
 			var entry = FindScript( id );
 			entry.Stop();
 		}
 
+		public ScriptState? GetScriptState( string requestorId, Guid id )
+		{
+			var entry = FindScript( id );
+			return entry.GetState();
+		}
 	}
 }
 

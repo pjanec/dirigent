@@ -110,7 +110,7 @@ namespace Dirigent
 
 			_toolsReg = new ToolsRegistry( _sharedContext, toolDefs, _reflStates );
 
-			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths );
+			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths, 10 );
 			
 			AddBuiltInScripts();
 			

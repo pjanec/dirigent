@@ -48,14 +48,16 @@ The options can be specified either on the command line (prefixed with double da
 
  `--startupPlan <planId>` ... for GUI only; when GUI opens, this plan gets selected as the "current" one
 
- `--startupScript <scriptId>` ... for master only; starts given script on startup
+ `--startupScript <scriptGuid>` ... for master only; starts script (must be defined in SharedConfig)
+
+ `--startupScriptParams "<json args>"` ... for master only; overrides the startup script arguments defined in SharedConfig
 
  `--sharedConfigFile mySharedConfig.xml` ... what shared config file to use (master only)
 
  `--localConfigFile myLocalConfig.xml` ... what local configuration file to use
 
  `--isMaster 0|1` .... run master component `Diregent.Agent.exe` only
- 
+
  `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
 
  `--httpPort 8877` ... Web API port number. -1 to disable the web api. Passed to the master process when `--IsMaster 1` is used.

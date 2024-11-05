@@ -460,6 +460,10 @@ namespace Dirigent.Commands
 		}
 	}
 
+	// StartScript <guid> <path> [args]
+	//   guid - existing script id or a new one
+	//   path - path to the script to start, relative to script root folder; can be empty if the script is already defined
+	//   args - arguments to the script (optional)
 	public class StartScript : DirigentControlCommand
 	{
 		public StartScript( Master ctrl, string requestorId )
@@ -470,8 +474,30 @@ namespace Dirigent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
-			(var id, var par) = Tools.ParseScriptIdArgs( args[0] );
-			ctrl.StartSingletonScript( _requestorId, Guid.Parse(id), par );
+
+			Guid id;
+			try
+			{
+				id = Guid.Parse(args[0]);
+			}
+			catch
+			{
+				throw new ArgumentException( "id", "script id must be a guid" );
+			}
+
+			string path = "";
+			if( args.Count > 1 )
+			{
+				path = args[1];
+			}
+			
+			string? scriptArgs = null;
+			if( args.Count > 2 )
+			{
+				scriptArgs = args[2];
+			}
+			
+			ctrl.StartSingletonScript( _requestorId, id, path, scriptArgs );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -486,7 +512,18 @@ namespace Dirigent.Commands
 		public override void Execute()
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
-			ctrl.KillScript( _requestorId, Guid.Parse(args[0]) );
+
+			Guid id;
+			try
+			{
+				id = Guid.Parse(args[0]);
+			}
+			catch
+			{
+				throw new ArgumentException( "id", "script id must be a guid" );
+			}
+
+			ctrl.KillScript( _requestorId, id );
 			WriteResponse( "ACK" );
 		}
 	}
@@ -502,7 +539,17 @@ namespace Dirigent.Commands
 		{
 			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
 
-			var state = ctrl.GetScriptState( _requestorId, Guid.Parse(args[0]) );
+			Guid id;
+			try
+			{
+				id = Guid.Parse(args[0]);
+			}
+			catch
+			{
+				throw new ArgumentException( "id", "script id must be a guid" );
+			}
+
+			var state = ctrl.GetScriptState( _requestorId, id );
 
 			if( state is null )
 			{
@@ -510,9 +557,9 @@ namespace Dirigent.Commands
 			}
 			else
 			{
-				WriteResponse( $"{state.Status}:{state.Text??""}");
+				var stateJsonStr = Tools.Serialize( state );
+				WriteResponse( $"SCRIPT:{id}:{stateJsonStr}");
 			}
-
 		}
 	}
 

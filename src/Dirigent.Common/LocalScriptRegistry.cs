@@ -26,18 +26,20 @@ namespace Dirigent
 		ScriptFactory _scriptFactory;
 		SynchronousOpProcessor _syncOps;
 		string _scriptRootFolder;
+		double _forgetTime; // how long to wait before removing a script that is finished; negative means never remove
 		
 		// all currently running scripts on this client
 		Dictionary<Guid, LocalScript> _scripts = new();
 		public Dictionary<Guid, LocalScript> Scripts => _scripts;
 		public Dictionary<Guid, ScriptState> ScriptStates => Scripts.Values.ToDictionary( p => p.Instance, p => p.State );
 
-		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder )
+		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder, double forgetTime=10 )
 		{
 			_ctrl = ctrl;
 			_scriptFactory = factory;
 			_syncOps = syncOps;
 			_scriptRootFolder = scriptRootFolder;
+			_forgetTime = forgetTime;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -61,13 +63,15 @@ namespace Dirigent
 
 				// houskeeping
 				// forget those already dead
-				const double ForgettableTaskTimeout = 10.0;
-				var now = DateTime.Now;
-				if( !p.State.IsAlive )
+				if( _forgetTime > 0 )
 				{
-					if( (now - p.LastAliveTime).TotalSeconds > ForgettableTaskTimeout )
+					var now = DateTime.Now;
+					if( !p.State.IsAlive )
 					{
-						toRemove.Add(p);
+						if( (now - p.LastAliveTime).TotalSeconds > _forgetTime )
+						{
+							toRemove.Add(p);
+						}
 					}
 				}
 			}

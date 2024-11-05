@@ -33,7 +33,11 @@ namespace Dirigent.Gui
 				_ac,
 				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
 			);
-			if( !string.IsNullOrEmpty(_ac.StartupScript) ) _master.StartSingletonScript( string.Empty, _ac.StartupScript );
+			if( !string.IsNullOrEmpty(_ac.StartupScript) )
+			{
+				_master.RunStartupScript( _ac.StartupScript, _ac.StartupScriptParams );
+			}
+
 		}
 
 		protected override void Dispose(bool disposing)

@@ -157,6 +157,7 @@ namespace Dirigent
         /// Single quotes character inside single  quotes is added (the outer quotes removed)
         /// Double quote character inside single quotes is added  (the outer quotes removed)
         /// hi => hi
+        /// "" => empty string token
         /// "hi" => hi
         /// "hi guys" => hi guys
         /// "hi ""guys""" => hi "guys"
@@ -164,49 +165,79 @@ namespace Dirigent
         /// 'hi "guys"' => hi "guys"
         /// 
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="tokens"></param>
-		void SplitToWordTokens( string str, out List<string> tokens )
-		{
-			tokens = new List<string>();
+	    public static void SplitToWordTokens( string str, out List<string> tokens )
+	    {
+		    tokens = new List<string>();
 
-            if (String.IsNullOrWhiteSpace(str)) return;
             int ndx = 0;
-            string s = "";
+            string? s = null;
             bool insideDoubleQuote = false;
             bool insideSingleQuote = false;
 
             while (ndx < str.Length)
             {
-                if (str[ndx] == ' ' && !insideDoubleQuote && !insideSingleQuote)
+                var next = str[ndx];
+                var next2 = _substr(str, ndx, 2);
+
+                if (next == ' ' && !insideDoubleQuote && !insideSingleQuote)
                 {
-                    if (!String.IsNullOrWhiteSpace(s.Trim())) tokens.Add(s.Trim());
-                    s = "";
+                    if(s != null) tokens.Add(s);
+                    s = null;
+                    ndx++;
                 }
-                if (str[ndx] == '"' && ndx+1 < str.Length && str[ndx+1] == '"')
+                else
+                if( next2 == "\"\"" && insideDoubleQuote)
                 {
-                    s += '"';
+                    _append(ref s, "\"");
                     ndx += 2;
                 }
                 else
-                if (str[ndx] == '"' && !insideSingleQuote) 
+                if( next2 == "''" && insideSingleQuote)
+                {
+                    _append(ref s, "'");
+                    ndx += 2;
+                }
+                else
+                if (next == '"' && !insideSingleQuote) 
                 {
                     insideDoubleQuote = !insideDoubleQuote;
+                    if(s==null) s = "";
                     ndx++;
                 }
                 else
-                if (str[ndx] == '\'' && !insideDoubleQuote) 
+                if (next == '\'' && !insideDoubleQuote) 
                 {
                     insideSingleQuote = !insideSingleQuote;
+                    if(s==null) s = "";
                     ndx++;
                 }
                 else
                 {
-                    s += str[ndx];
+                    _append(ref s, next);
                     ndx++;
                 }
             }
-            if (!String.IsNullOrWhiteSpace(s.Trim())) tokens.Add(s.Trim());
+            if (s!=null) tokens.Add(s);
         }
+
+	    static string _substr(string s, int index, int len )
+        {
+            if (index < 0) return "";
+		    if (index >= s.Length) return "";
+		    if (index + len > s.Length) return s.Substring(index);
+		    return s.Substring(index, len);
+	    }
+
+        static void _append( ref string? s, string append )
+	    {
+		    if(s == null) s = append;
+		    else s = s + append;
+	    }
+
+        static void _append( ref string? s, char append )
+	    {
+		    if(s == null) s = append.ToString();
+		    else s += append;
+	    }
     }
 }

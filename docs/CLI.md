@@ -3,33 +3,36 @@ Dirigent can be controlled remotely using commands.
 
 The commands can come from different sources:
   1. Dirigent UI
-  2. Command line client app called Dirigent.CLI
-  3. Over TCP connection from a remote control app.
+  2. Command line client app called [Dirigent.CLI](#Dirigent.CLI-Console-Command-Line-Utility)
+  3. Over [TCP connection](#CLI-control-over-TCP-line-based connection) from a remote control app.
 
 Commands are received by Dirigent master agent. The master then asks dirigent agent app to perform necessary operations on the machines affected by the command.
 
-| Command                 | Description                                                  |
-| ----------------------- | ------------------------------------------------------------ |
-| [ApplyPlan](#ApplyPlan) | Changes the app definitions to the one from given plan.      |
-| [GetAllAppsState](#GetAllAppsState)         | returns status of all apps known to dirigent.                |
+| Command                              | Description                                                  |
+| ------------------------------------ | ------------------------------------------------------------ |
+| [ApplyPlan](#ApplyPlan)              | Changes the app definitions to the one from given plan.      |
+| [GetAllAppsState](#GetAllAppsState)  | returns status of all apps known to dirigent.                |
 | [GetAllClientsState](#GetAllClientsState) | Gathers the status of all clients/machines known to the Dirigent. |
-| [GetAllPlansState](#GetAllPlansState)        | Gathers the status of all plans known to the Dirigent.       |
-| [GetAppState](#GetAppState)             | returns the status of an app. |
-| [GetClientState](#GetClientState) | Returns the status of a client/machine. |
-| [GetPlanState](#GetPlanState)            | Returns the status of a plan. |
-| [KillAll](#KillAll)                 | Kills all running apps on all computers, stops all plans. |
-| [KillApp](#KillApp)                 | Kills single app. |
+| [GetAllPlansState](#GetAllPlansState)| Gathers the status of all plans known to the Dirigent.       |
+| [GetAppState](#GetAppState)          | returns the status of an app. |
+| [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
+| [GetPlanState](#GetPlanState)        | Returns the status of a plan. |
+| [GetScriptState](#GetScriptState)    | Returns the status code, status text and associated data of a script, in json single line format. |
+| [KillAll](#KillAll)                  | Kills all running apps on all computers, stops all plans. |
+| [KillApp](#KillApp)                  | Kills single app. |
 | [KillPlan](#KillPlan)                | Kills all apps in the plan. |
-| [ReloadSharedConfig](#ReloadSharedConfig)      | Reloads the shared config file. |
-| [RestartApp](#RestartApp)              | Restarts an app. |
-| [RestartPlan](#RestartPlan)             | Kills all apps from the plan and starts the plan again. |
-| [SelectPlan](#SelectPlan)              | Informs the Dirigent about the plan selection in a GUI. |
-| [SetVars](#SetVars)                 | Sets environment variable(s) to be inherited by the apps launched afterwards. |
+| [KillScript](#KillScript)            | Kills a running script. |
+| [ReloadSharedConfig](#ReloadSharedConfig)| Reloads the shared config file. |
+| [RestartApp](#RestartApp)            | Restarts an app. |
+| [RestartPlan](#RestartPlan)          | Kills all apps from the plan and starts the plan again. |
+| [SelectPlan](#SelectPlan)            | Informs the Dirigent about the plan selection in a GUI. |
+| [SetVars](#SetVars)                  | Sets environment variable(s) to be inherited by the apps launched afterwards. |
 | [Shutdown](#Shutdown)                | Reboots or shuts down computer (or all computers) where dirigent agent is running. |
 | [StartApp](#StartApp)                | Starts given single application if not already running. Might restart it if running with different environment than the desired one. |
-| [StartPlan](#StartPlan)               | Starts launching apps from a plan according to the plan rules. |
+| [StartPlan](#StartPlan)              | Starts launching apps from a plan according to the plan rules. |
+| [StartScript](#StartScript)          | Starts a script on master. |
 | [StopPlan](#StopPlan)                | Stops starting next applications from the plan. Does not kill any app! |
-| [Terminate](#Terminate)               | Terminates Dirigent agents on computers, optionally killing all the apps managed by the Dirigent. |
+| [Terminate](#Terminate)              | Terminates Dirigent agents on computers, optionally killing all the apps managed by the Dirigent. |
 
 
 ## Command Line Interface
@@ -307,6 +310,82 @@ Returns one line per client/machine; last line is "END\n"
 	CLIENT:m1:1:0.3:192.168.1.1
 	CLIENT:m2:0:2.7:192.168.1.2
 	END
+
+
+### StartScript
+
+Starts a script on master. 
+
+  `StartScript <guid> <path> [<args>]` 
+
+The script instance is identified by a guid.
+
+The script path and arguments can be predefined in shared config - in such case the `path` and `args` are taken from there if omitted in this command.
+
+If the instance with given GUID is already running, the StartCommand is ignored until the existing instance terminates.
+
+If a script with such guid was already defined before (in SharedConfig or by a `StartScript` command with specified `path` argument), the old one is forgotten and the new definition is used.
+
+The 'args' argument is passed as a string to the script code; the script can interpret it as a json or similar (Newtonsoft Json can be used).
+
+See [Singleton Scripts](Scripts.md#Singleton-scripts) for more details.
+
+##### Example
+
+If the script is predefined in shared config or was already started, the `path` can be omitted:
+
+    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
+
+Running a custom script:
+
+    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "Script/DemoScript1.cs"
+
+Running a custom script with custom arguments. Notice the relaxed syntax for the JSON allowed by Newtonsoft Json:
+
+    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "Script/DemoScript1.cs" "{SomeString:'Hi there!'}"
+
+Running a shared-config defined script with custom arguments - notice the empty 'path':
+
+    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "" "{SomeString:'Hi there!'}"
+
+
+### KillScript
+
+Kills given script if running.
+
+Ignored if a script instance with such guid is not defined or is not running.
+
+  `KillScript <guid>` 
+
+##### Example
+
+    KillScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
+
+
+
+### GetScriptState
+
+Returns the status of given script.
+
+  `GetScriptState <guid>`
+
+See [Scripts](Scripts.md) for more details about available script states.
+
+##### Response text
+
+  `SCRIPT:<guid>:<statusAsJson>`
+
+##### Example
+
+  Request:   `GetScriptState 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2`
+
+  Responses (various options presented below, always just one is returned):
+
+     `SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Running", "Text":"Some status text" }`
+    
+     `SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Finished", "Data":<json formatted result data>}`
+    
+     `SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Failed", "Data":<json formatted exception data>}`
 
 ### SetVars
 

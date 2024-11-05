@@ -11,9 +11,9 @@ Scripts can
 * Access all features of the dirigent (starting apps, plans, other scripts etc...)
 * Respond to certain conditions (some machine boots up, some app starts/dies etc.)
 * Define own sequences of actions
-* Take parameters (once when the script starts)
+* Take parameter (once when the script starts), a single string, can be JSON
 * Update status (as long as running)
-* Return result (arbitrary text string)
+* Return result (arbitrary text string, can be JSON)
 
 ### 
 
@@ -22,7 +22,7 @@ Please see the [DemoScript1.cs](../src/Dirigent.Common/Scripts/DemoScript1.cs) s
 
 ## Script Status
 
-Script status is described by a status code and additional details (short text description and a byte array data).
+Script status is described by a status code and additional details (short text description and a stringized data).
 
 | Status Code | Status Text       | Data                 | Description                           |
 | ----------- | ----------------- | -------------------- | ------------------------------------- |
@@ -33,11 +33,11 @@ Script status is described by a status code and additional details (short text d
 | Cancelled   | N/A               | N/A                  | Script was cancelled.                 |
 | Failed      | N/A               | Serialized exception | Exception was thrown from the script. |
 
-The status text (and byte array data) can be set by the script at any time to provide more info on what the script is currently doing.
+The status text and data can be set by the script at any time to provide more info on what the script is currently doing.
 
 The status text is shown to the user on the Dirigent's UI.
 
-The format of the byte array data is script specific.
+The format of data string is script specific, can be JSON.
 
 ## Remote Execution
 
@@ -47,11 +47,11 @@ WARNING: The script need to be available on the target machine!
 
 ## Arguments and results
 
-A script can receive arbitrary arguments serialized in a byte array. The script needs to know how to deserialize and to interpret the data. The caller needs to provide arguments that are compatible with the script being called.
+A script can receive arbitrary arguments serialized in a single string. The script needs to know how to deserialize and to interpret the data. The caller needs to provide arguments that are compatible with the script being called.
 
-A script can return a result back to the caller as a byte array. The caller need to understand how to deserialize and interpret the results returned.
+A script can return a result back to the caller as a single string. The caller need to understand how to deserialize and interpret the results returned.
 
-The serialization/deserialization is done via MessagePack using Contract-less Standard Resolver. It takes all public fields of given C# class with the exception of those explicitly marked as ignored.
+The script can use a built-in serialization/deserialization of argument/result data class via Newtonsoft Json. It takes all public fields of given C# class with the exception of those explicitly marked as ignored.
 
 ## Asynchronous nature
 
@@ -61,34 +61,42 @@ As most parts of Dirigent run synchronously single threaded, the calls from the 
 
 This is why all the Dirigent API calls need to be awaited (like "await StartApp" or "await KillApp").
 
-WARNING: The await in this case does not mean the script waits for the operation to finish. It waits just until the dirigent sends the network command. You need to check the app/plan state if you need to know if it started successfully or not.
+WARNING: The `await` in this case does not mean the script waits for the operation to finish. The operations like StartApp etc. are a fire-and-forget style. In such cases Dirigent waits just until the command is issued. You need to check the app/plan state if you need to know if it started successfully or not.
 
 ## Singleton scripts
 
-Singleton scripts are special kind of scripts preconfigured in SharedConfig.xml.
+ * Identified by unique GUID.
 
-They are exposed to the user via Dirigent's UI.
+ * Run on dirigent master.
 
-Singleton scripts can be started/stopped in similar way as plans.
+ * Can be preconfigured in SharedConfig.xml where script file path (denoting the script code) is specified together with optional script arguments.
 
-Singleton scripts can act as "intelligent plans", adding some user defined logic, separating the details from the high level needs (the user needs to start the system and to know if it succeeded, or to switch the system mode without knowing what it means to the processes...)
+ * Can also be defined on the fly via the [StartScript CLI command](CLI.md#StartScript) if the `path` is specified.
 
-They run on master.
+ * Exposed to the user via Dirigent's UI and Dirigent's CLI.
 
-At most one single instance of each of the scripts can run at any given time. If an instance is already running, further start requests for the same instance are ignored until the existing instance terminates.
+ * Can be started/killed in similar way as plans.
+    * Can't be started twice at the same time.
+    * If already running, next start is ignored.
 
-Singleton script's results are ignored.
+ * Results are cached and can be retrieved by as part of the script state using GetScriptState API.
+
+Singleton scripts can be used for example as "intelligent plans":
+
+ * Startinig a buch of apps
+ * Adding some user defined logic (waiting for machines to come online etc.)
+
 
 ## Script Operations
 
-- **Start Script.** Starts given script.
-- **Kill Script.** Kills given script.
-- **Get Script State.** Returns the status of one concrete script.
-- **Get All Script State.** Returns the status of all scripts known to Dirigent.
+- **Start Script.** Starts given script, creating a script instance.
+- **Kill Script.** Kills given script instance.
+- **Get Script State.** Returns the status of one concrete script instance.
+- **Get All Script State.** Returns the status of all singleton script instances known to Dirigent.
 
 # Startup Script
 
-Dirigent master can run on startup one of the scripts predefined in SharedConfig.xml.
+Dirigent master can run on startup one of the scripts predefined in SharedConfig.xml like the following:
 
 ```
   <Script
@@ -105,7 +113,7 @@ On dirigent master command line you specify the GUID of the script record om Sha
 --startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB"
 ```
 
- Optionally you can override the default arguments specified in sharedConfig.xml
+ Optionally you can override the default arguments specified in sharedConfig.xml. Notice the relaxed JSON syntax allowed by Newtonsoft Json parser used by Dirigent.
 ```
 --startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB" --startupScriptParams "{plan:'plan2', timeout:10}"
 ```

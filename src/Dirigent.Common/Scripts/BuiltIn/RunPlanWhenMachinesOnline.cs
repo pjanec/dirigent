@@ -33,7 +33,7 @@ namespace Dirigent.Scripts.BuiltIn
 		
 		protected override async Task<string?> Run()
 		{
-			var args = Tools.Deserialize<TArgs>( Args );
+			var args = Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("No args provided");
 			if( string.IsNullOrEmpty( args.Plan ) ) throw new NullReferenceException("Plan name not specified");
 
@@ -73,7 +73,7 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				if( CancellationToken.IsCancellationRequested )
 				{
-					throw new Exception("Cancelled");
+					throw new TaskCanceledException();
 				}
 
 				int numOffline = 0;

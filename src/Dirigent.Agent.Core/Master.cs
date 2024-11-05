@@ -141,7 +141,7 @@ namespace Dirigent
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
 			_reflScripts = new ReflectedScriptRegistry( this );
-			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths );
+			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths, -1  );
 			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
 
 			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id
@@ -253,8 +253,8 @@ namespace Dirigent
 		{
 			try
 			{
-				var (id, args) = Tools.ParseScriptIdArgs( scriptGuid );
-				var guid = Guid.Parse(id);
+				var guid = Guid.Parse(scriptGuid);
+				string? args = null;
 				if( !string.IsNullOrEmpty(scriptArgsOverride) ) args = scriptArgsOverride;
 				StartSingletonScript( _machineId, guid, args );
 			}
@@ -1052,19 +1052,26 @@ namespace Dirigent
 		}
 
 
+		/// <summary>
+		/// Starts an already defined script instance.
+		/// </summary>
+		/// <param name="requestorId"></param>
+		/// <param name="id">guid of an already defined script instance</param>
+		/// <param name="args">optional args</param>
 		public void StartSingletonScript( string? requestorId, Guid id, string? args )
 		{
 			_singlScripts.StartScript( requestorId, id, args );
 		}
 
-		public void StartSingletonScript( string requestorId, string scriptIdWithArgs )
+		/// <summary>
+		/// Starts a script defined by the path, creating a new 'singleton' script instance.
+		/// </summary>
+		/// <param name="id">id to be assigned to the new script instance; if existing, the script record is replaced</param>
+		/// <param name="path">path of the script file relative to the script root folder</param>
+		/// <param name="args">optional arguments passed to the script</param>
+		public void StartSingletonScript( string? requestorId, Guid id, string? path, string? args )
 		{
-			if ( string.IsNullOrEmpty( scriptIdWithArgs ) ) return;
-
-			var (id, args) = Tools.ParseScriptIdArgs( scriptIdWithArgs );
-			if ( string.IsNullOrEmpty( id ) ) return;
-
-			StartSingletonScript( requestorId, Guid.Parse(id), args );
+			_singlScripts.StartScript( requestorId, id, path, args );
 		}
 
 		public void KillScript( string requestorId, Guid id )
@@ -1086,6 +1093,16 @@ namespace Dirigent
 
 		public ScriptState? GetScriptState( string requestorId, Guid id )
 		{
+			if( _singlScripts.Contains( id ) )
+			{
+				return _singlScripts.GetScriptState( requestorId, id );
+			}
+			else
+			if ( _localScripts.Scripts.ContainsKey( id ) )
+			{
+				_localScripts.ScriptStates.TryGetValue( id, out var state );
+				return state;
+			}
 			return _reflScripts.GetScriptState( id );
 		}
 

@@ -31,12 +31,12 @@ namespace Dirigent
 			_scriptCreators.Add( scriptName, scriptCreator );
 		}
 
-		void SetupScript( Script script, string title, string args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
+		void SetupScript( Script script, string title, string? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId )
 		{
 			script.Dirig = ctrl;
 			script.Title = title;
 			script.Origin = string.IsNullOrEmpty(scriptOrigin) ? string.Empty : scriptOrigin;
-			script.Args = args;
+			script.Args = args ?? "";
 			script.Requestor = requestorId ?? "";
 		}
 
