@@ -72,7 +72,7 @@ namespace Dirigent.Scripts.BuiltIn
 				CollectMachines( container, allMachines );
 
 				// find machines that are online
-				var clientStates = (await Dirig.GetAllClientStates()).ToDictionary( x => x.Key, y => y.Value );
+				var clientStates = (await Dirig.GetAllClientStatesAsync()).ToDictionary( x => x.Key, y => y.Value );
 				var onlineMachines = (from x in allMachines where clientStates.ContainsKey(x) && clientStates[x].Connected select x).ToList();
 
 				await Dirig.SendAsync( new Net.UserNotificationMessage

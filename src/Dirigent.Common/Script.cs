@@ -185,6 +185,8 @@ namespace Dirigent
 		/// <returns>Null if no such app is defined.</returns>
 		protected Task<AppState?> GetAppState( string id ) => Dirig.GetAppStateAsync( new AppIdTuple( id ) );
 		
+		protected Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppStates() => Dirig.GetAllAppStatesAsync();
+
 		/// <summary>
 		/// Gets the status of a dirigent plan.
 		/// </summary>
@@ -192,12 +194,16 @@ namespace Dirigent
 		/// <returns>Null if nto such plan exists.</returns>
 		protected Task<PlanState?> GetPlanState( string id ) => Dirig.GetPlanStateAsync( id );
 		
+		protected Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStates() => Dirig.GetAllPlanStatesAsync();
+
 		/// <summary>
 		/// Gets the status of a script.
 		/// </summary>
 		/// <param name="id">Id if the script instance.</param>
 		/// <returns>Null if there is not such script.</returns>
 		protected Task<ScriptState?> GetScriptState( Guid id ) => Dirig.GetScriptStateAsync( id );
+
+		protected Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptStates() => Dirig.GetAllScriptStatesAsync();
 		
 		/// <summary>
 		/// Gets the status of machine.
@@ -206,6 +212,7 @@ namespace Dirigent
 		/// <returns>Null if there is no such machine/client known.</returns>
 		protected Task<ClientState?> GetClientState( string id ) => Dirig.GetClientStateAsync( id );
 
+		protected Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStates() => Dirig.GetAllClientStatesAsync();
 
 		/// <summary>
 		/// Starts a script on given machine and waits until it finishes.
@@ -256,11 +263,23 @@ namespace Dirigent
 		/// <returns>Null if there is no such app.</returns>
 		protected Task<AppDef?> GetAppDef( AppIdTuple id ) => Dirig.GetAppDefAsync( id );
 		
+		protected Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppDefs() => Dirig.GetAllAppDefsAsync();
+
 		/// <summary>
 		/// Gets the definition of a plan.
 		/// </summary>
 		/// <param name="id">plan name</param>
 		/// <returns>Null if there is no such plan.</returns>
 		protected Task<PlanDef?> GetPlanDef( string id ) => Dirig.GetPlanDefAsync( id );
+
+		protected Task<IEnumerable<PlanDef>> GetAllPlanDefs => Dirig.GetAllPlanDefsAsync();
+
+		/// <summary>
+		/// Gets the definition of a script from SharedConfig.
+		/// </summary>
+		protected Task<ScriptDef?> GetScriptDef( Guid Id ) => Dirig.GetScriptDefAsync(Id);
+
+		protected Task<IEnumerable<ScriptDef>> GetAllScriptDefs() => Dirig.GetAllScriptDefsAsync();
+
 	}
 }

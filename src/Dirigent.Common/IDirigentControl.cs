@@ -222,7 +222,7 @@ namespace Dirigent
 		string Name { get; } 
 		Task SendAsync( Net.Message msg );
 		Task<ClientState?> GetClientStateAsync( string Id );
-		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStates();
+		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStatesAsync();
 		Task<AppState?> GetAppStateAsync( AppIdTuple Id );
 		Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppStatesAsync();
 		Task<AppDef?> GetAppDefAsync( AppIdTuple Id );

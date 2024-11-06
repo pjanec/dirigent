@@ -334,20 +334,23 @@ See [Singleton Scripts](Scripts.md#Singleton-scripts) for more details.
 
 If the script is predefined in shared config or was already started, the `path` can be omitted:
 
-    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2"
 
 Running a custom script:
 
-    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "Script/DemoScript1.cs"
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "Script/DemoScript1.cs"
 
 Running a custom script with custom arguments. Notice the relaxed syntax for the JSON allowed by Newtonsoft Json:
 
-    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "Script/DemoScript1.cs" "{SomeString:'Hi there!'}"
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "Script/DemoScript1.cs" "{SomeString:'Hi there!'}"
 
 Running a shared-config defined script with custom arguments - notice the empty 'path':
 
-    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "" "{SomeString:'Hi there!'}"
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "" "{SomeString:'Hi there!'}"
 
+Running a custom script specified by full script file path (on master computer file system):
+
+    StartScript "F85D98C0-E6B1-435B-A56A-192D4CFAC9D0" "C:\DirigentScripts\GetConnectedMachines.cs"
 
 ### KillScript
 

@@ -85,7 +85,6 @@ namespace Dirigent
 		public async Task<IEnumerable<ScriptDef>> GetAllScriptDefsAsync() => await GuardedFunc( () => _ctrl.GetAllScriptDefs().ToList() );
 		public async Task<VfsNodeDef?> GetFileDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
 		public async Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync() => await GuardedFunc( () => _ctrl.GetAllVfsNodeDefs().ToList() );
-		public async Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStates() => await GuardedFunc( () => _ctrl.GetAllClientStates().ToList() );
 		public async Task<AppDef?> GetAppDefAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppDef( Id ) );
 		public async Task<PlanState?> GetPlanState( string Id ) => await GuardedFunc( () => _ctrl.GetPlanState( Id ) );
 		public async Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStatesAsync() => await GuardedFunc( () => _ctrl.GetAllPlanStates().ToList() );
