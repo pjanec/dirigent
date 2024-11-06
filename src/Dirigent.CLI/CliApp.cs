@@ -100,6 +100,7 @@ namespace Dirigent
         EAppExitCode NonInteractiveSubCmd( string subcmd )
         {
             var reqId = _client.NewReqId();
+			log.Debug($"Sent: [{reqId}] {subcmd}");
 			_client.SendReq( subcmd, reqId );
             // wait for response
             while(true)
@@ -108,6 +109,7 @@ namespace Dirigent
                 if( string.IsNullOrEmpty(resp) )
                     return EAppExitCode.ErrorResp; // error
                             
+				log.Debug($"Recv: {resp}");
                 string respId;
                 string rest;
                 if( _client.ParseReqIdAndTheRest( resp, out respId, out rest ) )
