@@ -110,7 +110,7 @@ namespace Dirigent.Gui.WinForms
 		public void Refresh()
 		{
 			// check for new plans and update local copy/menu if they are different
-			var newPlanRepo = Ctrl.GetAllPlanDefs();
+			var newPlanRepo = Ctrl.GetAllPlansDef();
 			if( !newPlanRepo.SequenceEqual( PlanRepo ) )
 			{
 				PlanRepo.Clear();

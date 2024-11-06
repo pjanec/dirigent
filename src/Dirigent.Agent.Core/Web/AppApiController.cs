@@ -69,14 +69,14 @@ namespace Dirigent.Web
 			_master = master;
 		}
 
-		// Gets all plans defs.
+		// Gets all apps defs.
 		[Route( HttpVerbs.Get, "/appdefs" )]
-		public async Task<IEnumerable<AppDef>> GetAllAppDefs()
+		public async Task<IEnumerable<AppDef>> GetAllAppsDef()
 		{
 			List<AppDef> res = new List<AppDef>();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from x in _master.GetAllAppDefs() select new AppDef( x.Value )).ToList();
+				res = (from x in _master.GetAllAppsDef() select new AppDef( x.Value )).ToList();
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
@@ -133,12 +133,12 @@ namespace Dirigent.Web
 
 		// Gets all plans states.
 		[Route( HttpVerbs.Get, "/appstates" )]
-		public async Task<IEnumerable<AppState>> GetAllAppsStates()
+		public async Task<IEnumerable<AppState>> GetAllAppsState()
 		{
 			List<AppState> res = new List<AppState>();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from kv in _master.GetAllAppStates() select GetAppStateInternal( kv.Key.ToString() )).ToList();
+				res = (from kv in _master.GetAllAppsState() select GetAppStateInternal( kv.Key.ToString() )).ToList();
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;

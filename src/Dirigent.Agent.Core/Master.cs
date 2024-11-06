@@ -17,21 +17,21 @@ namespace Dirigent
 		#region IDirig interface
 
 		public ClientState? GetClientState( string Id ) { if( _allClientStates.ClientStates.TryGetValue(Id, out var x)) return x; else return null; }
-		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return _allClientStates.ClientStates; }
+		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientsState() { return _allClientStates.ClientStates; }
 		public AppState? GetAppState( AppIdTuple Id ) { if( _allAppStates.AppStates.TryGetValue(Id, out var x)) return x; else return null; }
-		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _allAppStates.AppStates; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppsState() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
-		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
+		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlansState() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
 		public ScriptState? GetScriptState( Guid Id ) { return _reflScripts.GetScriptState( Id ); }
-		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _reflScripts.GetAllScriptStates(); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() { return _reflScripts.GetAllScriptsState(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }
-		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _allAppDefs.AppDefs; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppsDef() { return _allAppDefs.AppDefs; }
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
-		public IEnumerable<PlanDef> GetAllPlanDefs() { return from x in _plans.Plans.Values select x.Def; }
+		public IEnumerable<PlanDef> GetAllPlansDef() { return from x in _plans.Plans.Values select x.Def; }
 		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Guid == Id); }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _reflScripts.ScriptDefs; }
+		public IEnumerable<ScriptDef> GetAllScriptsDef() { return _reflScripts.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
-		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _files.GetAllVfsNodeDefs(); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _files.GetAllVfsNodesDef(); }
 		public string Name => string.Empty;
 		
 		/// <summary>
@@ -993,7 +993,7 @@ namespace Dirigent
 			}
 
 			// kill all running scripts
-			foreach( var (id, state) in _reflScripts.GetAllScriptStates() )
+			foreach( var (id, state) in _reflScripts.GetAllScriptsState() )
 			{
 				KillScript( requestorId, id );
 			}

@@ -71,12 +71,12 @@ namespace Dirigent.Web
 
 		// Gets all scripts defs.
 		[Route( HttpVerbs.Get, "/scriptdefs" )]
-		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDefs()
+		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDef()
 		{
 			List<ScriptDef> res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from pd in _master.GetAllScriptDefs() select new ScriptDef( pd )).ToList();
+				res = (from pd in _master.GetAllScriptsDef() select new ScriptDef( pd )).ToList();
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
@@ -121,12 +121,12 @@ namespace Dirigent.Web
 
 		// Gets all scripts states.
 		[Route( HttpVerbs.Get, "/scriptstates" )]
-		public async Task<IEnumerable<ScriptState>> GetAllScriptsStates()
+		public async Task<IEnumerable<ScriptState>> GetAllScriptsState()
 		{
 			List<ScriptState> res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from kv in _master.GetAllScriptStates() select new ScriptState( kv.Key.ToString(), kv.Value )).ToList();
+				res = (from kv in _master.GetAllScriptsState() select new ScriptState( kv.Key.ToString(), kv.Value )).ToList();
 			} );
 			await op.WaitAsync();
 			return res;

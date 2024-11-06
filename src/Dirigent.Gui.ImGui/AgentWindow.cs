@@ -68,7 +68,7 @@ namespace Dirigent.Gui
 
 		void DrawApps()
 		{
-			foreach( var (id, state) in _agent.GetAllAppStates() )
+			foreach( var (id, state) in _agent.GetAllAppsState() )
 			{
 				AppRenderer? r;
 				if( !_appRenderers.TryGetValue( id, out r ) )
@@ -85,7 +85,7 @@ namespace Dirigent.Gui
 
 		void DrawPlans()
 		{
-			foreach( var pd in _agent.GetAllPlanDefs() )
+			foreach( var pd in _agent.GetAllPlansDef() )
 			{
 				PlanRenderer? r;
 				if( !_planRenderers.TryGetValue( pd.Name, out r ) )

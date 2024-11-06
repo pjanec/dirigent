@@ -96,7 +96,7 @@ namespace Dirigent
 		/// <param name="Id">name of the client (machine name for agents, stringized GUID for GUIs)</param>
 		/// <returns>null if no state for such client is known (client never connected)</returns>
 		ClientState? GetClientState( string Id ) { return null; }
-		IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return new List<KeyValuePair<string, ClientState>>(); }
+		IEnumerable<KeyValuePair<string, ClientState>> GetAllClientsState() { return new List<KeyValuePair<string, ClientState>>(); }
 
 		/// <summary>
 		/// Returns the current execution state of an application as provided by apps' respective agent
@@ -104,7 +104,7 @@ namespace Dirigent
 		/// <param name="Id"></param>
 		/// <returns>null if no state for such application not known</returns>
 		AppState? GetAppState( AppIdTuple Id ) { return null; }
-		IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return new List<KeyValuePair<AppIdTuple, AppState>>(); }
+		IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppsState() { return new List<KeyValuePair<AppIdTuple, AppState>>(); }
 
 		/// <summary>
 		/// Gets the effective AppDef applied when last time starting the application.
@@ -112,7 +112,7 @@ namespace Dirigent
 		/// <param name="Id"></param>
 		/// <returns></returns>
 		AppDef? GetAppDef( AppIdTuple Id ) { return null; }
-		IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return new List<KeyValuePair<AppIdTuple, AppDef>>(); }
+		IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppsDef() { return new List<KeyValuePair<AppIdTuple, AppDef>>(); }
 
 		/// <summary>
 		/// Gets the current plan execution state
@@ -120,10 +120,10 @@ namespace Dirigent
 		/// <param name="Id"></param>
 		/// <returns></returns>
 		PlanState? GetPlanState( string Id ) { return null; }
-		IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return new List<KeyValuePair<string, PlanState>>(); }
+		IEnumerable<KeyValuePair<string, PlanState>> GetAllPlansState() { return new List<KeyValuePair<string, PlanState>>(); }
 
 		PlanDef? GetPlanDef( string Id ) { return null; }
-		IEnumerable<PlanDef> GetAllPlanDefs() { return new List<PlanDef>(); }
+		IEnumerable<PlanDef> GetAllPlansDef() { return new List<PlanDef>(); }
 
 
 		/// <summary>
@@ -132,13 +132,13 @@ namespace Dirigent
 		/// <param name="Id"></param>
 		/// <returns></returns>
 		ScriptState? GetScriptState( Guid Id ) { return null; }
-		IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return new List<KeyValuePair<Guid, ScriptState>>(); }
+		IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() { return new List<KeyValuePair<Guid, ScriptState>>(); }
 
 		ScriptDef? GetScriptDef( Guid Id ) { return null; }
-		IEnumerable<ScriptDef> GetAllScriptDefs() { return new List<ScriptDef>(); }
+		IEnumerable<ScriptDef> GetAllScriptsDef() { return new List<ScriptDef>(); }
 
 		VfsNodeDef? GetVfsNodeDef( Guid guid ) { return null; }
-		IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return new List<VfsNodeDef>(); }
+		IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return new List<VfsNodeDef>(); }
 
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
@@ -222,21 +222,21 @@ namespace Dirigent
 		string Name { get; } 
 		Task SendAsync( Net.Message msg );
 		Task<ClientState?> GetClientStateAsync( string Id );
-		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStatesAsync();
+		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsStateAsync();
 		Task<AppState?> GetAppStateAsync( AppIdTuple Id );
-		Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppStatesAsync();
+		Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppsStateAsync();
 		Task<AppDef?> GetAppDefAsync( AppIdTuple Id );
-		Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppDefsAsync();
+		Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppsDefAsync();
 		Task<PlanState?> GetPlanStateAsync( string Id );
 		Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStatesAsync();
 		Task<PlanDef?> GetPlanDefAsync( string Id );
-		Task<IEnumerable<PlanDef>> GetAllPlanDefsAsync();
+		Task<IEnumerable<PlanDef>> GetAllPlansDefAsync();
 		Task<ScriptState?> GetScriptStateAsync( Guid Id );
-		Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptStatesAsync();
+		Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync();
 		Task<ScriptDef?> GetScriptDefAsync( Guid Id );
-		Task<IEnumerable<ScriptDef>> GetAllScriptDefsAsync();
+		Task<IEnumerable<ScriptDef>> GetAllScriptsDefAsync();
 		Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid );
-		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync();
+		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
 	}

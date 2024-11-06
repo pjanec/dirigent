@@ -181,7 +181,7 @@ namespace Dirigent.Gui
 
 		void DrawClients()
 		{
-			foreach( var (id, state) in _reflStates.GetAllClientStates() )
+			foreach( var (id, state) in _reflStates.GetAllClientsState() )
 			{
 				ClientRenderer? r;
 				if( !_clientRenderers.TryGetValue( id, out r ) )

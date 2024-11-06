@@ -15,23 +15,23 @@ namespace Dirigent
 	public class ReflectedStateRepo	: Disposable, IDirig
 	{
 		public ClientState? GetClientState( string Id ) { if( _clientStates.TryGetValue(Id, out var x)) return x; else return null; }
-		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientStates() { return _clientStates; }
+		public IEnumerable<KeyValuePair<string, ClientState>> GetAllClientsState() { return _clientStates; }
 		public AppState? GetAppState( AppIdTuple Id ) { if( _appStates.TryGetValue(Id, out var st)) return st; else return null; }
-		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppStates() { return _appStates; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppsState() { return _appStates; }
 		public PlanState? GetPlanState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _planStates.TryGetValue(Id, out var st)) return st; else return null; }
-		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlanStates() { return _planStates; }
+		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlansState() { return _planStates; }
 		public ScriptState? GetScriptState( Guid Id ) { return _scriptReg.GetScriptState(Id); }
-		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() { return _scriptReg.GetAllScriptStates(); }
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() { return _scriptReg.GetAllScriptsState(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _appDefs.TryGetValue(Id, out var st)) return st; else return null; }
-		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppDefs() { return _appDefs;; }
+		public IEnumerable<KeyValuePair<AppIdTuple, AppDef>> GetAllAppsDef() { return _appDefs;; }
 		public PlanDef? GetPlanDef( string Id ) { return _planDefs.Find((x) => x.Name==Id); }
-		public IEnumerable<PlanDef> GetAllPlanDefs() { return _planDefs; }
+		public IEnumerable<PlanDef> GetAllPlansDef() { return _planDefs; }
 		public ScriptDef? GetScriptDef( Guid Id ) { return _scriptReg.ScriptDefs.Find((x) => x.Guid==Id); }
-		public IEnumerable<ScriptDef> GetAllScriptDefs() { return _scriptReg.ScriptDefs; }
+		public IEnumerable<ScriptDef> GetAllScriptsDef() { return _scriptReg.ScriptDefs; }
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _fileReg.GetVfsNodeDef(guid); }
-		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() { return _fileReg.GetAllVfsNodeDefs(); }
+		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _fileReg.GetAllVfsNodesDef(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
-		public IEnumerable<MachineDef> GetAllMachineDefs() { return _machineDefs; }
+		public IEnumerable<MachineDef> GetAllMachinesDef() { return _machineDefs; }
 		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 		  => _scriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );

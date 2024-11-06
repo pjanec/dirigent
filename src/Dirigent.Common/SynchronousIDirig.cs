@@ -70,26 +70,26 @@ namespace Dirigent
 		public string Name => _ctrl.Name;
 		public       Task SendAsync( Net.Message msg ) { _ctrl.Send( msg ); return Task.CompletedTask; }
 		public async Task<ClientState?> GetClientStateAsync( string Id ) => await GuardedFunc( () => _ctrl.GetClientState(Id) );
-		public async Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientStatesAsync() => await GuardedFunc( () => _ctrl.GetAllClientStates().ToList() );
+		public async Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsStateAsync() => await GuardedFunc( () => _ctrl.GetAllClientsState().ToList() );
 		public async Task<AppState?> GetAppStateAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppState(Id) );
-		public async Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppStatesAsync() => await GuardedFunc( () => _ctrl.GetAllAppStates().ToList() );
+		public async Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppsStateAsync() => await GuardedFunc( () => _ctrl.GetAllAppsState().ToList() );
 		public async Task<AppDef?> GetAppDeAsyncf( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppDef(Id) );
-		public async Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppDefsAsync() => await GuardedFunc( () => _ctrl.GetAllAppDefs().ToList() );
+		public async Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppsDefAsync() => await GuardedFunc( () => _ctrl.GetAllAppsDef().ToList() );
 		public async Task<PlanState?> GetPlanStateAsync( string Id ) => await GuardedFunc( () => _ctrl.GetPlanState( Id ) );
-		public async Task<IEnumerable<KeyValuePair<string, PlanState>>?> GetAllPlanStates() => await GuardedFunc( () => _ctrl.GetAllPlanStates().ToList() );
+		public async Task<IEnumerable<KeyValuePair<string, PlanState>>?> GetAllPlansState() => await GuardedFunc( () => _ctrl.GetAllPlansState().ToList() );
 		public async Task<PlanDef?> GetPlanDefAsync( string Id ) => await GuardedFunc( () => _ctrl.GetPlanDef( Id ) );
-		public async Task<IEnumerable<PlanDef>> GetAllPlanDefsAsync() => await GuardedFunc( () => _ctrl.GetAllPlanDefs().ToList() );
+		public async Task<IEnumerable<PlanDef>> GetAllPlansDefAsync() => await GuardedFunc( () => _ctrl.GetAllPlansDef().ToList() );
 		public async Task<ScriptState?> GetScriptStateAsync( Guid Id ) => await GuardedFunc( () => _ctrl.GetScriptState( Id ) );
-		public async Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptStatesAsync() => await GuardedFunc( () => _ctrl.GetAllScriptStates().ToList() );
+		public async Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsState().ToList() );
 		public async Task<ScriptDef?> GetScriptDefAsync( Guid Id ) => await GuardedFunc( () => _ctrl.GetScriptDef( Id ) );
-		public async Task<IEnumerable<ScriptDef>> GetAllScriptDefsAsync() => await GuardedFunc( () => _ctrl.GetAllScriptDefs().ToList() );
+		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDefAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsDef().ToList() );
 		public async Task<VfsNodeDef?> GetFileDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
-		public async Task<IEnumerable<VfsNodeDef>> GetAllVfsNodeDefsAsync() => await GuardedFunc( () => _ctrl.GetAllVfsNodeDefs().ToList() );
 		public async Task<AppDef?> GetAppDefAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppDef( Id ) );
 		public async Task<PlanState?> GetPlanState( string Id ) => await GuardedFunc( () => _ctrl.GetPlanState( Id ) );
-		public async Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStatesAsync() => await GuardedFunc( () => _ctrl.GetAllPlanStates().ToList() );
+		public async Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlanStatesAsync() => await GuardedFunc( () => _ctrl.GetAllPlansState().ToList() );
 		public async Task<PlanDef?> GetPlanDef( string Id ) => await GuardedFunc( () => _ctrl.GetPlanDef( Id ) );
 		public async Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
+		public async Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync() => await GuardedFunc( () => _ctrl.GetAllVfsNodesDef().ToList() );
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _ctrl.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
 		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent );

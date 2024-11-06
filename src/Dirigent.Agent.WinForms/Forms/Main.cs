@@ -348,7 +348,7 @@ namespace Dirigent.Gui.WinForms
 				case HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_9:
 				{
 					int i = keyId - HotKeysRegistrator.HOTKEY_ID_SELECT_PLAN_1; // zero-based index of plan
-					List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlanDefs() );
+					List<PlanDef> plans = new List<PlanDef>( Ctrl.GetAllPlansDef() );
 					if( i < plans.Count )
 					{
 						var planName = plans[i].Name;

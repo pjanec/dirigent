@@ -107,7 +107,7 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			// check for new plans and update local copy/menu if they are different
-			var newFiles = from x in Ctrl.GetAllVfsNodeDefs() where x is FileDef select x as FileDef;
+			var newFiles = from x in Ctrl.GetAllVfsNodesDef() where x is FileDef select x as FileDef;
 			if( !newFiles.SequenceEqual( _allFiles ) )
 			{
 				_allFiles.Clear();

@@ -147,7 +147,7 @@ namespace Dirigent
 			var def = new ScriptDef() { Guid = id, Id=id.ToString() };
 			if( entry != null ) // used previous definition if available
 			{
-				def = Tools.Clone( entry.Def );
+				def = Tools.Clone( entry.Def )!;
 			}
 
 			if( !string.IsNullOrEmpty( path ) )

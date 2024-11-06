@@ -86,7 +86,7 @@ namespace Dirigent.Gui
 		TreeNode BuildTree()
 		{
 			var root = new TreeNode();
-			foreach( (var id, var def) in _ctrl.GetAllAppDefs() )
+			foreach( (var id, var def) in _ctrl.GetAllAppsDef() )
 			{
 				// parse "Groups" attribute into individual group paths
 				// use them to build a tree of script groups; the tree node payload = script renderer (null if just an intermediate node)

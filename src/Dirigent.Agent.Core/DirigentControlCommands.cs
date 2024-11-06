@@ -273,7 +273,7 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			foreach( (var planName, var planState) in ctrl.GetAllPlanStates() )
+			foreach( (var planName, var planState) in ctrl.GetAllPlansState() )
 			{
 				var stateStr = Tools.GetPlanStateString( planName, planState );
 				WriteResponse( stateStr );
@@ -292,7 +292,7 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			foreach( var pair in ctrl.GetAllAppStates() )
+			foreach( var pair in ctrl.GetAllAppsState() )
 			{
 				var stateStr = Tools.GetAppStateString( pair.Key, pair.Value );
 				WriteResponse( stateStr );
@@ -613,7 +613,7 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			foreach( (var id, var state) in ctrl.GetAllClientStates() )
+			foreach( (var id, var state) in ctrl.GetAllClientsState() )
 			{
 				if( state.Ident is null ) continue;
 				if( !state.Ident.IsAgent ) continue; // report just true agents (i.e. machines), not all the GUIs or CLI clients

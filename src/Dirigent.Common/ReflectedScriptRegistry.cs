@@ -29,7 +29,7 @@ namespace Dirigent
 		Dictionary<Guid, ReflectedScript> _scripts = new Dictionary<Guid, ReflectedScript>();
 
 		public ScriptState? GetScriptState( Guid id ) { if( _scripts.TryGetValue(id, out var rs)) return rs.State; else return null; }
-		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptStates() => _scripts.Select( p => new KeyValuePair<Guid, ScriptState>( p.Key, p.Value.State ) );
+		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() => _scripts.Select( p => new KeyValuePair<Guid, ScriptState>( p.Key, p.Value.State ) );
 
 		// script definitions (from shared config)
 		public List<ScriptDef> _scriptDefs = new List<ScriptDef>();

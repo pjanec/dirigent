@@ -152,7 +152,7 @@ namespace Dirigent.Gui.WinForms
 		string GetPlanForApp( AppIdTuple id )
 		{
 			var x =
-				( from p in Ctrl.GetAllPlanDefs()
+				( from p in Ctrl.GetAllPlansDef()
 				  from a in p.AppDefs
 				  where a.Id == id
 				  select p.Name ).ToList();
@@ -183,11 +183,11 @@ namespace Dirigent.Gui.WinForms
 			Dictionary<AppIdTuple, AppState> appStates;
 			if( _form.ShowJustAppFromCurrentPlan )
 			{
-				appStates = ( from i in Ctrl.GetAllAppStates() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
+				appStates = ( from i in Ctrl.GetAllAppsState() where planAppIdTuples.Contains( i.Key ) select i ).ToDictionary( mc => mc.Key, mc => mc.Value );
 			}
 			else // show from all plans
 			{
-				appStates = new Dictionary<AppIdTuple, AppState>( Ctrl.GetAllAppStates() );
+				appStates = new Dictionary<AppIdTuple, AppState>( Ctrl.GetAllAppsState() );
 			}
 
 			// remember apps from plan
@@ -387,7 +387,7 @@ namespace Dirigent.Gui.WinForms
 				else if( txt.StartsWith( "Terminated" ) )
 				{
 					var appDef =
-						( from p in Ctrl.GetAllPlanDefs()
+						( from p in Ctrl.GetAllPlansDef()
 						  from a in p.AppDefs
 						  where a.Id == id
 						  select a ).FirstOrDefault();

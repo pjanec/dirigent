@@ -109,7 +109,7 @@ namespace Dirigent.Gui.WinForms
 		public void Refresh()
 		{
 			// check for new plans and update local copy/menu if they are different
-			var newScriptRepo = Ctrl.GetAllScriptDefs();
+			var newScriptRepo = Ctrl.GetAllScriptsDef();
 			if( !newScriptRepo.SequenceEqual( ScriptRepo ) )
 			{
 				ScriptRepo.Clear();

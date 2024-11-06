@@ -19,7 +19,7 @@ public class DemoScript1 : Script
 
 	protected async override System.Threading.Tasks.Task<string?> Run()
 	{
-		var args = Deserialize<TArgs>(Args); // throws if Args is invalid
+		var args = Deserialize<TArgs>(Args)!; // throws if Args is invalid
 		log.Info($"Init with string args: '{args.SomeString}'");
 		await SetStatus($"SomeString={args.SomeString}");
 		await Wait(3000);

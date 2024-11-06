@@ -633,6 +633,7 @@ namespace Dirigent
 
 		public static T? Deserialize<T>( string? data )	
 		{
+			if( data == null ) return default(T);
 			return JsonConvert.DeserializeObject<T>( data, JsonSerTypeNameHandlingAuto );
 		}
 

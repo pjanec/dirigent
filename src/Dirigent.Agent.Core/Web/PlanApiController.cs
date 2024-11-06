@@ -74,12 +74,12 @@ namespace Dirigent.Web
 
 		// Gets all plans defs.
 		[Route( HttpVerbs.Get, "/plandefs" )]
-		public async Task<IEnumerable<PlanDef>> GetAllPlansDefs()
+		public async Task<IEnumerable<PlanDef>> GetAllPlansDef()
 		{
 			List<PlanDef> res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from pd in _master.GetAllPlanDefs() select new PlanDef( pd )).ToList();
+				res = (from pd in _master.GetAllPlansDef() select new PlanDef( pd )).ToList();
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
@@ -124,12 +124,12 @@ namespace Dirigent.Web
 
 		// Gets all plans states.
 		[Route( HttpVerbs.Get, "/planstates" )]
-		public async Task<IEnumerable<PlanState>> GetAllPlansStates()
+		public async Task<IEnumerable<PlanState>> GetAllPlansState()
 		{
 			List<PlanState> res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from kv in _master.GetAllPlanStates() select new PlanState( kv.Key, kv.Value )).ToList();
+				res = (from kv in _master.GetAllPlansState() select new PlanState( kv.Key, kv.Value )).ToList();
 			} );
 			await op.WaitAsync();
 			return res;

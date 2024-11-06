@@ -17,9 +17,9 @@ public class GetConnectedMachines : Script
 
 	protected async override System.Threading.Tasks.Task<string?> Run()
 	{
-		var allClientsState = await GetAllClientStates();
+		var allClientsState = await GetAllClientsState();
 		var machines = allClientsState
-				.Where( x => x.Value.Ident.IsAgent ) // ignore non-agent clients (like GUIs etc.)
+				.Where( x => x.Value.Ident!.IsAgent ) // ignore non-agent clients (like GUIs etc.)
 				.Select( x => new Machine { Name = x.Key, IP = x.Value.IP } )
 				.ToList();
 		return Serialize( new Result() { Machines=machines } );

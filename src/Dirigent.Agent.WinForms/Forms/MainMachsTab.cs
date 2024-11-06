@@ -156,7 +156,7 @@ namespace Dirigent.Gui.WinForms
 			
 
 			// add connected machines
-			foreach (var (id, state) in ReflStates.GetAllClientStates())
+			foreach (var (id, state) in ReflStates.GetAllClientsState())
 			{
 				if( oldRows.ContainsKey( id )) continue; // already existing
 				if( !isMachineId( id ) ) continue; // ignore non-machine clients
@@ -169,7 +169,7 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			// combine with predefined machines
-			foreach (var mach in ReflStates.GetAllMachineDefs())
+			foreach (var mach in ReflStates.GetAllMachinesDef())
 			{
 				var id = mach.Id;
 				if( oldRows.ContainsKey( id )) continue; // already existing

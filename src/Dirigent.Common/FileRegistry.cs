@@ -59,7 +59,7 @@ namespace Dirigent
 			return null;
 		}
 
-		public IEnumerable<VfsNodeDef> GetAllVfsNodeDefs() => VfsNodes.Values;
+		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() => VfsNodes.Values;
 
 
 		public void SetVfsNodes( IEnumerable<VfsNodeDef> vfsNodes )

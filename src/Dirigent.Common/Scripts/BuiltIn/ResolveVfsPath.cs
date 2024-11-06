@@ -43,7 +43,7 @@ public class ResolveVfsPath : Script
 		public static TResult? Deserialize( string data ) => Tools.Deserialize<TResult>( data );
 	}
 
-	protected async override Task<string> Run()
+	protected async override Task<string?> Run()
 	{
 		var args = Tools.Deserialize<TArgs>( Args );
 		if( args is null ) throw new NullReferenceException("Args == null");

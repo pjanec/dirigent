@@ -75,7 +75,7 @@ namespace Dirigent.Gui
 		TreeNode BuildTree()
 		{
 			var root = new TreeNode();
-			foreach( var def in _ctrl.GetAllScriptDefs() )
+			foreach( var def in _ctrl.GetAllScriptsDef() )
 			{
 				var id = def.Guid;
 				var title = def.Title;
