@@ -48,6 +48,11 @@ namespace Dirigent
 			Data = data;
 		}
 
+		public ScriptState Clone()
+		{
+			return new ScriptState( Status, Text, Data );
+		}
+
 		/// <summary>
 		/// Is the script not yet dead?
 		/// </summary>

@@ -26,20 +26,18 @@ namespace Dirigent
 		ScriptFactory _scriptFactory;
 		SynchronousOpProcessor _syncOps;
 		string _scriptRootFolder;
-		double _forgetTime; // how long to wait before removing a script that is finished; negative means never remove
 		
 		// all currently running scripts on this client
 		Dictionary<Guid, LocalScript> _scripts = new();
 		public Dictionary<Guid, LocalScript> Scripts => _scripts;
-		public Dictionary<Guid, ScriptState> ScriptStates => Scripts.Values.ToDictionary( p => p.Instance, p => p.State );
+		public Dictionary<Guid, ScriptState> ScriptCachedStates => Scripts.Values.ToDictionary( p => p.Instance, p => p.CachedState );
 
-		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder, double forgetTime=10 )
+		public LocalScriptRegistry( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, string scriptRootFolder )
 		{
 			_ctrl = ctrl;
 			_scriptFactory = factory;
 			_syncOps = syncOps;
 			_scriptRootFolder = scriptRootFolder;
-			_forgetTime = forgetTime;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -63,12 +61,12 @@ namespace Dirigent
 
 				// houskeeping
 				// forget those already dead
-				if( _forgetTime > 0 )
+				if( p.ForgetTime >= 0 )
 				{
 					var now = DateTime.Now;
-					if( !p.State.IsAlive )
+					if( !p.CachedState.IsAlive )
 					{
-						if( (now - p.LastAliveTime).TotalSeconds > _forgetTime )
+						if( (now - p.LastAliveTime).TotalSeconds > p.ForgetTime )
 						{
 							toRemove.Add(p);
 						}
@@ -88,11 +86,12 @@ namespace Dirigent
 			_scripts.Remove( entry.Instance );
 		}
 
-		public void Start( Guid instance, string scriptName, string? sourceCode, string? args, string title, string? requestorId )
+		/// <param name="forgetTime">how many seconds to retain a dead script record; negative=forever</param>
+		public void Start( Guid instance, string scriptName, string? sourceCode, string? args, string title, string? requestorId, double forgetTime=10 )
 		{
 			if( _scripts.TryGetValue( instance, out var entry ) )
 			{
-				if( entry.State.IsAlive )
+				if( entry.CachedState.IsAlive )
 				{
 					//log.Warn( $"Script {title} [{instance}] already running on {_clientId}. Ignoring start request." );
 					return;
@@ -103,7 +102,7 @@ namespace Dirigent
 				}
 			}
 
-			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance, _scriptRootFolder );
+			entry = new LocalScript( _ctrl, _scriptFactory, _syncOps, instance, _scriptRootFolder, forgetTime );
 			_scripts.Add( instance, entry );
 
 			entry.Start( scriptName, sourceCode, args, title, requestorId );
@@ -120,6 +119,20 @@ namespace Dirigent
 			entry.Stop();
 		}
 
+		/// <summary>
+		/// Gets the last known state of the script instance, including the result of the last run.
+		/// </summary>
+		/// <returns>null if script with given id is not known</returns>
+		public ScriptState? GetCachedState( Guid instance )
+		{
+			if (!_scripts.TryGetValue( instance, out var entry ))
+			{
+				return null;
+			}
+
+			return entry.CachedState;
+		}
+
 
 		/// <summary>
 		/// Created when a scrpt instance is to be started.
@@ -129,14 +142,17 @@ namespace Dirigent
 		{
 			public Guid Instance;
 			public ScriptRunner Runner;
-			public ScriptState State => Runner.State;
+			public ScriptState CachedState => Runner.CachedState;
 
 			public DateTime LastAliveTime = DateTime.Now;
 
-			public LocalScript( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, Guid instance, string scriptRootFolder )
+			public double ForgetTime;
+
+			public LocalScript( IDirig ctrl, ScriptFactory factory, SynchronousOpProcessor syncOps, Guid instance, string scriptRootFolder, double forgetTime )
 			{
 				Instance = instance;
 				Runner = new ScriptRunner( ctrl, instance, factory, syncOps, scriptRootFolder );
+				ForgetTime = forgetTime;
 			}
 
 			protected override void Dispose( bool disposing )
@@ -162,7 +178,7 @@ namespace Dirigent
 			{
 				Runner.Tick();
 
-				if( Runner.State.IsAlive )
+				if( Runner.RunningState.IsAlive )
 				{
 					LastAliveTime = DateTime.Now;
 				}

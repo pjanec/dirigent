@@ -18,9 +18,19 @@ namespace Dirigent
 		EScriptStatus _status;
 
 		/// <summary>
-		/// Gets a snapshot of script status
+		/// Gets a snapshot of current running script status (changes asynchronously as the sript runs).
+		/// This does not include the result of the last run, just the current status.
 		/// </summary>
-		public ScriptState State => GetStateLocked();
+		public ScriptState RunningState => GetStateLocked();
+
+		
+		/// <summary>
+		/// Cached state, updated in Tick or when script finishes.
+		/// Includes the result of the last run if the script is no longer running.
+		/// </summary>
+		public ScriptState CachedState => _lastSentState;
+
+		private ScriptState _lastSentState = new();
 
 		private Script? _script;
 
@@ -184,6 +194,8 @@ namespace Dirigent
 
 		public void SendStatus( ScriptState state )
 		{
+			_lastSentState = state.Clone();
+
 			// note: the following should not block, must be thread safe
 			_ctrl.Send( new Net.ScriptStateMessage(
 				ScriptInstance,
@@ -191,7 +203,7 @@ namespace Dirigent
 			));
 		}
 
-		ScriptState _lastSentState = new();
+		ScriptState _lastStateSentFromTick = new();
 		
 		public void Tick()
 		{
@@ -202,11 +214,11 @@ namespace Dirigent
 				// while the script is running, we send the Text and Data as set by the script
 				if( state.Status == EScriptStatus.Running )
 				{
-					if( state != _lastSentState )
+					if( state != _lastStateSentFromTick )
 					{
 						SendStatus( state );
 
-						_lastSentState = state;
+						_lastStateSentFromTick = state;
 					}
 				}
 			}

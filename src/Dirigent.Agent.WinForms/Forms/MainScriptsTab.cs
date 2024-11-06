@@ -175,13 +175,18 @@ namespace Dirigent.Gui.WinForms
 					var textStr = "";
 					if (scriptState.Status == EScriptStatus.Running)
 					{
-						textStr = scriptState.Text;
+						textStr = $"{scriptState.Text??""} {scriptState.Data??""}";
 					}
 					else
 					if (scriptState.Status == EScriptStatus.Failed)
 					{
 						var scriptExcept = Tools.Deserialize<SerializedException>( scriptState.Data );
 						textStr = scriptExcept.Message;
+					}
+					else
+					if (scriptState.Status == EScriptStatus.Finished)
+					{
+						textStr = $"{scriptState.Text??""} {scriptState.Data??""}";
 					}
 					
 

@@ -1,0 +1,1 @@
+start /Dconfig src\Dirigent.CLI\bin\Debug\net6.0-windows\Dirigent.CLI.exe --mode telnet

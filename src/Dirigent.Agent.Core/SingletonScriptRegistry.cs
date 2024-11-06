@@ -44,7 +44,8 @@ namespace Dirigent
 			{
 				if (args is null) args = Def.Args;
 				// create a new instance of the script; it will be disposed when it dies
-				_localScriptRegistry.Start( Def.Guid, Def.Name, null, args, Def.Title, requestorId );
+				_localScriptRegistry.Start( Def.Guid, Def.Name, null, args, Def.Title, requestorId,
+					-1 ); // we don't want this script to be forgotten, we need to be able to return the script state long after it finishes
 			}
 
 			public void Stop()
@@ -52,10 +53,13 @@ namespace Dirigent
 				_localScriptRegistry.Stop( Def.Guid );
 			}
 
-			public ScriptState? GetState()
+			/// <summary>
+			/// The last known state of the script.
+			/// </summary>
+			/// <returns>null if script not started yet</returns>
+			public ScriptState? GetCachedState()
 			{
-				_localScriptRegistry.ScriptStates.TryGetValue(  Def.Guid, out var state );
-				return state;
+				return _localScriptRegistry.GetCachedState( Def.Guid );
 			}
 		}
 		
@@ -180,10 +184,14 @@ namespace Dirigent
 			entry.Stop();
 		}
 
+		/// <summary>
+		/// Get the last known state of the script.
+		/// </summary>
+		/// <returns>null if invalid script of never started</returns>
 		public ScriptState? GetScriptState( string requestorId, Guid id )
 		{
 			var entry = FindScript( id );
-			return entry.GetState();
+			return entry.GetCachedState();
 		}
 	}
 }

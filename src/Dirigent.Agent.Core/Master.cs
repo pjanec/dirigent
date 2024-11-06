@@ -141,7 +141,7 @@ namespace Dirigent
 			_plans.PlanDefUpdated += SendPlanDefUpdated;
 
 			_reflScripts = new ReflectedScriptRegistry( this );
-			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths, -1  );
+			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths );
 			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
 
 			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id
@@ -663,7 +663,7 @@ namespace Dirigent
 
 			// send the full list of script states
 			{
-				foreach (var (inst, state) in _localScripts.ScriptStates)
+				foreach (var (inst, state) in _localScripts.ScriptCachedStates)
 				{
 					var m = new Net.ScriptStateMessage( inst, state );
 					_server.SendToSingle( m, ident.Name );
@@ -1100,8 +1100,7 @@ namespace Dirigent
 			else
 			if ( _localScripts.Scripts.ContainsKey( id ) )
 			{
-				_localScripts.ScriptStates.TryGetValue( id, out var state );
-				return state;
+				return _localScripts.GetCachedState( id );
 			}
 			return _reflScripts.GetScriptState( id );
 		}
