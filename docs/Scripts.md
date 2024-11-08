@@ -15,7 +15,7 @@ Scripts can
 * Update status (as long as running)
 * Return result (arbitrary text string, can be JSON)
 
-### 
+
 
 ## Script example
 Please see the [DemoScript1.cs](../src/Dirigent.Common/Scripts/DemoScript1.cs) source file
@@ -118,13 +118,95 @@ On dirigent master command line you specify the GUID of the script record om Sha
 --startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB" --startupScriptParams "{plan:'plan2', timeout:10}"
 ```
 
- 
+# Script API
+
+## Assemblies available to the script:
+ * System
+ * log4net
+ * Dirigent.Common
+ * Dirigent.Agent.Core
+ * Newtonsoft.Json
+
+## Properties available to the script
+
+``` c#
+string Args; // string arguments passed to a script; usually json format
+
+public CancellationToken CancellationToken; // signalled when the script is cancelled; script should check it during long operations
+```
+
+## Support methods
+
+``` c#
+string Serialize<T>( T? result ); // serialize an object into a json string
+T? Deserialize<T>( string? json ); // parses json string (Newtonsoft JSON) and returns a new instance of given class
+bool TryDeserialize<T>( string serialized, out T? args ); // json deserialization returning false on failure (if parameters are not json)
+
+Task Wait( int msecs ); // cancellable wait
+
+```
+
+## Script status
+
+``` c#
+Task SetStatus( string? text=null, string? data=null ); // updates the script status & data; don't use for returning results (use the return statement instead)
+```
+
+## App/Plan/Script API
+
+Please refer to [Dirigent CLI](CLI.md) for more details.
+
+Please note that:
+ * Most of the actions (StartXX/KillXX) just send request and return immediately.
+ * To check the result of such actions, you need to poll the status (GetXXXState).
+
+``` c#
+
+// apps
+
+Task StartApp( string id, string? planName, string? vars=null );
+Task RestartApp( string id, string? vars=null );
+Task KillApp( string id );
+
+Task<AppState?> GetAppState( string id );
+Task<IEnumerable<KeyValuePair<AppIdTuple, AppState>>> GetAllAppsState();
+
+Task<AppDef?> GetAppDef( AppIdTuple id ); // from SharedConfig
+Task<IEnumerable<KeyValuePair<AppIdTuple, AppDef>>> GetAllAppsDef();
+
+// plans
+
+Task StartPlan( string id, string? vars=null );
+Task RestartPlan( string id, string? vars=null );
+Task KillPlan( string id ); // kills a plan 
+
+Task<PlanState?> GetPlanState( string id );
+Task<IEnumerable<KeyValuePair<string, PlanState>>> GetAllPlansState();
+
+Task<PlanDef?> GetPlanDef( string id );  // from SharedConfig
+Task<IEnumerable<PlanDef>> GetAllPlansDef();
+
+
+// scripts
+
+Task<ScriptState?> GetScriptState( Guid id );
+Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsState();
+
+Task<ScriptDef?> GetScriptDef( Guid Id );  // from SharedConfig
+Task<IEnumerable<ScriptDef>> GetAllScriptsDef();
 
 
 
+// clients
 
+Task<ClientState?> GetClientState( string id );
+Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsState();
 
+```
 
+## Script result
 
+Script neeeds to return a string (or null).
 
+The value is remembered and can be queried using `GetScriptState` as the `ScriptState.Data` field (if the `Status` == `Finished`).
 
