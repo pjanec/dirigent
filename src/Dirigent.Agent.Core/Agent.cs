@@ -51,10 +51,13 @@ namespace Dirigent
 		ReflectedStateRepo _reflStates;
 		private bool _debug = false; // do not catch exceptions etc.
 		AppConfig _ac;
+		AgentStateSaverLoader _agentStateSaveLoader;
+		bool _updateSavedAgentState = false; // true if the state needs to be updated (e.g. after a new app is started or killed)
+		bool _appDefsReceivedFirstTime = true; // is it the first time we received a new app def for this agent? (we try to restore from recent saved state)
 
-		
 
-        /// <summary>
+
+		/// <summary>
 		/// Dirigent internals vars that can be used for expansion inside process exe paths, command line...)
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
@@ -92,7 +95,9 @@ namespace Dirigent
 
 			_procInfoReg = new ProcessInfoRegistry();
 
-			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg );
+			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
+
+			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps );
 
 			var toolDefs = new Dictionary<string, AppDef>( StringComparer.OrdinalIgnoreCase );
 			
@@ -113,14 +118,15 @@ namespace Dirigent
 			_localScripts = new LocalScriptRegistry( this, ScriptFactory, _syncOps, _rootForRelativePaths );
 			
 			AddBuiltInScripts();
-			
+
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
 			if( !disposing ) return;
-			
+
+			_agentStateSaveLoader?.Dispose();
 			_toolsReg?.Dispose();
 			_procInfoReg?.Dispose();
 			_reflStates.Dispose();
@@ -146,6 +152,8 @@ namespace Dirigent
 			_toolsReg?.Tick();
 
 			PublishAgentState();
+
+			CheckForCacheUpdate();
 		}
 
 		void AddBuiltInScripts()
@@ -206,6 +214,13 @@ namespace Dirigent
 						foreach( var ad in m.AppDefs )
 						{
 							_localApps.AddOrUpdate( ad );
+						}
+
+						// first time after start, try to restore from recently saved state
+						if( _appDefsReceivedFirstTime )
+						{
+							_appDefsReceivedFirstTime = false;
+							_agentStateSaveLoader.Restore(); 
 						}
 					}
 					break;
@@ -459,6 +474,20 @@ namespace Dirigent
 			#else
 			return new MachineState();
 			#endif
+		}
+
+		void CheckForCacheUpdate()
+		{
+			if( _updateSavedAgentState )
+			{
+				_agentStateSaveLoader.Save();
+				_updateSavedAgentState = false;
+			}
+		}
+
+		void OnLocalAppStartedKilled( LocalApp la )
+		{
+			_updateSavedAgentState = true;
 		}
 
 	}

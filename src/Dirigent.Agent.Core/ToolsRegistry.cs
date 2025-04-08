@@ -103,7 +103,7 @@ namespace Dirigent
 				}
 			}
 
-			var localApp = new LocalApp( toolAppDef, _sharedContext, null );
+			var localApp = new LocalApp( toolAppDef, _sharedContext, null, null );
 
 			try
 			{

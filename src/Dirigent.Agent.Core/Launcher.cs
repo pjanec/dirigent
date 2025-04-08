@@ -166,7 +166,7 @@ namespace Dirigent
 			return PathUtils.BuildAbsolutePath( anyPath, _relativePathsRoot );
 		}
 
-		public bool AdoptAlreadyRunning()
+		public bool AdoptAlreadyRunningByName()
 		{
 			var appPath = ExpandVars( _appDef.ExeFullPath );
 			ProcInfo? found = FindProcessByExeName( appPath );
@@ -178,6 +178,12 @@ namespace Dirigent
 				return true;
 			}
 			return false;
+		}
+
+		public void AdoptByPID( int PID )
+		{
+			_proc = Process_.GetProcessById( PID );
+			log.DebugFormat( $"Adopted existing process pid={PID}" );
 		}
 
 		void InstallPerfCounters()
@@ -351,7 +357,7 @@ namespace Dirigent
 			// try to adopt an already running process (matching by process image file name, regardless of path)
 			if( _appDef.AdoptIfAlreadyRunning )
 			{
-				if( AdoptAlreadyRunning() )
+				if( AdoptAlreadyRunningByName() )
 				{
 					InstallPerfCounters();
 					return true;
@@ -657,7 +663,7 @@ namespace Dirigent
 			// try to adopt an already running process (matching by process image file name, regardless of path)
 			if( _proc == null && _appDef.AdoptIfAlreadyRunning )
 			{
-				AdoptAlreadyRunning();
+				AdoptAlreadyRunningByName();
 			}
 
 			if( _proc != null )

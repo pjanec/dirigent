@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,11 +19,14 @@ namespace Dirigent
         private SharedContext _sharedContext;
 		ProcessInfoRegistry? _procInfoReg;
 
-		public LocalAppsRegistry( SharedContext shCtx, ProcessInfoRegistry? procInfoReg )
+        Action<LocalApp>? _onStartedKilled;
+
+		public LocalAppsRegistry( SharedContext shCtx, ProcessInfoRegistry? procInfoReg, Action<LocalApp>? onStartedKilled )
 		{
 			_sharedContext = shCtx;
             _sharedContext = shCtx;
 			_procInfoReg = procInfoReg;
+			_onStartedKilled = onStartedKilled;
 		}
 
 		public void Tick()
@@ -32,6 +36,7 @@ namespace Dirigent
 				li.Tick();
 			}
 		}
+
 
 		public void Clear()
 		{
@@ -53,7 +58,7 @@ namespace Dirigent
 			LocalApp? la;
 			if( !_apps.TryGetValue( appDef.Id, out la ) )
 			{
-				la = new LocalApp( appDef, _sharedContext, _procInfoReg );
+				la = new LocalApp( appDef, _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 				_apps[appDef.Id] = la;
 				return la;
 			}
@@ -76,7 +81,7 @@ namespace Dirigent
 			}
 			else
 			{
-				la = new LocalApp( ad, _sharedContext, _procInfoReg );
+				la = new LocalApp( ad, _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 				_apps[ad.Id] = la;
 			}
 			return la;
@@ -99,5 +104,9 @@ namespace Dirigent
 			return null;
 		}
 
+		void OnLocalAppStartedKilled( LocalApp la )
+		{
+			_onStartedKilled?.Invoke(la);
+		}
 	}
 }

@@ -48,11 +48,13 @@ namespace Dirigent
         private SharedContext _sharedContext;
 
 		// extra vars last time used when starting an app
-        public Dictionary<string,string> _vars = new();
+        public Dictionary<string,string> RecentVars { get; private set; } = new();
+
+		// called just after the app is started and killed
+		Action<LocalApp>? _onStartedKilled;
 
 
-
-		public LocalApp( AppDef ad, SharedContext sharedContext, ProcessInfoRegistry? processInfoRegistry )
+		public LocalApp( AppDef ad, SharedContext sharedContext, ProcessInfoRegistry? processInfoRegistry, Action<LocalApp>? onStartedKilled )
 		{
             Id = ad.Id;
             RecentAppDef = ad;
@@ -60,6 +62,7 @@ namespace Dirigent
             AppState.PlanName = ad.PlanName;
             _sharedContext = sharedContext;
 			_procInfoReg = processInfoRegistry;
+			_onStartedKilled = onStartedKilled;
 		}
 
 		protected override void Dispose( bool disposing )
@@ -117,7 +120,7 @@ namespace Dirigent
             }
             if( varsNew is null )
             {
-                varsNew = _vars; // cached from prev run
+                varsNew = RecentVars; // cached from prev run
             }
 
             // restart app if running with different vars than what we want right now
@@ -125,7 +128,7 @@ namespace Dirigent
             {
                 // we consider empty values as non-exiting variables
                 // we DO compare also empty variables (as they might delete something from the inherited environment )
-                var varsOrig = _vars;
+                var varsOrig = RecentVars;
                 var varsDifferent = !DictionaryExtensions.DictionariesEqual( varsOrig, varsNew, null );
                 
                 // restart if different env vars are desired
@@ -137,7 +140,7 @@ namespace Dirigent
                         log.Debug($"App {Id} new vars ({Tools.EnvVarListToString(varsNew)}) differ from last start {Tools.EnvVarListToString(varsOrig)}, but LeaveRunningWithPrevVars=1, so keeping the app running with original vars.");
 
                         // next time start the app with the most recently desired variables
-                        _vars = varsNew;
+                        RecentVars = varsNew;
                     }
                     else
                     {
@@ -149,7 +152,7 @@ namespace Dirigent
             }
             
             // remember currently desired vars for next run
-            _vars = varsNew;
+            RecentVars = varsNew;
             
 
 			if( resetRestartsToMax )
@@ -166,7 +169,7 @@ namespace Dirigent
             // remove watchers that might have left from previous run
             _watchers.RemoveHavingFlags( IAppWatcher.EFlags.ClearOnLaunch );
 
-            Launcher = new Launcher( appDef, _sharedContext, _vars );
+            Launcher = new Launcher( appDef, _sharedContext, RecentVars );
 
             try
             {
@@ -177,74 +180,10 @@ namespace Dirigent
                 }
 
                 if( Launcher.Launch() )
-                {
-                    // now we know the process was launched with the most recent settings
-                    RecentAppDef = appDef;
-                    AppState.Started = true;
-                    AppState.Initialized = true; // a watcher can set it to false upon its creation if it works like an AppInitDetector
-                    AppState.Running = true;  // will be updated in periodical refresh, here we think the app is running as it ahs been just started
-    			    AppState.PlanName = appDef.PlanName;
-
-                    #if Windows
-				    // install main window styler if we specified the style explicitly
-				    if( RecentAppDef.WindowStyle != EWindowStyle.NotSet )
-				    {
-					    var w = new MainWindowStyler( this );
-					    _watchers.ReinstallWatcher( w );
-				    }
-                    #endif
-
-				    // instantiate init detector (also a watcher)
-				    {
-                        // compatibility with InitialCondition="timeout 2.0" ... convert to XML definition <timeout>2.0</timeout>
-                        {
-                            if( !string.IsNullOrEmpty( RecentAppDef.InitializedCondition ) )
-                            {
-                                string name;
-                                string args;
-                                AppInitializedDetectorFactory.ParseDefinitionString( RecentAppDef.InitializedCondition, out name, out args );
-                                string xmlString = string.Format("<{0}>{1}</{0}>", name, args);
-
-                                var aid = _sharedContext.AppInitializedDetectorFactory.create( this, XElement.Parse(xmlString) );
-                                _watchers.ReinstallWatcher( aid );
-                            }
-                        }
-
-                        foreach( var xml in RecentAppDef.InitDetectors )
-                        {
-                            var aid = _sharedContext.AppInitializedDetectorFactory.create( this, XElement.Parse(xml));
-                            if( aid != null )
-                            {
-                                _watchers.ReinstallWatcher( aid );
-                            }
-                        }
-                    }
-
-                    #if Windows
-				    // instantiate window positioners
-                    var windowPositioners = new List<IAppWatcher>();
-				    foreach (var xml in RecentAppDef.WindowPosXml)
-				    {
-					    var wpo = new WindowPositioner( this, XElement.Parse(xml));
-                        windowPositioners.Add( wpo );
-				    }
-					_watchers.ReinstallWatchers( windowPositioners );
-                    #endif
-
-				    // instantiate crash watcher
-				    if ( RecentAppDef.RestartOnCrash )
-                    {
-                        var ar = new CrashWatcher( this );
-					    ar.OnCrash += () =>
-					    {
-						    // Activate restarter, continue counting down the number of remaining restarts
-						    // as set in appState.RestartsRemaining.
-                            _watchers.ReinstallWatcher( new AppRestarter( this, true, vars:vars ) );
-					    };
-                        _watchers.ReinstallWatcher( ar );
-                    }
-                }
-            }
+				{
+					AfterLaunch( appDef, vars );
+				}
+			}
             catch( Exception ex ) // app launching failed
             {
                 log.ErrorFormat("Exception: App \"{0}\"start failure {1}", RecentAppDef, ex);
@@ -254,8 +193,79 @@ namespace Dirigent
             }
         }
 
-        /// <param name="vars">what env/macro vars to set for a process; null=no change</param>
-        public void RestartApp( Dictionary<string, string>? vars )
+		private void AfterLaunch( AppDef appDef, Dictionary<string, string>? vars )
+		{
+			// now we know the process was launched with the most recent settings
+			RecentAppDef = appDef;
+			AppState.Started = true;
+			AppState.Initialized = true; // a watcher can set it to false upon its creation if it works like an AppInitDetector
+			AppState.Running = true;  // will be updated in periodical refresh, here we think the app is running as it ahs been just started
+			AppState.PlanName = appDef.PlanName;
+
+#if Windows
+			// install main window styler if we specified the style explicitly
+			if( RecentAppDef.WindowStyle != EWindowStyle.NotSet )
+			{
+				var w = new MainWindowStyler( this );
+				_watchers.ReinstallWatcher( w );
+			}
+#endif
+
+			// instantiate init detector (also a watcher)
+			{
+				// compatibility with InitialCondition="timeout 2.0" ... convert to XML definition <timeout>2.0</timeout>
+				{
+					if( !string.IsNullOrEmpty( RecentAppDef.InitializedCondition ) )
+					{
+						string name;
+						string args;
+						AppInitializedDetectorFactory.ParseDefinitionString( RecentAppDef.InitializedCondition, out name, out args );
+						string xmlString = string.Format( "<{0}>{1}</{0}>", name, args );
+
+						var aid = _sharedContext.AppInitializedDetectorFactory.create( this, XElement.Parse( xmlString ) );
+						_watchers.ReinstallWatcher( aid );
+					}
+				}
+
+				foreach( var xml in RecentAppDef.InitDetectors )
+				{
+					var aid = _sharedContext.AppInitializedDetectorFactory.create( this, XElement.Parse( xml ) );
+					if( aid != null )
+					{
+						_watchers.ReinstallWatcher( aid );
+					}
+				}
+			}
+
+#if Windows
+			// instantiate window positioners
+			var windowPositioners = new List<IAppWatcher>();
+			foreach( var xml in RecentAppDef.WindowPosXml )
+			{
+				var wpo = new WindowPositioner( this, XElement.Parse( xml ) );
+				windowPositioners.Add( wpo );
+			}
+			_watchers.ReinstallWatchers( windowPositioners );
+#endif
+
+			// instantiate crash watcher
+			if( RecentAppDef.RestartOnCrash )
+			{
+				var ar = new CrashWatcher( this );
+				ar.OnCrash += () =>
+				{
+					// Activate restarter, continue counting down the number of remaining restarts
+					// as set in appState.RestartsRemaining.
+					_watchers.ReinstallWatcher( new AppRestarter( this, true, vars: vars ) );
+				};
+				_watchers.ReinstallWatcher( ar );
+			}
+
+            _onStartedKilled?.Invoke( this );
+		}
+
+		/// <param name="vars">what env/macro vars to set for a process; null=no change</param>
+		public void RestartApp( Dictionary<string, string>? vars )
         {
             log.Debug( $"RestartApp {Id} vars {Tools.EnvVarListToString(vars)}" );
 
@@ -292,7 +302,7 @@ namespace Dirigent
 				if( RecentAppDef.AdoptIfAlreadyRunning )
 				{
 					var launcher = new Launcher( UpcomingAppDef, _sharedContext );
-					if( launcher.AdoptAlreadyRunning() )
+					if( launcher.AdoptAlreadyRunningByName() )
 					{
 						launcher.Kill( flags );
 					}
@@ -319,6 +329,8 @@ namespace Dirigent
 				AppState.Dying = false;
 				AppState.Restarting = false;
 			}
+
+            _onStartedKilled?.Invoke( this );
         }
 
         /// <summary>
@@ -391,6 +403,17 @@ namespace Dirigent
                 moveToFront: true // user requested to show the window, make sure it goes to the top
             );
             #endif
+        }
+
+        public void AdoptRunning( int PID, AppDef appDef, Dictionary<string, string> vars )
+        {
+            if( Launcher == null )
+            {
+                Launcher = new Launcher( appDef, _sharedContext, vars );
+                Launcher.AdoptByPID( PID );
+                // act as if just started
+                AfterLaunch( appDef, vars );
+			}            
         }
 	}
 }
