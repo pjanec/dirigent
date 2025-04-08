@@ -1,4 +1,3 @@
-#if Windows
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -114,4 +113,3 @@ namespace Dirigent.Scripts.BuiltIn
 	}
 
 }
-#endif
