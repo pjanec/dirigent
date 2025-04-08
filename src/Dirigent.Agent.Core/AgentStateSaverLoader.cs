@@ -11,7 +11,7 @@ namespace Dirigent;
 // Saves the status of local apps to a status file for the purpose of post-crash recovery.
 // On restore, adopts the processes that are still running.
 // If the status file exists on Dirigent startup, it means that the Dirigent have not terminated gracefuly (crashed or was killed etc.)
-// Not included:
+// Does not include stuff happening on master only:
 //  - script status
 //  - plan status
 public class AgentStateSaverLoader : Disposable
@@ -32,13 +32,7 @@ public class AgentStateSaverLoader : Disposable
 	{
 		_localAppsRegistry = localAppsRegistry;
 
-		string localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-		string appSpecificPath = Path.Combine(localAppDataPath, "Dirigent");
-		_statusFilePath = Path.Combine(appSpecificPath, $"status_{machineId}.json");
-
-		// Create the directory if it doesn't exist
-		Directory.CreateDirectory(appSpecificPath);
-
+		_statusFilePath = GetStatusFilePath(machineId);
 	}
 
 	protected override void Dispose( bool disposing )
@@ -49,6 +43,13 @@ public class AgentStateSaverLoader : Disposable
 			Clear();
 		}
 		base.Dispose( disposing );
+	}
+
+	public static string GetStatusFilePath( string machineId )
+	{
+		string localAppDataPath = Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData );
+		string appSpecificPath = Path.Combine( localAppDataPath, "Dirigent" );
+		return Path.Combine( appSpecificPath, $"agent_status_{machineId}.json" );
 	}
 
 	// Deletes the status file.

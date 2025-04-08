@@ -220,7 +220,15 @@ namespace Dirigent
 						if( _appDefsReceivedFirstTime )
 						{
 							_appDefsReceivedFirstTime = false;
-							_agentStateSaveLoader.Restore(); 
+
+							if( _agentStateSaveLoader.Exists() )  // previous status found - restore from it
+							{
+								_agentStateSaveLoader.Restore();
+							}
+							else // no previous status - starting fresh, create the status file
+							{
+								_agentStateSaveLoader.Save();
+							}
 						}
 					}
 					break;

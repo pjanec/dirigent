@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.CommonTests", "Dirigent.CommonTests\Dirigent.CommonTests.csproj", "{C25F94B0-2480-43BD-ACAF-0DB222C9EC43}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dirigent.Agent.Starter", "Dirigent.Agent.Starter\Dirigent.Agent.Starter.csproj", "{87ABE5EB-4A26-4879-9301-0404088AE681}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,6 +64,10 @@ Global
 		{C25F94B0-2480-43BD-ACAF-0DB222C9EC43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C25F94B0-2480-43BD-ACAF-0DB222C9EC43}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C25F94B0-2480-43BD-ACAF-0DB222C9EC43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87ABE5EB-4A26-4879-9301-0404088AE681}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87ABE5EB-4A26-4879-9301-0404088AE681}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87ABE5EB-4A26-4879-9301-0404088AE681}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87ABE5EB-4A26-4879-9301-0404088AE681}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
