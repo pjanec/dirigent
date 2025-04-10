@@ -91,8 +91,8 @@ namespace Dirigent
 		[Option( "masterPeriod", Required = false, Default = 0, HelpText = "Master refresh period in msec." )]
 		public int MasterTickPeriod { get; set; }
 
-		[Option( "parentPid", Required = false, Default = -1, HelpText = "PID of the parent (used by agent process if started from the gui process)" )]
-		public int parentPid { get; set; }
+		[Option( "pid", Required = false, Default = -1, HelpText = "PID of the agent process (used by the Dirigent.Starter)" )]
+		public int pid { get; set; }
 
 		[Option( "guiAppExe", Required = false, Default = "", HelpText = "Executable for GUI" )]
 		public string GuiAppExe { get; set; } = string.Empty;
@@ -131,7 +131,7 @@ namespace Dirigent
 		public string LocalIP = "0.0.0.0";
 		public string McastAppStates = "0";
 		public IList<string> NonOptionArgs = new List<string>();
-		public int ParentPid = -1;
+		public int Pid = -1;
 		public string GuiAppExe = "";
 		public string Debug = "0";
 
@@ -202,7 +202,7 @@ namespace Dirigent
 				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
 				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;
-				ParentPid = options.parentPid;
+				Pid = options.pid;
 				if( options.GuiAppExe != "" ) GuiAppExe = options.GuiAppExe;
 				if( options.Debug != "" ) Debug = options.Debug;
 			} )

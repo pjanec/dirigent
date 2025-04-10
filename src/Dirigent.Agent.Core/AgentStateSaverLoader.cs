@@ -121,6 +121,8 @@ public class AgentStateSaverLoader : Disposable
 		if( !Exists() )
 			return false;
 
+		log.Debug( $"Restoring agent status from {_statusFilePath}" );
+
 
 		// load status from file
 		AgentStatus agentStatus = new();
@@ -148,14 +150,18 @@ public class AgentStateSaverLoader : Disposable
 				// if app was running back then, try to adopt it if it is still running
 				if( appState.ProcessId != null )
 				{
+					var pid = appState.ProcessId.Value;
+
 					// try to find the process
-					var proc = processes.FirstOrDefault( p => p.Id == appState.ProcessId && p.ProcessName == appState.ProcessName );
+					var proc = processes.FirstOrDefault( p => p.Id == pid && p.ProcessName == appState.ProcessName );
 					if( proc != null )
 					{
 						if( appState.Def is null )
 							log.Error( $"AppDef is null for {appId} in status file" );
 						else
-							localApp.AdoptRunning( appState.ProcessId.Value, appState.Def, appState.EnvVars );
+						{
+							localApp.AdoptRunning( pid, appState.Def, appState.EnvVars );
+						}
 					}
 				}
 			}

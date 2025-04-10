@@ -406,9 +406,10 @@ namespace Dirigent
         }
 
         public void AdoptRunning( int PID, AppDef appDef, Dictionary<string, string> vars )
-        {
-            if( Launcher == null )
-            {
+		{
+			if( Launcher == null )
+			{
+				log.Debug( $"Adopting running app {appDef.Id}, pid {PID}, vars {Tools.EnvVarListToString(vars)}" );
                 Launcher = new Launcher( appDef, _sharedContext, vars );
                 Launcher.AdoptByPID( PID );
                 // act as if just started

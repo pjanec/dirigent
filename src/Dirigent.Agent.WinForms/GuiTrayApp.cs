@@ -70,6 +70,8 @@ namespace Dirigent.Gui.WinForms
 		{
 			var exitCode = EAppExitCode.NoError;
 
+			AutoRestart.RunAutorestarter( _ac );
+			
 			if( _runAgent )
 			{
 				InitializeAgent();
