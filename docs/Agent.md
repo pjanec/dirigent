@@ -98,3 +98,22 @@ Shortcut can be redefined in the `Dirigent.Agent.dll.config`. By default
     ...
     Select 9th plan ........ Control + Shift + Alt + 9
 
+## Auto-restart
+Dirigent agent restarts automatically after the crash. It reconnects it to the apps still running on the machine. So it should keep the ability to kill/restart the apps.
+
+**TODO** It does not yet recover the running plans (if there was a plan running, it will not run after crash).
+
+Dirigent starts an auxiliary `Dirigent.Starter` process in the background to watch the agent and restart it if it crashes. It uses status file stored in `%LocalAppData%/Dirigent` folder to determine if dirigent should be restarted automatically. If dirigent terminates gracefully, the status file is deleted and no restart is made.
+
+If dirigent after restart finds this file, it uses it to reconnect to the still running apps so they can be killed remotely later.
+
+**IMPORTANT**
+Now, if we want kill the dirigent agent, we need to kill the `Dirigent.Starter` process first, then kill the `Dirigent.Agent` process.
+
+Optionally, we can send a termination command to the dirigent to terminate itself and all the apps.
+
+```
+Dirigent.CLI.exe Terminate killApps=1
+```
+
+See also the [Terminate command](CLI.md#terminate).
