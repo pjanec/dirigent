@@ -48,7 +48,7 @@ namespace Dirigent.Gui.WinForms
 				}
 			}
 			{
-				var x = document.XPathSelectElement( String.Format( templ, "KillPlanPlanHotKey" ) );
+				var x = document.XPathSelectElement( String.Format( templ, "KillPlanHotKey" ) );
 				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + K";
 				if( !String.IsNullOrEmpty( hotKeyStr ) )
 				{
@@ -59,7 +59,7 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			{
-				var x = document.XPathSelectElement( String.Format( templ, "RestartPlanPlanHotKey" ) );
+				var x = document.XPathSelectElement( String.Format( templ, "RestartPlanHotKey" ) );
 				string hotKeyStr = ( x != null ) ? x.Value : "Control + Shift + Alt + R";
 				if( !String.IsNullOrEmpty( hotKeyStr ) )
 				{

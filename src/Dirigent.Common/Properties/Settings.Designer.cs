@@ -258,30 +258,30 @@ namespace Dirigent.Common.Properties
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "Control + Shift + Alt + K" )]
-		public string KillPlanPlanHotKey
+		public string KillPlanHotKey
 		{
 			get
 			{
-				return ( ( string )( this["KillPlanPlanHotKey"] ) );
+				return ( ( string )( this["KillPlanHotKey"] ) );
 			}
 			set
 			{
-				this["KillPlanPlanHotKey"] = value;
+				this["KillPlanHotKey"] = value;
 			}
 		}
 
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "Control + Shift + Alt + R" )]
-		public string RestartPlanPlanHotKey
+		public string RestartPlanHotKey
 		{
 			get
 			{
-				return ( ( string )( this["RestartPlanPlanHotKey"] ) );
+				return ( ( string )( this["RestartPlanHotKey"] ) );
 			}
 			set
 			{
-				this["RestartPlanPlanHotKey"] = value;
+				this["RestartPlanHotKey"] = value;
 			}
 		}
 

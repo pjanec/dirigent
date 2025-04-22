@@ -61,7 +61,7 @@ namespace Dirigent.Gui.WinForms
 		{
 			_ac = ac;
 			_machineId = machineId; // FIXME: this is only valid if we are running a local agent! How do we know??
-			_clientIdent = new Net.ClientIdent() { Sender = Guid.NewGuid().ToString(), SubscribedTo = Net.EMsgRecipCateg.Gui };
+			_clientIdent = new Net.ClientIdent() { Sender = $"{machineId}_gui_{Guid.NewGuid()}", SubscribedTo = Net.EMsgRecipCateg.Gui };
 			AllowLocalIfDisconnected = true;
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 

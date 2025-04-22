@@ -38,10 +38,10 @@
     <Setting Name="StartPlanHotKey" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control + Shift + Alt + S</Value>
     </Setting>
-    <Setting Name="KillPlanPlanHotKey" Type="System.String" Scope="User">
+    <Setting Name="KillPlanHotKey" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control + Shift + Alt + K</Value>
     </Setting>
-    <Setting Name="RestartPlanPlanHotKey" Type="System.String" Scope="User">
+    <Setting Name="RestartPlanHotKey" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control + Shift + Alt + R</Value>
     </Setting>
     <Setting Name="LocalConfigFile" Type="System.String" Scope="Application">
