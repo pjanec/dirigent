@@ -30,6 +30,7 @@ $projects = @(
 	"src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj"
 	"src\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj"
 	"src\Dirigent.Agent.WinForms\Dirigent.Agent.WinForms.csproj"
+	"src\Dirigent.Agent.Starter\Dirigent.Agent.Starter.csproj"
 )
 
 Foreach ($proj in $projects)

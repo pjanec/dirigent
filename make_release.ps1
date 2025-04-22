@@ -12,9 +12,9 @@ $env:RELEASE_VERSION = $version
 
 # rebuild & publish for all platforms
 
-& "$PSScriptRoot\publish-linux-x64.ps1" $buildconf
+#& "$PSScriptRoot\publish-linux-x64.ps1" $buildconf
 
-& "$PSScriptRoot\publish-linux-arm64.ps1" $buildconf
+#& "$PSScriptRoot\publish-linux-arm64.ps1" $buildconf
 
 & "$PSScriptRoot\publish-win-x64.ps1" $buildconf
 

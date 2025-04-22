@@ -136,3 +136,6 @@ Support also files downloaded to the gateway, meaning translating gateway
     
     {type:'appState', id='m1.a', state={'code':'SR'}}
 
+[TODO]
+Similarly to saving agent state for the post-crash recovery purposes, save and restore also plan status on master in case of master agent crash...
+This requires all the watchers to serialize/deserialize their state!

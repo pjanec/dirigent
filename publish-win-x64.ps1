@@ -5,6 +5,7 @@ Param( $buildconf="Release", $clean=1 )
 dotnet publish src\Dirigent.CLI\Dirigent.CLI.csproj -f net6.0-windows -r win-x64 --self-contained false -o publish\Dirigent.CLI\win-x64\$buildconf
 dotnet publish src\Dirigent.Agent.WinForms\Dirigent.Agent.WinForms.csproj -f net6.0-windows -r win-x64 --self-contained false -o publish\Dirigent.Agent.WinForms\win-x64\$buildconf
 dotnet publish src\Dirigent.Gui.ImGui\Dirigent.Gui.ImGui.csproj -f net6.0-windows -r win-x64 --self-contained false -o publish\Dirigent.Gui.ImGui\win-x64\$buildconf
+dotnet publish src\Dirigent.Agent.Starter\Dirigent.Agent.Starter.csproj -f net6.0-windows -r win-x64 --self-contained false -o publish\Dirigent.Agent.Starter\win-x64\$buildconf
 
 New-Item -ItemType Directory -Force -Path release\win-x64\$buildconf
 
@@ -12,6 +13,7 @@ New-Item -ItemType Directory -Force -Path release\win-x64\$buildconf
 robocopy publish\Dirigent.Gui.ImGui\win-x64\$buildconf release\win-x64\$buildconf\ /E
 robocopy publish\Dirigent.CLI\win-x64\$buildconf release\win-x64\$buildconf\ /E
 robocopy publish\Dirigent.Agent.WinForms\win-x64\$buildconf release\win-x64\$buildconf\ /E
+robocopy publish\Dirigent.Agent.Starter\win-x64\$buildconf release\win-x64\$buildconf\ /E
 
 Copy-Item "$PSScriptRoot\VersionStamp.txt" -Destination release\win-x64\$buildconf -Force
 

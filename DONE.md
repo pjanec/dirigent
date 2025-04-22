@@ -280,3 +280,16 @@ It can call async dirigent API, including starting scripts & waiting for their t
 # KillAll extra actions
 Run defined actions (start processes) during the KillAll operation on top of killing all running apps and plans.
 Reuse the Tools defined in local config, and in shared config define a list of such tools to run on desired host machine.
+
+
+
+# Post-crash recovery
+If dirigent crashes and is started again, it should automatically and adopt the processes it was managing before (if they are still running).
+When dirigent starts or kills an app, it should write the app list to a status file.
+The status file name should include the agent name as there can be multiple dirigents running on same machine.
+When dirigent finishes gracefully, it should delete the file.
+If on next run dirigent finds the file, it should try adopting the processes listed there.
+The recovery should happen only if the file is not too old to avoids recovery from something old, for example after system poweroff or restart.
+What to save to the status file
+ - dirigent process PID (can be checked as parent process PID when adopting processes)
+ - process PID, name, process start time, extra environment variables passed by dirigent.
