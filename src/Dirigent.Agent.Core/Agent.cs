@@ -93,7 +93,7 @@ namespace Dirigent
 
 			_tickers = new TickableCollection();
 
-			_procInfoReg = new ProcessInfoRegistry();
+			//_procInfoReg = new ProcessInfoRegistry();
 
 			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 
