@@ -97,17 +97,6 @@ namespace Dirigent.Gui.WinForms
 			return id;
 		}
 		
-		private bool isMachineId( string clientId )
-		{
-			// guid strings are used for non-machine clients
-			if( Guid.TryParse(clientId, out var parsedGuid) )
-			{
-				return false;
-			}
-			return true;
-		}
-
-
 		public void Refresh()
 		{
 			if( _bindingSource == null )
@@ -159,7 +148,7 @@ namespace Dirigent.Gui.WinForms
 			foreach (var (id, state) in ReflStates.GetAllClientsState())
 			{
 				if( oldRows.ContainsKey( id )) continue; // already existing
-				if( !isMachineId( id ) ) continue; // ignore non-machine clients
+				if( !state.Ident.IsAgent ) continue; // ignore non-machine clients
 
 				var item = new object[colMAX];
 				item[colName] = id;
@@ -250,6 +239,8 @@ namespace Dirigent.Gui.WinForms
 			{
 				DataGridViewRow focusedGridRow = _grid.Rows[currentRow];
 				string id = getClientIdFromMachsDataRow( WFT.GetDataRowFromGridRow( focusedGridRow ) );
+				var clientState = Ctrl.GetClientState( id );
+				var isAgent = clientState != null && clientState.Ident.IsAgent; // id is a machine id?
 				bool connected = Client.IsConnected;
 
 
@@ -302,7 +293,7 @@ namespace Dirigent.Gui.WinForms
 
 					// File/Folder/Package menu items
 					{
-						if( isMachineId( id ) )
+						if( isAgent )
 						{
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
@@ -322,7 +313,7 @@ namespace Dirigent.Gui.WinForms
 
 					// tools menu items
 					{
-						if( isMachineId( id ) )
+						if( isAgent )
 						{
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
