@@ -813,9 +813,33 @@ namespace Dirigent
 		    String CmdLine
 		);
 
+		private static DateTime _lastCallTimeOfFindProcessByExeName = DateTime.MinValue;
+
 		public static ProcInfo? FindProcessByExeName( string exePath )
 		{
 			#if Windows
+						// sleep to avoid calling FindProcessByExeName too quickly in tight sequence if many apps are set to adopt their already running processes
+						var elapsed = DateTime.Now - _lastCallTimeOfFindProcessByExeName;
+						if( elapsed.TotalMilliseconds < 500 )
+						{
+							var sleepTime = 500 - (int)elapsed.TotalMilliseconds;
+							log.Debug( $"FindProcessByExeName({exePath}): Throttling the Process.GetProcesses() calls to prevent resource shortage and being killed by OS. Sleep({sleepTime})." );
+							System.Threading.Thread.Sleep( sleepTime );
+						}
+						_lastCallTimeOfFindProcessByExeName = DateTime.Now;
+
+						// The FindProcessByExeName code calls System.Diagnostics.Process.GetProcesses() to get all processes,
+						// which can be an expensive operation, especially if called frequently (multiple times per second).
+						// If this is happening in a tight loop, it could cause issues with system resources or lead to performance
+						// degradation.
+
+						// The ManagementObjectSearcher and Win32_Process WMI query might experience issues.
+						// Sometimes, if WMI queries fail, the process could be killed silently without throwing an exception.
+						// It's also worth noting that WMI queries can sometimes hang or fail without providing clear feedback,
+						// especially if the system is under heavy load or there's a problem with WMI itself.
+
+
+
 			            string searchedExeName = Path.GetFileName(exePath);
 
 			            // find all processes
