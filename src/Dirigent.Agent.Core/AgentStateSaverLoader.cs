@@ -86,10 +86,21 @@ public class AgentStateSaverLoader : Disposable
 			var proc = localApp.Process;
 			if( proc != null )
 			{
-				ProcessId = proc.Id;
-				ProcessName = proc.ProcessName;
-				EnvVars = new( localApp.RecentVars );
-				Def = localApp.RecentAppDef;
+				try  // the process might have exited by the time we access it - so we need to catch exceptions
+				{
+					ProcessId = proc.Id;
+					ProcessName = proc.ProcessName;
+					EnvVars = new( localApp.RecentVars );
+					Def = localApp.RecentAppDef;
+				}
+				catch( Exception ex )
+				{
+					log.Error( $"Error getting process info for app {localApp.Id}: {ex.Message}" );
+					ProcessId = null;
+					ProcessName = null;
+					EnvVars = new();
+					Def = null;
+				}
 			}
 		}
 	}
