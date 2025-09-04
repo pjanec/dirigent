@@ -18,6 +18,11 @@ namespace Dirigent.Net
 			MessagePack.MessagePackSerializer.DefaultOptions = MessagePack.Resolvers.ContractlessStandardResolver.Options;
 		}
 
+		public void Reset()
+		{
+			_msgCodec.Reset();
+		}
+		
 		void OnMsgReceived( MessageCodec.Header hdr, byte[] data, long offset, long size )
 		{
 			var instance = Deserialize<Net.Message>( data, offset, size );

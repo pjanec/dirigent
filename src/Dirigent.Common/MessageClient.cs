@@ -81,6 +81,8 @@ namespace Dirigent.Net
 		{
 			log.Info( $"TCP client disconnected a session with Id {Id}" );
 
+			_msgCodec.Reset(); // reset remnants of data from previous connection
+
 			Disconnected?.Invoke();
 
 			if( _autoRecon && !_isDisposing )

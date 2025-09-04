@@ -27,6 +27,12 @@ namespace Dirigent.Net
 			AwaitHeader();
 		}
 
+		public void Reset()
+		{
+			_awBlockBuf.Clear();
+			AwaitHeader();
+		}
+		
 		void GotHeader( byte[] data, long offset, long size )
 		{
 			_header = new Header();
