@@ -223,6 +223,15 @@ namespace Dirigent
 			return st.Text ?? "";
 		}
 
+		public static string GetScriptStateString( Guid scriptId, ScriptState? scriptState )
+		{
+			if( scriptState is null )
+				return string.Empty;
+
+			var stateJsonStr = Tools.Serialize( scriptState );
+			return $"SCRIPT:{scriptId}:{stateJsonStr}";
+		}
+
 		// returs first line without CR/LF
 		public static string JustFirstLine( string multiLineString )
 		{

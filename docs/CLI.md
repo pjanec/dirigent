@@ -631,3 +631,87 @@ Some commands do not return ERROR even if the command fails (but ACK is returned
   Request:   `ReloadSharedConfig`
 
   Response:     `ACK`
+
+
+
+
+## **Real-Time Event Subscriptions**
+
+To avoid repeatedly polling for the status of applications, plans, and scripts, the Dirigent Command Line Interface (CLI) provides a real-time event subscription mechanism. By issuing the SendEvents command, a client can subscribe its current connection to receive automatic status updates whenever a meaningful change occurs.
+
+### **The SendEvents Command**
+
+This command manages the event subscription for the specific TCP connection that sends it.
+
+**Syntax:**
+
+SendEvents \<0|1\> [<update interval in seconds>]
+
+* **SendEvents 1**: Subscribes the current connection to receive automatic status updates.  
+  * The command should be prefixed with a unique **request ID**. This ID will be used to tag all subsequent automatic status messages sent to this client.
+
+  * Upon successful subscription, the server immediately performs an  
+    **initial status dump**, sending the current state of all known applications, plans, and scripts to the client.
+
+  * After the initial dump, the server will only send updates for individual items whose status has meaningfully changed.
+
+* **SendEvents 0**: Unsubscribes the current connection from receiving further updates. The client's status cache on the server is cleared to free up resources4.
+
+---
+
+### **Example Workflow**
+
+Here is a typical sequence of commands and responses when using the event subscription feature.
+
+**1\. Client Subscribes to Events**
+
+The client connects and sends the SendEvents command with a request ID, in this case, \[event01\].
+
+*Client Request:*
+
+\[event01\] SendEvents 1
+
+**2\. Acknowledgment and Initial Status Dump**
+
+The server immediately acknowledges the command and then sends the current state of all relevant items, each prefixed with the client's chosen request ID \[event01\].
+
+*Server Response:*
+
+\[event01\] ACK  
+\[event01\] APP:m1.app1:R...  
+\[event01\] APP:m2.app2:...  
+\[event01\] PLAN:plan1:Success...  
+\[event01\] PLAN:plan2:None...  
+\[event01\] SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Finished", ...}
+
+**3\. Automatic Status Update**
+
+Later, if m1.app1 is killed, its status changes. The server detects this change during its next polling cycle and automatically sends an update to the subscribed client. Note that only the changed item is sent.
+
+*Server Sends Spontaneously:*
+
+\[event01\] APP:m1.app1:SKI...
+
+**4\. Client Unsubscribes**
+
+When the client no longer needs real-time updates, it sends the SendEvents 0 command.
+
+*Client Request:*
+
+\[anyReqId\] SendEvents 0
+
+*Server Response:*
+
+\[anyReqId\] ACK
+
+After this, the server will stop sending automatic updates to this client.
+
+---
+
+### **Remarks**
+
+* **Connection Specific**: The subscription is tied to the individual TCP connection. If the client disconnects, the subscription is automatically terminated.  
+* **Meaningful Changes Only**: Updates are triggered by changes in the operational state (e.g., Running to Killed), not by constantly fluctuating values like CPU usage or status age. This ensures that you only receive notifications for significant events.  
+* **Polling Interval**: The server checks for changes at a regular interval (typically once per second). Updates are therefore near-real-time but not instantaneous.
+
+* **Request ID is Key**: The request ID provided with the SendEvents 1 command is essential for identifying and parsing the automatic updates your application receives.  
