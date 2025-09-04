@@ -6,6 +6,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Dirigent
 {
@@ -112,8 +113,15 @@ namespace Dirigent
 
 		private Master ctrl;
 
-		List<CLIRequest> pendingRequests = new List<CLIRequest>();
-		ConcurrentQueue<CLIRequest> incomingRequests = new();  
+		private List<CLIRequest> pendingRequests = new List<CLIRequest>();
+		private ConcurrentQueue<CLIRequest> incomingRequests = new();
+
+		private readonly Stopwatch _processingStopwatch = new Stopwatch();
+
+		/// <summary>
+		/// Maximum time in milliseconds to spend processing CLI requests in a single Tick.
+		/// </summary>
+		public int MaxProcessingTimePerTickMs { get; set; } = 20; // Default value
 
 		public CLIProcessor( Master ctrl )
 		{
@@ -138,9 +146,44 @@ namespace Dirigent
 		/// </summary>
 		public void Tick()
 		{
-			// tick all pending requests
-			// remove finished requests
-			TickRequests();
+			_processingStopwatch.Restart();
+
+			// 1. Move all new requests from the concurrent queue to the end of our working list.
+			while (incomingRequests.TryDequeue(out var r))
+			{
+				pendingRequests.Add(r);
+			}
+
+			// 2. Process requests from the pending list, but only for as long as we have time.
+			var processedRequests = new List<CLIRequest>();
+			foreach (var request in pendingRequests)
+			{
+				// Check if we've run out of time for this tick cycle
+				if (_processingStopwatch.ElapsedMilliseconds >= MaxProcessingTimePerTickMs)
+				{
+					break; // Stop processing and leave remaining requests for the next tick
+				}
+				
+				request.Tick();
+				processedRequests.Add(request); // Mark this request as having been processed in this cycle
+			}
+
+			// 3. Clean up ONLY the requests that we had time to process and that are now finished.
+			//    Unprocessed requests remain in pendingRequests for the next tick.
+			var toRemove = new List<CLIRequest>();
+			foreach (var request in processedRequests)
+			{
+				if (request.Finished)
+				{
+					request.Dispose();
+					toRemove.Add(request);
+				}
+			}
+
+			foreach(var request in toRemove)
+			{
+				pendingRequests.Remove(request);
+			}
 		}
 
 		// this is thread/async safe
@@ -154,33 +197,5 @@ namespace Dirigent
 			}
 			return r;
 		}
-
-		void TickRequests()
-		{
-			// move requests from incoming to pending
-			int numReqToAdd = incomingRequests.Count;
-			while( numReqToAdd-- > 0 )
-			{
-				if( incomingRequests.TryDequeue( out var r ) )
-				{
-					pendingRequests.Add( r );
-				}
-			}
-
-			var toRemove = new List<CLIRequest>();
-			foreach( var r in pendingRequests )
-			{
-				r.Tick();
-				if( r.Finished ) toRemove.Add( r );
-			}
-
-			foreach( var r in toRemove )
-			{
-				r.Dispose();
-				pendingRequests.Remove( r );
-			}
-		}
-
-
 	}
 }

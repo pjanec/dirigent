@@ -168,6 +168,9 @@ namespace Dirigent
 			// start a telnet client server
 			_cliProc = new CLIProcessor( this );
 
+			// Set the processing quantum to 30% of the master's tick period
+			_cliProc.MaxProcessingTimePerTickMs = (int)(ac.MasterTickPeriod * 0.30);
+
             log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);
 			_telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
 
