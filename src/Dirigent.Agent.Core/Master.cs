@@ -29,7 +29,7 @@ namespace Dirigent
 		public PlanDef? GetPlanDef( string Id ) { if( _plans.Plans.TryGetValue( Id, out var p ) ) return p.Def; else return null; }
 		public IEnumerable<PlanDef> GetAllPlansDef() { return from x in _plans.Plans.Values select x.Def; }
 		public ScriptDef? GetScriptDef( Guid Id ) { return _reflScripts.ScriptDefs.Find((x) => x.Guid == Id); }
-		public IEnumerable<ScriptDef> GetAllScriptsDef() { return _reflScripts.ScriptDefs; }
+		public IEnumerable<ScriptDef> GetAllScriptsDef() { return _singlScripts.Scripts.Values.Select(e => e.Def); } // this include both static + dynamic definitions
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _files.GetAllVfsNodesDef(); }
 		public string Name => string.Empty;
