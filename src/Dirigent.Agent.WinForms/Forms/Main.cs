@@ -391,6 +391,14 @@ namespace Dirigent.Gui.WinForms
 
 		private void reloadSharedConfigToolStripMenuItem_Click( object sender, EventArgs e )
 		{
+			var allAppState = Ctrl.GetAllAppsState();
+			bool someAppsRunning = allAppState.Any( x => x.Value.Running || x.Value.Dying );
+			if( someAppsRunning )
+			{
+				MessageBox.Show( "Some apps are still running. Please kill them first.", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Warning );
+				return;
+			}
+
 			var args = new ReloadSharedConfigArgs() { KillApps = false };
 			Ctrl.Send( new Net.ReloadSharedConfigMessage( Ctrl.Name, args ) );
 		}

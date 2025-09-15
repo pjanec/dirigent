@@ -673,7 +673,7 @@ The client connects and sends the SendEvents command with a request ID, in this 
 
 **2\. Acknowledgment and Initial Status Dump**
 
-The server immediately acknowledges the command and then sends the current state of all relevant items, each prefixed with the client's chosen request ID \[event01\].
+The server immediately acknowledges the command using a ACK and sends the current state of all relevant items, each line prefixed with the client's chosen request ID \[event01\].
 
 *Server Response:*
 
@@ -683,6 +683,8 @@ The server immediately acknowledges the command and then sends the current state
 \[event01\] PLAN:plan1:Success...  
 \[event01\] PLAN:plan2:None...  
 \[event01\] SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Finished", ...}
+
+The client can check for the ACK and if not received until a threshold (see master tick period), the client should return to the older polling concept (like GetAppStatus) to support older versions of the Dirigent.
 
 **3\. Automatic Status Update**
 
