@@ -467,6 +467,7 @@ namespace Dirigent.Gui.WinForms
 	{
 		public static void RestoreWindowSettings( this Form form, string initLocation )
 		{
+			// 1. Parse saved settings or use form defaults.
 			Point il = new Point( 0, 0 );
 			Size sz = form.Size;
 			if( !string.IsNullOrEmpty( initLocation ) )
@@ -481,6 +482,30 @@ namespace Dirigent.Gui.WinForms
 					sz = new Size( int.Parse( parts[2] ), int.Parse( parts[3] ) );
 				}
 			}
+
+			// 2. Define a reasonable minimum size for the window.
+			Size minimumSize = new Size(600, 400);
+
+			// 3. Determine the target screen and validate the window's position.
+			Rectangle formBounds = new Rectangle(il, sz);
+			Screen? targetScreen = Screen.AllScreens.FirstOrDefault(s => s.WorkingArea.IntersectsWith(formBounds));
+
+			if (targetScreen == null)
+			{
+				// The window is completely off-screen.
+				// Move it to the primary screen's working area.
+				targetScreen = Screen.PrimaryScreen;
+				il = targetScreen.WorkingArea.Location;
+			}
+
+			// 4. Validate and adjust the window's size to fit the target screen.
+			int newWidth = Math.Min(sz.Width, targetScreen.WorkingArea.Width);
+			int newHeight = Math.Min(sz.Height, targetScreen.WorkingArea.Height);
+
+			sz.Width = Math.Max(minimumSize.Width, newWidth);
+			sz.Height = Math.Max(minimumSize.Height, newHeight);
+			
+			// 5. Apply the fully validated and adjusted settings.
 			form.Size = sz;
 			form.Location = il;
 		}
