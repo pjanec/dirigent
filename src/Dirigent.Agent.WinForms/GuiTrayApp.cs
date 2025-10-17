@@ -16,6 +16,7 @@ namespace Dirigent.Gui.WinForms
 
 		private AppConfig _ac;
 		private frmMain _mainForm;
+		private GuiCore _guiCore; // Add this field to manage GuiCore lifecycle
 		private NotifyIcon _notifyIcon;
 		private NotifyIconHandler _notifyIconHandler;
         //private ProcRunner _agentRunner;
@@ -212,21 +213,46 @@ namespace Dirigent.Gui.WinForms
 					_mainForm.SaveWindowSettings( "MainFormLocation" );
 				}
 
-				_mainForm.Close();
+				// If the form is not already disposed, close it.
+				// This will be true during app shutdown.
+				// It will be false when called from OnMainFormClosed,
+				// preventing a redundant call.
+				if (!_mainForm.IsDisposed)
+				{
+					_mainForm.Close();
+				}
+
 				_mainForm.Dispose();
 				_mainForm = null;
 			}
 
+			// Dispose GuiCore when main form is closed to stop network traffic
+			if( _guiCore != null )
+			{
+				_guiCore.Dispose();
+				_guiCore = null;
+			}
 		}
 
 		void CreateMainForm()
 		{
+			// Create GuiCore only when the main form is actually being created
+			if( _guiCore == null )
+			{
+				_guiCore = new GuiCore(
+					_ac,
+					_machineId,
+					PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+				);
+			}
+
 			_mainForm = new frmMain(
 				_ac,
 				_notifyIconHandler,
-				_machineId,
-				PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths )
+				_guiCore  // Pass the GuiCore instance instead of individual parameters
 			);
+
+			_mainForm.FormClosed += OnMainFormClosed;
 
 			// restore saved location if SHIFT not held
 			if( ( Control.ModifierKeys & Keys.Shift ) == 0 )
@@ -244,6 +270,18 @@ namespace Dirigent.Gui.WinForms
 			//AppMessenger.Instance.Register<AppMessages.OnClose>( (x) =>
 			//{
 			//});
+		}
+
+		private void OnMainFormClosed(object? sender, FormClosedEventArgs e)
+		{
+			// Unsubscribe to prevent issues if the form object is ever reused (though it shouldn't be)
+			if (_mainForm != null)
+			{
+				_mainForm.FormClosed -= OnMainFormClosed;
+			}
+
+			// Now, perform the cleanup
+			DeinitializeMainForm();
 		}
 
 		void ShowMainForm()
