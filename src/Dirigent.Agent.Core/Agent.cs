@@ -168,11 +168,12 @@ namespace Dirigent
 		{
 			var now = DateTime.UtcNow;
 
-			// send client's state
+			// send client's state with machine state included
 			{
 				var clientState = new ClientState();
 				clientState.Ident = _clientIdent;
 				clientState.LastChange = now;
+				clientState.MachineState = GetMachineState(); // Include machine state in client state
 
 				var msg = new Net.ClientStateMessage( now, clientState );
 				_client.Send( msg );
@@ -192,13 +193,7 @@ namespace Dirigent
 				_client.Send( msg );
 			}
 
-			// state of the machine
-			{
-				var machineState = GetMachineState();
-
-				var msg = new Net.MachineStateMessage( _clientIdent.Name, now, machineState );
-				_client.Send( msg );
-			}
+			// REMOVED: separate MachineStateMessage - now included in ClientStateMessage above
 		}
 
 

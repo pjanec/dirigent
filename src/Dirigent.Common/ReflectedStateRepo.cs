@@ -32,7 +32,15 @@ namespace Dirigent
 		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _fileReg.GetAllVfsNodesDef(); }
 		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find((x) => x.Id==Id); }
 		public IEnumerable<MachineDef> GetAllMachinesDef() { return _machineDefs; }
-		public MachineState? GetMachineState( string Id ) { if(string.IsNullOrEmpty(Id)) return null; if( _machineStates.TryGetValue(Id, out var st)) return st; else return null; }
+		public MachineState? GetMachineState( string Id ) 
+		{ 
+			if(string.IsNullOrEmpty(Id)) return null; 
+			if( _clientStates.TryGetValue(Id, out var clientState)) 
+			{
+				return clientState.MachineState; // Get machine state from client state
+			}
+			return null; 
+		}
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 		  => _scriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
 		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _fileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
@@ -82,10 +90,7 @@ namespace Dirigent
 		SynchronousOpProcessor _syncOps;
 		SynchronousIDirig _syncIDirig;
 
-		
-
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
-		private Dictionary<string, MachineState> _machineStates = new(); // id => state
 
 		public ReflectedStateRepo( Net.Client client, string localMachineId, string rootForRelativePaths )
 		{
@@ -220,12 +225,6 @@ namespace Dirigent
 					_machineDefs = m.Machines.ToList();
 					_fileReg.SetMachines( _machineDefs );
 					OnMachinesReceived?.Invoke();
-					break;
-				}
-
-				case Net.MachineStateMessage m:
-				{
-					_machineStates[m.Id] = m.State;
 					break;
 				}
 

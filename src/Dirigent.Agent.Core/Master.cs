@@ -88,8 +88,10 @@ namespace Dirigent
 		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
 		private List<ActionDef> _killAllExtras = new List<ActionDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
-		const float CLIENT_REFRESH_PERIOD = 1.0f;
+		const float CLIENT_STATE_REFRESH_PERIOD = 3.0f; // Client States refresh period
+		const float APP_STATE_REFRESH_PERIOD = 1.0f;    // App States refresh period
 		private Stopwatch _swClientRefresh;
+		private Stopwatch _swAppRefresh; // New timer for app state refreshs
 		private TickableCollection _tickers;
 		private string _sharedConfigFileName = string.Empty;
 		private string _rootForRelativePaths;
@@ -164,6 +166,8 @@ namespace Dirigent
 			_server = new Server( ac.MasterPort );
 			_swClientRefresh = new Stopwatch();
 			_swClientRefresh.Restart();
+			_swAppRefresh = new Stopwatch(); // Initialize new app refresh timer
+			_swAppRefresh.Restart();
 
 			// start a telnet client server
 			_cliProc = new CLIProcessor( this );
@@ -224,12 +228,8 @@ namespace Dirigent
 
 			HandleDisconnectedClients();
 
-			// periodically refresh intrested clients
-			if( _swClientRefresh.Elapsed.TotalSeconds > CLIENT_REFRESH_PERIOD )
-			{
-				RefreshClients();
-				_swClientRefresh.Restart();
-			}
+			// Call RefreshClients on every tick - timing logic moved inside RefreshClients
+			RefreshClients();
 
 			SyncOps.Tick();
 
@@ -520,16 +520,6 @@ namespace Dirigent
 					break;
 				}
 
-				case MachineStateMessage m:
-				{
-					// forward to others (if it was sent from non-master)
-					if( m.Sender != "" )
-					{
-						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
-					}
-					break;
-				}
-				
 				case RunActionMessage m:
 				{
 					// forward to others
@@ -711,25 +701,30 @@ namespace Dirigent
 		/// </summary>
 		void RefreshClients()
 		{
-			// clients
+			// === Block 1: Client States (every 3 seconds) ===
+			if( _swClientRefresh.Elapsed.TotalSeconds > CLIENT_STATE_REFRESH_PERIOD )
 			{
+				// clients
 				foreach( (var id, var state) in _allClientStates.ClientStates )
 				{
 					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
 					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
 				}
+				_swClientRefresh.Restart();
 			}
 
-			// apps
+			// === Block 2: App and Plan States (every 2 seconds) ===
+			if( _swAppRefresh.Elapsed.TotalSeconds > APP_STATE_REFRESH_PERIOD )
 			{
-				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
-				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
-			}
+				// apps
+				var m_apps = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
+				_server.SendToAllSubscribed( m_apps, EMsgRecipCateg.Gui );
 
-			// plans
-			{
-				var m = new Net.PlansStateMessage( _plans.PlanStates );
-				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				// plans (logically grouped with apps for GUI updates)
+				var m_plans = new Net.PlansStateMessage( _plans.PlanStates );
+				_server.SendToAllSubscribed( m_plans, EMsgRecipCateg.Gui );
+				
+				_swAppRefresh.Restart();
 			}
 
 			// we are sending script state on change only, from the async script execution

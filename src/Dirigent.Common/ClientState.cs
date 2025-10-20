@@ -40,6 +40,9 @@ namespace Dirigent
 		//[MessagePack.Key( 5 )]
 		public string? IP; // ip address of the client (determined by master from dirigent's TCP connection)
 
+		//[MessagePack.Key( 6 )] // Add MachineState to ClientState
+		public MachineState? MachineState;
+
 		bool Is( FL value )
 		{
 			return ( _flags & value ) == value;
