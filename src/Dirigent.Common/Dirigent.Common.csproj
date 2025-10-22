@@ -38,6 +38,12 @@
     <None Include="Scripts\DemoScript1.cs" Link="Scripts\DemoScript1.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Scripts\KillAllAppsOnMachine.cs" Link="Scripts\KillAllAppsOnMachine.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Scripts\GetConnectedMachines.cs" Link="Scripts\GetConnectedMachines.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Icons\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
