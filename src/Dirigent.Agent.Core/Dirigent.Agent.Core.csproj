@@ -41,4 +41,10 @@
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Dirigent.CommonTests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

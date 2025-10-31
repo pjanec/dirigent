@@ -62,7 +62,7 @@ namespace Dirigent
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
 
-		public Agent( AppConfig ac, string? machineId=null )
+		public Agent( AppConfig ac, string? machineId=null, Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher>? launcherFactory = null )
 		{
 			_ac = ac;
 
@@ -95,7 +95,7 @@ namespace Dirigent
 
 			//_procInfoReg = new ProcessInfoRegistry();
 
-			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
+			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled, launcherFactory );
 
 			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps );
 

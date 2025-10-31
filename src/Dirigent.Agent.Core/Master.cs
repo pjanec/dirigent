@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dirigent.Net;
 using System.Text.RegularExpressions;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
 
 namespace Dirigent
@@ -73,9 +74,9 @@ namespace Dirigent
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		private string _localIpAddr;
 		private int _port;
-		private Net.Server _server;
+        private IMasterServer _server;
 		private CLIProcessor _cliProc;
-		private TelnetServer _telnetServer;
+        private TelnetServer? _telnetServer;
 		private AllClientStateRegistry _allClientStates;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
@@ -113,79 +114,107 @@ namespace Dirigent
 
 		#endregion
 
-		public Master( AppConfig ac, string rootForRelativePaths )
-		{
-			log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
+        public Master( AppConfig ac, string rootForRelativePaths )
+        {
+            log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
+            InitializeCommon( ac, rootForRelativePaths );
 
-			_debug = Tools.BoolFromString( ac.Debug );
+            // Production server
+            _server = new Server( ac.MasterPort );
 
-			_localIpAddr = ac.LocalIP;
-			_port = ac.MasterPort;
-
-			_rootForRelativePaths = rootForRelativePaths;
-
-			ScriptFactory = new ScriptFactory( rootForRelativePaths );
-			_syncOps = new SynchronousOpProcessor();
-			_syncIDirig = new SynchronousIDirig( this, _syncOps );
-
-			_allAppStates = new AllAppsStateRegistry();
-			_allClientStates = new AllClientStateRegistry();
-
-			_allAppDefs = new AllAppsDefRegistry();
-			_allAppDefs.Added += SendAppDefAddedOrUpdated;
-			_allAppDefs.Updated += SendAppDefAddedOrUpdated;
-
-			_defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
-
-			_plans = new PlanRegistry( this );
-			_plans.PlanDefUpdated += SendPlanDefUpdated;
-
-			_reflScripts = new ReflectedScriptRegistry( this );
-			_localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths );
-			_singlScripts = new SingletonScriptRegistry( this, _localScripts );
-
-			_machineId = ac.MachineId; // because we run master together with an agent, we should always know the machine id
-			if (string.IsNullOrEmpty( _machineId )) throw new Exception($"MachineId not specified for Master!");
-
-			_files = new FileRegistry(
-				this,
-				_machineId, // empty if we run master standalone on an unidentified machine
-				_rootForRelativePaths,
-				(string machineId) =>
-				{
-					if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
-					{
-						return state.IP;
-					}
-					return null;
-				}
-			);
- 
-			_server = new Server( ac.MasterPort );
-			_swClientRefresh = new Stopwatch();
-			_swClientRefresh.Restart();
-
-			// start a telnet client server
-			_cliProc = new CLIProcessor( this );
-
-			// Set the processing quantum to 30% of the master's tick period
-			_cliProc.MaxProcessingTimePerTickMs = (int)(ac.MasterTickPeriod * 0.30);
-
+            // Telnet/CLI
             log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);
-			_telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
+            _telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
 
-			var sharedConfig = LoadSharedConfig( ac.SharedCfgFileName );
-			InitFromConfig( sharedConfig );
+            // Load shared config from file
+            var sharedConfig = LoadSharedConfig( ac.SharedCfgFileName );
+            InitFromConfig( sharedConfig );
 
-			_tickers = new TickableCollection();
+            // Web server
+            if( ac.HttpPort > 0 )
+            {
+                _webServerTask = Web.WebServerRunner.RunWebServerAsync( this, $"http://*:{ac.HttpPort}", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
+            }
+        }
 
-			_webServerCTS = new CancellationTokenSource();
-			if( ac.HttpPort > 0 )
-			{
-				_webServerTask = Web.WebServerRunner.RunWebServerAsync( this, $"http://*:{ac.HttpPort}", Web.WebServerRunner.HtmlRootPath, _webServerCTS.Token );
-			}
+        // internal constructor for testing
+        internal Master( SharedConfig sharedConfig, AppConfig ac, string rootForRelativePaths, IMasterServer mockServer )
+        {
+            log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
+            InitializeCommon( ac, rootForRelativePaths );
 
-		}
+            // Use injected mock server
+            _server = mockServer;
+
+            // Skip TelnetServer and WebServer in tests
+            log.Info( "Master skipping TelnetServer and WebServer in test constructor." );
+
+            // Initialize from provided shared config
+            InitFromConfig( sharedConfig );
+        }
+
+        // Shared initialization between production and test constructors
+        [MemberNotNull(
+            nameof(_localIpAddr), nameof(_allClientStates), nameof(_allAppStates), nameof(_allAppDefs), nameof(_plans),
+            nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_defaultAppDefs),
+            nameof(_swClientRefresh), nameof(_tickers), nameof(_rootForRelativePaths), nameof(_webServerCTS),
+            nameof(ScriptFactory), nameof(_syncOps), nameof(_syncIDirig), nameof(_machineId), nameof(_cliProc)
+        )]
+        void InitializeCommon( AppConfig ac, string rootForRelativePaths )
+        {
+            _debug = Tools.BoolFromString( ac.Debug );
+
+            _localIpAddr = ac.LocalIP;
+            _port = ac.MasterPort;
+
+            _rootForRelativePaths = rootForRelativePaths;
+
+            ScriptFactory = new ScriptFactory( rootForRelativePaths );
+            _syncOps = new SynchronousOpProcessor();
+            _syncIDirig = new SynchronousIDirig( this, _syncOps );
+
+            _allAppStates = new AllAppsStateRegistry();
+            _allClientStates = new AllClientStateRegistry();
+
+            _allAppDefs = new AllAppsDefRegistry();
+            _allAppDefs.Added += SendAppDefAddedOrUpdated;
+            _allAppDefs.Updated += SendAppDefAddedOrUpdated;
+
+            _defaultAppDefs = new Dictionary<AppIdTuple, AppDef>();
+
+            _plans = new PlanRegistry( this );
+            _plans.PlanDefUpdated += SendPlanDefUpdated;
+
+            _reflScripts = new ReflectedScriptRegistry( this );
+            _localScripts = new LocalScriptRegistry( this, this.ScriptFactory, this.SyncOps, _rootForRelativePaths );
+            _singlScripts = new SingletonScriptRegistry( this, _localScripts );
+
+            _machineId = ac.MachineId;
+            if( string.IsNullOrEmpty( _machineId ) ) throw new Exception( $"MachineId not specified for Master!" );
+
+            _files = new FileRegistry(
+                this,
+                _machineId,
+                _rootForRelativePaths,
+                (string machineId) =>
+                {
+                    if( _allClientStates.ClientStates.TryGetValue( machineId, out var state ) )
+                    {
+                        return state.IP;
+                    }
+                    return null;
+                }
+            );
+
+            _swClientRefresh = new Stopwatch();
+            _swClientRefresh.Restart();
+
+            _cliProc = new CLIProcessor( this );
+            _cliProc.MaxProcessingTimePerTickMs = (int)(ac.MasterTickPeriod * 0.30);
+
+            _tickers = new TickableCollection();
+            _webServerCTS = new CancellationTokenSource();
+        }
 
 		protected override void Dispose(bool disposing)
 		{
@@ -544,7 +573,7 @@ namespace Dirigent
 
 		}
 
-		void ProcessIncomingMessageAndHandleExceptions( Message msg )
+        internal void ProcessIncomingMessageAndHandleExceptions( Message msg )
 		{
 			if( _debug )
 			{
@@ -574,11 +603,11 @@ namespace Dirigent
 		/// </summary>
 		private class CLIClient : ICLIClient
 		{
-			Server _server;
+			IMasterServer _server;
 			string _requestor;
 			public string Name => "<master>";
 
-			public CLIClient( Server server, string requestor )
+			public CLIClient( IMasterServer server, string requestor )
 			{
 				_server = server;
 				_requestor = requestor;

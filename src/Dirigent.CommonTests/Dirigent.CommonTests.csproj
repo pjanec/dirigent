@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
   </ItemGroup>
 
 </Project>
