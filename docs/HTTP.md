@@ -18,6 +18,10 @@ returns a list of the state of all apps as JSON `[{'id':'m1.a', 'status':{'code'
 
 returns a list of the state of given app as JSON `{'id':'m1.a', 'status':{'code':'Running', 'flags':'SIP'}}`
 
+### GET /api/clients
+
+returns a list of all machines  `[{"id": "m1","state": {"connected": true,"ip": "127.0.0.1","lastChange": "2026-05-06T13:30:15.5558945Z"}}, ...]`
+
 ### GET /api/plandefs
 
 returns a list of all plandefs as JSON `[{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]`

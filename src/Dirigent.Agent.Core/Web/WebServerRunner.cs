@@ -77,7 +77,8 @@ namespace Dirigent.Web
                     .WithController( () => new AppApiController( master ) )
                     .WithController( () => new ScriptApiController( master ) )
                     .WithController( () => new CmdApiController( master ) )
-                  )
+                    .WithController( () => new ClientApiController( master ) )
+                )
 
                 .WithModule(new WebSocketDirigentModule("/websock"))
 
