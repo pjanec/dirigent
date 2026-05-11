@@ -25,7 +25,7 @@ namespace Dirigent.Gui.WinForms
 		/// <summary>
 		/// Executes a delegate and show exception window on exception
 		/// </summary>
-		public static void GuardedOp( MethodInvoker mi )
+		public static void GuardedOp( System.Windows.Forms.MethodInvoker mi )
 		{
 			try
 			{
