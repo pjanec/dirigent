@@ -10,12 +10,12 @@ keep it trustworthy, and exactly what comes next.
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 14 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 26 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download test at tier 1 | done, 3 tests |
-| CLI/REST VFS commands | **next** |
-| PowerShell tier-2 driver | not started |
+| Files over the CLI/REST surface | done, 6 tests |
+| PowerShell tier-2 driver | **next** |
 | Breadth at tier 1 (plans, detectors, restarts, env vars, reconnect) | not started |
 | Tier 3 on the two VMs | not started |
 
@@ -94,6 +94,8 @@ render for real processes and for VMs.
 - `Scenarios/` — `ScenarioSpec` is plain data; `Scenario` is the fluent builder with presets and
   app mixins; `SharedConfigRenderer` renders XML with `XElement` (so paths and masks escape);
   `WorldSeeder` creates the folders and back-dated files; `RenderContext` holds the run's paths.
+- `CliSession` — a text-command session with the master over a real socket, for tests that drive
+  the remote-control surface rather than the in-process client.
 - `Isolation` — free ports, temp root. Machine ids are used verbatim.
 - `Diagnostics` — process-global log4net capture, cleared per test via `Diagnostics.ClearLog()`.
 
@@ -137,34 +139,44 @@ download. Two real bugs surfaced on the way, both in code that had never run in 
 - the global (machine-less) files were assigned to the first machine in the list even when no
   slave was started for it.
 
-## Next: CLI and REST commands, and the tier-2 driver
+## Done: the remote-control surface for files
+
+The plan here was three new CLI commands. It turned out none was needed. `StartScript` plus
+`GetScriptState` already carry everything; what was missing was the ability to *name* a node from
+outside, since only a GUI can hand a script a resolved node tree. So each VFS script now takes a
+`VfsNodeSelector` - `{Node:{Id:"logs.all"}}`, the same id/machine/app triplet a `<FileRef>` uses -
+and resolves it itself. `BuiltIns/ListVfsNodes.cs` is new, because nothing listed the
+declarations; `DownloadZipped.TResult`, which was an empty class, now carries the archive paths,
+the machines that took part and the per-machine errors.
+
+Script arguments are always JSON deserialisable into the script's argument class - no script
+parses a plain string. Documented in `docs/Scripts.md`, exercised by `CliSurfaceTests`.
+
+One product bug fell out of it: the CLI parsed the request id greedily up to the **last** `]` in
+the line, so any request whose arguments contained a JSON array had its tail chopped off and
+parsed as another command. `JsonArgumentsMayContainArrays` fails on the old regex and passes on
+the new one.
+
+`CliSession` (in the harness) wraps `CommandLineClient` for tests, and is the shape the PowerShell
+verbs should take: send a request, read the answer, throw on `ERROR:`.
+
+## Next: the tier-2 driver
 
 Tier 2 is needed periodically and must be runnable by hand, not only by a test runner.
 
-1. **Three commands**, registered in `MyCommandRepo` with implementations alongside
-   `DirigentControlCommands.cs`. Additive only — new names, nothing existing changed. REST needs
-   no separate work: `CmdApiController` exposes the whole repository through `POST /cli`, so a
-   new command is reachable over HTTP the moment it is registered. Dedicated routes next to
-   `ScriptApiController` stay optional:
-   - `GetAllVfsNodes` → json
-   - `ResolveVfsNode <idOrGuid>` → json, so "is the file really there" is answerable remotely
-   - `DownloadVfsNode <scriptGuid> <idOrGuid> [perMachine]` → `ACK`, then poll
-     `GetScriptState <scriptGuid>`, exactly like `StartScript` already works.
-   - Supporting change: `DownloadZipped.TResult` is empty and should carry the archive path and
-     the per-machine outcome. `ScriptRunner` puts a finished script's return value into
-     `ScriptState.Data`, so that is what `GetScriptState` hands back - no `SetStatus( data: )`,
-     whose value the finish overwrites anyway. Today the archive path exists only inside a
-     message box, which is also why a crash-triggered log collection cannot use it.
-2. **`Dirigent.TestBed.Gen`** — a console tool rendering a named scenario to a folder
+1. **`Dirigent.TestBed.Gen`** - a console tool rendering a named scenario to a folder
    (`--scenario LoggingApps --out <dir>`), so PowerShell consumes the same scenario model instead
    of owning a second copy. Tier 3 uses it too, before robocopy.
-3. **PowerShell module + Pester**: `Start-DirigentWorld`, `Invoke-DirigentCli`,
+2. **PowerShell module + Pester**: `Start-DirigentWorld`, `Invoke-DirigentCli`,
    `Wait-DirigentCondition`, `Stop-DirigentWorld`, and `Invoke-DirigentTests.ps1` with
    `-KeepAlive -WithGui` so it doubles as a curated world to poke at. This replaces the
-   `run_m1_gui_master.bat` / `run_m2_con.bat` workflow.
+   `run_m1_gui_master.bat` / `run_m2_con.bat` workflow. `Invoke-DirigentCli` mirrors `CliSession`.
 
 Keep tier 2 small and deliberate: the hosting model and startup, agent kill-and-recover against
 the status file, both remote-control surfaces answering, and one end-to-end download.
+
+REST needs no work of its own - `CmdApiController` exposes the whole command repository through
+`POST /cli`, so anything reachable from the CLI is reachable over HTTP.
 
 ## Then: breadth at tier 1
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -20,6 +20,13 @@ public class ResolveVfsPath : Script
 	{
 		//[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
+
+		/// <summary>
+		/// The node to resolve, named by its config id. Used when VfsNode is not given, which is the
+		/// case for every caller but a GUI.
+		/// </summary>
+		//[MessagePack.Key( 4 )]
+		public VfsNodeSelector? Node;
 
 		//[MessagePack.Key( 2 )]
 		public bool ForceUNC;
@@ -48,8 +55,9 @@ public class ResolveVfsPath : Script
 		var args = Tools.Deserialize<TArgs>( Args );
 		if( args is null ) throw new NullReferenceException("Args == null");
 
-		var vfsNode = args.VfsNode;
-		if( vfsNode is null ) throw new NullReferenceException("vfsNode == null");
+		// a resolved tree if the caller had one, otherwise a reference for us to look up
+		VfsNodeDef? vfsNode = args.VfsNode ?? args.Node?.ToFileRef();
+		if( vfsNode is null ) throw new ArgumentException( "Neither VfsNode nor Node given." );
 
 
 		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, args.ForceUNC, args.IncludeContent ) };

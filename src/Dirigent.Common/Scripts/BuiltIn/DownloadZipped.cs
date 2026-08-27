@@ -25,11 +25,36 @@ namespace Dirigent.Scripts.BuiltIn
 		//[MessagePack.MessagePackObject]
 		public class TArgs : ScriptActionArgs
 		{
+			/// <summary>
+			/// What to download, named by its config id. Used when VfsNode is not given, which is the
+			/// case for every caller but a GUI.
+			/// </summary>
+			public VfsNodeSelector? Node;
+
+			/// <summary>
+			/// One archive per machine instead of a single merged one. The word "perMachine" in the
+			/// free-form Args does the same, which is how an action in the shared config asks for it.
+			/// </summary>
+			public bool PerMachine;
 		};
 
 		//[MessagePack.MessagePackObject]
 		public class TResult
 		{
+			/// <summary>Full paths of the archives produced, on the machine they were downloaded to.</summary>
+			public List<string> Files = new();
+
+			/// <summary>The machine the files were downloaded to.</summary>
+			public string DownloadMachine = "";
+
+			/// <summary>The machines that took part.</summary>
+			public List<string> Machines = new();
+
+			/// <summary>
+			/// What went wrong, one entry per machine that had a problem. Empty on a clean download.
+			/// A download does not fail as a whole because one machine or one file did.
+			/// </summary>
+			public List<string> Errors = new();
 		}
 
 		class SlaveTask
@@ -45,22 +70,37 @@ namespace Dirigent.Scripts.BuiltIn
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args is null");
-			if( args.VfsNode is null ) throw new NullReferenceException("Args.VfsNode is null");
+
+			var result = new TResult();
 
 			try
 			{
-				// if a single file, create artificial container containing this single file
-				var title = args.VfsNode.Title;
-				var titleSource = args.VfsNode;
-				VfsNodeDef container;
-				if( args.VfsNode.IsContainer )
+				// A GUI resolves the node before starting us and passes the resolved tree. Anyone else
+				// names it by id and we resolve it here - resolution needs the machine owning the node,
+				// which a CLI or REST caller has no way of reaching.
+				var vfsNode = args.VfsNode;
+				if( vfsNode is null )
 				{
-					container = args.VfsNode;
-					titleSource = args.VfsNode;
+					if( args.Node is null )
+						throw new ArgumentException( "Neither VfsNode nor Node given - nothing to download." );
+
+					vfsNode = await Dirig.ResolveAsync( args.Node.ToFileRef(), false, true );
+					if( vfsNode is null )
+						throw new Exception( $"No VFS node matching {args.Node}." );
+				}
+
+				// if a single file, create artificial container containing this single file
+				var title = vfsNode.Title;
+				var titleSource = vfsNode;
+				VfsNodeDef container;
+				if( vfsNode.IsContainer )
+				{
+					container = vfsNode;
+					titleSource = vfsNode;
 				}
 				else
 				{
-					container = new VFolderDef() { Title = title, Children = new List<VfsNodeDef>() { args.VfsNode } };
+					container = new VFolderDef() { Title = title, Children = new List<VfsNodeDef>() { vfsNode } };
 				}
 				if (string.IsNullOrEmpty( title )) title = Path.GetFileName(titleSource.Path??"");
 				if (string.IsNullOrEmpty( title )) title = titleSource.Id;
@@ -84,12 +124,14 @@ namespace Dirigent.Scripts.BuiltIn
 						PresentationType = Net.UserNotificationMessage.EPresentationType.MessageBox,
 						Message = $"Nothing to download - none of the machines holding the files of '{title}' is online.",
 					});
-					return Tools.Serialize( new TResult {} );
+
+					result.Errors.Add( $"None of the machines holding the files of '{title}' is online." );
+					return Tools.Serialize( result );
 				}
 
 				// by default all the files end up in one single archive;
 				// "perMachine" in the action arguments keeps one archive per machine instead
-				bool perMachine = WantsPerMachine( args.Args );
+				bool perMachine = args.PerMachine || WantsPerMachine( args.Args );
 
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
@@ -210,15 +252,21 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					hadErrors = true;
 					errorMsg += $"{mach}:\n    {message}\n\n";
+					result.Errors.Add( $"{mach}: {message}" );
 				}
 				foreach( var st in slaveTasks )
 				{
+					result.Machines.Add( st.MachineName );
+
 					if( st.Result!=null && st.Result.Exceptions.Count > 0 )
 					{
 						hadErrors = true;
 						errorMsg += $"{st.MachineName}:";
 						foreach (var e in st.Result.Exceptions) errorMsg += $"\n    {e.Message}";
 						errorMsg += "\n\n";
+
+						foreach( var e in st.Result.Exceptions )
+							result.Errors.Add( $"{st.MachineName}: {e.Message}" );
 					}
 				}
 
@@ -260,8 +308,16 @@ namespace Dirigent.Scripts.BuiltIn
 						errorMsg += $"{requestorMachine} (merging):";
 						foreach (var e in mergeResult.Exceptions) errorMsg += $"\n    {e.Message}";
 						errorMsg += "\n\n";
+
+						foreach( var e in mergeResult.Exceptions )
+							result.Errors.Add( $"{requestorMachine} (merging): {e.Message}" );
 					}
 				}
+
+				// what the caller gets back; a message box is no use to a script or a CLI
+				result.DownloadMachine = requestorMachine;
+				result.Files = ( from x in downloadedFiles
+								 select Path.IsPathRooted( x ) ? x : Path.Combine( downloadsFolder, x ) ).ToList();
 
 				// tell the user it's all done
 				var clickAction = new ToolActionDef { Name = "WinExplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
@@ -291,11 +347,14 @@ namespace Dirigent.Scripts.BuiltIn
 					PresentationType = Net.UserNotificationMessage.EPresentationType.BalloonTip,
 					Message = $"File download failed!\n\n"+e.Message,
 				});
+
+				// The script still finishes: one machine or one missing file must not turn into a
+				// failed script, and a GUI already has the balloon. A caller reading the result is
+				// how the failure gets noticed anywhere else.
+				result.Errors.Add( e.Message );
 			}
 
-			// all done!
-			var result = new TResult {};
-			return Tools.Serialize(result);
+			return Tools.Serialize( result );
 		}
 
 		/// <summary>

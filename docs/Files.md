@@ -38,6 +38,7 @@ Contents:
   * [Actions on nodes](#actions-on-nodes)
 * [Built-in actions](#built-in-actions)
 * [Where files appear in the UI](#where-files-appear-in-the-ui)
+* [Files without a GUI](#files-without-a-gui)
 * [Examples](#examples)
 * [Limitations and known issues](#limitations-and-known-issues)
 * [See also](#see-also)
@@ -446,6 +447,9 @@ Notable properties:
 * Each machine compresses its own part, so what travels over the network is already compressed.
   The merging step then repacks the parts on the requestor's machine, which costs some CPU there
   but keeps the transfer small.
+* Callers with no resolved node tree - the CLI, REST, another script - name the node with a
+  `Node` selector in the arguments instead, and the script resolves it. See
+  [Files without a GUI](#files-without-a-gui).
 * `Args="perMachine"` on the action gives one archive per machine instead - named
   `<Title>_<yyMMdd_HHmm>_<machine>.zip`, delivered without any merging step:
 
@@ -480,6 +484,19 @@ machines as if it were one folder.
 Requires a `DoubleCommander` tool defined in `LocalConfig.xml`, pointing to a build that supports
 the `--startupscript` option (see <https://github.com/pjanec/doublecmd>).
 
+### `BuiltIns/ListVfsNodes.cs` - list what is declared
+
+Not an action on a node but a query: it returns the declared nodes, optionally filtered, which is
+how a caller with no GUI finds out what there is to ask for. Declarations only - nothing is looked
+up in any file system.
+
+```json
+{ "Filter": { "Id": "log", "MachineId": "m1", "AppId": "*" } }
+```
+
+Every part of the filter is optional; leaving out `Filter` lists everything. The result is one
+record per node - `Id`, `Guid`, `Type`, `MachineId`, `AppId`, `Title` and the *declared* `Path`.
+
 ## Where files appear in the UI
 
 Currently the VFS is exposed by the **WinForms GUI** only:
@@ -503,8 +520,59 @@ the number of files of a container, or the error - and rewrites the *Path* cell 
 path(s). Resolution touches the remote file systems, so it happens only when asked for, never on
 the periodic refresh.
 
-The ImGui GUI does not render VFS nodes, and there is no CLI or HTTP verb for files; a
-`StartScript` invocation of a script that builds its own node set is the only non-GUI route.
+The ImGui GUI does not render VFS nodes. Everything else reaches files through the built-in
+scripts - see [Files without a GUI](#files-without-a-gui).
+
+## Files without a GUI
+
+There is no `DownloadFile` command, and none is needed: the built-in scripts are the interface,
+and `StartScript` plus `GetScriptState` already carry them. This works over the CLI, over
+`POST /cli`, and from another script.
+
+The one thing a script cannot be handed from outside is a **resolved** node tree - resolving is a
+remote operation. So each VFS script accepts a *selector* instead, naming the node the way a
+`<FileRef>` does, and resolves it itself:
+
+```json
+{ "Node": { "Id": "log", "MachineId": "m1", "AppId": "camera" } }
+```
+
+`MachineId` and `AppId` are filters and default to `*`, so `{"Node":{"Id":"logs.all"}}` means
+"the node called `logs.all`, wherever it is". Only top-level nodes can be named - see
+[Where nodes can be declared](#where-nodes-can-be-declared).
+
+A whole log collection from the command line, then:
+
+```
+# what is there to take?
+StartScript 11111111-1111-1111-1111-111111111111 BuiltIns/ListVfsNodes.cs
+GetScriptState 11111111-1111-1111-1111-111111111111
+
+# is the file really there, right now?
+StartScript 22222222-2222-2222-2222-222222222222 BuiltIns/ResolveVfsPath.cs '{"Node":{"Id":"log","MachineId":"m1","AppId":"camera"},"IncludeContent":true}'
+GetScriptState 22222222-2222-2222-2222-222222222222
+
+# collect the lot
+StartScript 33333333-3333-3333-3333-333333333333 BuiltIns/DownloadZipped.cs '{"Node":{"Id":"logs.all"}}'
+GetScriptState 33333333-3333-3333-3333-333333333333
+```
+
+Points worth knowing:
+
+* **Arguments are always JSON** deserialisable into the script's argument type - never a bare
+  string to be parsed. Newtonsoft's relaxed syntax is accepted, so `{Node:{Id:'logs.all'}}` works
+  as well. Arguments that are not valid JSON for that type fail the script, which
+  `GetScriptState` then reports as `Failed` - they are never quietly treated as defaults.
+* **Wrap the JSON in single quotes** on a command line, so its double quotes survive the command
+  tokenizer.
+* **The result comes back in `ScriptState.Data`**, as the JSON of the script's result type.
+  `DownloadZipped` returns the full path of each archive produced, the machine it was downloaded
+  to, the machines that took part, and one error entry per machine that had trouble. A download
+  that partly failed still finishes - the errors are in the result, not in the script's status.
+* **The guid is yours to invent**, and it names the script instance for `GetScriptState` and
+  `KillScript` afterwards. It shares the namespace with the `<Script>` definitions in the shared
+  config, so do not reuse one of those unless you mean to replace it.
+* `PerMachine: true` in the arguments is the same request as `Args="perMachine"` on an action.
 
 ## Examples
 
@@ -616,9 +684,10 @@ there. `Args="perMachine"` skips the merging altogether.
 to. If the requesting GUI runs on a machine with no agent, the download - and the merging -
 falls back to the machine running the master.
 
-**No non-GUI access.** Files are reachable from the WinForms GUI only. The ImGui GUI does not
-render VFS nodes, and there is no CLI or HTTP verb for files; a `StartScript` invocation of a
-script that builds its own node set is the only non-GUI route.
+**Files have no commands of their own.** Outside the WinForms GUI, files are reached by running
+the built-in scripts through `StartScript` and reading `GetScriptState` - see
+[Files without a GUI](#files-without-a-gui). There is no `GetVfsNodes` or `DownloadFile`
+verb, and the ImGui GUI does not render VFS nodes at all.
 
 **Nodes nested in a container are not referenceable.** Only the nodes declared directly under
 `<Shared>`, `<Machine>`, `<App>` or `<AppTemplate>` can be found by a `<FileRef>`. See

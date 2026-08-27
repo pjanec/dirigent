@@ -122,38 +122,62 @@ namespace Dirigent.TestBed
 		}
 
 		/// <summary>
-		/// Downloads a VFS node the way a click on a download action would: resolve the node, then
-		/// let the master's DownloadZipped script collect the files from every machine holding them
-		/// into the download folder of the machine this operator sits on.
+		/// Runs a script and returns its result - the same road the CLI takes with StartScript plus
+		/// GetScriptState, minus the polling.
+		/// </summary>
+		/// <param name="hostId">empty = the master, which is where a GUI runs its scripts</param>
+		public async Task<TResult?> RunScriptAsync<TArgs, TResult>(
+				string scriptName, TArgs args, string hostId = "", TimeSpan? timeout = null )
+		{
+			// starting the script touches the script registry, so it belongs in the tick; the waiting
+			// does not, and its completion has to be handed back to the pool - see OffPump
+			var task = await InTick( () =>
+				_states.ScriptReg.RunScriptAsync<TArgs, TResult>(
+					hostId, scriptName, null, args, $"{scriptName} from a test", out var _ ) );
+
+			var completion = OffPump( task );
+			var finished = await Task.WhenAny( completion, Task.Delay( timeout ?? TimeSpan.FromSeconds( 60 ) ) );
+			if( finished != completion )
+				throw new TimeoutException( $"{scriptName} did not finish within the timeout" );
+
+			return await completion;  // so a script failure surfaces here
+		}
+
+		/// <summary>
+		/// Downloads a VFS node the way a click on a download action would: resolve the node here,
+		/// then let the master's DownloadZipped script collect the files from every machine holding
+		/// them into the download folder of the machine this operator sits on.
 		/// </summary>
 		/// <param name="perMachine">one archive per machine instead of a single merged one</param>
-		/// <returns>the resolved node the download ran for</returns>
-		public async Task<VfsNodeDef> DownloadAsync( VfsNodeDef node, bool perMachine = false, TimeSpan? timeout = null )
+		public async Task<Scripts.BuiltIn.DownloadZipped.TResult> DownloadAsync(
+				VfsNodeDef node, bool perMachine = false, TimeSpan? timeout = null )
 		{
 			var resolved = await ResolveAsync( node, forceUNC: false, includeContent: true );
 			if( resolved is null )
 				throw new Exception( $"nothing to download - '{node.Id}' resolved to nothing" );
 
-			var args = new ScriptActionArgs()
-			{
-				VfsNode = resolved,
-				Args = perMachine ? "perMachine" : null,
-			};
+			return await RunDownloadAsync(
+				new Scripts.BuiltIn.DownloadZipped.TArgs() { VfsNode = resolved, PerMachine = perMachine },
+				timeout );
+		}
 
-			// an empty host id means the master hosts the script, which is where a GUI runs it
-			var task = await InTick( () =>
-			{
-				return _states.ScriptReg.RunScriptAsync<ScriptActionArgs, Scripts.BuiltIn.DownloadZipped.TResult>(
-					"", Scripts.BuiltIn.DownloadZipped._Name, null, args, $"Download {resolved.Title}", out var _ );
-			} );
+		/// <summary>
+		/// Downloads a VFS node named by its config id - what a CLI or REST caller does, having no
+		/// resolved tree to pass. The script resolves it itself.
+		/// </summary>
+		public Task<Scripts.BuiltIn.DownloadZipped.TResult> DownloadAsync(
+				Scripts.BuiltIn.VfsNodeSelector node, bool perMachine = false, TimeSpan? timeout = null )
+			=> RunDownloadAsync(
+				new Scripts.BuiltIn.DownloadZipped.TArgs() { Node = node, PerMachine = perMachine },
+				timeout );
 
-			var completion = OffPump( task );
-			var finished = await Task.WhenAny( completion, Task.Delay( timeout ?? TimeSpan.FromSeconds( 60 ) ) );
-			if( finished != completion )
-				throw new TimeoutException( $"the download of '{node.Id}' did not finish in time" );
+		async Task<Scripts.BuiltIn.DownloadZipped.TResult> RunDownloadAsync(
+				Scripts.BuiltIn.DownloadZipped.TArgs args, TimeSpan? timeout )
+		{
+			var result = await RunScriptAsync<Scripts.BuiltIn.DownloadZipped.TArgs, Scripts.BuiltIn.DownloadZipped.TResult>(
+				Scripts.BuiltIn.DownloadZipped._Name, args, timeout: timeout );
 
-			await completion;  // so a script failure surfaces here
-			return resolved;
+			return result ?? throw new Exception( "the download returned no result at all" );
 		}
 
 		// ---- commands ---------------------------------------------------------------

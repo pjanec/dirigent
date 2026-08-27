@@ -59,6 +59,9 @@ namespace Dirigent.TestBed
 		public string DownloadFolder { get; }
 
 		public int MasterPort { get; }
+
+		/// <summary>The master's text-command port, for tests driving the real CLI surface.</summary>
+		public int CliPort { get; }
 		public Operator Operator { get; }
 
 		/// <summary>The machine the operator is seated on, and hence whose download folder is used.</summary>
@@ -118,15 +121,15 @@ namespace Dirigent.TestBed
 			}
 
 			MasterPort = Isolation.FreeTcpPort();
-			var cliPort = Isolation.FreeTcpPort();
+			CliPort = Isolation.FreeTcpPort();
 
-			var masterConfig = MakeAppConfig( _machineIds.Values.First(), MasterPort, cliPort );
+			var masterConfig = MakeAppConfig( _machineIds.Values.First(), MasterPort, CliPort );
 			masterConfig.IsMaster = "1";
 			_master = new Master( masterConfig, TempRoot );
 
 			foreach( var machineId in _machineIds.Values )
 			{
-				var agentConfig = MakeAppConfig( machineId, MasterPort, cliPort );
+				var agentConfig = MakeAppConfig( machineId, MasterPort, CliPort );
 				_agents.Add( new Agent( agentConfig, machineId ) );
 			}
 
