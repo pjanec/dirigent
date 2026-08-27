@@ -39,6 +39,9 @@
 
         	    <!-- real folder in the filesystem using glob-style globbing; empty mask means "**"-->
         	    <Folder Id="fold1" Path="D:\TEMP" Mask="**/logs/**/*.{log,txt}" />
+        	    <!-- limits keeping a growing log folder from producing an unbounded download -->
+        	    <Folder Id="fold1recent" Title="recent logs only" Path="D:\TEMP" Mask="**/*.{log,txt}"
+        	            MaxSeconds="172800" MaxFiles="200" MaxTotalBytes="52428800" />
 
         	    <!-- virtual folder is just like a sub-package containing real files, real folders, or virtual subfolders -->
         	    <VFolder Id="vfold1">
@@ -46,7 +49,7 @@
             	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
             	    <Folder Id="fold2" Path="D:\TEMP" />
             	    <VFolder Id="vsubfold2">
-            	        <!-- resolves to the tree of files/filerefs/folders/vfolders provided by given script -->
+            	        <!-- NOT IMPLEMENTED YET (silently ignored): would resolve to the tree of files/filerefs/folders/vfolders provided by given script -->
             	        <ScriptedContent Script="PackageScripts/Test1" Args=""/>
 
                     	<File Id="inPackFile" Path="\\server\TEMP\file.txt"/>
@@ -370,6 +373,9 @@
 
 	    <!-- real folder in the filesystem using glob-style globbing; empty mask means "**"-->
 	    <Folder Id="fold1" Path="D:\TEMP" Mask="**/logs/**/*.{log,txt}" />
+	    <!-- limits keeping a growing log folder from producing an unbounded download -->
+	    <Folder Id="fold1recent" Title="recent logs only" Path="D:\TEMP" Mask="**/*.{log,txt}"
+	            MaxSeconds="172800" MaxFiles="200" MaxTotalBytes="52428800" />
 
 	    <!-- virtual folder is just like a sub-package containing real files, real folders, or virtual subfolders -->
 	    <VFolder Id="vfold1">
@@ -377,7 +383,7 @@
     	    <FileRef AppIdTuple = "m1.appWithFile" Id="xxx"/>
     	    <Folder Id="fold2" Path="D:\TEMP" />
     	    <VFolder Id="vsubfold2">
-    	        <!-- resolves to the tree of files/filerefs/folders/vfolders provided by given script -->
+    	        <!-- NOT IMPLEMENTED YET (silently ignored): would resolve to the tree of files/filerefs/folders/vfolders provided by given script -->
     	        <ScriptedContent Script="PackageScripts/Test1" Args=""/>
 
             	<File Id="inPackFile" Path="\\server\TEMP\file.txt"/>

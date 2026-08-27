@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,6 +83,9 @@ namespace Dirigent.Scripts.BuiltIn
 				try
 				{
 					// upload the zip file to the destination
+					// (the destination may be a staging folder created by whoever gets there first)
+					Directory.CreateDirectory( _args.DestinationFolder! );
+
 					var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
 					var destFileFullPath = Path.Combine( _args.DestinationFolder!, destFileName );
 					File.Copy( zipFileFullPath, destFileFullPath, true );
@@ -121,7 +125,7 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					try
 					{
-						var newDestFolder = Path.Combine( destFolder, node.Title );
+						var newDestFolder = Path.Combine( destFolder, GetFolderName( node ) );
 						Directory.CreateDirectory( newDestFolder );
 						CopyLocalFiles( node, newDestFolder, exceptions );
 					}
@@ -139,22 +143,19 @@ namespace Dirigent.Scripts.BuiltIn
 					{
 						try
 						{
-							var destFile = Path.Combine( destFolder, Path.GetFileName(node.Path!) );
-							
-							if( File.Exists( destFile ) )
+							// files belonging to an app go to a subfolder named after the app, so that
+							// the same-named log files of multiple apps do not clash within the archive
+							var fileDestFolder = destFolder;
+							if( !string.IsNullOrEmpty( node.AppId ) )
 							{
-								destFile = Path.Combine(
-									destFolder,
-									Path.GetFileNameWithoutExtension( node.Path! )
-										+ "_"
-										+ node.MachineId ?? ""
-										+ "_"
-										+ node.AppId ?? ""
-										+ "_"
-										+ node.Guid.ToString().Substring( 0, 8 )
-										+ Path.GetExtension( node.Path! )
-									);
+								fileDestFolder = Path.Combine( destFolder, SanitizeName( node.AppId ) );
+								Directory.CreateDirectory( fileDestFolder );
 							}
+
+							var destFile = MakeUniqueFileName(
+								Path.Combine( fileDestFolder, Path.GetFileName( node.Path! ) )
+							);
+
 							File.Copy( node.Path!, destFile );
 						}
 						catch (Exception e)
@@ -164,6 +165,60 @@ namespace Dirigent.Scripts.BuiltIn
 					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// Name of the archive subfolder to put the content of given container node into.
+		/// </summary>
+		static string GetFolderName( VfsNodeDef node )
+		{
+			var name = node.Title;
+			if( string.IsNullOrEmpty( name ) ) name = Path.GetFileName( node.Path ?? "" );
+			if( string.IsNullOrEmpty( name ) ) name = node.Id;
+			if( string.IsNullOrEmpty( name ) ) name = "folder";
+			return SanitizeName( name );
+		}
+
+		/// <summary>
+		/// Makes given string usable as a single file/folder name.
+		/// Node titles may contain submenu separators and characters not allowed in a path.
+		/// </summary>
+		static string SanitizeName( string name )
+		{
+			// a title like "Logs/Recent" denotes a submenu path - take just the last segment of it
+			var lastSegment = name.Split( new char[] {'/','\\'}, StringSplitOptions.RemoveEmptyEntries ).LastOrDefault() ?? name;
+
+			var invalid = Path.GetInvalidFileNameChars();
+			var sb = new StringBuilder();
+			foreach( var c in lastSegment )
+			{
+				sb.Append( Array.IndexOf( invalid, c ) >= 0 ? '_' : c );
+			}
+
+			var res = sb.ToString().Trim( ' ', '.' );
+			return string.IsNullOrEmpty( res ) ? "_" : res;
+		}
+
+		/// <summary>
+		/// Adds a numbered suffix if the file already exists, so that same-named files
+		/// coming from different places do not overwrite each other.
+		/// </summary>
+		static string MakeUniqueFileName( string fullPath )
+		{
+			if( !File.Exists( fullPath ) ) return fullPath;
+
+			var folder = Path.GetDirectoryName( fullPath ) ?? string.Empty;
+			var name = Path.GetFileNameWithoutExtension( fullPath );
+			var ext = Path.GetExtension( fullPath );
+
+			for( int i = 2; i < 1000; i++ )
+			{
+				var candidate = Path.Combine( folder, $"{name}_{i}{ext}" );
+				if( !File.Exists( candidate ) ) return candidate;
+			}
+
+			// give up; the caller's File.Copy will report the problem
+			return fullPath;
 		}
 	}
 

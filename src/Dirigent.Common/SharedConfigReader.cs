@@ -283,11 +283,12 @@ namespace Dirigent
 			a.MachineId = machineId;
 			a.AppId = appId;
 
-			var x = new 
+			var x = new
 			{
 				Guid = e.Attribute( "Guid" )?.Value,
 				Id = e.Attribute( "Id" )?.Value,
 				Title = e.Attribute( "Title" )?.Value,
+				AppIdTuple = e.Attribute( "AppIdTuple" )?.Value,
 				MachineId = e.Attribute( "MachineId" )?.Value,
 				AppId = e.Attribute( "AppId" )?.Value,
 				Groups = e.Attribute( "Groups" )?.Value,
@@ -313,6 +314,16 @@ namespace Dirigent
 			if( x.Id is not null ) a.Id = x.Id;
 			
 			if( x.Title != null ) a.Title = x.Title;
+
+			// "AppIdTuple" sets both the machine and the app at once;
+			// the individual "MachineId"/"AppId" attributes (if any) still win over it
+			if( !string.IsNullOrEmpty( x.AppIdTuple ) )
+			{
+				var idTuple = new AppIdTuple( x.AppIdTuple );
+				a.MachineId = idTuple.MachineId;
+				a.AppId = idTuple.AppId;
+			}
+
 			if( x.MachineId != null ) a.MachineId = x.MachineId;
 			if( x.AppId != null ) a.AppId = x.AppId;
 			if( x.Icon != null ) a.Icon = x.Icon;
@@ -395,6 +406,9 @@ namespace Dirigent
 				var vfsNode = (VfsNodeDef) a;
 				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				a.Mask = e.Attribute( "Mask" )?.Value;
+				a.MaxFiles = X.getIntAttr( e, "MaxFiles", 0 );
+				a.MaxSeconds = X.getDoubleAttr( e, "MaxSeconds", 0 );
+				a.MaxTotalBytes = X.getLongAttr( e, "MaxTotalBytes", 0 );
 				a.IsContainer = true;
 				return a;
 			}

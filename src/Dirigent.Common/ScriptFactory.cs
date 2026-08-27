@@ -90,6 +90,7 @@ namespace Dirigent
 			AddScript( Scripts.BuiltIn.ResolveVfsPath._Name, () => new Scripts.BuiltIn.ResolveVfsPath() );
 			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
 			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
+			AddScript( Scripts.BuiltIn.MergeZipped._Name, () => new Scripts.BuiltIn.MergeZipped() );
 			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );
 			AddScript( Scripts.BuiltIn.RunPlanWhenMachinesOnline._Name, () => new Scripts.BuiltIn.RunPlanWhenMachinesOnline() );
 		}

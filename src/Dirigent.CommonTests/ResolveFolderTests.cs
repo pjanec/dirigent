@@ -1,0 +1,196 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Dirigent;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Dirigent.Tests
+{
+	/// <summary>
+	/// Resolution of a machine-local folder into the tree of virtual folders and files
+	/// the download and browse actions work with.
+	/// </summary>
+	/// <remarks>
+	/// A local folder needs neither the IDirig control nor any network, so a bare FileRegistry
+	/// with an IP-providing delegate is enough here.
+	/// </remarks>
+	[TestClass()]
+	public class ResolveFolderTests
+	{
+		const string _machineId = "m1";
+
+		// IDirig provides a default implementation of everything but the few members below;
+		// none of them is reached when resolving a machine-local node
+		class DirigStub : IDirig
+		{
+			public string Name => _machineId;
+
+			public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName,
+					string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
+				=> throw new NotImplementedException();
+
+			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+				=> throw new NotImplementedException();
+		}
+
+		string _root = string.Empty;
+		FileRegistry _reg = null!;
+
+		[TestInitialize()]
+		public void SetUp()
+		{
+			_root = Path.Combine( Path.GetTempPath(), "DirigentResolveTests_" + Guid.NewGuid().ToString( "N" ) );
+			Directory.CreateDirectory( _root );
+
+			_reg = new FileRegistry( new DirigStub(), _machineId, _root, ( machineId ) => "127.0.0.1" );
+			_reg.SetMachines( new List<MachineDef>()
+			{
+				new MachineDef() { Id = _machineId, IP = "127.0.0.1" }
+			} );
+		}
+
+		[TestCleanup()]
+		public void TearDown()
+		{
+			try { Directory.Delete( _root, true ); } catch {}
+		}
+
+		void MakeFile( string relPath, int ageDays )
+		{
+			var fullPath = Path.Combine( _root, relPath );
+			Directory.CreateDirectory( Path.GetDirectoryName( fullPath )! );
+			File.WriteAllText( fullPath, "x" );
+			File.SetLastWriteTimeUtc( fullPath, DateTime.UtcNow.AddDays( -ageDays ) );
+		}
+
+		VfsNodeDef Resolve( VfsNodeDef def )
+		{
+			var resolved = _reg.ResolveAsync( null!, def, false, true, null ).GetAwaiter().GetResult();
+			Assert.IsNotNull( resolved );
+			return resolved!;
+		}
+
+		// "title/title/filename" of every file in the resolved tree
+		static List<string> FlattenFiles( VfsNodeDef node, string prefix = "" )
+		{
+			var res = new List<string>();
+			foreach( var child in node.Children )
+			{
+				if( child.IsContainer )
+					res.AddRange( FlattenFiles( child, $"{prefix}{child.Title}/" ) );
+				else
+					res.Add( $"{prefix}{child.Title}" );
+			}
+			return res;
+		}
+
+		[TestMethod()]
+		public void FolderTreeTest()
+		{
+			MakeFile( "top.log", 1 );
+			MakeFile( "sub/nested.log", 1 );
+			MakeFile( "sub/deeper/deep.log", 1 );
+			MakeFile( "sub/ignored.txt", 1 );
+			Directory.CreateDirectory( Path.Combine( _root, "empty" ) );
+
+			var resolved = Resolve( new FolderDef()
+			{
+				Id = "logs",
+				Title = "Logs",
+				MachineId = _machineId,
+				Path = _root,
+				Mask = "*.log",
+			} );
+
+			Assert.IsTrue( resolved.IsContainer );
+			Assert.AreEqual( "Logs", resolved.Title );
+
+			// the subfolder structure is mirrored, the non-matching file is left out
+			CollectionAssert.AreEquivalent(
+				new List<string>() { "top.log", "sub/nested.log", "sub/deeper/deep.log" },
+				FlattenFiles( resolved ) );
+
+			// a folder with no matching file does not appear at all
+			Assert.IsFalse( resolved.Children.Any( x => x.Title == "empty" ) );
+
+			// the files carry the machine of the folder, so that the download knows who owns them
+			var top = resolved.Children.First( x => !x.IsContainer );
+			Assert.AreEqual( _machineId, top.MachineId );
+			Assert.AreEqual( Path.Combine( _root, "top.log" ), top.Path );
+		}
+
+		[TestMethod()]
+		public void FolderAgeLimitTest()
+		{
+			MakeFile( "fresh.log", 0 );
+			MakeFile( "old.log", 10 );
+
+			var resolved = Resolve( new FolderDef()
+			{
+				Id = "logs",
+				Title = "Logs",
+				MachineId = _machineId,
+				Path = _root,
+				Mask = "*.log",
+				MaxSeconds = 2 * 24 * 3600,
+			} );
+
+			CollectionAssert.AreEqual( new List<string>() { "fresh.log" }, FlattenFiles( resolved ) );
+		}
+
+		[TestMethod()]
+		public void NewestFilterKeepsAppAssociationTest()
+		{
+			MakeFile( "old.log", 5 );
+			MakeFile( "new.log", 1 );
+
+			// a single file requested = the newest one, with the app association preserved
+			// so that the download can sort the files into per-app folders
+			var resolved = Resolve( new FileDef()
+			{
+				Id = "log",
+				Title = "Recent logs",
+				MachineId = _machineId,
+				AppId = "camera",
+				Path = _root,
+				Filter = "Newest",
+				Xml = @"<File Mask=""*.log"" MaxFiles=""1"" MaxSeconds=""172800""/>",
+			} );
+
+			Assert.IsFalse( resolved.IsContainer );
+			Assert.AreEqual( Path.Combine( _root, "new.log" ), resolved.Path );
+			Assert.AreEqual( "camera", resolved.AppId );
+			Assert.AreEqual( _machineId, resolved.MachineId );
+		}
+
+		[TestMethod()]
+		public void NewestFilterMultipleFilesTest()
+		{
+			MakeFile( "a.log", 3 );
+			MakeFile( "b.log", 2 );
+			MakeFile( "c.log", 1 );
+
+			var resolved = Resolve( new FileDef()
+			{
+				Id = "log",
+				Title = "Recent logs",
+				MachineId = _machineId,
+				AppId = "camera",
+				Path = _root,
+				Filter = "Newest",
+				Xml = @"<File Mask=""*.log"" MaxFiles=""2""/>",
+			} );
+
+			// multiple files come wrapped in a container named after the node, newest first
+			Assert.IsTrue( resolved.IsContainer );
+			Assert.AreEqual( "Recent logs", resolved.Title );
+			CollectionAssert.AreEqual( new List<string>() { "c.log", "b.log" },
+				resolved.Children.Select( x => Path.GetFileName( x.Path! ) ).ToList() );
+
+			// the app association is kept on the files too
+			Assert.IsTrue( resolved.Children.All( x => x.AppId == "camera" ) );
+		}
+	}
+}

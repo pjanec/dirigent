@@ -150,11 +150,34 @@ namespace Dirigent
 		//[MessagePack.Key( 51 )]
 		public string? Mask = String.Empty;
 
+		/// <summary>
+		/// Maximum number of files to include. 0 = unlimited.
+		/// The newest files are preferred if the limit applies.
+		/// </summary>
+		//[MessagePack.Key( 52 )]
+		public int MaxFiles = 0;
+
+		/// <summary>
+		/// Maximum age of the files to include, in seconds, based on the last write time. 0 = whatever age.
+		/// </summary>
+		//[MessagePack.Key( 53 )]
+		public double MaxSeconds = 0;
+
+		/// <summary>
+		/// Maximum total size of the included files, in bytes. 0 = unlimited.
+		/// The newest files are preferred if the limit applies. At least one file is always included.
+		/// </summary>
+		//[MessagePack.Key( 54 )]
+		public long MaxTotalBytes = 0;
+
 		public override string ToString() =>$"[Folder] {base.ToString()}";
 
 		public bool ThisEquals(FolderDef o) =>
 			base.ThisEquals(o) &&
 			this.Mask == o.Mask &&
+			this.MaxFiles == o.MaxFiles &&
+			this.MaxSeconds == o.MaxSeconds &&
+			this.MaxTotalBytes == o.MaxTotalBytes &&
 			true;
 
 		public FolderDef() : base() { IsContainer=true; }

@@ -201,6 +201,9 @@ namespace Dirigent
 			{
 				var vars = new Dictionary<string, string>();
 
+				// the download folder of the user running this dirigent instance
+				vars["DOWNLOADS"] = Tools.GetDownloadFolderPath();
+
 				// for app-bound files, expand also local vars and define var for app working dir etc.
 				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
 				{
@@ -297,6 +300,7 @@ namespace Dirigent
 			r.Id = x.Id;
 			r.Title = x.Title;
 			r.MachineId = x.MachineId;
+			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
 			return r;
 		}
 
@@ -530,129 +534,98 @@ namespace Dirigent
 		{
 			var rootNode = EmptyFrom<VFolderDef>( folderDef );
 			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
-			
-			if( includeContent )
+
+			if( string.IsNullOrEmpty( rootNode.Path ) )
+				return null;
+
+			if( !includeContent )
+				return rootNode;
+
+			List<(string RelPath, FileInfo Info)> files;
+			try
 			{
-				// FIXME:
-				// traverse all files & folders 
-				// filter by glob-style mask
-				// convert into vfs tree structure
-				var folderName = ResolveFilePath( folderDef, forceUNC );
-				if( string.IsNullOrEmpty(folderName) )
-					return null;
-				// ....
-
-				var mask = folderDef.Mask;
-				if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
-
-				try
-				{
-					var dirs = FindDirectories( folderName );
-					foreach (var dir in dirs)
-					{
-						var dirDef = new FolderDef
-						{
-							//Id = dir.Name,
-							Path = dir.FullName,
-							MachineId = folderDef.MachineId,
-							AppId = folderDef.AppId,
-							IsContainer = true,
-							Title = dir.Name,
-						};
-						var vfsFolder = ResolveFolder( dirDef, forceUNC, includeContent );
-						if( vfsFolder is not null )
-						{
-							rootNode.Children.Add( vfsFolder );
-						}
-					}
-				}
-				catch( Exception ex ) // folder not exists or not accessible?
-				{
-					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-					return null;
-				}
-
-				try
-				{
-					var files = FindMatchingFileInfos( folderName, mask, false );
-					foreach (var file in files)
-					{
-						var fileDef = new FileDef
-						{
-							//Id = file.Name,
-							Path = file.FullName,
-							MachineId = folderDef.MachineId,
-							AppId = folderDef.AppId,
-							IsContainer = false,
-							Title = file.Name,
-						};
-						rootNode.Children.Add( fileDef );
-					}
-				}
-				catch( Exception ex ) // folder not exists or not accessible?
-				{
-					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-					return null;
-				}
-
+				files = FileScan.FindMatchingFiles(
+					rootNode.Path,
+					folderDef.Mask,
+					folderDef.MaxSeconds,
+					folderDef.MaxFiles,
+					folderDef.MaxTotalBytes
+				);
 			}
-			
+			catch( Exception ex ) // folder not exists or not accessible?
+			{
+				log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
+				return null;
+			}
+
+			// build the tree of virtual subfolders mirroring the location of the files within the scanned folder
+			foreach( var (relPath, info) in files )
+			{
+				var parent = GetOrCreateSubFolder( rootNode, System.IO.Path.GetDirectoryName( relPath ), folderDef );
+
+				parent.Children.Add(
+					new FileDef
+					{
+						Path = info.FullName,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = false,
+						Title = info.Name,
+					}
+				);
+			}
+
 			return rootNode;
+		}
+
+		/// <summary>
+		/// Finds (or creates) the chain of virtual subfolders for given folder path relative to the root node.
+		/// Returns the deepest one, or the root node itself if the relative path is empty.
+		/// </summary>
+		static VfsNodeDef GetOrCreateSubFolder( VfsNodeDef rootNode, string? relDirPath, FolderDef folderDef )
+		{
+			var current = rootNode;
+
+			if( string.IsNullOrEmpty( relDirPath ) )
+				return current;
+
+			var pathSoFar = rootNode.Path ?? string.Empty;
+
+			foreach( var segment in relDirPath.Split( new char[]{'/','\\'}, StringSplitOptions.RemoveEmptyEntries ) )
+			{
+				pathSoFar = System.IO.Path.Combine( pathSoFar, segment );
+
+				var subFolder = current.Children.Find(
+					x => x.IsContainer && string.Equals( x.Title, segment, StringComparison.OrdinalIgnoreCase )
+				);
+
+				if( subFolder is null )
+				{
+					subFolder = new VFolderDef
+					{
+						Path = pathSoFar,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = true,
+						Title = segment,
+					};
+					current.Children.Add( subFolder );
+				}
+
+				current = subFolder;
+			}
+
+			return current;
 		}
 
 		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds )
 		{
-			var res = new List<string>();
-			var files = FindMatchingFileInfos( folderName, mask, false );
+			// the mask of the 'Newest' filter applies to the files in the given folder only, never to subfolders
+			var files = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false );
 
-			if( files.Length == 0 ) return res;
-			
-			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
-
-			int numFiles = 0;
-			foreach (var file in files)
-			{
-				if (maxAgeSeconds > 0)
-				{
-					var age = (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds;
-					if (age > maxAgeSeconds) continue;
-				}
-
-				res.Add( file.FullName );
-				numFiles++;
-				if (numFiles >= maxFiles) break;
-			}
-			return res;
+			return ( from x in files select x.Info.FullName ).ToList();
 		}
 
-		static FileInfo[] FindMatchingFileInfos( string folderName, string mask, bool recursive )
-		{
-			if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
-			if( string.IsNullOrEmpty( folderName ) ) folderName = Directory.GetCurrentDirectory();
-			var dirInfo = new DirectoryInfo(folderName);
-			var enumOpts = new EnumerationOptions()
-			{
-				MatchType = MatchType.Win32,
-				RecurseSubdirectories = recursive,
-				ReturnSpecialDirectories = false
-			};
-			FileInfo[] files = dirInfo.GetFiles( mask, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-			return files;
-		}
-
-		static DirectoryInfo[] FindDirectories( string folderName )
-		{
-			var dirInfo = new DirectoryInfo(folderName);
-			DirectoryInfo[] dirs = dirInfo.GetDirectories();
-			return dirs;
-		}
-
-		static string? GetNewest( FileInfo[] files )
-		{
-			if( files.Length == 0 ) return null;
-			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
-			return files[files.Length-1].FullName;
-		}
 	}
 }
 
