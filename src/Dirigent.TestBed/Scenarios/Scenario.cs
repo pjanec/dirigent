@@ -44,6 +44,47 @@ namespace Dirigent.TestBed.Scenarios
 				.App( "m2.recorder", a => a.LongRunning().WritesLog().WithLogNode() )
 				.Package( "logs.all", "Logs/All apps", p => p.RefAll( "log" ) );
 
+		/// <summary>
+		/// LoggingApps with the log folders already populated: one file from yesterday and one from
+		/// nine days ago per application. The nodes ask for nothing older than two days, so a correct
+		/// collection takes the first and leaves the second.
+		/// </summary>
+		public static Scenario LoggingWorld()
+		{
+			var scenario = LoggingApps();
+
+			foreach( var app in new[] { "m1.camera", "m1.tracker", "m2.recorder" } )
+			{
+				scenario.Seed( app, "recent.log", ageDays: 1 );
+				scenario.Seed( app, "ancient.log", ageDays: 9 );
+			}
+
+			return scenario;
+		}
+
+		/// <summary>
+		/// The presets addressable by name, for callers that get the name as text - the scenario
+		/// generator, and through it the tier-2 PowerShell driver.
+		/// </summary>
+		public static readonly IReadOnlyDictionary<string, Func<Scenario>> Presets
+				= new Dictionary<string, Func<Scenario>>( StringComparer.OrdinalIgnoreCase )
+		{
+			{ "OneMachine", OneMachine },
+			{ "TwoMachines", TwoMachines },
+			{ "TwoMachinesWithIdlers", TwoMachinesWithIdlers },
+			{ "LoggingApps", LoggingApps },
+			{ "LoggingWorld", LoggingWorld },
+		};
+
+		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>
+		public static Scenario ByName( string name )
+		{
+			if( Presets.TryGetValue( name, out var preset ) ) return preset();
+
+			throw new ArgumentException(
+				$"unknown scenario '{name}'; known: {string.Join( ", ", Presets.Keys )}" );
+		}
+
 		// ---- machines ---------------------------------------------------------------
 
 		public Scenario Machines( params string[] names )

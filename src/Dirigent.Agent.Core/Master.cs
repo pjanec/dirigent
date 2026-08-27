@@ -33,6 +33,9 @@ namespace Dirigent
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _files.GetAllVfsNodesDef(); }
 		public string Name => string.Empty;
+
+		/// <summary>The machine the master runs on; always known, unlike the client name.</summary>
+		public string MachineId => _machineId;
 		
 		/// <summary>
 		/// Send to all subcribed. Does not change the sender.

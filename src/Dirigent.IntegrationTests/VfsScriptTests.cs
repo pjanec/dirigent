@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.Scripts.BuiltIn;
 using Dirigent.TestBed;
@@ -141,6 +141,50 @@ namespace Dirigent.IntegrationTests
 				$"entries: {string.Join( ", ", entries )}" );
 			Assert.IsFalse( entries.Any( e => e.Contains( "tracker", StringComparison.OrdinalIgnoreCase ) ),
 				$"entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
+		public async Task DownloadCanBeAimedAtAChosenMachine()
+		{
+			// a caller that is not sitting on a machine - a CLI or REST client - can say where the
+			// files should land instead of taking whatever the requestor lookup decides
+			using var bed = await StartBed();
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var result = await bed.Operator.RunScriptAsync<DownloadZipped.TArgs, DownloadZipped.TResult>(
+				DownloadZipped._Name,
+				new DownloadZipped.TArgs()
+				{
+					Node = new VfsNodeSelector() { Id = "logs.all" },
+					ToMachine = bed.Machine( "m2" ),
+				},
+				timeout: Timeout );
+
+			Assert.IsNotNull( result );
+			Assert.AreEqual( 0, result!.Errors.Count, $"errors: {string.Join( " | ", result.Errors )}" );
+			Assert.AreEqual( bed.Machine( "m2" ), result.DownloadMachine,
+				"the archive should have been assembled on the machine we named" );
+			Assert.IsTrue( File.Exists( result.Files.Single() ) );
+		}
+
+		[TestMethod()]
+		public async Task DownloadToAnUnknownMachineIsRefusedClearly()
+		{
+			using var bed = await StartBed();
+
+			var result = await bed.Operator.RunScriptAsync<DownloadZipped.TArgs, DownloadZipped.TResult>(
+				DownloadZipped._Name,
+				new DownloadZipped.TArgs()
+				{
+					Node = new VfsNodeSelector() { Id = "logs.all" },
+					ToMachine = "nosuchmachine",
+				},
+				timeout: Timeout );
+
+			Assert.AreEqual( 0, result!.Files.Count );
+			Assert.IsTrue( result.Errors.Any( e => e.Contains( "nosuchmachine" ) ),
+				$"the result should name the machine it could not use, got: {string.Join( " | ", result.Errors )}" );
 		}
 
 		[TestMethod()]

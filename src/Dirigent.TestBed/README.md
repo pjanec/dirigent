@@ -10,13 +10,13 @@ keep it trustworthy, and exactly what comes next.
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 26 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 28 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download test at tier 1 | done, 3 tests |
 | Files over the CLI/REST surface | done, 6 tests |
-| PowerShell tier-2 driver | **next** |
-| Breadth at tier 1 (plans, detectors, restarts, env vars, reconnect) | not started |
+| Tier 2: `Dirigent.TestBed.Gen` + PowerShell driver | done, 8 tests |
+| Breadth at tier 1 (plans, detectors, restarts, env vars, reconnect) | **next** |
 | Tier 3 on the two VMs | not started |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
@@ -24,9 +24,14 @@ Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` 
 ## Running
 
 ```
-dotnet test src/Dirigent.IntegrationTests   # tier 1, ~17 s
+dotnet test src/Dirigent.IntegrationTests   # tier 1, ~27 s
 dotnet test src/Dirigent.CommonTests        # unit tests incl. the scenario renderer
+
+src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1            # tier 2, ~31 s
+src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui
 ```
+
+Tier 2 has its own README in `src/Dirigent.TestBed.PowerShell`.
 
 ## Writing a test
 
@@ -98,6 +103,8 @@ render for real processes and for VMs.
   the remote-control surface rather than the in-process client.
 - `Isolation` — free ports, temp root. Machine ids are used verbatim.
 - `Diagnostics` — process-global log4net capture, cleared per test via `Diagnostics.ClearLog()`.
+- `../Dirigent.TestBed.Gen` — renders a scenario preset to a folder for tiers 2 and 3.
+- `../Dirigent.TestBed.PowerShell` — the tier-2 driver and its tests.
 
 ## Known behaviour
 
@@ -111,7 +118,10 @@ render for real processes and for VMs.
   in the config the download sends the other machines through `\\127.0.0.1\C$`, which needs an
   elevated token; with none, every "machine" writes to the folder directly, which is what a
   tier-1 bed actually is.
-- `HttpPort` is 0 in every bed: the web server binds `http://*:port`, which needs a URL ACL.
+- `HttpPort` is 0 in every bed, which switches the web server off - no test needs it in-process.
+  Note for anything outside the bed: on the *command line* `--httpPort 0` does **not** switch it
+  off, it falls back to 8877; `-1` does. (No URL ACL is needed either way - EmbedIO listens on its
+  own socket rather than through `HttpListener`, as the tier-2 REST test demonstrates.)
 - The master always binds `MasterPort` and `CliPort`, so both are allocated free per bed.
 
 ---
@@ -160,25 +170,33 @@ the new one.
 `CliSession` (in the harness) wraps `CommandLineClient` for tests, and is the shape the PowerShell
 verbs should take: send a request, read the answer, throw on `ERROR:`.
 
-## Next: the tier-2 driver
+## Done: tier 2
 
-Tier 2 is needed periodically and must be runnable by hand, not only by a test runner.
+`Dirigent.TestBed.Gen` renders any scenario preset to a folder - shared config, local config,
+seeded application folders, and a `world.json` manifest - so PowerShell consumes the same worlds as
+tier 1 instead of keeping a second copy of them. The driver and its eight tests live in
+`src/Dirigent.TestBed.PowerShell`, on stock Windows PowerShell 5.1 with nothing to install; that
+README is the place to look.
 
-1. **`Dirigent.TestBed.Gen`** - a console tool rendering a named scenario to a folder
-   (`--scenario LoggingApps --out <dir>`), so PowerShell consumes the same scenario model instead
-   of owning a second copy. Tier 3 uses it too, before robocopy.
-2. **PowerShell module + Pester**: `Start-DirigentWorld`, `Invoke-DirigentCli`,
-   `Wait-DirigentCondition`, `Stop-DirigentWorld`, and `Invoke-DirigentTests.ps1` with
-   `-KeepAlive -WithGui` so it doubles as a curated world to poke at. This replaces the
-   `run_m1_gui_master.bat` / `run_m2_con.bat` workflow. `Invoke-DirigentCli` mirrors `CliSession`.
+It found three things tier 1 structurally could not:
 
-Keep tier 2 small and deliberate: the hosting model and startup, agent kill-and-recover against
-the status file, both remote-control surfaces answering, and one end-to-end download.
+- **An agent dies if `LocalConfig.xml` is missing.** The setting defaults to that name resolved
+  against the working directory, and the file being absent takes the process down at startup. Left
+  as it is - a real deployment has one - and the generator now writes one.
+- **`--httpPort 0` does not disable the web server**, it falls back to 8877; `-1` disables. Two
+  worlds, or a world and a real installation, would otherwise fight over that port.
+- **A download requested by anything that is not an agent or a GUI** resolved its destination to
+  the literal `%DOWNLOADS%`. The requestor lookup fell back to the client name, which is empty on
+  the master, and an empty machine id means "global" to the resolver, which hands the path back
+  unexpanded. Fixed with an additive `IDirig.MachineId` (an agent's client name already is its
+  machine id, so the default is right for agents) and a new `ToMachine` argument, so a scripted
+  download can name where the files should land. Pinned at tier 1 by
+  `DownloadCanBeAimedAtAChosenMachine` and `DownloadToAnUnknownMachineIsRefusedClearly`.
 
-REST needs no work of its own - `CmdApiController` exposes the whole command repository through
-`POST /cli`, so anything reachable from the CLI is reachable over HTTP.
-
-## Then: breadth at tier 1
+Tier 2 stays small on purpose: hosting and startup, agent kill-and-recover against the status file,
+both remote-control surfaces answering, and one end-to-end download. Anything that can be shown
+in-process belongs at tier 1, where it costs a second instead of four.
+## Next: breadth at tier 1
 
 Where the harness starts paying for itself. Each of these has a test-app switch already:
 plans and dependencies, init detectors (`ReadyAfter`), restart on crash (`ExitsAfter`), soft kill
@@ -188,7 +206,7 @@ to drop temp-file churn from the fast tier.
 
 ## Last: tier 3 on the VMs
 
-Reuse the generator and the PowerShell verbs against the existing `config/VM` scaffolding
+Reuse `Dirigent.TestBed.Gen` and the tier-2 PowerShell verbs against the existing `config/VM` scaffolding
 (`set-vm-IPs.ps1`, `inst_m*.bat`) as a nightly or pre-release gate. Only this tier covers real SMB
 with credentials, distinct user profiles, a machine going offline mid-download, and reboot.
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -83,6 +83,12 @@ namespace Dirigent
 	{
 		/// <summary> ident of the network client used as RequestorId </summary>
 		string Name { get; } 
+
+		/// <summary>
+		/// The machine this code runs on. An agent's client name is its machine id, so the default
+		/// is right for an agent; the master has no client name but does know its machine.
+		/// </summary>
+		string MachineId => Name;
 
 		/// <summary>
 		/// Send is guaranteed to be thread/task safe, is always executed immediately, non-blocking
@@ -220,6 +226,7 @@ namespace Dirigent
 	public interface IDirigAsync
 	{
 		string Name { get; } 
+		string MachineId { get; }
 		Task SendAsync( Net.Message msg );
 		Task<ClientState?> GetClientStateAsync( string Id );
 		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsStateAsync();

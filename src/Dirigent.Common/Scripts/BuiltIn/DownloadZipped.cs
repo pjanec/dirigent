@@ -36,6 +36,12 @@ namespace Dirigent.Scripts.BuiltIn
 			/// free-form Args does the same, which is how an action in the shared config asks for it.
 			/// </summary>
 			public bool PerMachine;
+
+			/// <summary>
+			/// The machine to download to. Empty means the machine the requestor runs on, which is what
+			/// a GUI wants; a CLI or REST caller has no machine of its own and may name one here.
+			/// </summary>
+			public string? ToMachine;
 		};
 
 		//[MessagePack.MessagePackObject]
@@ -146,7 +152,12 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// The files are downloaded to the download folder of the machine the requestor runs on.
 				// %DOWNLOADS% gets expanded during the resolution, which happens on that very machine.
-				var requestorMachine = FindRequestorMachine( clientStates );
+				var requestorMachine = string.IsNullOrEmpty( args.ToMachine )
+						? FindRequestorMachine( clientStates )
+						: args.ToMachine!;
+
+				if( !IsConnectedAgent( clientStates, requestorMachine ) )
+					throw new Exception( $"Cannot download to '{requestorMachine}': no agent of that machine is connected." );
 
 				// local path on the requestor's machine; where the files really end up
 				var vfsLocalDownloadFolder = await Dirig.ResolveAsync(
@@ -398,9 +409,19 @@ namespace Dirigent.Scripts.BuiltIn
 				}
 			}
 
-			// no agent found for the requestor - fall back to the machine this script runs on
-			log.Warn( $"DownloadZipped: could not determine the machine of the requestor '{Requestor}', using '{Dirig.Name}' instead." );
-			return Dirig.Name;
+			// Nothing identifies the requestor - a CLI or REST caller has no machine of its own - so
+			// the files go to the machine this script runs on. Never an empty id: the resolver reads
+			// that as "global" and hands the path back with its variables unexpanded.
+			var ourMachine = string.IsNullOrEmpty( Dirig.Name ) ? Dirig.MachineId : Dirig.Name;
+
+			if( string.IsNullOrEmpty( ourMachine ) )
+				throw new Exception(
+					$"Could not tell what machine to download to. The requestor '{Requestor}' is not an "
+					+ $"agent and names no machine, and this host does not know its own. Name one with "
+					+ $"the ToMachine argument." );
+
+			log.Info( $"DownloadZipped: the requestor '{Requestor}' is on no known machine; downloading to '{ourMachine}'." );
+			return ourMachine;
 		}
 
 		static bool IsConnectedAgent( Dictionary<string, ClientState> clientStates, string machineId )

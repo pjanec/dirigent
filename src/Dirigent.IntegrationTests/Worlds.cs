@@ -1,4 +1,4 @@
-using Dirigent;
+﻿using Dirigent;
 using Dirigent.TestBed;
 using Dirigent.TestBed.Scenarios;
 using System;
@@ -17,23 +17,10 @@ namespace Dirigent.IntegrationTests
 	static class Worlds
 	{
 		/// <summary>
-		/// Three logging applications on two machines, each exposing its recent logs, plus a package
-		/// collecting all of them. Every log folder is seeded with a file from yesterday and one from
-		/// nine days ago; the node's limit is two days, so only the first is ever wanted.
+		/// The seeded logging world, described once in the harness so that tier 2 and tier 3 generate
+		/// the very same config from the very same source.
 		/// </summary>
-		public static Scenario LoggingWorld()
-		{
-			var scenario = Scenario.LoggingApps();
-
-			foreach( var app in LoggingApps )
-			{
-				scenario.Seed( app, "recent.log", ageDays: 1 );
-				scenario.Seed( app, "ancient.log", ageDays: 9 );
-			}
-
-			return scenario;
-		}
-
+		public static Scenario LoggingWorld() => Scenario.LoggingWorld();
 		public static readonly string[] LoggingApps = { "m1.camera", "m1.tracker", "m2.recorder" };
 
 		/// <summary>

@@ -573,6 +573,10 @@ Points worth knowing:
   `KillScript` afterwards. It shares the namespace with the `<Script>` definitions in the shared
   config, so do not reuse one of those unless you mean to replace it.
 * `PerMachine: true` in the arguments is the same request as `Args="perMachine"` on an action.
+* **Where the files land.** A GUI's download goes to the GUI's own machine. A CLI or REST caller is
+  on no machine that Dirigent knows, so the files go to the machine running the master; name
+  `ToMachine` in the arguments to send them somewhere else. The machine has to have a connected
+  agent, and the result's `DownloadMachine` says which one was used.
 
 ## Examples
 
@@ -712,9 +716,10 @@ some tool examples in the config, are not provided and expand to nothing. Contai
 `%FILE_PATH%` with the quoted list of paths instead.
 
 **The download folder follows the requestor's client name.** The machine to download to is taken
-from the `<machineId>_gui_<guid>` name a GUI gives itself, and only if that machine has no agent
-connected is the agent at the same address looked for. If neither works out, the files land in
-the download folder of the machine running the master, and a warning is logged.
+from the `<machineId>_gui_<guid>` name a GUI gives itself; only if that machine has no agent
+connected is the agent at the same address looked for. A requestor that is neither - a CLI or
+REST client - is on no machine at all, so the files land on the machine running the master.
+Pass `ToMachine` in the script arguments to choose.
 
 **`%DOWNLOADS%` follows the agent's user.** It is read from the registry of the user the agent
 process runs as, which is not the interactive user if the agent runs as a service under a
