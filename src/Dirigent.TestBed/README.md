@@ -142,14 +142,19 @@ download. Two real bugs surfaced on the way, both in code that had never run in 
 Tier 2 is needed periodically and must be runnable by hand, not only by a test runner.
 
 1. **Three commands**, registered in `MyCommandRepo` with implementations alongside
-   `DirigentControlCommands.cs`. Additive only — new names, nothing existing changed:
+   `DirigentControlCommands.cs`. Additive only — new names, nothing existing changed. REST needs
+   no separate work: `CmdApiController` exposes the whole repository through `POST /cli`, so a
+   new command is reachable over HTTP the moment it is registered. Dedicated routes next to
+   `ScriptApiController` stay optional:
    - `GetAllVfsNodes` → json
    - `ResolveVfsNode <idOrGuid>` → json, so "is the file really there" is answerable remotely
    - `DownloadVfsNode <scriptGuid> <idOrGuid> [perMachine]` → `ACK`, then poll
      `GetScriptState <scriptGuid>`, exactly like `StartScript` already works.
-   - Supporting change: `DownloadZipped` should publish the resulting archive path through
-     `SetStatus( data: ... )` so it arrives in `ScriptState.Data` instead of only a message box.
-     That is also what a crash-triggered log collection would use.
+   - Supporting change: `DownloadZipped.TResult` is empty and should carry the archive path and
+     the per-machine outcome. `ScriptRunner` puts a finished script's return value into
+     `ScriptState.Data`, so that is what `GetScriptState` hands back - no `SetStatus( data: )`,
+     whose value the finish overwrites anyway. Today the archive path exists only inside a
+     message box, which is also why a crash-triggered log collection cannot use it.
 2. **`Dirigent.TestBed.Gen`** — a console tool rendering a named scenario to a folder
    (`--scenario LoggingApps --out <dir>`), so PowerShell consumes the same scenario model instead
    of owning a second copy. Tier 3 uses it too, before robocopy.
