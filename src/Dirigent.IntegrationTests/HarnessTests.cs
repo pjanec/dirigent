@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.TestBed;
+using Dirigent.TestBed.Scenarios;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -18,16 +19,10 @@ namespace Dirigent.IntegrationTests
 	{
 		static readonly TimeSpan Timeout = TimeSpan.FromSeconds( 20 );
 
-		const string Config = @"<Shared>
-	<Machine Name=""{m1}"" IP=""127.0.0.1""/>
-	<App AppIdTuple=""{m1}.idler"" ExeFullPath=""{testapp}"" CmdLineArgs=""--run-forever"" StartupDir=""{temp}""/>
-</Shared>";
-
 		static Task<TestBed.TestBed> StartBed( bool keepTempRoot = false )
 			=> TestBed.TestBed.StartAsync( new TestBedOptions()
 			{
-				Machines = new() { "m1" },
-				SharedConfigXml = Config,
+				Scenario = Scenario.OneMachine().App( "m1.idler", a => a.LongRunning() ),
 				KeepTempRoot = keepTempRoot,
 			} );
 
@@ -84,18 +79,21 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
-		public async Task MachineIdsAreUniquePerRunSoRunsCannotCollide()
+		public async Task TwoBedsAreIndependentWorlds()
 		{
-			// the agent status file path is derived from the machine id and is machine-global,
-			// so two runs sharing an id would corrupt each other's recovery state
+			// they may use the same machine ids, because what keeps them apart is their own
+			// ports and folders - not mangled names
 			using var bed1 = await StartBed();
 			using var bed2 = await StartBed();
 
-			Assert.AreNotEqual( bed1.Machine( "m1" ), bed2.Machine( "m1" ) );
+			Assert.AreEqual( "m1", bed1.Machine( "m1" ), "machine ids should be used verbatim" );
+			Assert.AreEqual( bed1.Machine( "m1" ), bed2.Machine( "m1" ) );
+
 			Assert.AreNotEqual( bed1.MasterPort, bed2.MasterPort );
 			Assert.AreNotEqual( bed1.TempRoot, bed2.TempRoot );
+			Assert.AreNotEqual( bed1.AgentStatusFolder, bed2.AgentStatusFolder );
+			Assert.AreNotEqual( bed1.DownloadFolder, bed2.DownloadFolder );
 
-			// and they really are two independent worlds
 			var app1 = bed1.App( "m1", "idler" );
 			await bed1.Operator.StartAppAsync( app1 );
 			await bed1.WaitUntilAsync(
@@ -105,6 +103,58 @@ namespace Dirigent.IntegrationTests
 			var statesInBed2 = await bed2.Operator.GetAllAppsStateAsync();
 			Assert.IsFalse( statesInBed2.Any( x => x.Value.Running ),
 				"the second bed should not see anything running in the first" );
+		}
+
+		[TestMethod()]
+		public async Task AgentStatusFileStaysOutOfTheMachineGlobalLocation()
+		{
+			// the default path is %LocalAppData%\Dirigent\agent_status_<machineId>.json, which a
+			// test must not touch: a real agent named m1 would have its recovery state corrupted
+			var globalPath = AgentStateSaverLoader.GetStatusFilePath( "m1" );
+			var globalExistedBefore = File.Exists( globalPath );
+
+			using( var bed = await StartBed() )
+			{
+				var expected = AgentStateSaverLoader.GetStatusFilePath( "m1", bed.AgentStatusFolder );
+				StringAssert.StartsWith( expected, bed.TempRoot );
+
+				var app = bed.App( "m1", "idler" );
+				await bed.Operator.StartAppAsync( app );
+				await bed.WaitUntilAsync(
+					async () => ( await bed.Operator.GetAppStateAsync( app ) )?.Running ?? false,
+					Timeout, $"{app} reports running, which is what makes the agent save its status" );
+
+				await bed.WaitUntilAsync(
+					() => File.Exists( expected ),
+					Timeout, $"the agent writes its status file to {expected}" );
+			}
+
+			Assert.AreEqual( globalExistedBefore, File.Exists( globalPath ),
+				"the machine-global status file must be left exactly as it was" );
+		}
+
+		[TestMethod()]
+		public async Task DownloadsVariableResolvesToTheBedsFolder()
+		{
+			// %DOWNLOADS% is expanded on the machine that owns the node, so this exercises the
+			// whole remote resolution path - and proves a download would not litter the real
+			// user's Downloads folder
+			using var bed = await StartBed();
+
+			var node = new FolderDef()
+			{
+				Id = "downloads",
+				MachineId = bed.Machine( "m1" ),
+				Path = "%DOWNLOADS%",
+			};
+
+			var resolved = await bed.Operator.ResolveAsync( node, forceUNC: false, includeContent: false );
+
+			Assert.IsNotNull( resolved, "the download folder should resolve" );
+			Assert.AreEqual(
+				Path.GetFullPath( bed.DownloadFolder ).TrimEnd( Path.DirectorySeparatorChar ),
+				Path.GetFullPath( resolved!.Path! ).TrimEnd( Path.DirectorySeparatorChar ),
+				"%DOWNLOADS% should point at the bed's folder, not the real user's" );
 		}
 
 		[TestMethod()]

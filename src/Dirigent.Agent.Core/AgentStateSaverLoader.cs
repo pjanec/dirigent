@@ -28,11 +28,11 @@ public class AgentStateSaverLoader : Disposable
 	string _statusFilePath;
 	LocalAppsRegistry _localAppsRegistry;
 
-	public AgentStateSaverLoader( string machineId, LocalAppsRegistry localAppsRegistry )
+	public AgentStateSaverLoader( string machineId, LocalAppsRegistry localAppsRegistry, string? statusFolder = null )
 	{
 		_localAppsRegistry = localAppsRegistry;
 
-		_statusFilePath = GetStatusFilePath(machineId);
+		_statusFilePath = GetStatusFilePath(machineId, statusFolder);
 	}
 
 	protected override void Dispose( bool disposing )
@@ -45,11 +45,18 @@ public class AgentStateSaverLoader : Disposable
 		base.Dispose( disposing );
 	}
 
-	public static string GetStatusFilePath( string machineId )
+	/// <param name="statusFolder">
+	/// Where to keep the file. Empty or null selects the default %LocalAppData%\Dirigent, which is
+	/// machine-global - hence the option, so that a test run or a second installation can be kept apart.
+	/// </param>
+	public static string GetStatusFilePath( string machineId, string? statusFolder = null )
 	{
-		string localAppDataPath = Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData );
-		string appSpecificPath = Path.Combine( localAppDataPath, "Dirigent" );
-		return Path.Combine( appSpecificPath, $"agent_status_{machineId}.json" );
+		if( string.IsNullOrEmpty( statusFolder ) )
+		{
+			string localAppDataPath = Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData );
+			statusFolder = Path.Combine( localAppDataPath, "Dirigent" );
+		}
+		return Path.Combine( statusFolder, $"agent_status_{machineId}.json" );
 	}
 
 	// Deletes the status file.

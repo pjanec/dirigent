@@ -158,7 +158,8 @@ namespace Dirigent
 						return state.IP;
 					}
 					return null;
-				}
+				},
+				ac.DownloadFolder
 			);
  
 			_server = new Server( ac.MasterPort );

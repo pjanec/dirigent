@@ -67,23 +67,5 @@ namespace Dirigent.TestBed
 			}
 		}
 
-		/// <summary>
-		/// The agent status file lives at a machine-global path derived from the machine id
-		/// (%LocalAppData%\Dirigent\agent_status_&lt;machineId&gt;.json), so a test must both use
-		/// machine ids no real installation would use and clean up after itself. Once the path
-		/// becomes configurable this can go away.
-		/// </summary>
-		public static void DeleteAgentStatusFile( string machineId )
-		{
-			try
-			{
-				var path = AgentStateSaverLoader.GetStatusFilePath( machineId );
-				if( File.Exists( path ) ) File.Delete( path );
-			}
-			catch( Exception )
-			{
-				// best effort; a leftover file only affects a machine id nobody else uses
-			}
-		}
 	}
 }

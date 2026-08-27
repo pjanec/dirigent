@@ -92,6 +92,18 @@ namespace Dirigent.TestBed
 		public Task<IReadOnlyList<MachineDef>> GetAllMachinesDefAsync()
 			=> InTick( () => (IReadOnlyList<MachineDef>) _states.GetAllMachinesDef().ToList() );
 
+		/// <summary>
+		/// Resolves a VFS node the way a context menu click would: variables expanded on the
+		/// machine that owns the node, folders scanned, references followed.
+		/// </summary>
+		public async Task<VfsNodeDef?> ResolveAsync( VfsNodeDef node, bool forceUNC = false, bool includeContent = true )
+		{
+			// the resolution may itself await a script on another machine, so it must not run
+			// inside the tick - only the call that starts it is marshalled
+			var ctrl = await InTick( () => (IDirig) _states );
+			return await ctrl.ResolveAsync( node, forceUNC, includeContent );
+		}
+
 		// ---- commands ---------------------------------------------------------------
 
 		/// <param name="planName">empty = no plan, use the standalone app definition</param>

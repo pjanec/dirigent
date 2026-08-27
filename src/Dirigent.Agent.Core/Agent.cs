@@ -76,7 +76,7 @@ namespace Dirigent
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
-			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths );
+			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths, _ac.DownloadFolder );
 
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
@@ -97,7 +97,7 @@ namespace Dirigent
 
 			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 
-			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps );
+			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps, _ac.AgentStatusFolder );
 
 			var toolDefs = new Dictionary<string, AppDef>( StringComparer.OrdinalIgnoreCase );
 			

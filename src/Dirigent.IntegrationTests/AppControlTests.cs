@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.TestBed;
+using Dirigent.TestBed.Scenarios;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,27 +17,11 @@ namespace Dirigent.IntegrationTests
 	{
 		static readonly TimeSpan Timeout = TimeSpan.FromSeconds( 20 );
 
-		/// <summary>
-		/// Two machines, one idle application on each. {m1}, {m2} and {testapp} are substituted
-		/// by the test bed with the ids and paths that this run actually uses.
-		/// </summary>
-		const string Config = @"<Shared>
-	<Machine Name=""{m1}"" IP=""127.0.0.1""/>
-	<Machine Name=""{m2}"" IP=""127.0.0.1""/>
-
-	<App AppIdTuple=""{m1}.idler""
-		 ExeFullPath=""{testapp}""
-		 CmdLineArgs=""--run-forever""
-		 StartupDir=""{temp}""/>
-
-	<App AppIdTuple=""{m2}.idler""
-		 ExeFullPath=""{testapp}""
-		 CmdLineArgs=""--run-forever""
-		 StartupDir=""{temp}""/>
-</Shared>";
-
 		static Task<TestBed.TestBed> StartBed()
-			=> TestBed.TestBed.StartAsync( new TestBedOptions() { SharedConfigXml = Config } );
+			=> TestBed.TestBed.StartAsync( new TestBedOptions()
+			{
+				Scenario = Scenario.TwoMachinesWithIdlers(),
+			} );
 
 		[TestInitialize()]
 		public void SetUp() => Diagnostics.ClearLog();
@@ -126,6 +111,31 @@ namespace Dirigent.IntegrationTests
 			// starting one machine's app must not start the other machine's
 			var otherState = await bed.Operator.GetAppStateAsync( onM1 );
 			Assert.IsFalse( otherState?.Running ?? false, $"{onM1} should not be running" );
+		}
+
+		[TestMethod()]
+		public async Task ApplicationThatExitsOnItsOwnReportsItsExitCode()
+		{
+			// a per-test delta on the preset: one app now terminates by itself
+			var scenario = Scenario.TwoMachinesWithIdlers()
+				.App( "m1.quitter", a => a.ExitsAfter( 0.5, exitCode: 3 ).Volatile() );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+			var app = bed.App( "m1", "quitter" );
+
+			await bed.Operator.StartAppAsync( app );
+
+			await bed.WaitUntilAsync(
+				async () =>
+				{
+					var st = await bed.Operator.GetAppStateAsync( app );
+					return st is not null && st.Started && !st.Running;
+				},
+				Timeout, $"{app} starts and then exits by itself" );
+
+			var state = await bed.Operator.GetAppStateAsync( app );
+			Assert.AreEqual( 3, state!.ExitCode, "the exit code should reach the operator" );
+			Assert.IsFalse( state.Killed, "it exited on its own, it was not killed" );
 		}
 	}
 }

@@ -6,19 +6,28 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Dirigent.TestBed.Scenarios;
 
 namespace Dirigent.TestBed
 {
 	public class TestBedOptions
 	{
 		/// <summary>
-		/// Machine names as the test wants to refer to them. Each is suffixed with the run tag
-		/// before use, so a run can never collide with a real installation or another run.
+		/// Machine names, used verbatim. Runs stay apart through their own ports, temporary
+		/// folder, agent status folder and download folder rather than through mangled ids.
 		/// </summary>
 		public List<string> Machines = new() { "m1", "m2" };
 
 		/// <summary>
-		/// SharedConfig.xml body. These placeholders are substituted before it is written:
+		/// The world to test in. When set, the machines, the shared config and the files that
+		/// have to exist beforehand all come from here - which is what lets one description
+		/// serve several tiers.
+		/// </summary>
+		public Scenario? Scenario;
+
+		/// <summary>
+		/// Raw SharedConfig.xml body, for the few tests that are about the config text itself.
+		/// Ignored when a Scenario is given. These placeholders are substituted:
 		///   {m1}, {m2}, ...  the real machine id of that machine
 		///   {testapp}        full path of Dirigent.TestApp.exe
 		///   {temp}           the per-run temporary folder
@@ -42,8 +51,18 @@ namespace Dirigent.TestBed
 		public string TempRoot { get; }
 		public string SharedConfigPath { get; }
 		public string TestAppPath { get; }
+
+		/// <summary>Where the agents keep their status file, instead of the machine-global default.</summary>
+		public string AgentStatusFolder { get; }
+
+		/// <summary>What %DOWNLOADS% expands to for every component of this bed.</summary>
+		public string DownloadFolder { get; }
+
 		public int MasterPort { get; }
 		public Operator Operator { get; }
+
+		/// <summary>Where the run's folders are, for tests that need to look at the files.</summary>
+		public RenderContext RenderContext { get; }
 
 		/// <summary>machine name as the test knows it -> the real machine id in use</summary>
 		public IReadOnlyDictionary<string, string> MachineIds => _machineIds;
@@ -65,12 +84,34 @@ namespace Dirigent.TestBed
 			TempRoot = Isolation.CreateTempRoot( RunTag );
 			TestAppPath = TestAppLocator.Find();
 
-			foreach( var name in opts.Machines )
-				_machineIds[name] = $"{name}_{RunTag}";
+			// The machine ids can stay as the test wrote them: what used to force a per-run
+			// suffix was the machine-global agent status file, which now lives under TempRoot.
+			var machineNames = opts.Scenario is not null ? opts.Scenario.MachineNames : opts.Machines;
+			if( machineNames.Count == 0 )
+				throw new ArgumentException( "a test bed needs at least one machine" );
+
+			foreach( var name in machineNames )
+				_machineIds[name] = name;
+
+			AgentStatusFolder = Path.Combine( TempRoot, "agentstatus" );
+			DownloadFolder = Path.Combine( TempRoot, "downloads" );
+			Directory.CreateDirectory( AgentStatusFolder );
+			Directory.CreateDirectory( DownloadFolder );
 
 			Diagnostics.EnsureLogCapture();
 
-			SharedConfigPath = WriteSharedConfig( opts.SharedConfigXml );
+			RenderContext = new RenderContext( TempRoot, TestAppPath, _machineIds );
+
+			if( opts.Scenario is not null )
+			{
+				WorldSeeder.Seed( opts.Scenario.Spec, RenderContext );
+				SharedConfigPath = WriteSharedConfig(
+					SharedConfigRenderer.Render( opts.Scenario.Spec, RenderContext ) );
+			}
+			else
+			{
+				SharedConfigPath = WriteSharedConfig( RenderContext.Substitute( opts.SharedConfigXml ) );
+			}
 
 			MasterPort = Isolation.FreeTcpPort();
 			var cliPort = Isolation.FreeTcpPort();
@@ -143,10 +184,6 @@ namespace Dirigent.TestBed
 			SafeDispose( _master );
 
 			KillProcesses( survivors );
-
-			// the status file path is machine-global, so leaving ours behind pollutes the box
-			foreach( var machineId in _machineIds.Values )
-				Isolation.DeleteAgentStatusFile( machineId );
 
 			if( !_opts.KeepTempRoot )
 				Isolation.DeleteTempRoot( TempRoot );
@@ -360,6 +397,8 @@ namespace Dirigent.TestBed
 				SharedCfgFileName = SharedConfigPath,
 				LocalCfgFileName = "",   // no tools needed yet
 				RootForRelativePaths = TempRoot,
+				AgentStatusFolder = AgentStatusFolder,
+				DownloadFolder = DownloadFolder,
 				TickPeriod = _opts.TickPeriodMs,
 				MasterTickPeriod = _opts.TickPeriodMs,
 				LogFileName = "",
@@ -372,12 +411,6 @@ namespace Dirigent.TestBed
 
 		string WriteSharedConfig( string xml )
 		{
-			foreach( var (name, machineId) in _machineIds )
-				xml = xml.Replace( "{" + name + "}", machineId );
-
-			xml = xml.Replace( "{testapp}", TestAppPath );
-			xml = xml.Replace( "{temp}", TempRoot );
-
 			var path = Path.Combine( TempRoot, "SharedConfig.xml" );
 			File.WriteAllText( path, xml, Encoding.UTF8 );
 			return path;

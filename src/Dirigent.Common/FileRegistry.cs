@@ -27,6 +27,8 @@ namespace Dirigent
 
 		string _rootForRelativePaths;
 
+		string? _downloadFolder;
+
 		public class TMachine
 		{
 			public string Id = string.Empty;
@@ -45,11 +47,16 @@ namespace Dirigent
 
 		IDirig _ctrl;
 		
-		public FileRegistry( IDirig ctrl, string localMachineId, string rootForRelativePaths, GetMachineIPDelegate machineIdDelegate )
+		/// <param name="downloadFolder">
+		/// What %DOWNLOADS% expands to on this machine. Empty or null means the download folder of
+		/// the user this process runs as.
+		/// </param>
+		public FileRegistry( IDirig ctrl, string localMachineId, string rootForRelativePaths, GetMachineIPDelegate machineIdDelegate, string? downloadFolder = null )
 		{
 			_ctrl = ctrl;
 			_localMachineId = localMachineId;
 			_rootForRelativePaths = rootForRelativePaths;
+			_downloadFolder = downloadFolder;
 			_machineIPDelegate = machineIdDelegate;
 		}
 		
@@ -201,17 +208,28 @@ namespace Dirigent
 			{
 				var vars = new Dictionary<string, string>();
 
-				// the download folder of the user running this dirigent instance
-				vars["DOWNLOADS"] = Tools.GetDownloadFolderPath();
+				// the download folder of this machine; configurable so that it need not be the
+				// real user folder (a test run must not litter it)
+				vars["DOWNLOADS"] = string.IsNullOrEmpty( _downloadFolder )
+										? Tools.GetDownloadFolderPath()
+										: _downloadFolder;
 
 				// for app-bound files, expand also local vars and define var for app working dir etc.
 				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
 				{
 					// KEEP IN SYNC WITH Launcher.cs
 					vars["MACHINE_ID"] = _localMachineId;
-					vars["MACHINE_IP"] = GetMachineIP( _localMachineId );
 					vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
-					vars["DIRIGENT_MACHINE_IP"] = GetMachineIP( _localMachineId );
+
+					// The IP is only known once the machine definitions have arrived, and asking
+					// for it throws when they have not. Resolving a path that does not mention the
+					// IP at all must not fail for that reason, so only look it up when it is used.
+					if( MentionsMachineIP( path ) )
+					{
+						var machineIP = GetMachineIP( _localMachineId );
+						vars["MACHINE_IP"] = machineIP;
+						vars["DIRIGENT_MACHINE_IP"] = machineIP;
+					}
 				
 					if( !string.IsNullOrEmpty( fdef.AppId ) )
 					{
@@ -251,6 +269,12 @@ namespace Dirigent
 
 			return MakeUNC( path, machineId, $"FileDef {fdef}" );
 		}
+
+		/// <summary>
+		/// Whether the path uses the machine IP variable, in any of its spellings.
+		/// </summary>
+		static bool MentionsMachineIP( string path )
+			=> path.IndexOf( "MACHINE_IP", StringComparison.OrdinalIgnoreCase ) >= 0;
 
 		bool IsMatch( string? pattern, string? str )
 		{

@@ -87,7 +87,11 @@ namespace Dirigent
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private Dictionary<string, MachineState> _machineStates = new(); // id => state
 
-		public ReflectedStateRepo( Net.Client client, string localMachineId, string rootForRelativePaths )
+		/// <param name="downloadFolder">
+		/// What %DOWNLOADS% expands to on this machine. Empty or null means the download folder of
+		/// the user this process runs as.
+		/// </param>
+		public ReflectedStateRepo( Net.Client client, string localMachineId, string rootForRelativePaths, string? downloadFolder = null )
 		{
 			_client = client;
 			_client.MessageReceived += OnMessage;
@@ -104,7 +108,7 @@ namespace Dirigent
 					return state.IP;
 				}
 				return null;
-			});
+			}, downloadFolder );
 		}
 
 		protected override void Dispose( bool disposing )

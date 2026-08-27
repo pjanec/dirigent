@@ -58,6 +58,12 @@ namespace Dirigent
 		[Option( "rootForRelativePaths", Required = false, Default = "", HelpText = "root folder for relative paths if used in StartupDir, FullExeName etc." )]
 		public string RootForRelativePaths { get; set; } = string.Empty;
 
+		[Option( "agentStatusFolder", Required = false, Default = "", HelpText = "folder for the agent status file used for post-crash recovery. Default is %LocalAppData%\\Dirigent." )]
+		public string AgentStatusFolder { get; set; } = string.Empty;
+
+		[Option( "downloadFolder", Required = false, Default = "", HelpText = "folder where downloaded file packages are placed. Default is the download folder of the user the agent runs as." )]
+		public string DownloadFolder { get; set; } = string.Empty;
+
 		[Option( "logFile", Required = false, Default = "", HelpText = "log file name." )]
 		public string LogFile { get; set; } = string.Empty;
 
@@ -124,6 +130,13 @@ namespace Dirigent
 		//public SharedConfig? SharedConfig = null;
 		//public LocalConfig? LocalConfig = null;
 		public string RootForRelativePaths = "";
+
+		/// <summary>Where to keep the agent status file. Empty = %LocalAppData%\Dirigent</summary>
+		public string AgentStatusFolder = "";
+
+		/// <summary>Where downloaded file packages are placed. Empty = the user's download folder</summary>
+		public string DownloadFolder = "";
+
 		public string IsMaster = "0"; // "1"=run the master process automatically
 		public int TickPeriod = 500; // msec
 		public int MasterTickPeriod = 50; // msec
@@ -161,7 +174,8 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.MasterPort != 0 ) MasterPort = Common.Properties.Settings.Default.MasterPort;
 			if( Common.Properties.Settings.Default.SharedConfigFile != "" ) SharedCfgFileName = Common.Properties.Settings.Default.SharedConfigFile;
 			if( Common.Properties.Settings.Default.LocalConfigFile != "" ) LocalCfgFileName = Common.Properties.Settings.Default.LocalConfigFile;
-			if( Common.Properties.Settings.Default.RootForRelativePaths != "" ) Mode = Common.Properties.Settings.Default.RootForRelativePaths;
+			// note: this used to assign to Mode, which silently broke both settings
+			if( Common.Properties.Settings.Default.RootForRelativePaths != "" ) RootForRelativePaths = Common.Properties.Settings.Default.RootForRelativePaths;
 			if( Common.Properties.Settings.Default.Mode != "" ) Mode = Common.Properties.Settings.Default.Mode;
 			if( Common.Properties.Settings.Default.StartupPlan != "" ) StartupPlan = Common.Properties.Settings.Default.StartupPlan;
 			if( Common.Properties.Settings.Default.StartupScript != "" ) StartupScript = Common.Properties.Settings.Default.StartupScript;
@@ -197,6 +211,8 @@ namespace Dirigent
 				if( options.StartHidden != "" ) StartHidden = options.StartHidden;
 				if( options.Mode != "" ) Mode = options.Mode;
 				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;
+				if( options.AgentStatusFolder != "" ) AgentStatusFolder = options.AgentStatusFolder;
+				if( options.DownloadFolder != "" ) DownloadFolder = options.DownloadFolder;
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;
