@@ -747,7 +747,12 @@ namespace Dirigent
 		{
 			SharedConfig sharedConfig;
 			log.DebugFormat( "Loading shared config file '{0}'", fileName );
-			sharedConfig = new SharedConfigReader( System.IO.File.OpenText( fileName ) ).Config;
+			// the reader parses the whole document up front, so releasing the file right away
+			// keeps a reload from leaking a handle and from holding the config file open
+			using( var textReader = System.IO.File.OpenText( fileName ) )
+			{
+				sharedConfig = new SharedConfigReader( textReader ).Config;
+			}
 			_sharedConfigFileName = fileName;
 			return sharedConfig;
 		}

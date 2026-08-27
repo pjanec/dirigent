@@ -132,7 +132,11 @@ namespace Dirigent.Gui.WinForms
 			{
 				var fullPath = Path.GetFullPath( _ac.LocalCfgFileName );
 				log.DebugFormat( "Loading local config file '{0}'", fullPath );
-				_localConfig = new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
+				// dispose the reader so the config file is not held open for the process lifetime
+				using( var textReader = File.OpenText( fullPath ) )
+				{
+					_localConfig = new LocalConfigReader( textReader, machineId ).Config;
+				}
 
 				foreach( var td in _localConfig.Tools )
 				{

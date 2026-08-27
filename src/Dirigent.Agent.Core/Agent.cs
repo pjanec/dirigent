@@ -446,7 +446,9 @@ namespace Dirigent
 
 			var fullPath = Path.GetFullPath( fileName );
 			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			return new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
+			// dispose the reader so the config file is not held open for the process lifetime
+			using var textReader = File.OpenText( fullPath );
+			return new LocalConfigReader( textReader, machineId ).Config;
 		}
 
 		void InitFromLocalConfig()
