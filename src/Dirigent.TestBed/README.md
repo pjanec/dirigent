@@ -10,21 +10,21 @@ keep it trustworthy, and exactly what comes next.
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 28 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 46 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download test at tier 1 | done, 3 tests |
 | Files over the CLI/REST surface | done, 6 tests |
 | Tier 2: `Dirigent.TestBed.Gen` + PowerShell driver | done, 8 tests |
-| Breadth at tier 1 (plans, detectors, restarts, env vars, reconnect) | **next** |
-| Tier 3 on the two VMs | not started |
+| Breadth at tier 1 (plans, detectors, restarts, kills, env vars, reload, reconnect) | done |
+| Tier 3 on the two VMs | **next** |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 
 ## Running
 
 ```
-dotnet test src/Dirigent.IntegrationTests   # tier 1, ~27 s
+dotnet test src/Dirigent.IntegrationTests   # tier 1, ~75 s
 dotnet test src/Dirigent.CommonTests        # unit tests incl. the scenario renderer
 
 src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1            # tier 2, ~31 s
@@ -60,6 +60,10 @@ singleton and the components pace themselves with `Stopwatch`), so a fixed sleep
 will eventually fail on a loaded machine. The only wait is
 `WaitUntilAsync( condition, timeout, because )`, which on expiry dumps client states, app
 definitions, app states, notifications and the tail of the log4net stream.
+
+A *negative* property - "it was not restarted" - has no condition to wait for, so it is checked by
+observing for a bounded window instead. That is the one legitimate use of a delay, and it cannot be
+flaky: it only fails if the thing being ruled out actually happens.
 
 **Read state only through the operator.** The pump thread owns every `Tick()`. `Operator` marshals
 each call into the tick through `SynchronousOpProcessor`, so a read never observes a half-applied
@@ -118,6 +122,16 @@ render for real processes and for VMs.
   in the config the download sends the other machines through `\\127.0.0.1\C$`, which needs an
   elevated token; with none, every "machine" writes to the folder directly, which is what a
   tier-1 bed actually is.
+- A **plan's `<App>` is a complete application definition**, not a reference to the standalone one.
+  Rendering only the id leaves Dirigent trying to launch the startup folder, which surfaces as
+  "Access is denied". `Plan( name, p => p.App( ... ) )` renders the whole application and lays the
+  plan's own attributes over it - which is also where dependencies and init conditions belong, as
+  the loader rejects a dependency it cannot resolve among the standalone definitions.
+- **`ReloadSharedConfig` sleeps three seconds inside the master's tick.** Nothing is answered while
+  it runs, so a test around a reload needs a timeout comfortably above that.
+- **A graceful agent stop deletes its status file**, by design, so nothing is left to adopt.
+  `StopAgent( machine, crash: true )` keeps the file, which is the only way to exercise post-crash
+  adoption in-process.
 - `HttpPort` is 0 in every bed, which switches the web server off - no test needs it in-process.
   Note for anything outside the bed: on the *command line* `--httpPort 0` does **not** switch it
   off, it falls back to 8877; `-1` does. (No URL ACL is needed either way - EmbedIO listens on its
@@ -196,15 +210,30 @@ It found three things tier 1 structurally could not:
 Tier 2 stays small on purpose: hosting and startup, agent kill-and-recover against the status file,
 both remote-control surfaces answering, and one end-to-end download. Anything that can be shown
 in-process belongs at tier 1, where it costs a second instead of four.
-## Next: breadth at tier 1
+## Done: breadth at tier 1
 
-Where the harness starts paying for itself. Each of these has a test-app switch already:
-plans and dependencies, init detectors (`ReadyAfter`), restart on crash (`ExitsAfter`), soft kill
-and kill tree (`IgnoresClose`, `SpawnsChildren`), env var propagation (`PrintsEnvironment`),
-config reload, client reconnect. The additive `Master`-takes-a-`SharedConfig` seam belongs here,
-to drop temp-file churn from the fast tier.
+`PlanTests`, `AppLifetimeTests` and `ReloadAndReconnectTests` cover the orchestration itself: plans
+across machines and their status, dependencies waiting for a dependency to be *initialized* (locally
+and over the network), volatile versus kept-alive applications, restart on crash, kill tree, soft
+kill escalating within its timeout, environment variables from the config and from the launch,
+shared-config reload, an agent dropping off and coming back, and post-crash adoption of an
+application that outlived its agent.
 
-## Last: tier 3 on the VMs
+Three bugs came out of it:
+
+- A **dependency written without a machine** ("first" rather than "m1.first") was rejected by the
+  config validator although `AppLaunchPlanner` resolves exactly that form at run time. The loader
+  now parses it the same way, so it can only accept configs it used to refuse.
+- The **circular-dependency check** had the same parse, so its recursion never found a bare-named
+  dependency and a cycle written that way went undetected.
+- **Teardown depended on state having reached the operator.** A test that finishes on a file
+  appearing ends before the operator knows the application is running, so the survivor scan found
+  nothing and killed nothing - five applications and eleven temp folders survived a green run. The
+  pump now notes every pid the agents report, which needs no network at all.
+
+`TODO.md` records reload not picking up a changed command line, tested on the Linux build. It does
+not reproduce here: `ReloadPicksUpAChangedCommandLine` passes on Windows and now guards it.
+## Next: tier 3 on the VMs
 
 Reuse `Dirigent.TestBed.Gen` and the tier-2 PowerShell verbs against the existing `config/VM` scaffolding
 (`set-vm-IPs.ps1`, `inst_m*.bat`) as a nightly or pre-release gate. Only this tier covers real SMB

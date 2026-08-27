@@ -204,6 +204,12 @@ namespace Dirigent.TestBed
 		public Task KillPlanAsync( string planName )
 			=> Send( new Net.KillPlanMessage( Name, planName ) );
 
+		/// <summary>Makes the master read its shared config again.</summary>
+		/// <param name="killApps">as the GUI offers it: reload with or without stopping everything</param>
+		public Task ReloadSharedConfigAsync( bool killApps = false )
+			=> Send( new Net.ReloadSharedConfigMessage( Name,
+					new ReloadSharedConfigArgs() { KillApps = killApps } ) );
+
 		public Task SendAsync( Net.Message msg ) => Send( msg );
 
 		Task Send( Net.Message msg ) => InTick<object?>( () => { _states.Send( msg ); return null; } );

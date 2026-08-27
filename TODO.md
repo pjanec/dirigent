@@ -118,6 +118,8 @@ Support also files downloaded to the gateway, meaning translating gateway
 [TODO] FolderWatcher from trayapp to Agent
 
 [BUG] ReloadSharedConfig does not change the appdef (changed cmdLineArgs, tested in linux version)
+      Does not reproduce on Windows: src/Dirigent.IntegrationTests ReloadAndReconnectTests.
+      ReloadPicksUpAChangedCommandLine passes and now guards it. Still to be checked on Linux.
 
 [TODO] Unselect app from plan also as CLI operation. Unselected app not affected by start/kill/restart plan. Starting unselected app uses it's default configuration.
 

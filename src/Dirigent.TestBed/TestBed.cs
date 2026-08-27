@@ -75,7 +75,10 @@ namespace Dirigent.TestBed
 
 		readonly Dictionary<string, string> _machineIds = new();
 		readonly Master _master;
+		/// <summary>Guards the agent list against a test taking one down while the pump ticks it.</summary>
+		readonly object _agentsLock = new();
 		readonly List<Agent> _agents = new();
+		readonly Dictionary<string, AppConfig> _agentConfigs = new();
 		readonly Thread _pump;
 		readonly CancellationTokenSource _stop = new();
 		readonly TestBedOptions _opts;
@@ -130,8 +133,8 @@ namespace Dirigent.TestBed
 
 			foreach( var machineId in _machineIds.Values )
 			{
-				var agentConfig = MakeAppConfig( machineId, MasterPort, CliPort );
-				_agents.Add( new Agent( agentConfig, machineId ) );
+				_agentConfigs[machineId] = MakeAppConfig( machineId, MasterPort, CliPort );
+				_agents.Add( new Agent( _agentConfigs[machineId], machineId ) );
 			}
 
 			// The operator sits on the first machine and names itself the way a real GUI does,
@@ -200,7 +203,7 @@ namespace Dirigent.TestBed
 			}
 
 			Operator.Dispose();
-			foreach( var agent in _agents ) SafeDispose( agent );
+			foreach( var agent in Agents() ) SafeDispose( agent );
 			SafeDispose( _master );
 
 			KillProcesses( survivors );
@@ -227,7 +230,7 @@ namespace Dirigent.TestBed
 		/// </remarks>
 		void NoteRunningProcesses()
 		{
-			foreach( var agent in _agents )
+			foreach( var agent in Agents() )
 			{
 				foreach( var (_, state) in agent.GetAllAppsState() )
 				{
@@ -311,6 +314,82 @@ namespace Dirigent.TestBed
 			}
 		}
 
+		// ---- agents coming and going ---------------------------------------------------
+
+		Agent[] Agents() { lock( _agentsLock ) return _agents.ToArray(); }
+
+		/// <summary>
+		/// Takes an agent down, leaving its applications running as Dirigent deliberately does.
+		/// </summary>
+		/// <param name="crash">
+		/// True to leave the agent status file behind, as a process that died would. Disposing an
+		/// agent is a graceful exit, and a graceful exit removes that file on purpose - so without
+		/// this there is nothing for the next agent to adopt from, and post-crash recovery cannot be
+		/// exercised in-process at all.
+		/// </param>
+		public void StopAgent( string machineName, bool crash = false )
+		{
+			var machineId = Machine( machineName );
+
+			Agent? agent = null;
+			lock( _agentsLock )
+			{
+				agent = _agents.FirstOrDefault( a => a.Name == machineId );
+				if( agent is not null ) _agents.Remove( agent );
+			}
+
+			if( agent is null )
+				throw new ArgumentException( $"no agent for machine '{machineName}' is running" );
+
+			var statusFile = AgentStateSaverLoader.GetStatusFilePath( machineId, AgentStatusFolder );
+			var status = crash && File.Exists( statusFile ) ? File.ReadAllBytes( statusFile ) : null;
+
+			// disposed outside the lock: it talks to the master, which the pump is ticking
+			SafeDispose( agent );
+
+			if( status is not null )
+				File.WriteAllBytes( statusFile, status );
+		}
+
+		/// <summary>
+		/// Starts the agent of a machine again, with the configuration it had before, so it reconnects
+		/// and adopts whatever it finds still running.
+		/// </summary>
+		public void StartAgent( string machineName )
+		{
+			var machineId = Machine( machineName );
+
+			if( !_agentConfigs.TryGetValue( machineId, out var config ) )
+				throw new ArgumentException( $"machine '{machineName}' is not part of this bed" );
+
+			var agent = new Agent( config, machineId );
+			lock( _agentsLock )
+			{
+				if( _agents.Any( a => a.Name == machineId ) )
+				{
+					agent.Dispose();
+					throw new ArgumentException( $"the agent of '{machineName}' is already running" );
+				}
+				_agents.Add( agent );
+			}
+		}
+
+		/// <summary>
+		/// Rewrites the shared config from a scenario and makes the master read it again - what the
+		/// GUI's "reload shared config" and the CLI's ReloadSharedConfig do.
+		/// </summary>
+		/// <remarks>
+		/// The master sleeps three seconds inside the reload, so nothing else is answered while it
+		/// runs; wait for the effect with a timeout comfortably above that.
+		/// </remarks>
+		public async Task ReloadSharedConfigAsync( Scenarios.Scenario scenario, bool killApps = false )
+		{
+			Scenarios.WorldSeeder.Seed( scenario.Spec, RenderContext );
+			File.WriteAllText( SharedConfigPath, Scenarios.SharedConfigRenderer.Render( scenario.Spec, RenderContext ) );
+
+			await Operator.ReloadSharedConfigAsync( killApps );
+		}
+
 		// ---- the pump ---------------------------------------------------------------
 
 		void PumpLoop()
@@ -322,7 +401,7 @@ namespace Dirigent.TestBed
 					_pumpStage = "master";
 					_master.Tick();
 					_pumpStage = "agents";
-					foreach( var agent in _agents ) agent.Tick();
+					foreach( var agent in Agents() ) agent.Tick();
 
 					_pumpStage = "pids";
 					NoteRunningProcesses();
