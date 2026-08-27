@@ -1,8 +1,8 @@
 # Dirigent test harness
 
-Integration testing for Dirigent's local *and* distributed behaviour. The full design is in the
-"Rehearsal Room" document; this file is the working state: how to use what exists, the rules that
-keep it trustworthy, and exactly what comes next.
+Integration testing for Dirigent's local *and* distributed behaviour. This file is the working
+guide: how to run what exists, how to write a test, and the rules that keep it trustworthy. The
+design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md).
 
 ## Status
 
@@ -140,114 +140,9 @@ render for real processes and for VMs.
 
 ---
 
-# Way forward
+# Where the rest of it is written down
 
-## Done: the log download at tier 1
-
-`LogDownloadTests` covers what the harness was built for: a package collecting the recent logs of
-three applications on two machines arrives as one archive, laid out
-`m1/log/Recent logs/camera/app.log`; the nine-day-old seeded file is filtered out by `MaxSeconds`;
-`Args="perMachine"` yields one archive per machine instead; a single application's node takes only
-its own; the staging folder is removed and the operator is notified.
-
-The blocking question - a tier-1 download folder under `%TEMP%` that no share covers - was
-answered the way the product wanted anyway: **each slave is handed the destination as both a local
-and a UNC path and uses the local one when it owns the folder.** A slave on the requestor's own
-machine no longer copies its archive through `\\ip\share\...` to its own disk, and a machine
-that cannot reach the folder is now reported in the final message instead of failing the whole
-download. Two real bugs surfaced on the way, both in code that had never run in the field:
-
-- `<FileRef MachineId="*">` was dispatched for resolution to a machine literally named `*`, so a
-  package gathering files from every machine could never resolve. Guarded by
-  `ResolveFolderTests.WildcardReferenceIsLookedUpLocallyTest`.
-- the global (machine-less) files were assigned to the first machine in the list even when no
-  slave was started for it.
-
-## Done: the remote-control surface for files
-
-The plan here was three new CLI commands. It turned out none was needed. `StartScript` plus
-`GetScriptState` already carry everything; what was missing was the ability to *name* a node from
-outside, since only a GUI can hand a script a resolved node tree. So each VFS script now takes a
-`VfsNodeSelector` - `{Node:{Id:"logs.all"}}`, the same id/machine/app triplet a `<FileRef>` uses -
-and resolves it itself. `BuiltIns/ListVfsNodes.cs` is new, because nothing listed the
-declarations; `DownloadZipped.TResult`, which was an empty class, now carries the archive paths,
-the machines that took part and the per-machine errors.
-
-Script arguments are always JSON deserialisable into the script's argument class - no script
-parses a plain string. Documented in `docs/Scripts.md`, exercised by `CliSurfaceTests`.
-
-One product bug fell out of it: the CLI parsed the request id greedily up to the **last** `]` in
-the line, so any request whose arguments contained a JSON array had its tail chopped off and
-parsed as another command. `JsonArgumentsMayContainArrays` fails on the old regex and passes on
-the new one.
-
-`CliSession` (in the harness) wraps `CommandLineClient` for tests, and is the shape the PowerShell
-verbs should take: send a request, read the answer, throw on `ERROR:`.
-
-## Done: tier 2
-
-`Dirigent.TestBed.Gen` renders any scenario preset to a folder - shared config, local config,
-seeded application folders, and a `world.json` manifest - so PowerShell consumes the same worlds as
-tier 1 instead of keeping a second copy of them. The driver and its eight tests live in
-`src/Dirigent.TestBed.PowerShell`, on stock Windows PowerShell 5.1 with nothing to install; that
-README is the place to look.
-
-It found three things tier 1 structurally could not:
-
-- **An agent dies if `LocalConfig.xml` is missing.** The setting defaults to that name resolved
-  against the working directory, and the file being absent takes the process down at startup. Left
-  as it is - a real deployment has one - and the generator now writes one.
-- **`--httpPort 0` does not disable the web server**, it falls back to 8877; `-1` disables. Two
-  worlds, or a world and a real installation, would otherwise fight over that port.
-- **A download requested by anything that is not an agent or a GUI** resolved its destination to
-  the literal `%DOWNLOADS%`. The requestor lookup fell back to the client name, which is empty on
-  the master, and an empty machine id means "global" to the resolver, which hands the path back
-  unexpanded. Fixed with an additive `IDirig.MachineId` (an agent's client name already is its
-  machine id, so the default is right for agents) and a new `ToMachine` argument, so a scripted
-  download can name where the files should land. Pinned at tier 1 by
-  `DownloadCanBeAimedAtAChosenMachine` and `DownloadToAnUnknownMachineIsRefusedClearly`.
-
-Tier 2 stays small on purpose: hosting and startup, agent kill-and-recover against the status file,
-both remote-control surfaces answering, and one end-to-end download. Anything that can be shown
-in-process belongs at tier 1, where it costs a second instead of four.
-## Done: breadth at tier 1
-
-`PlanTests`, `AppLifetimeTests` and `ReloadAndReconnectTests` cover the orchestration itself: plans
-across machines and their status, dependencies waiting for a dependency to be *initialized* (locally
-and over the network), volatile versus kept-alive applications, restart on crash, kill tree, soft
-kill escalating within its timeout, environment variables from the config and from the launch,
-shared-config reload, an agent dropping off and coming back, and post-crash adoption of an
-application that outlived its agent.
-
-Three bugs came out of it:
-
-- A **dependency written without a machine** ("first" rather than "m1.first") was rejected by the
-  config validator although `AppLaunchPlanner` resolves exactly that form at run time. The loader
-  now parses it the same way, so it can only accept configs it used to refuse.
-- The **circular-dependency check** had the same parse, so its recursion never found a bare-named
-  dependency and a cycle written that way went undetected.
-- **Teardown depended on state having reached the operator.** A test that finishes on a file
-  appearing ends before the operator knows the application is running, so the survivor scan found
-  nothing and killed nothing - five applications and eleven temp folders survived a green run. The
-  pump now notes every pid the agents report, which needs no network at all.
-
-`TODO.md` records reload not picking up a changed command line, tested on the Linux build. It does
-not reproduce here: `ReloadPicksUpAChangedCommandLine` passes on Windows and now guards it.
-## Next: tier 3 on the VMs
-
-Reuse `Dirigent.TestBed.Gen` and the tier-2 PowerShell verbs against the existing `config/VM` scaffolding
-(`set-vm-IPs.ps1`, `inst_m*.bat`) as a nightly or pre-release gate. Only this tier covers real SMB
-with credentials, distinct user profiles, a machine going offline mid-download, and reboot.
-
-## Standing constraints
-
-- **Compatibility first outside the VFS.** Dirigent is widely deployed. Prefer new optional
-  settings, new commands and new overloads whose defaults reproduce existing behaviour exactly.
-  Avoid changing wire messages, existing command responses, or the meaning of existing fields —
-  avoid, not "do carefully". The file/package (VFS) subsystem is the exception: never used in the
-  field, so its shape may change freely, though its config attributes stay backward compatible
-  because example configs circulate.
-- **Two agents can share an address.** In a tier-1 bed every machine is `127.0.0.1`, so any logic
-  identifying a machine by address is ambiguous there. The download reads the operator's machine
-  from the client name prefix (`{machineId}_gui_{guid}`) for this reason; the same pattern may
-  exist elsewhere and is worth a grep rather than an assumption.
+The design, the principles behind these rules, what the harness has found, and the roadmap are in
+[`docs/TestHarness.md`](../../docs/TestHarness.md) - one place, so the plan cannot say two things.
+Tier 2 has its own practical guide in
+[`../Dirigent.TestBed.PowerShell/README.md`](../Dirigent.TestBed.PowerShell/README.md).

@@ -8,6 +8,8 @@ its applications when it comes back, and that the remote-control surfaces answer
 
 Windows PowerShell 5.1. Nothing to install.
 
+The design behind the tiers is in [`docs/TestHarness.md`](../../docs/TestHarness.md).
+
 ## Running
 
 ```powershell

@@ -61,6 +61,8 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Design notes (not up to date)](docs/Design-notes.md)
 
+[Test harness](docs/TestHarness.md)
+
 # Building from source
 
 Requires: net 6, powershell, Visual Studio 2022
