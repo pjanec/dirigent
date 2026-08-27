@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -61,6 +61,9 @@ namespace Dirigent.TestBed
 		public int MasterPort { get; }
 		public Operator Operator { get; }
 
+		/// <summary>The machine the operator is seated on, and hence whose download folder is used.</summary>
+		public string OperatorMachine { get; } = "";
+
 		/// <summary>Where the run's folders are, for tests that need to look at the files.</summary>
 		public RenderContext RenderContext { get; }
 
@@ -75,6 +78,7 @@ namespace Dirigent.TestBed
 		readonly TestBedOptions _opts;
 
 		volatile Exception? _pumpFault;
+		volatile string _pumpStage = "not started";
 		long _ticks;
 
 		TestBed( TestBedOptions opts )
@@ -126,7 +130,11 @@ namespace Dirigent.TestBed
 				_agents.Add( new Agent( agentConfig, machineId ) );
 			}
 
-			Operator = new Operator( $"op_{RunTag}", "127.0.0.1", MasterPort, TempRoot );
+			// The operator sits on the first machine and names itself the way a real GUI does,
+			// "{machineId}_gui_{guid}". That name is how a download works out whose download folder
+			// the files belong in - by address it could not, every machine here being 127.0.0.1.
+			OperatorMachine = _machineIds.Values.First();
+			Operator = new Operator( $"{OperatorMachine}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot );
 
 			_pump = new Thread( PumpLoop ) { IsBackground = true, Name = $"dirigent-testbed-{RunTag}" };
 			_pump.Start();
@@ -173,10 +181,18 @@ namespace Dirigent.TestBed
 			var survivors = CollectRunningProcesses();
 
 			_stop.Cancel();
-			if( _pump.IsAlive && !_pump.Join( TimeSpan.FromSeconds( 5 ) ) )
+
+			if( Thread.CurrentThread == _pump )
+			{
+				// the test body is running on the pump thread, so joining it would wait for itself.
+				// Something awaited a task completed from inside the tick without handing the
+				// continuation back to the pool - see Operator.OffPump.
+				Console.WriteLine( $"[testbed {RunTag}] disposed from the pump thread; a continuation escaped into the tick" );
+			}
+			else if( _pump.IsAlive && !_pump.Join( TimeSpan.FromSeconds( 5 ) ) )
 			{
 				// the pump is stuck; nothing safe left to do but say so
-				Console.WriteLine( $"[testbed {RunTag}] pump thread did not stop within 5 s" );
+				Console.WriteLine( $"[testbed {RunTag}] pump thread did not stop within 5 s, stuck in {_pumpStage}" );
 			}
 
 			Operator.Dispose();
@@ -277,9 +293,13 @@ namespace Dirigent.TestBed
 			{
 				try
 				{
+					_pumpStage = "master";
 					_master.Tick();
+					_pumpStage = "agents";
 					foreach( var agent in _agents ) agent.Tick();
+					_pumpStage = "operator";
 					Operator.Tick();
+					_pumpStage = "idle";
 					Interlocked.Increment( ref _ticks );
 				}
 				catch( Exception ex )

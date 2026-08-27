@@ -408,9 +408,11 @@ What it does:
    instead of producing an empty archive.
 3. Starts a slave script (`BuiltIns/DownloadZippedSlave.cs`) on each of the remaining machines.
    Each slave copies **its own local files** into a temp tree mirroring the virtual folder
-   structure, zips it, and uploads the archive over UNC to a staging folder next to the
-   requestor's download folder. Files belonging to no machine (the global ones) are handled by
-   the first machine in the list.
+   structure, zips it, and uploads the archive to a staging folder next to the requestor's
+   download folder. A slave running on the machine that owns that folder writes to it as a plain
+   local path; the others go through the UNC path (see
+   [the destination folder](#the-destination-folder) below). Files belonging to no machine (the
+   global ones) are handled by the first machine that gets a slave started.
 4. Runs `BuiltIns/MergeZipped.cs` on the requestor's machine, which joins the uploaded archives
    into the final one and removes the staging folder.
 5. Shows a message box naming the archive, plus any errors collected along the way - a missing
@@ -438,10 +440,9 @@ Notable properties:
 * Folders are named after the `Title` of the containing node. Files belonging to an app
   additionally go into a subfolder named after the app, so that the same-named log files of
   several apps do not clash. Remaining name clashes get a `_2`, `_3`, ... suffix.
-* The files land in the download folder of the **machine the requestor runs on**, determined from
-  the agent connected from the same address as the requesting GUI. That folder must be reachable
-  by UNC from every participating machine, so the requestor's machine also needs a `<Share>`
-  covering it.
+* The files land in the download folder of the **machine the requestor runs on**. A GUI carries
+  that machine in its client name (`<machineId>_gui_<guid>`); for a client named some other way,
+  the agent connected from the same address is used instead.
 * Each machine compresses its own part, so what travels over the network is already compressed.
   The merging step then repacks the parts on the requestor's machine, which costs some CPU there
   but keeps the transfer small.
@@ -451,6 +452,24 @@ Notable properties:
   ```xml
   <Script Title="Download zipped (per machine)" Name="BuiltIns/DownloadZipped.cs" Args="perMachine"/>
   ```
+
+#### The destination folder
+
+Every participating machine has to be able to write into the requestor's download folder. Each
+slave is handed that folder twice - as a local path and as a UNC path - and uses the local one
+when it is running on the machine that owns the folder. That is the common case of a GUI and an
+agent on the same box: the archive is copied straight to disk instead of through a share.
+
+For the *other* machines the UNC path is the only way in, so the requestor's machine needs a
+`<Share>` covering its download folder (see
+[UNC paths and file shares](#unc-paths-and-file-shares)). Without one:
+
+* machines that own the folder still deliver their files;
+* every other machine is reported in the final message as unable to upload, and the download
+  completes with what could be collected rather than failing outright.
+
+A machine answering at the same address as the requestor's machine shares its disks with it, so
+where no share is defined at all, such a machine is allowed to use the local path too.
 
 ### `BuiltIns/BrowseInDblCmdVirtPanel.cs` - browse in Double Commander
 
@@ -623,10 +642,10 @@ nodes can still add up to a large archive, as `MaxTotalBytes` bounds each node s
 some tool examples in the config, are not provided and expand to nothing. Container actions get
 `%FILE_PATH%` with the quoted list of paths instead.
 
-**The download folder is derived from the requestor's address.** The machine to download to is
-found by looking for the agent connected from the same address as the requesting GUI. If the GUI
-runs on a machine with no agent, the files land in the download folder of the machine running
-the master, and a warning is logged.
+**The download folder follows the requestor's client name.** The machine to download to is taken
+from the `<machineId>_gui_<guid>` name a GUI gives itself, and only if that machine has no agent
+connected is the agent at the same address looked for. If neither works out, the files land in
+the download folder of the machine running the master, and a warning is logged.
 
 **`%DOWNLOADS%` follows the agent's user.** It is read from the registry of the user the agent
 process runs as, which is not the interactive user if the agent runs as a service under a

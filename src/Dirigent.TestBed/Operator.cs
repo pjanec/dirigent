@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -92,6 +92,23 @@ namespace Dirigent.TestBed
 		public Task<IReadOnlyList<MachineDef>> GetAllMachinesDefAsync()
 			=> InTick( () => (IReadOnlyList<MachineDef>) _states.GetAllMachinesDef().ToList() );
 
+		/// <summary>The VFS nodes the master distributed, i.e. the top-level ones from the config.</summary>
+		public Task<IReadOnlyList<VfsNodeDef>> GetAllVfsNodesAsync()
+			=> InTick( () => (IReadOnlyList<VfsNodeDef>) _states.GetAllVfsNodesDef().ToList() );
+
+		/// <summary>
+		/// The definition of a node by its config id - what a GUI holds when the user clicks it.
+		/// </summary>
+		public async Task<VfsNodeDef> GetVfsNodeAsync( string id )
+		{
+			var all = await GetAllVfsNodesAsync();
+			var found = all.Where( n => n.Id == id ).ToList();
+			if( found.Count == 1 ) return found[0];
+
+			throw new Exception( found.Count == 0
+				? $"no VFS node with id '{id}'; known: {string.Join( ", ", all.Select( n => n.Id ) )}"
+				: $"{found.Count} VFS nodes share the id '{id}'" );
+		}
 		/// <summary>
 		/// Resolves a VFS node the way a context menu click would: variables expanded on the
 		/// machine that owns the node, folders scanned, references followed.
@@ -101,7 +118,42 @@ namespace Dirigent.TestBed
 			// the resolution may itself await a script on another machine, so it must not run
 			// inside the tick - only the call that starts it is marshalled
 			var ctrl = await InTick( () => (IDirig) _states );
-			return await ctrl.ResolveAsync( node, forceUNC, includeContent );
+			return await OffPump( ctrl.ResolveAsync( node, forceUNC, includeContent ) );
+		}
+
+		/// <summary>
+		/// Downloads a VFS node the way a click on a download action would: resolve the node, then
+		/// let the master's DownloadZipped script collect the files from every machine holding them
+		/// into the download folder of the machine this operator sits on.
+		/// </summary>
+		/// <param name="perMachine">one archive per machine instead of a single merged one</param>
+		/// <returns>the resolved node the download ran for</returns>
+		public async Task<VfsNodeDef> DownloadAsync( VfsNodeDef node, bool perMachine = false, TimeSpan? timeout = null )
+		{
+			var resolved = await ResolveAsync( node, forceUNC: false, includeContent: true );
+			if( resolved is null )
+				throw new Exception( $"nothing to download - '{node.Id}' resolved to nothing" );
+
+			var args = new ScriptActionArgs()
+			{
+				VfsNode = resolved,
+				Args = perMachine ? "perMachine" : null,
+			};
+
+			// an empty host id means the master hosts the script, which is where a GUI runs it
+			var task = await InTick( () =>
+			{
+				return _states.ScriptReg.RunScriptAsync<ScriptActionArgs, Scripts.BuiltIn.DownloadZipped.TResult>(
+					"", Scripts.BuiltIn.DownloadZipped._Name, null, args, $"Download {resolved.Title}", out var _ );
+			} );
+
+			var completion = OffPump( task );
+			var finished = await Task.WhenAny( completion, Task.Delay( timeout ?? TimeSpan.FromSeconds( 60 ) ) );
+			if( finished != completion )
+				throw new TimeoutException( $"the download of '{node.Id}' did not finish in time" );
+
+			await completion;  // so a script failure surfaces here
+			return resolved;
 		}
 
 		// ---- commands ---------------------------------------------------------------
@@ -123,6 +175,31 @@ namespace Dirigent.TestBed
 
 		Task Send( Net.Message msg ) => InTick<object?>( () => { _states.Send( msg ); return null; } );
 
+		// ---- threading ---------------------------------------------------------------
+
+		/// <summary>
+		/// Hands the completion of a task back to the thread pool.
+		/// </summary>
+		/// <remarks>
+		/// A script result arrives from inside the pump's tick, and ReflectedScriptRegistry completes
+		/// its task right there, on the pump thread. Awaiting such a task directly would move the rest
+		/// of the test body onto the pump thread - where the next Dispose would wait five seconds for a
+		/// thread that is itself, and every read would run inside a tick rather than between ticks.
+		/// Everything that awaits a script goes through here.
+		/// </remarks>
+		static Task<T> OffPump<T>( Task<T> task )
+		{
+			var tcs = new TaskCompletionSource<T>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+			task.ContinueWith( t =>
+			{
+				if( t.IsFaulted ) tcs.SetException( t.Exception!.InnerExceptions );
+				else if( t.IsCanceled ) tcs.SetCanceled();
+				else tcs.SetResult( t.Result );
+			}, TaskContinuationOptions.ExecuteSynchronously );
+
+			return tcs.Task;
+		}
 		// ---- marshalling ------------------------------------------------------------
 
 		async Task<T> InTick<T>( Func<T> func )

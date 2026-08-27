@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using System;
 using System.Collections.Generic;
@@ -191,6 +191,42 @@ namespace Dirigent.Tests
 
 			// the app association is kept on the files too
 			Assert.IsTrue( resolved.Children.All( x => x.AppId == "camera" ) );
+		}
+
+		[TestMethod()]
+		public void WildcardReferenceIsLookedUpLocallyTest()
+		{
+			// A reference carrying "*" as its machine names no machine: it asks for the node of that id
+			// wherever it lives. Resolving one used to be dispatched to a machine literally called "*",
+			// which is what made a package collecting the logs of every machine unusable.
+			MakeFile( "app.log", 0 );
+
+			// guids as the config reader hands them out: the field default is Guid.Empty, and two nodes
+			// sharing it look like a circular reference to the resolver
+			_reg.SetVfsNodes( new List<VfsNodeDef>()
+			{
+				new FileDef()
+				{
+					Guid = Guid.NewGuid(),
+					Id = "log",
+					Title = "Recent logs",
+					MachineId = _machineId,
+					AppId = "camera",
+					Path = Path.Combine( _root, "app.log" ),
+				},
+			} );
+
+			var resolved = Resolve( new FileRef()
+			{
+				Guid = Guid.NewGuid(),
+				Id = "log",
+				MachineId = "*",
+				AppId = "*",
+			} );
+
+			Assert.AreEqual( Path.Combine( _root, "app.log" ), resolved.Path );
+			Assert.AreEqual( _machineId, resolved.MachineId, "the file keeps the machine it really lives on" );
+			Assert.AreEqual( "camera", resolved.AppId );
 		}
 	}
 }

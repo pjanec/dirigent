@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -106,16 +106,27 @@ namespace Dirigent.Scripts.BuiltIn
 				// %DOWNLOADS% gets expanded during the resolution, which happens on that very machine.
 				var requestorMachine = FindRequestorMachine( clientStates );
 
-				// local path on the requestor's machine, for telling the user where the files went
+				// local path on the requestor's machine; where the files really end up
 				var vfsLocalDownloadFolder = await Dirig.ResolveAsync(
 					new FolderDef() { Path = "%DOWNLOADS%", MachineId = requestorMachine }, false, false );
 				if (vfsLocalDownloadFolder is null) throw new Exception( $"Could not find the download folder of {requestorMachine}." );
 				var downloadsFolder = vfsLocalDownloadFolder.Path!;
 
-				// UNC path to the same folder, for the slaves to upload the archives to
-				var vfsResolvedDownloadFolder = await Dirig.ResolveAsync(
-					new FolderDef() { Path = "%DOWNLOADS%", MachineId = requestorMachine }, true, false );
-				if (vfsResolvedDownloadFolder is null) throw new Exception( "Folder resolution failed." );
+				// UNC path to the same folder, for the slaves on other machines to upload to.
+				// Not every deployment has a file share covering the download folder, and a slave
+				// running on the machine that owns the folder needs none, so this is not fatal here;
+				// only a machine that turns out to need it reports the problem.
+				string? uncDownloadsFolder = null;
+				try
+				{
+					var vfsResolvedDownloadFolder = await Dirig.ResolveAsync(
+						new FolderDef() { Path = "%DOWNLOADS%", MachineId = requestorMachine }, true, false );
+					uncDownloadsFolder = vfsResolvedDownloadFolder?.Path;
+				}
+				catch( Exception e )
+				{
+					log.Info( $"DownloadZipped: no UNC path to the download folder of {requestorMachine}: {e.Message}" );
+				}
 
 				// get the name of the archive file to download
 				string zipFileBase = System.IO.Path.GetFileName(title) + DateTime.Now.ToString("_yyMMdd_HHmm");
@@ -125,22 +136,59 @@ namespace Dirigent.Scripts.BuiltIn
 				// then joins them locally on the requestor's machine.
 				string stagingFolderName = $"{zipFileBase}_parts";
 
-				var slaveDestinationFolder = perMachine
-						? vfsResolvedDownloadFolder.Path!
-						: System.IO.Path.Combine( vfsResolvedDownloadFolder.Path!, stagingFolderName );
+				// the folder each slave uploads to, as a local path and as a UNC path; a slave picks
+				// whichever of them it can actually reach
+				var localSlaveDestination = perMachine
+						? downloadsFolder
+						: System.IO.Path.Combine( downloadsFolder, stagingFolderName );
+
+				var uncSlaveDestination = string.IsNullOrEmpty( uncDownloadsFolder )
+						? null
+						: ( perMachine
+							? uncDownloadsFolder
+							: System.IO.Path.Combine( uncDownloadsFolder, stagingFolderName ) );
+
+				clientStates.TryGetValue( requestorMachine, out var requestorMachineState );
+				var requestorIP = requestorMachineState?.IP;
+
+				// Whether a machine can write to the download folder as a local path. Its own machine
+				// obviously can. A machine reachable at the same address shares the disks as well, and
+				// where no file share is defined that is the only way its slave can get the files there;
+				// with a share available we stay with the share for anything but the owning machine.
+				bool OwnsDownloadFolder( string mach )
+					=> mach == requestorMachine
+					|| ( string.IsNullOrEmpty( uncSlaveDestination )
+						&& !string.IsNullOrEmpty( requestorIP )
+						&& clientStates.TryGetValue( mach, out var st ) && st.IP == requestorIP );
+
+				// machines that cannot reach the download folder at all
+				var unreachable = new Dictionary<string,string>();
 
 				// start a slave script on each machine
 				var slaveTasks = new List<SlaveTask>();
+				bool globalsAssigned = false;
 				foreach (var mach in onlineMachines)
 				{
+					var destinationIsLocal = OwnsDownloadFolder( mach );
+
+					if( !destinationIsLocal && string.IsNullOrEmpty( uncSlaveDestination ) )
+					{
+						unreachable[mach] = $"No file share of {requestorMachine} covers its download folder, "
+										+ $"so {mach} has no way of uploading the files there.";
+						continue;
+					}
+
 					var slaveScriptName = DownloadZippedSlave._Name;
 					var slaveScriptArgs = new DownloadZippedSlave.TArgs()
 					{
 						Container = container,
-						DestinationFolder = slaveDestinationFolder,
+						DestinationFolder = uncSlaveDestination,
+						LocalDestinationFolder = localSlaveDestination,
+						DestinationIsLocal = destinationIsLocal,
 						ZipFileBaseName = zipFileBase,
-						IncludeGlobals = mach == onlineMachines.First(), // first machine will do the global files
+						IncludeGlobals = !globalsAssigned, // the first machine to run does the global files
 					};
+					globalsAssigned = true;
 
 					var task = Dirig.RunScriptAsync<DownloadZippedSlave.TArgs, DownloadZippedSlave.TResult>(
 						mach, slaveScriptName, null, slaveScriptArgs, $"GetZippedFiles on {mach}", out var inst
@@ -158,6 +206,11 @@ namespace Dirigent.Scripts.BuiltIn
 
 				bool hadErrors = false;
 				var errorMsg = $"Errors encountered during download:\n\n";
+				foreach( var (mach, message) in unreachable )
+				{
+					hadErrors = true;
+					errorMsg += $"{mach}:\n    {message}\n\n";
+				}
 				foreach( var st in slaveTasks )
 				{
 					if( st.Result!=null && st.Result.Exceptions.Count > 0 )
@@ -170,7 +223,8 @@ namespace Dirigent.Scripts.BuiltIn
 				}
 
 				// join the per-machine archives into a single one, on the machine holding them
-				if( !perMachine )
+				// (nothing to join if not a single slave could be started)
+				if( !perMachine && slaveTasks.Count > 0 )
 				{
 					var parts = (from x in slaveTasks
 								 where !string.IsNullOrEmpty( x.Result?.ZipFileName )
@@ -255,23 +309,33 @@ namespace Dirigent.Scripts.BuiltIn
 		/// Finds the machine the requestor of the download runs on.
 		/// </summary>
 		/// <remarks>
-		/// The client name of an agent equals its machine id, but a GUI client is named by a GUID,
-		/// so for GUIs we look for an agent connected from the same IP address.
+		/// The client name of an agent equals its machine id. A GUI names itself
+		/// "{machineId}_gui_{guid}", which says where it runs even where several machines answer at
+		/// the same address; the address is the fallback for a client named in some other way.
 		/// </remarks>
 		string FindRequestorMachine( Dictionary<string, ClientState> clientStates )
 		{
-			if( clientStates.TryGetValue( Requestor, out var requestorState ) )
-			{
-				if( requestorState.Ident?.IsAgent ?? false )
-					return Requestor;
+			clientStates.TryGetValue( Requestor, out var requestorState );
 
-				if( !string.IsNullOrEmpty( requestorState.IP ) )
+			if( requestorState?.Ident?.IsAgent ?? false )
+				return Requestor;
+
+			// the machine id a GUI carries in its name
+			var guiTag = Requestor.LastIndexOf( "_gui_", StringComparison.Ordinal );
+			if( guiTag > 0 )
+			{
+				var machineId = Requestor.Substring( 0, guiTag );
+				if( IsConnectedAgent( clientStates, machineId ) )
+					return machineId;
+			}
+
+			// an agent connected from the same address as the requestor
+			if( !string.IsNullOrEmpty( requestorState?.IP ) )
+			{
+				foreach( var (name, state) in clientStates )
 				{
-					foreach( var (name, state) in clientStates )
-					{
-						if( state.Connected && ( state.Ident?.IsAgent ?? false ) && state.IP == requestorState.IP )
-							return name;
-					}
+					if( state.Connected && ( state.Ident?.IsAgent ?? false ) && state.IP == requestorState.IP )
+						return name;
 				}
 			}
 
@@ -279,6 +343,11 @@ namespace Dirigent.Scripts.BuiltIn
 			log.Warn( $"DownloadZipped: could not determine the machine of the requestor '{Requestor}', using '{Dirig.Name}' instead." );
 			return Dirig.Name;
 		}
+
+		static bool IsConnectedAgent( Dictionary<string, ClientState> clientStates, string machineId )
+			=> clientStates.TryGetValue( machineId, out var state )
+				&& state.Connected
+				&& ( state.Ident?.IsAgent ?? false );
 
 		void CollectMachines( VfsNodeDef container, HashSet<string> allMachines )
 		{

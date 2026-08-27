@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,9 +31,22 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 1 )]
 			public VfsNodeDef? Container;
 
-			// Where to upload the zip file. Should be UNC path if on remote machine.
+			// Where to upload the zip file, as seen from a machine that does not own the folder,
+			// i.e. a UNC path. Empty if no file share covers the folder - then only a machine
+			// owning the folder can upload.
 			//[MessagePack.Key( 2 )]
 			public string? DestinationFolder;
+
+			// The very same folder as a local path on the machine that owns it. Used in preference
+			// to the UNC path by a slave running on that machine - copying to our own disk through
+			// a share is pointless work, and without a share it is not even possible.
+			//[MessagePack.Key( 5 )]
+			public string? LocalDestinationFolder;
+
+			// Whether this slave runs on the machine owning the destination folder, i.e. whether
+			// LocalDestinationFolder is a path this slave can use.
+			//[MessagePack.Key( 6 )]
+			public bool DestinationIsLocal;
 
 			// Name of the zip file to create in the destination folder, excluding extension
 			//[MessagePack.Key( 3 )]
@@ -82,13 +95,11 @@ namespace Dirigent.Scripts.BuiltIn
 
 				try
 				{
-					// upload the zip file to the destination
-					// (the destination may be a staging folder created by whoever gets there first)
-					Directory.CreateDirectory( _args.DestinationFolder! );
-
 					var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
-					var destFileFullPath = Path.Combine( _args.DestinationFolder!, destFileName );
-					File.Copy( zipFileFullPath, destFileFullPath, true );
+
+					// upload the zip file to wherever we can reach
+					// (the destination may be a staging folder created by whoever gets there first)
+					Upload( zipFileFullPath, destFileName );
 
 					// all done!
 					var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
@@ -104,6 +115,55 @@ namespace Dirigent.Scripts.BuiltIn
 				// delete temp stuff
 				Directory.Delete( tempFolder, true );
 			}
+		}
+
+		/// <summary>
+		/// Copies the archive to the destination folder, preferring the local path when this very
+		/// machine owns the folder. Copying to our own disk through a file share would be pointless
+		/// work, and in a network with no share defined it is not even possible.
+		/// </summary>
+		string Upload( string zipFileFullPath, string destFileName )
+		{
+			Exception? firstFailure = null;
+
+			foreach( var folder in DestinationFolders() )
+			{
+				try
+				{
+					Directory.CreateDirectory( folder );
+
+					var destFileFullPath = Path.Combine( folder, destFileName );
+					File.Copy( zipFileFullPath, destFileFullPath, true );
+
+					return destFileFullPath;
+				}
+				catch( Exception e )
+				{
+					log.Warn( $"Could not upload {destFileName} to '{folder}': {e.Message}" );
+					if( firstFailure is null ) firstFailure = e;
+				}
+			}
+
+			throw firstFailure ?? new Exception(
+				$"No destination folder to upload {destFileName} to. The machine holding the download "
+				+ $"folder is not this one and no file share of it covers the folder." );
+		}
+
+		/// <summary>
+		/// The folders to try uploading to, in order of preference.
+		/// </summary>
+		IEnumerable<string> DestinationFolders()
+		{
+			// our own disk first, if the folder is on it
+			if( _args!.DestinationIsLocal && !string.IsNullOrEmpty( _args.LocalDestinationFolder ) )
+				yield return _args.LocalDestinationFolder;
+
+			// otherwise (or if the local attempt failed) through the file share
+			if( !string.IsNullOrEmpty( _args!.DestinationFolder ) )
+				yield return _args.DestinationFolder;
+
+			// deliberately no local fallback for a machine that does not own the folder: it would
+			// silently write to a same-named folder on the wrong machine
 		}
 
 		bool IsLocalNode( VfsNodeDef node )

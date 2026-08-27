@@ -10,16 +10,16 @@ keep it trustworthy, and exactly what comes next.
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 11 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 14 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
-| Log-download test at tier 1 | **next** |
-| CLI/REST VFS commands | not started |
+| Log-download test at tier 1 | done, 3 tests |
+| CLI/REST VFS commands | **next** |
 | PowerShell tier-2 driver | not started |
 | Breadth at tier 1 (plans, detectors, restarts, env vars, reconnect) | not started |
 | Tier 3 on the two VMs | not started |
 
-Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios).
+Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 
 ## Running
 
@@ -61,6 +61,15 @@ each call into the tick through `SynchronousOpProcessor`, so a read never observ
 tick. Touching `ReflectedStateRepo` or a client directly from the test thread is what produces
 "collection was modified" flakiness.
 
+**Anything that awaits a script goes through `Operator.OffPump`.** A script result is delivered
+from inside the pump's tick, and `ReflectedScriptRegistry` completes its task right there, on the
+pump thread. Awaiting such a task directly moves the rest of the test body onto the pump thread,
+where the next `Dispose` waits five seconds for a thread that is itself and the survivor scan
+times out, leaving processes and temp folders behind. `ResolveAsync` and `DownloadAsync` already
+do this; a new operator call that awaits a script must too. `TestBed.Dispose` says so out loud if
+it ever happens again. (The product is right as it is: in a real GUI the tick thread is the UI
+thread, which is exactly where a continuation belongs.)
+
 **Applications stay minimized.** `WindowStyleSpec.Minimized` is the scenario default so a run does
 not interrupt whoever is at the keyboard. Override it only in a test about the window style itself.
 
@@ -92,6 +101,14 @@ render for real processes and for VMs.
 
 - If a test fails while a remote script is still pending, teardown can take up to 5 s while the
   pump is joined, and prints `pump thread did not stop within 5 s`. Bounded and harmless.
+- `VfsNodeDef.Guid` defaults to `Guid.Empty` (`new Guid()` generates nothing). The config reader
+  hands out real guids, so this only bites hand-built nodes in tests: two of them share a guid,
+  the resolver takes that for a circular reference and returns null. Set `Guid = Guid.NewGuid()`
+  when building nodes in test code.
+- A scenario must not declare a `<Share>` unless the test is about UNC construction. With a share
+  in the config the download sends the other machines through `\\127.0.0.1\C$`, which needs an
+  elevated token; with none, every "machine" writes to the folder directly, which is what a
+  tier-1 bed actually is.
 - `HttpPort` is 0 in every bed: the web server binds `http://*:port`, which needs a URL ACL.
 - The master always binds `MasterPort` and `CliPort`, so both are allocated free per bed.
 
@@ -99,33 +116,28 @@ render for real processes and for VMs.
 
 # Way forward
 
-## Next: the log download at tier 1
+## Done: the log download at tier 1
 
-The test that motivated the whole harness. `Scenario.LoggingApps()` already builds the world.
+`LogDownloadTests` covers what the harness was built for: a package collecting the recent logs of
+three applications on two machines arrives as one archive, laid out
+`m1/log/Recent logs/camera/app.log`; the nine-day-old seeded file is filtered out by `MaxSeconds`;
+`Args="perMachine"` yields one archive per machine instead; a single application's node takes only
+its own; the staging folder is removed and the operator is notified.
 
-**The one thing to decide first.** The download resolves the destination folder with
-`forceUNC: true`, because the folder must be reachable from every participating machine. In a
-tier-1 bed the download folder is under `%TEMP%`, which no Windows share covers, so `MakeUNC`
-will throw. Three ways out, in order of preference:
+The blocking question - a tier-1 download folder under `%TEMP%` that no share covers - was
+answered the way the product wanted anyway: **each slave is handed the destination as both a local
+and a UNC path and uses the local one when it owns the folder.** A slave on the requestor's own
+machine no longer copies its archive through `\\ip\share\...` to its own disk, and a machine
+that cannot reach the folder is now reported in the final message instead of failing the whole
+download. Two real bugs surfaced on the way, both in code that had never run in the field:
 
-1. **Let each slave choose** (recommended, and a genuine product improvement): pass the
-   destination as both a local path and a UNC path, and have each slave use the local one when it
-   is on the machine that owns the folder. Today even a local slave copies through
-   `\\ip\share\...`, which is pointless work in production too. VFS-only, so class A.
-2. Create and remove a temporary Windows share in fixture setup — needs administrator, so the
-   test must skip loudly when it cannot.
-3. Point the bed's download folder somewhere already shared (`C$`) — still needs an elevated token.
+- `<FileRef MachineId="*">` was dispatched for resolution to a machine literally named `*`, so a
+  package gathering files from every machine could never resolve. Guarded by
+  `ResolveFolderTests.WildcardReferenceIsLookedUpLocallyTest`.
+- the global (machine-less) files were assigned to the first machine in the list even when no
+  slave was started for it.
 
-**Then the test.** Start the plan, wait for the apps to run, trigger the download, and assert:
-one archive; a folder per machine; a per-app subfolder inside; the nine-day-old seeded file
-absent because `MaxSeconds` is two days; the operator notified; the staging folder gone.
-
-**Operator support needed.** `Operator.ResolveAsync` exists. Add a `Download` that mirrors what
-the GUI does: resolve the package node, then run `BuiltIns/DownloadZipped.cs` with
-`ScriptActionArgs { VfsNode = resolved }` via `ReflStates.ScriptReg.RunScriptAsync<,>` on the
-master, and wait for the script to finish (`GetScriptState`, or the notification).
-
-## Then: CLI and REST commands, and the tier-2 driver
+## Next: CLI and REST commands, and the tier-2 driver
 
 Tier 2 is needed periodically and must be runnable by hand, not only by a test runner.
 

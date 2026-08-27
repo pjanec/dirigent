@@ -375,7 +375,12 @@ namespace Dirigent
 			usedGuids.Add( nodeDef.Guid );
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
-			if( !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
+			// (a FileRef is the exception: it is resolved here, by looking it up in the registry we
+			// hold a copy of. Its machine id is a filter for that lookup and may be a wildcard, so
+			// it is not the name of a machine to send the reference to. Whatever the lookup finds
+			// then gets resolved on its own machine.)
+			if( nodeDef is not FileRef
+				&& !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
 				&& !IsLocalMachine(nodeDef.MachineId) )
 			{
 				// check if required machine is available
