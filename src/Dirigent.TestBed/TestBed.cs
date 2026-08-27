@@ -82,6 +82,7 @@ namespace Dirigent.TestBed
 
 		volatile Exception? _pumpFault;
 		volatile string _pumpStage = "not started";
+		readonly System.Collections.Concurrent.ConcurrentDictionary<int, bool> _seenPids = new();
 		long _ticks;
 
 		TestBed( TestBedOptions opts )
@@ -216,12 +217,34 @@ namespace Dirigent.TestBed
 		}
 
 		/// <summary>
-		/// The pids of applications still running, taken from the state the operator holds.
-		/// Bounded by a timeout so a stuck pump cannot hang the teardown.
+		/// Every pid an agent has reported as running during this run, noted from the pump so that
+		/// teardown does not depend on state having reached the operator.
+		/// </summary>
+		/// <remarks>
+		/// A test that finishes on something other than an application state - a file appearing, say -
+		/// can end before the operator has heard that the application is running. Reading only the
+		/// operator's view then finds no survivors and leaves the application behind.
+		/// </remarks>
+		void NoteRunningProcesses()
+		{
+			foreach( var agent in _agents )
+			{
+				foreach( var (_, state) in agent.GetAllAppsState() )
+				{
+					if( state.Running && state.PID > 0 )
+						_seenPids[state.PID] = true;
+				}
+			}
+		}
+
+		/// <summary>
+		/// The pids to make sure are gone: everything the agents ever reported running, plus whatever
+		/// the operator still believes is up. KillProcesses checks each one really is the test
+		/// application before killing it, so a stale pid is harmless.
 		/// </summary>
 		List<int> CollectRunningProcesses()
 		{
-			var pids = new List<int>();
+			var pids = _seenPids.Keys.ToList();
 			try
 			{
 				var task = Operator.GetAllAppsStateAsync();
@@ -229,7 +252,7 @@ namespace Dirigent.TestBed
 
 				foreach( var (_, state) in task.Result )
 				{
-					if( state.Running && state.PID > 0 )
+					if( state.Running && state.PID > 0 && !pids.Contains( state.PID ) )
 						pids.Add( state.PID );
 				}
 			}
@@ -300,6 +323,9 @@ namespace Dirigent.TestBed
 					_master.Tick();
 					_pumpStage = "agents";
 					foreach( var agent in _agents ) agent.Tick();
+
+					_pumpStage = "pids";
+					NoteRunningProcesses();
 					_pumpStage = "operator";
 					Operator.Tick();
 					_pumpStage = "idle";

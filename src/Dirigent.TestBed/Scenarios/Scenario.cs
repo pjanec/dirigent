@@ -145,6 +145,22 @@ namespace Dirigent.TestBed.Scenarios
 			return this;
 		}
 
+		/// <summary>
+		/// A plan whose entries carry their own settings - dependencies, init conditions, volatility.
+		/// Those belong on the plan's copy of an application, not on the standalone definition, where
+		/// Dirigent rejects a dependency it cannot resolve.
+		/// </summary>
+		/// <example>
+		/// Plan( "ordered", p =&gt; p.App( "m1.first" ).App( "m1.second", a =&gt; a.DependsOn( "first" ) ) )
+		/// </example>
+		public Scenario Plan( string name, Action<PlanBuilder> configure )
+		{
+			var plan = new PlanSpec() { Name = name };
+			Spec.Plans.Add( plan );
+			configure( new PlanBuilder( plan ) );
+			return this;
+		}
+
 		/// <summary>A plan containing every application of the scenario.</summary>
 		public Scenario PlanWithEverything( string name = "all" )
 			=> Plan( name, Spec.Apps.Select( a => $"{a.MachineName}.{a.AppId}" ).ToArray() );
@@ -200,11 +216,100 @@ namespace Dirigent.TestBed.Scenarios
 	/// Application behaviours, each one being a test application switch plus whatever config goes
 	/// with it, so that no test has to spell the combination out twice.
 	/// </summary>
-	public class AppBuilder
+	/// <summary>
+	/// The settings that are plain XML attributes on an &lt;App&gt; element, shared by an application
+	/// definition and by a plan's entry for it - a plan entry is a whole definition too.
+	/// </summary>
+	public abstract class AppAttributeBuilder<T> where T : AppAttributeBuilder<T>
+	{
+		protected abstract Dictionary<string, string> Attributes { get; }
+
+		public T Attribute( string name, string value ) { Attributes[name] = value; return (T) this; }
+
+		/// <summary>Started and then forgotten; its exit does not fail a plan.</summary>
+		public T Volatile() => Attribute( "Volatile", "1" );
+
+		/// <summary>Launched again if it terminates unexpectedly.</summary>
+		public T RestartOnCrash() => Attribute( "RestartOnCrash", "1" );
+
+		/// <summary>
+		/// Applications this one waits for in a plan. Each is "app" for one on the same machine or
+		/// "machine.app" for one elsewhere; waiting means running <em>and initialized</em>.
+		/// </summary>
+		public T DependsOn( params string[] apps )
+			=> Attribute( "Dependencies", string.Join( ";", apps ) );
+
+		/// <summary>
+		/// Counts as initialized this many seconds after launch, instead of immediately. This is what
+		/// makes a dependency wait for something observable.
+		/// </summary>
+		public T InitializedAfter( double seconds )
+			=> Attribute( "InitCondition", $"timeout {Inv( seconds )}" );
+
+		/// <summary>Counts as initialized when it exits with this code - for one-shot utilities.</summary>
+		public T InitializedOnExitCode( int exitCode = 0 )
+			=> Attribute( "InitCondition", $"exitcode {exitCode}" );
+
+		/// <summary>Killing it takes its whole process tree, not just the process itself.</summary>
+		public T KillTree() => Attribute( "KillTree", "1" );
+
+		/// <summary>Asked to close its main window before being killed outright.</summary>
+		public T KillSoftly() => Attribute( "KillSoftly", "1" );
+
+		/// <summary>Adopted rather than restarted if found already running.</summary>
+		public T AdoptIfAlreadyRunning() => Attribute( "AdoptIfAlreadyRunning", "1" );
+
+		/// <summary>Minimum delay before the next application of a plan is launched.</summary>
+		public T SeparationInterval( double seconds )
+			=> Attribute( "SeparationInterval", Inv( seconds ) );
+
+		/// <summary>How long a kill waits for the process to go away before reporting it dead.</summary>
+		public T MinKillingTime( double seconds )
+			=> Attribute( "MinKillingTime", Inv( seconds ) );
+
+		protected static string Inv( double d ) => d.ToString( System.Globalization.CultureInfo.InvariantCulture );
+	}
+
+	/// <summary>An application of a plan, with the plan's own settings for it.</summary>
+	public class PlanAppBuilder : AppAttributeBuilder<PlanAppBuilder>
+	{
+		readonly PlanAppSpec _spec;
+		internal PlanAppBuilder( PlanAppSpec spec ) { _spec = spec; }
+		protected override Dictionary<string, string> Attributes => _spec.Attributes;
+	}
+
+	public class PlanBuilder
+	{
+		readonly PlanSpec _spec;
+		internal PlanBuilder( PlanSpec spec ) { _spec = spec; }
+
+		/// <param name="idTuple">"machine.app" of an application already in the scenario</param>
+		public PlanBuilder App( string idTuple, Action<PlanAppBuilder>? configure = null )
+		{
+			var parts = idTuple.Split( '.', 2 );
+			if( parts.Length != 2 )
+				throw new ArgumentException( $"'{idTuple}' should be 'machine.app'" );
+
+			var app = new PlanAppSpec() { MachineName = parts[0], AppId = parts[1] };
+			_spec.Apps.Add( app );
+			configure?.Invoke( new PlanAppBuilder( app ) );
+			return this;
+		}
+
+		public PlanBuilder Attribute( string name, string value )
+		{
+			_spec.Attributes[name] = value;
+			return this;
+		}
+	}
+
+	public class AppBuilder : AppAttributeBuilder<AppBuilder>
 	{
 		readonly AppSpec _spec;
 
 		internal AppBuilder( AppSpec spec ) { _spec = spec; }
+
+		protected override Dictionary<string, string> Attributes => _spec.Attributes;
 
 		/// <summary>Idles until killed.</summary>
 		public AppBuilder LongRunning() => AddArgs( "--run-forever" );
@@ -228,8 +333,12 @@ namespace Dirigent.TestBed.Scenarios
 		/// <summary>Refuses close requests, for testing soft kill escalation.</summary>
 		public AppBuilder IgnoresClose() => AddArgs( "--ignore-close" );
 
-		/// <summary>Starts child processes, for testing kill tree.</summary>
-		public AppBuilder SpawnsChildren( int count = 2 ) => AddArgs( $"--spawn-children {count}" );
+		/// <summary>
+		/// Starts child processes, for testing kill tree, and writes their pids to children.txt in its
+		/// working folder so a test can check on them without asking Windows who they are.
+		/// </summary>
+		public AppBuilder SpawnsChildren( int count = 2 )
+			=> AddArgs( $"--spawn-children {count} --children-file \"{{appdir}}\\children.txt\"" );
 
 		/// <summary>
 		/// Exposes the app's recent log files as a VFS node. Defaults match the intent of
@@ -281,12 +390,16 @@ namespace Dirigent.TestBed.Scenarios
 		public AppBuilder Exe( string path ) { _spec.ExeFullPath = path; return this; }
 		public AppBuilder Args( string args ) { _spec.CmdLineArgs = args; return this; }
 		public AppBuilder StartupDir( string dir ) { _spec.StartupDir = dir; return this; }
-		public AppBuilder Attribute( string name, string value ) { _spec.Attributes[name] = value; return this; }
 		public AppBuilder Env( string name, string value ) { _spec.EnvVars[name] = value; return this; }
 		public AppBuilder RawXml( string xml ) { _spec.ExtraXml.Add( xml ); return this; }
 
-		public AppBuilder Volatile() => Attribute( "Volatile", "1" );
-		public AppBuilder RestartOnCrash() => Attribute( "RestartOnCrash", "1" );
+		/// <summary>
+		/// A soft-kill sequence with an explicit patience: the close request is given this long
+		/// before the process is killed anyway. Everything else an &lt;App&gt; can carry as an attribute
+		/// is on the base class, since a plan entry takes the same settings.
+		/// </summary>
+		public AppBuilder ClosePolitelyFirst( double timeoutSeconds = 1.0 )
+			=> RawXml( $"<SoftKill><Close timeout=\"{Inv( timeoutSeconds )}\"/></SoftKill>" );
 
 		AppBuilder AddArgs( string args )
 		{
@@ -296,7 +409,6 @@ namespace Dirigent.TestBed.Scenarios
 			return this;
 		}
 
-		static string Inv( double d ) => d.ToString( System.Globalization.CultureInfo.InvariantCulture );
 	}
 
 	public class PackageBuilder

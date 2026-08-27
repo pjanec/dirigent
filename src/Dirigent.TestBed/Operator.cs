@@ -89,6 +89,13 @@ namespace Dirigent.TestBed
 			=> InTick( () => (IReadOnlyList<KeyValuePair<string, ClientState>>)
 					_states.GetAllClientsState().ToList() );
 
+		public Task<PlanState?> GetPlanStateAsync( string planName )
+			=> InTick( () => _states.GetPlanState( planName ) );
+
+		public Task<IReadOnlyList<KeyValuePair<string, PlanState>>> GetAllPlansStateAsync()
+			=> InTick( () => (IReadOnlyList<KeyValuePair<string, PlanState>>)
+					_states.GetAllPlansState().ToList() );
+
 		public Task<IReadOnlyList<MachineDef>> GetAllMachinesDefAsync()
 			=> InTick( () => (IReadOnlyList<MachineDef>) _states.GetAllMachinesDef().ToList() );
 
@@ -183,8 +190,10 @@ namespace Dirigent.TestBed
 		// ---- commands ---------------------------------------------------------------
 
 		/// <param name="planName">empty = no plan, use the standalone app definition</param>
-		public Task StartAppAsync( AppIdTuple id, string? planName = "" )
-			=> Send( new Net.StartAppMessage( Name, id, planName ) );
+		/// <param name="vars">variables for this launch only, set as environment of the process</param>
+		public Task StartAppAsync( AppIdTuple id, string? planName = "",
+				Dictionary<string, string>? vars = null )
+			=> Send( new Net.StartAppMessage( Name, id, planName, flags: 0, vars: vars ) );
 
 		public Task KillAppAsync( AppIdTuple id )
 			=> Send( new Net.KillAppMessage( Name, id ) );

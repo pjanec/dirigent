@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -26,7 +26,7 @@ namespace Dirigent.TestBed.Scenarios
 				root.Add( RenderApp( app, ctx ) );
 
 			foreach( var plan in spec.Plans )
-				root.Add( RenderPlan( plan, ctx ) );
+				root.Add( RenderPlan( plan, spec, ctx ) );
 
 			foreach( var package in spec.Packages )
 				root.Add( RenderPackage( package, ctx ) );
@@ -54,7 +54,11 @@ namespace Dirigent.TestBed.Scenarios
 			return element;
 		}
 
-		static XElement RenderApp( AppSpec app, RenderContext ctx )
+		/// <param name="includeVfsNodes">
+		/// False for a plan's copy of an application: the nodes are already declared on the standalone
+		/// definition, and declaring them twice would register the same id twice.
+		/// </param>
+		static XElement RenderApp( AppSpec app, RenderContext ctx, bool includeVfsNodes = true )
 		{
 			string Subst( string text ) => ctx.Substitute( text, app.MachineName, app.AppId );
 
@@ -82,8 +86,11 @@ namespace Dirigent.TestBed.Scenarios
 				element.Add( env );
 			}
 
-			foreach( var node in app.VfsNodes )
-				element.Add( RenderVfsNode( node, ctx, app.MachineName, app.AppId ) );
+			if( includeVfsNodes )
+			{
+				foreach( var node in app.VfsNodes )
+					element.Add( RenderVfsNode( node, ctx, app.MachineName, app.AppId ) );
+			}
 
 			foreach( var xml in app.ExtraXml )
 				foreach( var child in ParseFragment( Subst( xml ) ) )
@@ -92,27 +99,36 @@ namespace Dirigent.TestBed.Scenarios
 			return element;
 		}
 
-		static XElement RenderPlan( PlanSpec plan, RenderContext ctx )
+		/// <remarks>
+		/// A plan's &lt;App&gt; is a complete application definition, not a reference to the standalone
+		/// one - without an executable Dirigent tries to launch the startup folder and reports "Access
+		/// is denied". So each entry is the application rendered again, with the plan's own attributes
+		/// (dependencies, init condition, volatility) laid over it.
+		/// </remarks>
+		static XElement RenderPlan( PlanSpec plan, ScenarioSpec spec, RenderContext ctx )
 		{
 			var element = new XElement( "Plan", new XAttribute( "Name", plan.Name ) );
 
 			foreach( var (name, value) in plan.Attributes )
 				element.SetAttributeValue( name, value );
 
-			foreach( var app in plan.Apps )
+			foreach( var planApp in plan.Apps )
 			{
-				var appElement = new XElement( "App",
-					new XAttribute( "AppIdTuple", new AppIdTuple( ctx.MachineId( app.MachineName ), app.AppId ).ToString() ) );
+				var app = spec.Apps.FirstOrDefault(
+							a => a.MachineName == planApp.MachineName && a.AppId == planApp.AppId )
+					?? throw new ArgumentException(
+						$"plan '{plan.Name}' names {planApp.MachineName}.{planApp.AppId}, which is not part of this scenario" );
 
-				foreach( var (name, value) in app.Attributes )
-					appElement.SetAttributeValue( name, value );
+				var appElement = RenderApp( app, ctx, includeVfsNodes: false );
+
+				foreach( var (name, value) in planApp.Attributes )
+					appElement.SetAttributeValue( name, ctx.Substitute( value, app.MachineName, app.AppId ) );
 
 				element.Add( appElement );
 			}
 
 			return element;
 		}
-
 		static XElement RenderPackage( PackageSpec package, RenderContext ctx )
 		{
 			var element = new XElement( "FilePackage", new XAttribute( "Id", package.Id ) );

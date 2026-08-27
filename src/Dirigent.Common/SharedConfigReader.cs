@@ -669,7 +669,10 @@ namespace Dirigent
 				{
 					foreach( var depName in ad.Dependencies )
 					{
-						var depId = new AppIdTuple( depName );
+						// a dependency without a machine means one on the depending app's own machine, which
+						// is how AppLaunchPlanner reads it at run time; parsing it any other way here would
+						// reject a config that then works
+						var depId = AppIdTuple.fromString( depName, ad.Id.MachineId );
 						if( !AppExists( depId ) )
 						{
 		                    throw new UnknownDependencyException( $"{source}: {ad.Id}: Dependency {depName} not found." );
@@ -687,7 +690,10 @@ namespace Dirigent
 			{
 				foreach( var depName in ad.Dependencies )
 				{
-					var depId = new AppIdTuple( depName );
+					// same as above: a bare name means the depending app's own machine. Parsed without
+					// that default, the recursion below never found the dependency and a cycle written
+					// with bare names went undetected.
+					var depId = AppIdTuple.fromString( depName, ad.Id.MachineId );
 					if( depsUsed.ContainsKey( depId ) )
 					{
 		                throw new CircularDependencyException( $"{planDef.Name}: {ad.Id}: Circular dependency {depName} found." );

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -28,6 +28,8 @@ namespace Dirigent.TestApp
   --print-env <path>         write the whole environment to this file and continue
   --ignore-close             refuse Ctrl+C / close requests (to exercise soft kill)
   --spawn-children <n>       start n idle copies of itself (to exercise kill tree)
+  --children-file <path>     write the pids of the spawned children here
+  --parent-pid <pid>         give up if this process is gone (children use this)
   --help                     print this
 ";
 
@@ -55,7 +57,7 @@ namespace Dirigent.TestApp
 				WriteEnvironment( opts.PrintEnvPath! );
 			}
 
-			var children = SpawnChildren( opts.SpawnChildren );
+			var children = SpawnChildren( opts.SpawnChildren, opts.ChildrenFile );
 
 			try
 			{
@@ -74,6 +76,8 @@ namespace Dirigent.TestApp
 		{
 			var started = Stopwatch.StartNew();
 			var lastLogWrite = TimeSpan.FromSeconds( -1000 );
+			var lastParentCheck = TimeSpan.Zero;
+			TimeSpan? parentGoneAt = null;
 			bool readyWritten = string.IsNullOrEmpty( opts.ReadyFile );
 
 			Log( $"started, pid={Environment.ProcessId}" );
@@ -101,11 +105,37 @@ namespace Dirigent.TestApp
 					return opts.ExitCode;
 				}
 
+				// the orphan backstop: generous enough not to mask a kill that should have worked,
+				// short enough that nothing of ours is still around by the next build
+				if( opts.ParentPid > 0 && ( now - lastParentCheck ).TotalSeconds >= 1.0 )
+				{
+					lastParentCheck = now;
+
+					if( !IsProcessAlive( opts.ParentPid ) )
+					{
+						if( !parentGoneAt.HasValue ) parentGoneAt = now;
+
+						if( ( now - parentGoneAt.Value ).TotalSeconds >= 60.0 )
+						{
+							Log( $"parent {opts.ParentPid} has been gone for a minute, giving up" );
+							return 0;
+						}
+					}
+					else
+					{
+						parentGoneAt = null;
+					}
+				}
+
 				Thread.Sleep( 50 );
 			}
 		}
 
-		static List<Process> SpawnChildren( int count )
+		/// <param name="childrenFile">
+		/// Where to write the pids of the children, one per line. Without it a test would have to ask
+		/// Windows who our children are, which needs WMI for no good reason.
+		/// </param>
+		static List<Process> SpawnChildren( int count, string? childrenFile )
 		{
 			var res = new List<Process>();
 			if( count <= 0 ) return res;
@@ -117,7 +147,12 @@ namespace Dirigent.TestApp
 			{
 				try
 				{
-					var p = Process.Start( new ProcessStartInfo( exePath, "--run-forever" ) { UseShellExecute = false } );
+					// A child is told who its parent is and gives up when the parent is gone. Killing the
+					// parent hard orphans the children, and an orphan nobody can identify any more would
+					// sit there holding this executable until someone noticed. The grace period is long
+					// enough that it cannot rescue a kill-tree test that should have failed.
+					var childArgs = $"--run-forever --parent-pid {Environment.ProcessId}";
+					var p = Process.Start( new ProcessStartInfo( exePath, childArgs ) { UseShellExecute = false } );
 					if( p is not null ) res.Add( p );
 				}
 				catch( Exception ex )
@@ -125,7 +160,27 @@ namespace Dirigent.TestApp
 					Log( $"could not spawn child: {ex.Message}" );
 				}
 			}
+
+			if( !string.IsNullOrEmpty( childrenFile ) )
+			{
+				WriteFileSafely( childrenFile!, string.Join( Environment.NewLine, res.Select( p => p.Id ) ) );
+			}
+
+			Log( $"spawned {res.Count} child(ren): {string.Join( ", ", res.Select( p => p.Id ) )}" );
 			return res;
+		}
+
+		static bool IsProcessAlive( int pid )
+		{
+			try
+			{
+				using var process = Process.GetProcessById( pid );
+				return !process.HasExited;
+			}
+			catch( ArgumentException )
+			{
+				return false;   // no such process
+			}
 		}
 
 		static void WriteEnvironment( string path )
@@ -187,6 +242,8 @@ namespace Dirigent.TestApp
 			public string? PrintEnvPath;
 			public bool IgnoreClose;
 			public int SpawnChildren;
+			public string? ChildrenFile;
+			public int ParentPid = 0;
 
 			public static Options Parse( string[] args )
 			{
@@ -216,6 +273,8 @@ namespace Dirigent.TestApp
 						case "--print-env":   o.PrintEnvPath = Next( "--print-env" ); break;
 						case "--ignore-close": o.IgnoreClose = true; break;
 						case "--spawn-children": o.SpawnChildren = int.Parse( Next( "--spawn-children" ) ); break;
+						case "--children-file": o.ChildrenFile = Next( "--children-file" ); break;
+						case "--parent-pid": o.ParentPid = int.Parse( Next( "--parent-pid" ) ); break;
 						default:
 							Console.WriteLine( $"[testapp] ignoring unknown argument '{args[i]}'" );
 							break;
