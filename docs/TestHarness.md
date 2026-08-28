@@ -86,8 +86,8 @@ must never steal focus. A test suite that interrupts work does not get run.
 
 ```mermaid
 flowchart LR
-    T0["<b>Tier 0</b><br/>unit tests<br/>44 tests, 0.4 s"]
-    T1["<b>Tier 1</b><br/>in-process bed<br/>47 tests, 77 s"]
+    T0["<b>Tier 0</b><br/>unit tests<br/>69 tests, 0.5 s"]
+    T1["<b>Tier 1</b><br/>in-process bed<br/>51 tests, 80 s"]
     T2["<b>Tier 2</b><br/>real processes<br/>8 tests, 32 s"]
     T3["<b>Tier 3</b><br/>two VMs<br/>not built"]
 
@@ -287,7 +287,7 @@ As of the merge with branch 3.1:
 * Everything targets **.NET 8**, matching the rest of the solution.
 * **One harness.** The mock-based one that 3.1 carried, and the product seams that existed only to
   support it, are gone - see [The harness that was replaced](#the-harness-that-was-replaced).
-* **47 tier-1 tests** (~77 s), **44 tier-0** (~0.4 s), **8 tier-2** (~33 s). Green, twice in a row,
+* **51 tier-1 tests** (~80 s), **69 tier-0** (~0.5 s), **8 tier-2** (~32 s). Green, twice in a row,
   with no leaked processes or temporary folders.
 
 Run them:
@@ -307,8 +307,8 @@ src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui   #
 | `src/Dirigent.TestBed` | the tier-1 bed: temp world, ports, pump, components, teardown; the `Operator`; the scenario model and renderers; `CliSession` |
 | `src/Dirigent.TestBed.Gen` | renders a scenario preset to a folder, with a `world.json` manifest |
 | `src/Dirigent.TestBed.PowerShell` | the tier-2 driver, its tests, and its own README |
-| `src/Dirigent.IntegrationTests` | 47 tier-1 tests |
-| `src/Dirigent.CommonTests` | 44 tier-0 tests, including the scenario round-trip guard |
+| `src/Dirigent.IntegrationTests` | 51 tier-1 tests |
+| `src/Dirigent.CommonTests` | 69 tier-0 tests, including the scenario round-trip guard |
 
 Tier-1 coverage by area:
 
@@ -354,6 +354,21 @@ exercised end to end.
 * A download requested by anything that is not an agent or a GUI resolved its destination to the
   literal `%DOWNLOADS%`: the lookup fell back to the client name, which is empty on the master, and
   an empty machine id means "global" to the resolver, which returns the path unexpanded.
+* **`MakeUNC` picked an arbitrary file share.** The first hit while iterating a `Dictionary` won, so
+  with both `C:\` and `C:\Logs` declared the winner depended on storage order rather than on the
+  config; the prefix test also ignored folder boundaries, so a share at `C:\Logs` claimed
+  `C:\LogsBackup\a.txt` and produced a UNC path to a different file.
+* **A size budget stopped at the first file that did not fit** instead of passing over it, so one
+  unrotated log among the rotated ones cost the whole older part of the folder - and the drop was
+  silent either way.
+* **Every collected file was copied into a temp folder** before zipping, purely to give
+  `ZipFile.CreateFromDirectory` a tree to walk. Writing and reading each file one extra time is
+  unaffordable for the multi-gigabyte logs that motivated the feature.
+* **The zip was named after `Path.GetTempFileName()` plus `".zip"`**, leaving that call's empty
+  `.tmp` file in `%TEMP%` after every download.
+* **A tail size was formatted in the current culture**, so the same configuration would have named
+  an archive entry `app.last1,5KB.log` on a Czech machine and `app.last1.5KB.log` elsewhere. Caught
+  by the unit test on the machine with the comma.
 
 **Elsewhere in the product:**
 

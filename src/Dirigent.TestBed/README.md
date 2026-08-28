@@ -10,15 +10,16 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 47 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 51 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
-| Log-download test at tier 1 | done, 3 tests |
+| Log-download tests at tier 1 | done, 6 tests |
 | Files over the CLI/REST surface | done, 6 tests |
 | Tier 2: `Dirigent.TestBed.Gen` + PowerShell driver | done, 8 tests |
 | Breadth at tier 1 (plans, detectors, restarts, kills, env vars, reload, reconnect) | done |
 | Tier 3 on the two VMs | deferred - not wanted yet |
 | Merged with branch 3.1, on .NET 8, one harness only | done |
+| Streamed archives, size-budget skips, `TailBytes` | done, 13 tests in `Dirigent.CommonTests` |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 
