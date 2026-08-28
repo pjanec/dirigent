@@ -330,19 +330,24 @@ namespace Dirigent.Scripts.BuiltIn
 				result.Files = ( from x in downloadedFiles
 								 select Path.IsPathRooted( x ) ? x : Path.Combine( downloadsFolder, x ) ).ToList();
 
-				// tell the user it's all done
-				var clickAction = new ToolActionDef { Name = "WinExplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
+				// tell the user it's all done, and offer to show them where it landed
+				var revealPath = result.Files.FirstOrDefault();
 
 				var infoMsg = downloadedFiles.Count > 0 ? $"Files downloaded:\n\n" : $"No files downloaded.\n";
 				foreach (var x in downloadedFiles) infoMsg += $"    {x}\n";
 
+				// saying what the buttons do: an OK/Cancel pair with no explanation is a dialog the
+				// user dismisses, never learning that one of them opens the folder
+				if( !string.IsNullOrEmpty( revealPath ) )
+					infoMsg += $"\nPress OK to show the file in Explorer.\n";
+
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
 					HostClientId = Requestor,
-					Category=Net.UserNotificationMessage.ECategory.Info, 
+					Category=Net.UserNotificationMessage.ECategory.Info,
 					PresentationType = Net.UserNotificationMessage.EPresentationType.MessageBox,
 					Message = infoMsg + (hadErrors ? $"\n\n{errorMsg}" : ""),
-					Action = clickAction
+					RevealFilePath = revealPath
 				});
 
 			}

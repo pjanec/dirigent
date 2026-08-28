@@ -470,8 +470,9 @@ What it does:
 4. Runs `BuiltIns/MergeZipped.cs` on the requestor's machine, which joins the uploaded archives
    into the final one and removes the staging folder.
 5. Shows a message box naming the archive, plus any errors collected along the way - a missing
-   file, or even a whole machine failing, does not abort the download. Confirming the dialog
-   opens the containing folder in Explorer.
+   file, or even a whole machine failing, does not abort the download. The message says that
+   confirming it shows the archive in Explorer, selected; the WinForms GUI does that itself, so it
+   works whether or not this machine's `LocalConfig.xml` defines a `WinExplorer` tool.
 
 The resulting archive is named `<Title>_<yyMMdd_HHmm>.zip` and is laid out like this:
 
