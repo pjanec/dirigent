@@ -16,6 +16,7 @@ Contents:
 * [Tier 1: the test bed](#tier-1-the-test-bed)
 * [Describing a world once](#describing-a-world-once)
 * [Tier 2: real processes](#tier-2-real-processes)
+* [Where things stand](#where-things-stand)
 * [What exists today](#what-exists-today)
 * [What it has found](#what-it-has-found)
 * [The harness that was replaced](#the-harness-that-was-replaced)
@@ -279,6 +280,25 @@ StartScript <guid> BuiltIns/DownloadZipped.cs '{Node:{Id:"logs.all"}}'
 GetScriptState <guid>
 ```
 
+## Where things stand
+
+As of the merge with branch 3.1:
+
+* Everything targets **.NET 8**, matching the rest of the solution.
+* **One harness.** The mock-based one that 3.1 carried, and the product seams that existed only to
+  support it, are gone - see [The harness that was replaced](#the-harness-that-was-replaced).
+* **47 tier-1 tests** (~77 s), **44 tier-0** (~0.4 s), **8 tier-2** (~33 s). Green, twice in a row,
+  with no leaked processes or temporary folders.
+
+Run them:
+
+```
+dotnet test src/Dirigent.CommonTests
+dotnet test src/Dirigent.IntegrationTests
+src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1
+src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui   # a world to poke at
+```
+
 ## What exists today
 
 | Piece | What it is |
@@ -418,10 +438,10 @@ the launch sequencing through the real hosting model.
 
 ### Later
 
-**Tier 3, on the two VMs.** The `config/VM` scaffolding exists; the generator and the PowerShell
-verbs are reusable. Only this tier covers a real SMB hop with credentials, distinct user profiles, a
-machine going offline mid-download, and reboot. Deliberately deferred — everything cheaper should be
-covered first.
+**Tier 3, on the two VMs.** Deferred by decision, not by oversight: everything cheaper is covered
+first. When it is wanted, the `config/VM` scaffolding exists and both the generator and the
+PowerShell verbs are reusable. Only this tier covers a real SMB hop with credentials, distinct user
+profiles, a machine going offline mid-download, and reboot.
 
 **Continuous integration.** Tiers 0 and 1 are a natural gate on every commit; tier 2 needs a Windows
 runner and is a nightly. Nothing in either depends on the developer's machine, which was a design

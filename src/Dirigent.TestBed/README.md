@@ -10,21 +10,22 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 46 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 47 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download test at tier 1 | done, 3 tests |
 | Files over the CLI/REST surface | done, 6 tests |
 | Tier 2: `Dirigent.TestBed.Gen` + PowerShell driver | done, 8 tests |
 | Breadth at tier 1 (plans, detectors, restarts, kills, env vars, reload, reconnect) | done |
-| Tier 3 on the two VMs | **next** |
+| Tier 3 on the two VMs | deferred - not wanted yet |
+| Merged with branch 3.1, on .NET 8, one harness only | done |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 
 ## Running
 
 ```
-dotnet test src/Dirigent.IntegrationTests   # tier 1, ~75 s
+dotnet test src/Dirigent.IntegrationTests   # tier 1, ~77 s
 dotnet test src/Dirigent.CommonTests        # unit tests incl. the scenario renderer
 
 src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1            # tier 2, ~31 s
