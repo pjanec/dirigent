@@ -38,6 +38,14 @@ namespace Dirigent.Tests
 
 		List<string> Scan( string? mask, double maxAgeSeconds = 0, int maxFiles = 0, long maxTotalBytes = 0, bool recursive = true )
 			=> FileScan.FindMatchingFiles( _root, mask, maxAgeSeconds, maxFiles, maxTotalBytes, recursive )
+				.Files
+				.Select( x => x.RelPath.Replace( '\\', '/' ) )
+				.ToList();
+
+		/// <summary>The files that matched but did not fit the size budget.</summary>
+		List<string> Skipped( string? mask, long maxTotalBytes )
+			=> FileScan.FindMatchingFiles( _root, mask, 0, 0, maxTotalBytes, true )
+				.Skipped
 				.Select( x => x.RelPath.Replace( '\\', '/' ) )
 				.ToList();
 
@@ -92,6 +100,58 @@ namespace Dirigent.Tests
 
 			// at least one file is returned even if it exceeds the budget on its own
 			CollectionAssert.AreEqual( new List<string>() { "new.log" }, Scan( "*.log", maxTotalBytes: 1 ) );
+		}
+
+		[TestMethod()]
+		public void OneBigFileDoesNotEndTheScanTest()
+		{
+			// an unrotated log file among the rotated ones is the everyday case of this
+			MakeFile( "new.log", 1, sizeBytes: 100 );
+			MakeFile( "huge.log", 2, sizeBytes: 5000 );
+			MakeFile( "old.log", 3, sizeBytes: 100 );
+
+			// the outlier is passed over, the smaller file behind it still fits and is taken;
+			// stopping at the outlier would have thrown away the whole older part of the folder
+			CollectionAssert.AreEqual(
+				new List<string>() { "new.log", "old.log" },
+				Scan( "*.log", maxTotalBytes: 300 ) );
+		}
+
+		[TestMethod()]
+		public void SkippedFilesAreReportedTest()
+		{
+			MakeFile( "new.log", 1, sizeBytes: 100 );
+			MakeFile( "huge.log", 2, sizeBytes: 5000 );
+			MakeFile( "old.log", 3, sizeBytes: 100 );
+
+			// what a limit pushed out has to be knowable - the user did ask for those files
+			CollectionAssert.AreEqual( new List<string>() { "huge.log" }, Skipped( "*.log", 300 ) );
+
+			var skipped = FileScan.FindMatchingFiles( _root, "*.log", 0, 0, 300, true ).Skipped;
+			Assert.AreEqual( 5000L, skipped[0].Bytes, "the size of the skipped file is reported too" );
+
+			// nothing was left out when everything fits
+			Assert.AreEqual( 0, Skipped( "*.log", 100000 ).Count );
+
+			// nor when no size budget applies at all
+			Assert.AreEqual( 0, FileScan.FindMatchingFiles( _root, "*.log", 0, 0, 0, true ).Skipped.Count );
+		}
+
+		[TestMethod()]
+		public void MaxFilesStopsTheScanTest()
+		{
+			// unlike the size budget, a reached count limit really is the end - nothing further
+			// can be taken, so nothing is reported as skipped either
+			MakeFile( "new.log", 1 );
+			MakeFile( "middle.log", 2 );
+			MakeFile( "old.log", 3 );
+
+			var res = FileScan.FindMatchingFiles( _root, "*.log", 0, 2, 0, true );
+
+			CollectionAssert.AreEqual(
+				new List<string>() { "new.log", "middle.log" },
+				res.Files.Select( x => x.RelPath ).ToList() );
+			Assert.AreEqual( 0, res.Skipped.Count );
 		}
 
 		[TestMethod()]

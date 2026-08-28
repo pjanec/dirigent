@@ -51,10 +51,22 @@ namespace Dirigent
 		public string? Filter;
 
 		/// <summary>
-		/// Xml node with attributes passed to filter scripts 
+		/// Xml node with attributes passed to filter scripts
 		/// </summary>
 		//[MessagePack.Key( 31 )]
 		public string? Xml;
+
+		/// <summary>
+		/// What the resolution of this node had to leave out - a file too big for the size budget,
+		/// for instance. Filled in during resolution, empty in a definition.
+		/// </summary>
+		/// <remarks>
+		/// The point is that a limit must not silently swallow a part of what the user asked for.
+		/// A download writes these into the archive, so that whoever opens it later can tell an
+		/// incomplete collection from a complete one.
+		/// </remarks>
+		//[MessagePack.Key( 32 )]
+		public List<string>? Notes;
 
 
 		public override string ToString()
@@ -69,6 +81,8 @@ namespace Dirigent
 			this.Children.SequenceEqual( other.Children ) &&
 			this.Filter == other.Filter &&
 			this.Xml == other.Xml &&
+			( ( this.Notes is null && other.Notes is null )
+				|| ( this.Notes is not null && other.Notes is not null && this.Notes.SequenceEqual( other.Notes ) ) ) &&
 			true;
 
 		// boilerplate

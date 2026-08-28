@@ -12,6 +12,21 @@ namespace Dirigent
 	public static class FileScan
 	{
 		/// <summary>
+		/// What a scan found, and what it had to leave out.
+		/// </summary>
+		public class Result
+		{
+			/// <summary>The matching files, newest first, with their paths relative to the scanned folder.</summary>
+			public List<(string RelPath, FileInfo Info)> Files = new();
+
+			/// <summary>
+			/// The files that matched but did not fit the size budget, newest first. Reported so that
+			/// a limit can not silently swallow a part of what the user asked for.
+			/// </summary>
+			public List<(string RelPath, long Bytes)> Skipped = new();
+		}
+
+		/// <summary>
 		/// Finds the files under given folder matching the glob-style mask, applying the age, count and size limits.
 		/// The newest files are preferred if the count/size limit applies.
 		/// </summary>
@@ -20,8 +35,7 @@ namespace Dirigent
 		/// <param name="maxFiles">Maximum number of files. 0 = unlimited.</param>
 		/// <param name="maxTotalBytes">Maximum total size of the files. 0 = unlimited. At least one file is always returned.</param>
 		/// <param name="recursive">Whether to descend into the subfolders.</param>
-		/// <returns>The matching files, newest first, with their paths relative to the scanned folder.</returns>
-		public static List<(string RelPath, FileInfo Info)> FindMatchingFiles(
+		public static Result FindMatchingFiles(
 			string folderName,
 			string? mask,
 			double maxAgeSeconds,
@@ -71,27 +85,38 @@ namespace Dirigent
 			// newest first, so that the count/size limits keep the most interesting files
 			matching.Sort( (x, y) => y.Info.LastWriteTimeUtc.CompareTo( x.Info.LastWriteTimeUtc ) );
 
-			if( maxFiles <= 0 && maxTotalBytes <= 0 )
-				return matching;
+			var res = new Result();
 
-			var res = new List<(string RelPath, FileInfo Info)>();
+			if( maxFiles <= 0 && maxTotalBytes <= 0 )
+			{
+				res.Files = matching;
+				return res;
+			}
+
 			long totalBytes = 0;
 
 			foreach( var item in matching )
 			{
-				if( maxFiles > 0 && res.Count >= maxFiles )
+				// the count limit is reached for good - nothing further can be taken
+				if( maxFiles > 0 && res.Files.Count >= maxFiles )
 					break;
 
 				if( maxTotalBytes > 0 )
 				{
 					// always let at least one file through, however big it is
-					if( res.Count > 0 && totalBytes + item.Info.Length > maxTotalBytes )
-						break;
+					if( res.Files.Count > 0 && totalBytes + item.Info.Length > maxTotalBytes )
+					{
+						// this one does not fit, but a smaller one further down the list still may.
+						// Stopping here instead would throw away the whole older part of the folder
+						// because of one outlier - and an unrotated log file is exactly that.
+						res.Skipped.Add( (item.RelPath, item.Info.Length) );
+						continue;
+					}
 
 					totalBytes += item.Info.Length;
 				}
 
-				res.Add( item );
+				res.Files.Add( item );
 			}
 
 			return res;

@@ -105,6 +105,51 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task SizeBudgetPassesOverAnOversizedFileAndSaysSo()
+		{
+			// a folder holding one unrotated giant among the rotated ones: the budget must keep the
+			// files that fit rather than stop at the giant, and the archive must admit what is missing
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a
+					.LongRunning()
+					.WithFolderNode( "bounded", "{applogs}", mask: "*.log", maxTotalBytes: 1000 ) );
+
+			scenario.Seed( "m1.camera", "small-new.log", ageDays: 0, sizeBytes: 100 );
+			scenario.Seed( "m1.camera", "huge.log", ageDays: 1, sizeBytes: 5000 );
+			scenario.Seed( "m1.camera", "small-old.log", ageDays: 2, sizeBytes: 100 );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var node = await bed.Operator.GetVfsNodeAsync( "bounded" );
+			await bed.Operator.DownloadAsync( node, timeout: Timeout );
+
+			var archives = Archive.In( bed.DownloadFolder );
+			Assert.AreEqual( 1, archives.Count, $"found: {Archive.Describe( bed.DownloadFolder )}" );
+
+			var entries = Archive.EntriesOf( archives[0] );
+
+			// the oversized file is left out...
+			Assert.IsFalse( entries.Any( e => e.EndsWith( "huge.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"5000 bytes do not fit a 1000 byte budget, entries: {string.Join( ", ", entries )}" );
+
+			// ...and both small ones are in, including the one behind it in the newest-first order
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "small-new.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "small-old.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"the file behind the oversized one still fits the budget, entries: {string.Join( ", ", entries )}" );
+
+			// and the archive itself says it is incomplete, naming what was dropped
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "_incomplete.txt", StringComparison.OrdinalIgnoreCase ) ),
+				$"an incomplete archive has to admit it, entries: {string.Join( ", ", entries )}" );
+
+			var report = Archive.TextOf( archives[0], "_incomplete.txt" );
+			var hugeSize = new FileInfo( Path.Combine( bed.RenderContext.AppLogsDir( "m1", "camera" ), "huge.log" ) ).Length;
+
+			StringAssert.Contains( report, "huge.log", "the report names the file that was left out" );
+			StringAssert.Contains( report, hugeSize.ToString(), "and its size" );
+		}
+
+		[TestMethod()]
 		public async Task LogHeldOpenByItsWriterIsStillCollected()
 		{
 			// the normal state of a log file: the application producing it has it open for writing.

@@ -619,10 +619,10 @@ namespace Dirigent
 			if( !includeContent )
 				return rootNode;
 
-			List<(string RelPath, FileInfo Info)> files;
+			FileScan.Result scan;
 			try
 			{
-				files = FileScan.FindMatchingFiles(
+				scan = FileScan.FindMatchingFiles(
 					rootNode.Path,
 					folderDef.Mask,
 					folderDef.MaxSeconds,
@@ -636,8 +636,20 @@ namespace Dirigent
 				return null;
 			}
 
+			// what the size budget pushed out is worth saying out loud - the user asked for those files
+			if( scan.Skipped.Count > 0 )
+			{
+				var note = $"{scan.Skipped.Count} file(s) of '{rootNode.Path}' left out, over the "
+						+ $"{folderDef.MaxTotalBytes} byte limit of node '{folderDef.Id}': "
+						+ string.Join( ", ", scan.Skipped.Take( 20 ).Select( s => $"{s.RelPath} ({s.Bytes} B)" ) )
+						+ ( scan.Skipped.Count > 20 ? ", ..." : "" );
+
+				log.Warn( note );
+				( rootNode.Notes ??= new List<string>() ).Add( note );
+			}
+
 			// build the tree of virtual subfolders mirroring the location of the files within the scanned folder
-			foreach( var (relPath, info) in files )
+			foreach( var (relPath, info) in scan.Files )
 			{
 				var parent = GetOrCreateSubFolder( rootNode, System.IO.Path.GetDirectoryName( relPath ), folderDef );
 
@@ -699,9 +711,9 @@ namespace Dirigent
 		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds )
 		{
 			// the mask of the 'Newest' filter applies to the files in the given folder only, never to subfolders
-			var files = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false );
+			var scan = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false );
 
-			return ( from x in files select x.Info.FullName ).ToList();
+			return ( from x in scan.Files select x.Info.FullName ).ToList();
 		}
 
 	}

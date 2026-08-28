@@ -94,8 +94,11 @@ namespace Dirigent.Scripts.BuiltIn
 					// same-named files coming from different places must not overwrite each other,
 					// and the archive is the only place the names live now
 					var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+					var notes = new List<string>();
 
-					AddLocalFiles( _args.Container!, string.Empty, zip, usedEntryNames, exceptions );
+					AddLocalFiles( _args.Container!, string.Empty, zip, usedEntryNames, exceptions, notes );
+
+					AddNotes( zip, usedEntryNames, notes );
 				}
 
 				var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
@@ -180,15 +183,19 @@ namespace Dirigent.Scripts.BuiltIn
 		/// </summary>
 		/// <param name="entryPrefix">Archive path of the container, empty for the root, "a/b/" otherwise.</param>
 		void AddLocalFiles( VfsNodeDef container, string entryPrefix, ZipArchive zip,
-				HashSet<string> usedEntryNames, List<Exception> exceptions )
+				HashSet<string> usedEntryNames, List<Exception> exceptions, List<string> notes )
 		{
+			// anything the resolution left out, so that the archive itself says it is incomplete
+			if( container.Notes is not null )
+				notes.AddRange( container.Notes );
+
 			foreach( var node in container.Children )
 			{
 				if( node.IsContainer )
 				{
 					try
 					{
-						AddLocalFiles( node, entryPrefix + GetFolderName( node ) + "/", zip, usedEntryNames, exceptions );
+						AddLocalFiles( node, entryPrefix + GetFolderName( node ) + "/", zip, usedEntryNames, exceptions, notes );
 					}
 					catch (Exception e)
 					{
@@ -224,6 +231,32 @@ namespace Dirigent.Scripts.BuiltIn
 					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// Writes what the collection left out into a text entry at the root of the archive.
+		/// </summary>
+		/// <remarks>
+		/// Without it an archive missing half a log folder looks exactly like a complete one, and
+		/// whoever opens it months later has no way to tell.
+		/// </remarks>
+		void AddNotes( ZipArchive zip, HashSet<string> usedEntryNames, List<string> notes )
+		{
+			if( notes.Count == 0 ) return;
+
+			var text = new StringBuilder();
+			text.AppendLine( $"Files left out of this archive by {Dirig.Name}:" );
+			text.AppendLine();
+			foreach( var note in notes )
+			{
+				text.AppendLine( note );
+				text.AppendLine();
+			}
+
+			var entry = zip.CreateEntry( MakeUniqueEntryName( "_incomplete.txt", usedEntryNames ), CompressionLevel.Fastest );
+			using var stream = entry.Open();
+			using var writer = new StreamWriter( stream, Encoding.UTF8 );
+			writer.Write( text.ToString() );
 		}
 
 		/// <summary>
