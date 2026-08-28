@@ -1,4 +1,4 @@
-# Commands
+# Command Line Interface
 Dirigent can be controlled remotely using commands.
 
 The commands can come from different sources:
@@ -41,6 +41,77 @@ CLI uses a text formatted line based commands.
 
 There can be one or more (semicolon separated) commands per line but a single command cannot span multiple lines.
 
+
+## Correctly Quoting Arguments for Dirigent.CLI.exe in Batch Files
+
+When using Dirigent.CLI.exe from a Windows batch file (.bat), command-line arguments are processed by two different parsers in sequence. This can lead to quotes and special characters being stripped or misinterpreted. This guide explains the reliable method for quoting arguments to ensure they arrive at your script handler intact.
+
+### The Core Problem: Two-Step Parsing
+
+1. **cmd.exe Parser**: The Windows Command Prompt first parses your entire command line. It uses double quotes (") to group arguments containing spaces or other special characters. It then passes the resulting arguments to the executable.  
+2. **Dirigent's internal Parser**: After your application starts, it receives the arguments from cmd.exe and uses its own custom parser to split the command line again. This parser uses both single (') and double (") quotes as delimiters to group tokens.
+
+The key to success is to craft an argument that survives both of these parsing stages correctly.
+
+### The Golden Rule
+
+The most reliable method is to **wrap your entire argument in double quotes for cmd.exe, and then wrap the content in single quotes for Dirigent's parser**. Any literal single quotes needed within the content must be escaped by doubling them ('').
+
+```
+" ' content ' "  
+  ^-----------^---- For cmd.exe  
+    ^-------^------ For Dirigent's parser
+```
+
+### Examples
+
+Here are practical examples for common use cases.
+
+#### 1. Argument with Spaces
+
+* **Goal**: Pass the argument an argument with spaces.  
+* **Command**:  
+  Dirigent.CLI.exe YourCommand "'an argument with spaces'"
+
+* **How it Works**:  
+  1. **cmd.exe**: Sees "..." and passes 'an argument with spaces' to Dirigent.  
+  2. **Dirigent Parser**: Sees '...' and returns the content an argument with spaces as a single token.
+
+#### 2. "Relaxed" JSON with Single Quotes
+
+This is the scenario that was confirmed to work for you.
+
+* **Goal**: Pass the literal string {MachineName:'m1'}.
+* **Command**:
+  Dirigent.CLI.exe StartScript ... "'{MachineName:''m1''}'"
+
+* **How it Works**:
+  1. **cmd.exe**: Sees the outer "..." and passes the content '{MachineName:''m1''}' to Dirigent.
+  2. **Dirigent Parser**:
+     * Sees the outer '...' as delimiters.
+     * Reads the content inside.
+     * Encounters '' and correctly interprets it as a literal single quote (').
+     * Returns the final token: {MachineName:'m1'}.
+
+#### 3\. Standard, Valid JSON with Double Quotes
+
+This is the recommended approach for passing structured data.
+
+* **Goal**: Pass the valid JSON string {"MachineName":"m1"}.
+* **Command**:
+  Dirigent.CLI.exe StartScript ... "'{""MachineName"":""m1""}'"
+
+* **How it Works**: 
+  1. **cmd.exe**: Sees the outer "..." and passes the content '{""MachineName"":""m1""}' to Dirigent.
+  2. **Dirigent Parser**: 
+     * Sees the outer '...' as delimiters for a single token. 
+     * Because it is inside a single-quoted string, it treats the double quotes (") and the doubled double quotes ("") as literal characters, not as delimiters or escape sequences for its own logic.
+     * It returns the token: {"MachineName":"m1"}.
+  3. **JSON Deserializer**: Receives a valid JSON string.
+
+This method is robust and should be your go-to for passing JSON data. It avoids the complexities and ambiguities of trying to escape characters for cmd.exe and relies on the clear rules of the Dirigent parser.
+
+## Commands
 
 ### StartApp
 
@@ -342,11 +413,11 @@ Running a custom script:
 
 Running a custom script with custom arguments. Notice the relaxed syntax for the JSON allowed by Newtonsoft Json:
 
-    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "Script/DemoScript1.cs" "{SomeString:'Hi there!'}"
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "Script/DemoScript1.cs" "'{""SomeString"":""Hi there!""}'"
 
 Running a shared-config defined script with custom arguments - notice the empty 'path':
 
-    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "" "{SomeString:'Hi there!'}"
+    StartScript "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" "" "'{""SomeString"":""Hi there!""}'"
 
 Running a custom script specified by full script file path (on master computer file system):
 
@@ -631,3 +702,89 @@ Some commands do not return ERROR even if the command fails (but ACK is returned
   Request:   `ReloadSharedConfig`
 
   Response:     `ACK`
+
+
+
+
+## **Real-Time Event Subscriptions**
+
+To avoid repeatedly polling for the status of applications, plans, and scripts, the Dirigent Command Line Interface (CLI) provides a real-time event subscription mechanism. By issuing the SendEvents command, a client can subscribe its current connection to receive automatic status updates whenever a meaningful change occurs.
+
+### **The SendEvents Command**
+
+This command manages the event subscription for the specific TCP connection that sends it.
+
+**Syntax:**
+
+SendEvents \<0|1\> [<update interval in seconds>]
+
+* **SendEvents 1**: Subscribes the current connection to receive automatic status updates.  
+  * The command should be prefixed with a unique **request ID**. This ID will be used to tag all subsequent automatic status messages sent to this client.
+
+  * Upon successful subscription, the server immediately performs an  
+    **initial status dump**, sending the current state of all known applications, plans, and scripts to the client.
+
+  * After the initial dump, the server will only send updates for individual items whose status has meaningfully changed.
+
+* **SendEvents 0**: Unsubscribes the current connection from receiving further updates. The client's status cache on the server is cleared to free up resources4.
+
+---
+
+### **Example Workflow**
+
+Here is a typical sequence of commands and responses when using the event subscription feature.
+
+**1\. Client Subscribes to Events**
+
+The client connects and sends the SendEvents command with a request ID, in this case, \[event01\].
+
+*Client Request:*
+
+\[event01\] SendEvents 1
+
+**2\. Acknowledgment and Initial Status Dump**
+
+The server immediately acknowledges the command using a ACK and sends the current state of all relevant items, each line prefixed with the client's chosen request ID \[event01\].
+
+*Server Response:*
+
+\[event01\] ACK  
+\[event01\] APP:m1.app1:R...  
+\[event01\] APP:m2.app2:...  
+\[event01\] PLAN:plan1:Success...  
+\[event01\] PLAN:plan2:None...  
+\[event01\] SCRIPT:2d5b3159-83c6-48d4-9c52-0ce1af92cbb2:{"Status":"Finished", ...}
+
+The client can check for the ACK and if not received until a threshold (see master tick period), the client should return to the older polling concept (like GetAppStatus) to support older versions of the Dirigent.
+
+**3\. Automatic Status Update**
+
+Later, if m1.app1 is killed, its status changes. The server detects this change during its next polling cycle and automatically sends an update to the subscribed client. Note that only the changed item is sent.
+
+*Server Sends Spontaneously:*
+
+\[event01\] APP:m1.app1:SKI...
+
+**4\. Client Unsubscribes**
+
+When the client no longer needs real-time updates, it sends the SendEvents 0 command.
+
+*Client Request:*
+
+\[anyReqId\] SendEvents 0
+
+*Server Response:*
+
+\[anyReqId\] ACK
+
+After this, the server will stop sending automatic updates to this client.
+
+---
+
+### **Remarks**
+
+* **Connection Specific**: The subscription is tied to the individual TCP connection. If the client disconnects, the subscription is automatically terminated.  
+* **Meaningful Changes Only**: Updates are triggered by changes in the operational state (e.g., Running to Killed), not by constantly fluctuating values like CPU usage or status age. This ensures that you only receive notifications for significant events.  
+* **Polling Interval**: The server checks for changes at a regular interval (typically once per second). Updates are therefore near-real-time but not instantaneous.
+
+* **Request ID is Key**: The request ID provided with the SendEvents 1 command is essential for identifying and parsing the automatic updates your application receives.  

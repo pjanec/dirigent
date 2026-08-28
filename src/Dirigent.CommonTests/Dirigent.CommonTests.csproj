@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
     <ProjectReference Include="..\Dirigent.TestBed\Dirigent.TestBed.csproj" />
   </ItemGroup>
 

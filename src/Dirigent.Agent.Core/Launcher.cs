@@ -20,7 +20,7 @@ namespace Dirigent
 
 		Net.Client ctrl;
 		Process_? _proc;
-		AppDef _appDef;
+		protected AppDef _appDef;
 		string _relativePathsRoot;
 		string? _planName; // in what plan's context the app is going to be started (just informative)
 		string _masterIP; // ip address of the Dirigent Master process
@@ -156,7 +156,7 @@ namespace Dirigent
 			return res;
 		}
 
-		string ExpandVars( String str )
+		protected string ExpandVars( String str )
 		{
 			return Tools.ExpandEnvAndInternalVars( str, _expansionVars );
 		}
@@ -166,7 +166,7 @@ namespace Dirigent
 			return PathUtils.BuildAbsolutePath( anyPath, _relativePathsRoot );
 		}
 
-		public bool AdoptAlreadyRunningByName()
+		public virtual bool AdoptAlreadyRunningByName()
 		{
 			var appPath = ExpandVars( _appDef.ExeFullPath );
 			ProcInfo? found = FindProcessByExeName( appPath );
@@ -180,7 +180,7 @@ namespace Dirigent
 			return false;
 		}
 
-		public void AdoptByPID( int PID )
+		public virtual void AdoptByPID( int PID )
 		{
 			_proc = Process_.GetProcessById( PID );
 			log.DebugFormat( $"Adopted existing process pid={PID}" );
@@ -251,20 +251,20 @@ namespace Dirigent
 			return Environment.ExpandEnvironmentVariables( @"%windir%\system32\WindowsPowerShell\v1.0\powershell.exe" ) ?? string.Empty;
 		}
 
-		enum EExeType
+		protected enum EExeType
 		{
 			Executable,   // normal executable startable via Process.Start
 			DirigentCmd   // dirigent command(s) in text form
 		}
 
-		struct ParsedExe
+		protected struct ParsedExe
 		{
 			public EExeType ExeType;
 			public string Path;
 			public string CmdLine;
 		}
 
-		ParsedExe ParseExe()
+		protected ParsedExe ParseExe()
 		{
 			ParsedExe pe = new ParsedExe();
 
@@ -331,7 +331,7 @@ namespace Dirigent
 		/// Throws on failure.
 		/// </summary>
 		/// <returns>true if the app was launched, false if still dying</returns>
-		public bool Launch()
+		public virtual bool Launch()
 		{
 			// don't run again if not yet killed
 			if( _dying ) return false;
@@ -646,7 +646,7 @@ namespace Dirigent
 
 
 
-		public void Kill( Net.KillAppFlags flags=0 )
+		public virtual void Kill( Net.KillAppFlags flags=0 )
 		{
 			//log.DebugFormat("Kill pid {0}", proc.Id );
 			// bool IsRunningOnMono = (Type.GetType("Mono.Runtime") != null);
@@ -757,13 +757,13 @@ namespace Dirigent
 		}
 
 		// -1 = N/A
-		public int PID => _proc?.Id ?? -1;
+		public virtual int PID => _proc?.Id ?? -1;
 
 		/// <summary>
 		/// Returns true if the process is in the system, no matter if running corectly or
 		/// whether it is still terminating. I.e. Running==true && Dying==true is a valid state.
 		/// </summary>
-		public bool Running
+		public virtual bool Running
 		{
 			get
 			{
@@ -804,7 +804,7 @@ namespace Dirigent
 		}
 
 		//public int ProcessId => _proc?.Id ?? -1;
-		public Process_? Process => _proc;
+		public virtual Process_? Process => _proc;
 
 
 		public record ProcInfo(

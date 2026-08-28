@@ -111,7 +111,7 @@ namespace Dirigent
 	{
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType);
 
-		private Master ctrl;
+		public Master ctrl;
 
 		private List<CLIRequest> pendingRequests = new List<CLIRequest>();
 		private ConcurrentQueue<CLIRequest> incomingRequests = new();

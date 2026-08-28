@@ -5,6 +5,8 @@ using System.Text;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace Dirigent
 {
@@ -119,6 +121,19 @@ namespace Dirigent
 			public delegate void LineReadDeleg( string line ); // called when a line is read
 			public event LineReadDeleg? LineRead;
 
+			public bool IsSubscribedToEvents { get; set; } = false;
+			public string? EventsRequestId { get; set; } = null;
+
+			// Caches for last sent state objects
+			public Dictionary<AppIdTuple, AppState> LastSentAppStates { get; } = new();
+			public Dictionary<string, PlanState> LastSentPlanStates { get; } = new();
+			public Dictionary<Guid, ScriptState> LastSentScriptStates { get; } = new();
+
+			// Custom update interval per client
+			public const double DefaultUpdateInterval = 0.25;
+			public double UpdateIntervalSec { get; set; } = DefaultUpdateInterval;
+			public DateTime NextUpdateTime { get; set; } = DateTime.UtcNow;
+
 			public TClient( TcpClient client )
 			{
 				this.client = client;
@@ -223,6 +238,175 @@ namespace Dirigent
 			// add new client requests to pendingRequests
 			// check for disconnection and remove old clients
 			TickClients();
+
+			// Poll for status changes for subscribed clients
+			CheckForStatusChanges();
+		}
+
+		/// <summary>
+		/// Handles connection-specific commands like SendEvents.
+		/// Sends an immediate ACK to confirm support before performing longer operations.
+		/// </summary>
+		/// <returns>True if a command was handled, false otherwise.</returns>
+		private bool HandleLocalCommands(TClient c, string cmdLine)
+		{
+			string trimmedCmd = cmdLine.Trim();
+			string? reqId = null;
+			string cmdBody = trimmedCmd;
+
+			var match = Regex.Match(trimmedCmd, @"^\s*\[(.*?)\]\s*(.*)");
+			if (match.Success && match.Groups.Count > 1)
+			{
+				reqId = match.Groups[1].Value;
+				cmdBody = match.Groups[2].Value.Trim();
+			}
+
+			if (cmdBody.StartsWith("SendEvents", StringComparison.OrdinalIgnoreCase))
+			{
+				var parts = cmdBody.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+				// First, send acknowledgement that the command is understood
+				string response = "ACK\n";
+				if (!string.IsNullOrEmpty(reqId))
+				{
+					response = $"[{reqId}] {response}";
+				}
+				c.WriteResponse(response);
+
+				// Now, process the command
+				if (parts.Length >= 2 && (parts[1] == "0" || parts[1] == "1"))
+				{
+					bool subscribe = parts[1] == "1";
+					c.IsSubscribedToEvents = subscribe;
+
+					if (subscribe)
+					{
+						c.EventsRequestId = reqId;
+
+						if (parts.Length > 2 && double.TryParse(parts[2], NumberStyles.Any, CultureInfo.InvariantCulture, out double interval))
+						{
+							c.UpdateIntervalSec = Math.Max(0.1, interval); // Enforce minimum
+						}
+						else
+						{
+							c.UpdateIntervalSec = TClient.DefaultUpdateInterval;
+						}
+						c.NextUpdateTime = DateTime.UtcNow;
+						InitialStatusDump(c);   
+					}
+					else
+					{
+						c.EventsRequestId = null;
+						c.LastSentAppStates.Clear();
+						c.LastSentPlanStates.Clear();
+						c.LastSentScriptStates.Clear();
+					}
+					log.DebugFormat("{0}: CLI Event Subscription: {1}", c.Name, subscribe ? "ON" : "OFF");
+				}
+				else
+				{
+					string error = "ERROR: Syntax is SendEvents <0|1> [<interval>]\n";
+					if (!string.IsNullOrEmpty(reqId))
+					{
+						error = $"[{reqId}] {error}";
+					}
+					c.WriteResponse(error);
+				}
+				return true; // Command was handled
+			}
+			return false; // Not a local command
+		}
+
+		private void InitialStatusDump(TClient c)
+		{
+			if (string.IsNullOrEmpty(c.EventsRequestId)) return;
+
+			// Dump all apps
+			foreach (var pair in _cliProc.ctrl.GetAllAppsState())
+			{
+				var statusLine = Tools.GetAppStateString(pair.Key, pair.Value);
+				c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+				c.LastSentAppStates[pair.Key] = pair.Value.Clone();
+			}
+
+			// Dump all plans
+			foreach (var pair in _cliProc.ctrl.GetAllPlansState())
+			{
+				var statusLine = Tools.GetPlanStateString(pair.Key, pair.Value);
+				c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+				c.LastSentPlanStates[pair.Key] = pair.Value.Clone();
+			}
+        
+			// Dump all DEFINED scripts and their current state (if any)
+			foreach (var scriptDef in _cliProc.ctrl.GetAllScriptsDef()) // if we use GetAllScriptState, we will miss the never-started scripts
+			{
+				var scriptId = scriptDef.Guid;
+				// Get the current state if it exists, otherwise create a default "Unknown" state.
+				var scriptState = _cliProc.ctrl.GetScriptState(scriptId) ?? new ScriptState();
+
+				var statusLine = Tools.GetScriptStateString(scriptId, scriptState);
+				c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+				c.LastSentScriptStates[scriptId] = scriptState.Clone();
+			}
+		}
+
+		private void CheckForStatusChanges()
+		{
+			var now = DateTime.UtcNow;
+			foreach (var c in clients)
+			{
+				if (!c.IsSubscribedToEvents || string.IsNullOrEmpty(c.EventsRequestId) || now < c.NextUpdateTime)
+				{
+					continue;
+				}
+
+				c.NextUpdateTime = now.AddSeconds(c.UpdateIntervalSec);
+
+				// --- Check App States ---
+				var currentAppStates = _cliProc.ctrl.GetAllAppsState().ToDictionary(p => p.Key, p => p.Value);
+				foreach (var pair in currentAppStates)
+				{
+					if (!c.LastSentAppStates.TryGetValue(pair.Key, out var lastState) || !lastState.Equals(pair.Value))
+					{
+						var statusLine = Tools.GetAppStateString(pair.Key, pair.Value);
+						c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+						c.LastSentAppStates[pair.Key] = pair.Value.Clone();
+					}
+				}
+				var removedAppKeys = c.LastSentAppStates.Keys.Except(currentAppStates.Keys).ToList();
+				foreach(var key in removedAppKeys) c.LastSentAppStates.Remove(key);
+
+				// --- Check Plan States ---
+				var currentPlanStates = _cliProc.ctrl.GetAllPlansState().ToDictionary(p => p.Key, p => p.Value);
+				foreach (var pair in currentPlanStates)
+				{
+					if (!c.LastSentPlanStates.TryGetValue(pair.Key, out var lastState) || !lastState.Equals(pair.Value))
+					{
+						var statusLine = Tools.GetPlanStateString(pair.Key, pair.Value);
+						c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+						c.LastSentPlanStates[pair.Key] = pair.Value.Clone();
+					}
+				}
+				var removedPlanKeys = c.LastSentPlanStates.Keys.Except(currentPlanStates.Keys).ToList();
+				foreach(var key in removedPlanKeys) c.LastSentPlanStates.Remove(key);
+
+				// --- Check Script States ---
+				var currentScriptStates = _cliProc.ctrl.GetAllScriptsState().ToDictionary(p => p.Key, p => p.Value);
+				foreach (var pair in currentScriptStates)
+				{
+					if (!c.LastSentScriptStates.TryGetValue(pair.Key, out var lastState) || !lastState.Equals(pair.Value))
+					{
+						var statusLine = Tools.GetScriptStateString(pair.Key, pair.Value);
+						c.WriteResponse($"[{c.EventsRequestId}] {statusLine}\n");
+						c.LastSentScriptStates[pair.Key] = pair.Value.Clone();
+					}
+				}
+				var removedScriptKeys = c.LastSentScriptStates.Keys.Except(currentScriptStates.Keys).ToList();
+				foreach(var key in removedScriptKeys)
+				{
+					c.LastSentScriptStates.Remove(key);
+				}
+			}
 		}
 
 		void AcceptNewConnection()
@@ -236,6 +420,10 @@ namespace Dirigent
 
 		void AddRequest( TClient c, string cmdLine )
 		{
+			if (HandleLocalCommands(c, cmdLine))
+			{
+				return; // The command was handled locally, do not forward to CLIProcessor
+			}
 			_cliProc.AddRequest( c, cmdLine );
 		}
 
@@ -273,5 +461,6 @@ namespace Dirigent
 			}
 			clients.Clear();
 		}
+
 	}
 }

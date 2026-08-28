@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -48,11 +48,10 @@ namespace Dirigent.Gui.WinForms
 		public frmMain(
 			AppConfig ac,
 			NotifyIconHandler Handler,
-			string machineId, // empty if no local agent was started with the GUI
-			string rootForRelativePaths
+			GuiCore core // Accept GuiCore instance instead of creating it
 		)
 		{
-			_core = new GuiCore( ac, machineId, rootForRelativePaths );
+			_core = core; // Use the provided GuiCore instance
 		
 			_notifyIconHandler = Handler;
 
@@ -70,7 +69,6 @@ namespace Dirigent.Gui.WinForms
 			ShowJustAppFromCurrentPlan = Tools.BoolFromString( Common.Properties.Settings.Default.ShowJustAppsFromCurrentPlan );
 
 
-			UpdateMainMenu(); // initial menus
 			_core.ReflStates.OnActionsReceived += () => UpdateMainMenu(); // when Action arrived from master, we rebuild the menu
 
 
@@ -89,6 +87,8 @@ namespace Dirigent.Gui.WinForms
 
 			_core.Client.MessageReceived += OnMessage;
 
+			UpdateMainMenu(); // initial menus
+
 		}
 
 		void myDispose()
@@ -97,7 +97,7 @@ namespace Dirigent.Gui.WinForms
 
 			tmrTick.Enabled = false;
 
-			_core.Dispose();
+			// Don't dispose _core here since it's managed by GuiTrayApp now
 		}
 
 		void OnMessage( Net.Message msg )
@@ -391,6 +391,14 @@ namespace Dirigent.Gui.WinForms
 
 		private void reloadSharedConfigToolStripMenuItem_Click( object sender, EventArgs e )
 		{
+			var allAppState = Ctrl.GetAllAppsState();
+			bool someAppsRunning = allAppState.Any( x => x.Value.Running || x.Value.Dying );
+			if( someAppsRunning )
+			{
+				MessageBox.Show( "Some apps are still running. Please kill them first.", "Dirigent", MessageBoxButtons.OK, MessageBoxIcon.Warning );
+				return;
+			}
+
 			var args = new ReloadSharedConfigArgs() { KillApps = false };
 			Ctrl.Send( new Net.ReloadSharedConfigMessage( Ctrl.Name, args ) );
 		}
@@ -715,9 +723,14 @@ namespace Dirigent.Gui.WinForms
 				var vars = new Dictionary<string,string>()
 				{
 					{ "MACHINE_ID", _core.MachineId },
-					{ "MACHINE_IP", _core.ReflStates.FileReg.GetMachineIP( _core.MachineId ) },
 				};
-				
+
+				var machineIp = _core.ReflStates.FileReg.GetMachineIP( _core.MachineId );
+				if (!string.IsNullOrEmpty(machineIp))
+				{
+					vars.Add("MACHINE_IP", machineIp);
+				}				
+
 				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => WFT.GuardedOp( () => { Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, x, hostClientId, vars )); } ) );
 
 				menuItems.Add( menuItem );

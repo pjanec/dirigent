@@ -52,7 +52,7 @@ namespace Dirigent
 	/// Plan execution status
 	/// </summary>
 	//[MessagePack.MessagePackObject]
-	public class PlanState
+	public class PlanState : IEquatable<PlanState>
 	{
 		//[MessagePack.Key( 1 )]
 		public bool Running;  // currently taking care of apps (launching, keeping alive...); mutually exclusive with Running
@@ -80,6 +80,34 @@ namespace Dirigent
 		//[MessagePack.Key( 5 )]
 		[MaybeNull] // when constructed without arguments by protobuf
 		public Dictionary<AppIdTuple, PlanAppState> PlanAppStates;
+
+		// Add this Clone method
+		public PlanState Clone()
+		{
+			var newObj = (PlanState)this.MemberwiseClone();
+			// The dictionary PlanAppStates is not compared, so a shallow copy is sufficient.
+			return newObj;
+		}
+
+		// Add these new methods for equality comparison
+		public bool Equals(PlanState? other)
+		{
+			if (other is null) return false;
+
+			return this.Running == other.Running &&
+				   this.Killing == other.Killing &&
+				   this.OpStatus == other.OpStatus;
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return Equals(obj as PlanState);
+		}
+
+		public override int GetHashCode()
+		{
+			return HashCode.Combine(Running, Killing, OpStatus);
+		}
 	}
 
 

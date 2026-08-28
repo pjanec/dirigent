@@ -114,3 +114,7 @@ UpgradeLog*.XML
 TestCases
 /html
 /tools
+
+*.7z
+.dumps
+Config

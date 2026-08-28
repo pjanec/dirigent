@@ -11,7 +11,7 @@ namespace Dirigent
 	/// App status shared among all Dirigent participants.
 	/// </summary>
 	//[MessagePack.MessagePackObject]
-	public class AppState
+	public class AppState : IEquatable<AppState>
 	{
 		[Flags]
 		public enum FL
@@ -251,6 +251,39 @@ namespace Dirigent
 			};
 		}
 
+		/// <summary>
+		/// clone
+		/// </summary>
+		public AppState Clone()
+		{
+			return (AppState)this.MemberwiseClone();
+		}
+
+		#region IEquatable<AppState> Members
+
+		public bool Equals(AppState? other)
+		{
+			if (other is null) return false;
+
+			// Compare fields that signify a meaningful state change.
+			// IGNORE LastChange, CPU, Memory as they change constantly.
+			return this._flags == other._flags &&
+				   this.ExitCode == other.ExitCode &&
+				   this.PlanName == other.PlanName &&
+				   this.PID == other.PID;
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return Equals(obj as AppState);
+		}
+
+		public override int GetHashCode()
+		{
+			return HashCode.Combine(_flags, ExitCode, PlanName, PID);
+		}
+
+		#endregion
 	}
 
 

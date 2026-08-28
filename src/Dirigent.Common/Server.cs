@@ -128,7 +128,7 @@ namespace Dirigent.Net
 	/// Outgoing multicast messages are sent just to the clients that are subscribed to the message category.
 	/// Outgoing multicast messages are not sent only to clients who already identified themselves by sending a ClientIdent message.
 	/// </summary>
-	public class Server : NetCoreServer.TcpServer
+    public class Server : NetCoreServer.TcpServer, IMasterServer
 	{
 		/// <summary>Called from <see cref="Poll"/> for each received message</summary>
 		public Action<Net.Message>? MessageReceived;
@@ -159,8 +159,19 @@ namespace Dirigent.Net
 		/// <summary>Messages received since last <see cref="Tick"/> from all connected client. Filled & read synchronously from <see cref="Tick"/></summary>
 		private ConcurrentQueue<Message> _messagesReceived = new();
 
+		static IPAddress GetBindIp()
+		{
+			try
+			{
+				var v = Environment.GetEnvironmentVariable("DIRIGENT_SERVER_LOCAL_ONLY");
+				if (string.Equals(v, "1", StringComparison.OrdinalIgnoreCase)) return IPAddress.Loopback;
+			}
+			catch { }
+			return IPAddress.Any;
+		}
+
 		public Server( int port )
-			: base( IPAddress.Any, port )
+			: base( GetBindIp(), port )
 		{
 			this._port = port;
 			_msgCodec = new MsgPackCodec();
@@ -320,6 +331,7 @@ namespace Dirigent.Net
 			return null;
 		}
 
+        public new bool IsDisposed => base.IsDisposed;
 	}
 
 

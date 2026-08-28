@@ -1,6 +1,6 @@
 # script prints all dirigent clients
 
-$DirigentCliExe = "$PSScriptRoot\..\src\Dirigent.CLI\bin\Debug\net6.0-windows\Dirigent.CLI.exe"
+$DirigentCliExe = "$PSScriptRoot\..\src\Dirigent.CLI\bin\Debug\net8.0-windows\Dirigent.CLI.exe"
 
 # Parses the output of Dirigent.CLI's GetAllClientsState.
 # Returns a list of data structures containing fields Name, IsConnected, LastStatusAge, IP
