@@ -72,8 +72,14 @@ namespace Dirigent.Scripts.BuiltIn
 			public List<SerializedException> Exceptions = new();
 		}
 
+		/// <summary>
+		/// Write the archive in chunks this big. A destination reached over a file share is written
+		/// to in as few round trips as the compressed data allows.
+		/// </summary>
+		const int _writeBufferBytes = 1024 * 1024;
+
 		TArgs? _args;
-		
+
 		protected override Task<string?> Run()
 		{
 			_args = Tools.Deserialize<TArgs>( Args );
@@ -81,71 +87,81 @@ namespace Dirigent.Scripts.BuiltIn
 
 			//throw new Exception( "Hey, test exception from a script! " + _Name );
 
-			var exceptions = new List<Exception>(); // exceptions gathered from the execution of this script (missing files etc.)
+			var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
 
-			// the archive is built locally and uploaded afterwards; only the compressed result
-			// travels, which is the point of zipping on the machine owning the files
-			var zipFileFullPath = Path.Combine( Path.GetTempPath(), Path.GetRandomFileName() + ".zip" );
+			// exceptions gathered along the way (missing files etc.) - they do not stop the download
+			var exceptions = WriteArchive( destFileName );
 
-			try
-			{
-				using( var zip = ZipFile.Open( zipFileFullPath, ZipArchiveMode.Create ) )
-				{
-					// same-named files coming from different places must not overwrite each other,
-					// and the archive is the only place the names live now
-					var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
-					var notes = new List<string>();
-
-					AddLocalFiles( _args.Container!, string.Empty, zip, usedEntryNames, exceptions, notes );
-
-					AddNotes( zip, usedEntryNames, notes );
-				}
-
-				var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
-
-				// upload the zip file to wherever we can reach
-				// (the destination may be a staging folder created by whoever gets there first)
-				Upload( zipFileFullPath, destFileName );
-
-				// all done!
-				var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
-				return Task.FromResult( Tools.Serialize(result) )!;
-			}
-			finally
-			{
-				try { File.Delete( zipFileFullPath ); } catch( Exception e ) { log.Warn( $"Could not delete {zipFileFullPath}: {e.Message}" ); }
-			}
+			// all done!
+			var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
+			return Task.FromResult( Tools.Serialize(result) )!;
 		}
 
 		/// <summary>
-		/// Copies the archive to the destination folder, preferring the local path when this very
-		/// machine owns the folder. Copying to our own disk through a file share would be pointless
-		/// work, and in a network with no share defined it is not even possible.
+		/// Builds the archive in the destination folder itself, under a temporary name, and moves it
+		/// into place once it is complete. Tries the folders in order of preference; the local path
+		/// first when this very machine owns it, since going through a file share to our own disk
+		/// would be pointless work and in a network with no share defined is not even possible.
 		/// </summary>
-		string Upload( string zipFileFullPath, string destFileName )
+		/// <remarks>
+		/// Writing straight to the destination saves writing the whole archive locally and reading it
+		/// back to copy it - which for a large collection is most of the work left after the files
+		/// themselves are no longer copied. The two-step name is what makes it safe: the merging step
+		/// looks for the parts by name, and must never find one that is still being written.
+		/// </remarks>
+		List<Exception> WriteArchive( string destFileName )
 		{
 			Exception? firstFailure = null;
 
 			foreach( var folder in DestinationFolders() )
 			{
+				// per attempt: a second destination must not inherit the complaints of the first
+				var exceptions = new List<Exception>();
+				var notes = new List<string>();
+				var partPath = string.Empty;
+
 				try
 				{
 					Directory.CreateDirectory( folder );
 
-					var destFileFullPath = Path.Combine( folder, destFileName );
-					File.Copy( zipFileFullPath, destFileFullPath, true );
+					var finalPath = Path.Combine( folder, destFileName );
+					partPath = finalPath + ".part";
 
-					return destFileFullPath;
+					// the destination file is opened before anything is compressed, so an unreachable
+					// share costs nothing but the attempt
+					using( var file = new FileStream( partPath, FileMode.Create, FileAccess.Write,
+													FileShare.None, _writeBufferBytes ) )
+					using( var zip = new ZipArchive( file, ZipArchiveMode.Create ) )
+					{
+						// same-named files coming from different places must not overwrite each other,
+						// and the archive is the only place the names live now
+						var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+
+						AddLocalFiles( _args!.Container!, string.Empty, zip, usedEntryNames, exceptions, notes );
+
+						AddNotes( zip, usedEntryNames, notes );
+					}
+
+					File.Move( partPath, finalPath, true );
+
+					return exceptions;
 				}
 				catch( Exception e )
 				{
-					log.Warn( $"Could not upload {destFileName} to '{folder}': {e.Message}" );
+					log.Warn( $"Could not write {destFileName} to '{folder}': {e.Message}" );
 					if( firstFailure is null ) firstFailure = e;
+
+					// a half-written archive must not be left behind under any name
+					if( !string.IsNullOrEmpty( partPath ) )
+					{
+						try { File.Delete( partPath ); }
+						catch( Exception de ) { log.Warn( $"Could not delete {partPath}: {de.Message}" ); }
+					}
 				}
 			}
 
 			throw firstFailure ?? new Exception(
-				$"No destination folder to upload {destFileName} to. The machine holding the download "
+				$"No destination folder to write {destFileName} to. The machine holding the download "
 				+ $"folder is not this one and no file share of it covers the folder." );
 		}
 

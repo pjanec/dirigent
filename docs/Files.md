@@ -461,8 +461,9 @@ What it does:
    instead of producing an empty archive.
 3. Starts a slave script (`BuiltIns/DownloadZippedSlave.cs`) on each of the remaining machines.
    Each slave streams **its own local files** straight into a zip archive - the virtual folder
-   structure becoming the entry names, nothing copied anywhere first - and uploads that archive to
-   a staging folder next to the requestor's download folder. A slave running on the machine that owns that folder writes to it as a plain
+   structure becoming the entry names, nothing copied anywhere first - and it writes that archive
+   directly into a staging folder next to the requestor's download folder, under a `.part` name
+   renamed into place once complete. A slave running on the machine that owns that folder writes to it as a plain
    local path; the others go through the UNC path (see
    [the destination folder](#the-destination-folder) below). Files belonging to no machine (the
    global ones) are handled by the first machine that gets a slave started.

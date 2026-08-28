@@ -65,6 +65,12 @@ namespace Dirigent.IntegrationTests
 			Assert.AreEqual( 0, leftovers.Length,
 				$"no folder should be left in the download folder, found: {string.Join( ", ", leftovers.Select( Path.GetFileName ) )}" );
 
+			// each part is built in place under a temporary name and renamed when complete, so no
+			// half-written archive may be left over either
+			var partials = Directory.GetFiles( bed.DownloadFolder, "*.part", SearchOption.AllDirectories );
+			Assert.AreEqual( 0, partials.Length,
+				$"no partial file should remain, found: {string.Join( ", ", partials.Select( Path.GetFileName ) )}" );
+
 			// and the operator was told where the files went
 			var messages = bed.Operator.Notifications.Select( n => n.Message ?? "" ).ToList();
 			Assert.IsTrue( messages.Any( m => m.Contains( "downloaded", StringComparison.OrdinalIgnoreCase ) ),
