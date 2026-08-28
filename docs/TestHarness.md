@@ -18,6 +18,7 @@ Contents:
 * [Tier 2: real processes](#tier-2-real-processes)
 * [What exists today](#what-exists-today)
 * [What it has found](#what-it-has-found)
+* [The harness that was replaced](#the-harness-that-was-replaced)
 * [Roadmap](#roadmap)
 * [Standing constraints](#standing-constraints)
 
@@ -84,9 +85,9 @@ must never steal focus. A test suite that interrupts work does not get run.
 
 ```mermaid
 flowchart LR
-    T0["<b>Tier 0</b><br/>unit tests<br/>44 tests, 0.5 s"]
-    T1["<b>Tier 1</b><br/>in-process bed<br/>46 tests, 75 s"]
-    T2["<b>Tier 2</b><br/>real processes<br/>8 tests, 31 s"]
+    T0["<b>Tier 0</b><br/>unit tests<br/>44 tests, 0.4 s"]
+    T1["<b>Tier 1</b><br/>in-process bed<br/>47 tests, 77 s"]
+    T2["<b>Tier 2</b><br/>real processes<br/>8 tests, 32 s"]
     T3["<b>Tier 3</b><br/>two VMs<br/>not built"]
 
     T0 --> T1 --> T2 --> T3
@@ -286,7 +287,7 @@ GetScriptState <guid>
 | `src/Dirigent.TestBed` | the tier-1 bed: temp world, ports, pump, components, teardown; the `Operator`; the scenario model and renderers; `CliSession` |
 | `src/Dirigent.TestBed.Gen` | renders a scenario preset to a folder, with a `world.json` manifest |
 | `src/Dirigent.TestBed.PowerShell` | the tier-2 driver, its tests, and its own README |
-| `src/Dirigent.IntegrationTests` | 46 tier-1 tests |
+| `src/Dirigent.IntegrationTests` | 47 tier-1 tests |
 | `src/Dirigent.CommonTests` | 44 tier-0 tests, including the scenario round-trip guard |
 
 Tier-1 coverage by area:
@@ -301,6 +302,7 @@ Tier-1 coverage by area:
 | the log download, end to end | `LogDownloadTests` — 3 |
 | the CLI surface over a real socket | `CliSurfaceTests` — 6 |
 | the harness's own promises: isolation, no leaks | `HarnessTests` — 6 |
+| launch variables not surviving into the next launch | `LaunchVariableTests` — 1 |
 
 ### What Dirigent had to grow
 
@@ -354,6 +356,38 @@ exercised end to end.
 state having reached the operator, so a test finishing on a file appearing left five applications and
 eleven temp folders behind a green run.
 
+## The harness that was replaced
+
+Branch 3.1 carried a second, mock-based harness - `MockLauncher` / `MockProcess` /
+`MockProcessManager`, an injectable `IMasterServer`, and a `DeterministicScenarioTest` that carried
+messages between master and agent by hand and injected them through reflection on a private method.
+It was removed when the branches were merged. The reasoning, so it is not re-litigated later:
+
+* **Its coverage was subsumed.** Every assertion it made - defs reaching a client, a plan starting
+  both applications, a crash being noticed, disconnect detection, adoption with an unchanged pid -
+  is made here with real messages and real processes. The one exception, that a plan restart must
+  not carry the previous launch's variables, is now `LaunchVariableTests`, asserted where it
+  matters: in the environment the process is actually given.
+* **It bypassed the transport.** Serialization, `Server`/`Client`, subscription categories,
+  reconnect - none of it ran. The test itself carried each message, so it verified the sequence its
+  author had in mind rather than the one the code produces.
+* **It coupled tests to internals** - reflection on a private method, and assertions that depended
+  on how many ticks were driven.
+* **Its 146-line `IntegrationTestHarness` was dead code**; nothing referenced it.
+
+A mocked-process lane was then built here, briefly, to keep its one real advantage: ending a
+process at an exact instant, between two ticks. It was removed too, after measuring. **The lane was
+not meaningfully faster** - 1-2 s per test either way, because bringing the bed up dominates, not
+launching a process - and no test needed the timing precision, since waiting on a condition absorbs
+the milliseconds a real kill takes. What remained was a second launcher that production never uses,
+a second place for a test to live, and three tests duplicating coverage. Not worth its keep.
+
+What was kept from 3.1: the `IMasterServer` abstraction, the internal `Master( SharedConfig, ... )`
+constructor and the launcher factory threaded through `Agent`, `LocalAppsRegistry` and `LocalApp`.
+They are additive and inert, but **nothing uses them now** - if they find no use, they should go the
+way of the harness they were added for. The one thing that was *not* kept is the
+`DIRIGENT_SERVER_LOCAL_ONLY` environment variable that `Server` read: test-only behaviour has no
+business in shipping code.
 ## Roadmap
 
 ### Next

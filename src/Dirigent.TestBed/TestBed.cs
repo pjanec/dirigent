@@ -39,6 +39,7 @@ namespace Dirigent.TestBed
 
 		/// <summary>Keep the temporary folder behind for inspection.</summary>
 		public bool KeepTempRoot;
+
 	}
 
 	/// <summary>

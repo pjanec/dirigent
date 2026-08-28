@@ -159,19 +159,8 @@ namespace Dirigent.Net
 		/// <summary>Messages received since last <see cref="Tick"/> from all connected client. Filled & read synchronously from <see cref="Tick"/></summary>
 		private ConcurrentQueue<Message> _messagesReceived = new();
 
-		static IPAddress GetBindIp()
-		{
-			try
-			{
-				var v = Environment.GetEnvironmentVariable("DIRIGENT_SERVER_LOCAL_ONLY");
-				if (string.Equals(v, "1", StringComparison.OrdinalIgnoreCase)) return IPAddress.Loopback;
-			}
-			catch { }
-			return IPAddress.Any;
-		}
-
 		public Server( int port )
-			: base( GetBindIp(), port )
+			: base( IPAddress.Any, port )
 		{
 			this._port = port;
 			_msgCodec = new MsgPackCodec();

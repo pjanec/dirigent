@@ -494,7 +494,10 @@ function Wait-DirigentAppState
         [Parameter(Mandatory)] $World,
         [Parameter(Mandatory)][string] $App,
         [Parameter(Mandatory)][string] $Flags,
-        [int] $TimeoutSec = 30
+
+        # generous on purpose: this waits for a real process to start on a machine that may be
+        # busy with a build or another suite, and a ceiling costs nothing when things are quick
+        [int] $TimeoutSec = 90
     )
 
     Wait-DirigentCondition -World $World -TimeoutSec $TimeoutSec `
