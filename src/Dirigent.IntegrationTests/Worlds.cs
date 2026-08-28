@@ -1,4 +1,5 @@
-﻿using Dirigent;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Dirigent;
 using Dirigent.TestBed;
 using Dirigent.TestBed.Scenarios;
 using System;
@@ -85,5 +86,33 @@ namespace Dirigent.IntegrationTests
 
 		public static string Describe( string folder )
 			=> string.Join( ", ", Directory.GetFileSystemEntries( folder ).Select( Path.GetFileName ) );
+
+		/// <summary>Uncompressed size of the first entry whose name ends with the given file name.</summary>
+		public static long SizeOf( string archivePath, string entryFileName )
+			=> EntryNamed( archivePath, entryFileName, e => e.Length );
+
+		/// <summary>Modification time stored for the first entry whose name ends with the given file name.</summary>
+		public static DateTime TimeOf( string archivePath, string entryFileName )
+			=> EntryNamed( archivePath, entryFileName, e => e.LastWriteTime.DateTime );
+
+		/// <summary>Text content of the first entry whose name ends with the given file name.</summary>
+		public static string TextOf( string archivePath, string entryFileName )
+			=> EntryNamed( archivePath, entryFileName, e =>
+			{
+				using var stream = e.Open();
+				using var reader = new StreamReader( stream );
+				return reader.ReadToEnd();
+			} );
+
+		static T EntryNamed<T>( string archivePath, string entryFileName, Func<ZipArchiveEntry, T> read )
+		{
+			using var zip = ZipFile.OpenRead( archivePath );
+			var entry = zip.Entries.FirstOrDefault(
+							e => e.FullName.EndsWith( entryFileName, StringComparison.OrdinalIgnoreCase ) )
+						?? throw new AssertFailedException(
+							$"no entry ending with '{entryFileName}' in {Path.GetFileName( archivePath )}; "
+							+ $"entries: {string.Join( ", ", zip.Entries.Select( e => e.FullName ) )}" );
+			return read( entry );
+		}
 	}
 }

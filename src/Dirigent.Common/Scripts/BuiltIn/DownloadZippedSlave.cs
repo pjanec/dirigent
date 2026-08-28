@@ -14,9 +14,12 @@ namespace Dirigent.Scripts.BuiltIn
 	/*
 	* Takes a bunch of vfsNodes. Produces a zip package from those located on this machine.
 	* Uploads the zip file to given destination.
-	* 
-	* Before zipping the relevant files are copied to a temporary directory where the folder structure is created
-	* according to the structure of the vfsnodes.
+	*
+	* The files are streamed into the archive one by one, the virtual folder structure becoming the
+	* entry names. Nothing is copied anywhere first: the archive layout exists in no file system, so
+	* the earlier approach of materializing it in a temp folder for ZipFile.CreateFromDirectory meant
+	* writing and reading every file once more - unaffordable for the multi-gigabyte log files that
+	* an unrotated logger produces.
 	*/
 	public class DownloadZippedSlave : Script
 	{
@@ -80,40 +83,34 @@ namespace Dirigent.Scripts.BuiltIn
 
 			var exceptions = new List<Exception>(); // exceptions gathered from the execution of this script (missing files etc.)
 
-			// create a unique temporary folder
-			var tempFolder = Path.Combine( Path.GetTempPath(), Path.GetRandomFileName() );
-			Directory.CreateDirectory( tempFolder );
+			// the archive is built locally and uploaded afterwards; only the compressed result
+			// travels, which is the point of zipping on the machine owning the files
+			var zipFileFullPath = Path.Combine( Path.GetTempPath(), Path.GetRandomFileName() + ".zip" );
 
 			try
 			{
-				// traverse the vfs tree, create folders and copy local files to the temp folder
-				CopyLocalFiles( _args.Container!, tempFolder, exceptions );
-
-				// zip the content of the temp folder
-				var zipFileFullPath = Path.Combine( Path.GetTempFileName()+".zip" );
-				ZipFile.CreateFromDirectory( tempFolder, zipFileFullPath, CompressionLevel.Fastest, false  );
-
-				try
+				using( var zip = ZipFile.Open( zipFileFullPath, ZipArchiveMode.Create ) )
 				{
-					var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
+					// same-named files coming from different places must not overwrite each other,
+					// and the archive is the only place the names live now
+					var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 
-					// upload the zip file to wherever we can reach
-					// (the destination may be a staging folder created by whoever gets there first)
-					Upload( zipFileFullPath, destFileName );
+					AddLocalFiles( _args.Container!, string.Empty, zip, usedEntryNames, exceptions );
+				}
 
-					// all done!
-					var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
-					return Task.FromResult( Tools.Serialize(result) )!;
-				}
-				finally
-				{
-					File.Delete( zipFileFullPath );
-				}
+				var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
+
+				// upload the zip file to wherever we can reach
+				// (the destination may be a staging folder created by whoever gets there first)
+				Upload( zipFileFullPath, destFileName );
+
+				// all done!
+				var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
+				return Task.FromResult( Tools.Serialize(result) )!;
 			}
 			finally
 			{
-				// delete temp stuff
-				Directory.Delete( tempFolder, true );
+				try { File.Delete( zipFileFullPath ); } catch( Exception e ) { log.Warn( $"Could not delete {zipFileFullPath}: {e.Message}" ); }
 			}
 		}
 
@@ -177,7 +174,13 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 		
 
-		void CopyLocalFiles( VfsNodeDef container, string destFolder, List<Exception> exceptions )
+		/// <summary>
+		/// Walks the resolved vfs tree and streams the files living on this machine into the archive,
+		/// the virtual folder structure becoming the entry names.
+		/// </summary>
+		/// <param name="entryPrefix">Archive path of the container, empty for the root, "a/b/" otherwise.</param>
+		void AddLocalFiles( VfsNodeDef container, string entryPrefix, ZipArchive zip,
+				HashSet<string> usedEntryNames, List<Exception> exceptions )
 		{
 			foreach( var node in container.Children )
 			{
@@ -185,9 +188,7 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					try
 					{
-						var newDestFolder = Path.Combine( destFolder, GetFolderName( node ) );
-						Directory.CreateDirectory( newDestFolder );
-						CopyLocalFiles( node, newDestFolder, exceptions );
+						AddLocalFiles( node, entryPrefix + GetFolderName( node ) + "/", zip, usedEntryNames, exceptions );
 					}
 					catch (Exception e)
 					{
@@ -205,18 +206,16 @@ namespace Dirigent.Scripts.BuiltIn
 						{
 							// files belonging to an app go to a subfolder named after the app, so that
 							// the same-named log files of multiple apps do not clash within the archive
-							var fileDestFolder = destFolder;
-							if( !string.IsNullOrEmpty( node.AppId ) )
-							{
-								fileDestFolder = Path.Combine( destFolder, SanitizeName( node.AppId ) );
-								Directory.CreateDirectory( fileDestFolder );
-							}
+							var fileEntryPrefix = string.IsNullOrEmpty( node.AppId )
+													? entryPrefix
+													: entryPrefix + SanitizeName( node.AppId ) + "/";
 
-							var destFile = MakeUniqueFileName(
-								Path.Combine( fileDestFolder, Path.GetFileName( node.Path! ) )
+							var entryName = MakeUniqueEntryName(
+								fileEntryPrefix + Path.GetFileName( node.Path! ),
+								usedEntryNames
 							);
 
-							File.Copy( node.Path!, destFile );
+							AddFile( zip, entryName, node.Path! );
 						}
 						catch (Exception e)
 						{
@@ -225,6 +224,45 @@ namespace Dirigent.Scripts.BuiltIn
 					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// Streams one file into the archive under the given entry name.
+		/// </summary>
+		static void AddFile( ZipArchive zip, string entryName, string filePath )
+		{
+			var info = new FileInfo( filePath );
+
+			// The share flags are not optional here:
+			//  - ReadWrite, because a log file is typically held open for writing by the application
+			//    producing it, and an open that does not permit that access is refused;
+			//  - Delete, because we now hold the file open for the whole time it takes to compress it
+			//    (minutes, for a huge log) rather than for a quick copy, and without it a logger
+			//    rotating its file in that window would fail to rename it.
+			// Opening before creating the entry keeps an unreadable file from leaving an empty
+			// entry behind in the archive.
+			using var src = new FileStream( filePath, FileMode.Open, FileAccess.Read,
+											FileShare.ReadWrite | FileShare.Delete );
+
+			var entry = zip.CreateEntry( entryName, CompressionLevel.Fastest );
+			entry.LastWriteTime = ZipTimeOf( info.LastWriteTime );
+
+			using var dst = entry.Open();
+			src.CopyTo( dst );
+		}
+
+		/// <summary>
+		/// The file's modification time, as the zip format is able to store it.
+		/// </summary>
+		/// <remarks>
+		/// Zip keeps DOS timestamps, which start in 1980; ZipArchiveEntry.LastWriteTime throws for
+		/// anything earlier. Setting it at all matters: an entry created by hand would otherwise
+		/// carry the time the archive was made, losing the age of every collected file.
+		/// </remarks>
+		static DateTimeOffset ZipTimeOf( DateTime lastWriteTime )
+		{
+			var earliest = new DateTime( 1980, 1, 1, 0, 0, 0, DateTimeKind.Unspecified );
+			return new DateTimeOffset( lastWriteTime < earliest ? earliest : lastWriteTime );
 		}
 
 		/// <summary>
@@ -260,25 +298,28 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// Adds a numbered suffix if the file already exists, so that same-named files
-		/// coming from different places do not overwrite each other.
+		/// Adds a numbered suffix if the entry name is taken already, so that same-named files
+		/// coming from different places do not overwrite each other within the archive.
 		/// </summary>
-		static string MakeUniqueFileName( string fullPath )
+		static string MakeUniqueEntryName( string entryName, HashSet<string> usedEntryNames )
 		{
-			if( !File.Exists( fullPath ) ) return fullPath;
+			if( usedEntryNames.Add( entryName ) )
+				return entryName;
 
-			var folder = Path.GetDirectoryName( fullPath ) ?? string.Empty;
-			var name = Path.GetFileNameWithoutExtension( fullPath );
-			var ext = Path.GetExtension( fullPath );
+			var lastSlash = entryName.LastIndexOf( '/' );
+			var folder = lastSlash < 0 ? string.Empty : entryName.Substring( 0, lastSlash + 1 );
+			var fileName = entryName.Substring( lastSlash + 1 );
+			var name = Path.GetFileNameWithoutExtension( fileName );
+			var ext = Path.GetExtension( fileName );
 
 			for( int i = 2; i < 1000; i++ )
 			{
-				var candidate = Path.Combine( folder, $"{name}_{i}{ext}" );
-				if( !File.Exists( candidate ) ) return candidate;
+				var candidate = $"{folder}{name}_{i}{ext}";
+				if( usedEntryNames.Add( candidate ) )
+					return candidate;
 			}
 
-			// give up; the caller's File.Copy will report the problem
-			return fullPath;
+			return entryName; // give up, let the duplicate happen
 		}
 	}
 

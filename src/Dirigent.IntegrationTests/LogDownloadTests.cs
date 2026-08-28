@@ -105,6 +105,73 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task LogHeldOpenByItsWriterIsStillCollected()
+		{
+			// the normal state of a log file: the application producing it has it open for writing.
+			// The archive is written by streaming the sources, so the share flags that open uses are
+			// the difference between collecting a live log and reporting an error for it.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var heldOpen = Path.Combine( bed.RenderContext.AppLogsDir( "m1", "camera" ), "recent.log" );
+
+			using( var writer = new FileStream( heldOpen, FileMode.Open, FileAccess.Write, FileShare.ReadWrite ) )
+			{
+				writer.Write( System.Text.Encoding.UTF8.GetBytes( "a line written while the file is open\n" ) );
+				writer.Flush();
+
+				var all = await bed.Operator.GetAllVfsNodesAsync();
+				var cameraLogs = all.Single( n => n.Id == "log" && n.AppId == "camera" );
+
+				await bed.Operator.DownloadAsync( cameraLogs, timeout: Timeout );
+			}
+
+			var archives = Archive.In( bed.DownloadFolder );
+			Assert.AreEqual( 1, archives.Count, $"found: {Archive.Describe( bed.DownloadFolder )}" );
+
+			var entries = Archive.EntriesOf( archives[0] );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "recent.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"the log held open by its writer should have been collected, entries: {string.Join( ", ", entries )}" );
+
+			Assert.IsTrue( Archive.SizeOf( archives[0], "recent.log" ) > 0,
+				"the collected entry should not be empty" );
+
+			var messages = bed.Operator.Notifications.Select( n => n.Message ?? "" ).ToList();
+			Assert.IsFalse( messages.Any( m => m.Contains( "failed", StringComparison.OrdinalIgnoreCase ) ),
+				$"nothing should have failed, saw: {string.Join( " | ", messages )}" );
+		}
+
+		[TestMethod()]
+		public async Task CollectedFilesKeepTheirModificationTime()
+		{
+			// the age of a log is half its evidence, so the archive has to carry it. An entry created
+			// by hand carries the time the archive was made unless the source time is set explicitly.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var seeded = Path.Combine( bed.RenderContext.AppLogsDir( "m1", "camera" ), "recent.log" );
+			var sourceTime = File.GetLastWriteTime( seeded );
+
+			var all = await bed.Operator.GetAllVfsNodesAsync();
+			var cameraLogs = all.Single( n => n.Id == "log" && n.AppId == "camera" );
+
+			await bed.Operator.DownloadAsync( cameraLogs, timeout: Timeout );
+
+			var archives = Archive.In( bed.DownloadFolder );
+			var entryTime = Archive.TimeOf( archives[0], "recent.log" );
+
+			// the zip format keeps DOS timestamps, whose resolution is two seconds
+			Assert.IsTrue( Math.Abs( ( entryTime - sourceTime ).TotalSeconds ) <= 3,
+				$"the entry should carry the file's own time {sourceTime:s}, carries {entryTime:s}" );
+
+			// which is a day ago, definitely not the moment the archive was made
+			Assert.IsTrue( ( DateTime.Now - entryTime ).TotalHours > 1,
+				$"the seeded file is a day old, the entry claims {entryTime:s}" );
+		}
+
+		[TestMethod()]
 		public async Task DownloadOfOneApplicationsLogsTakesOnlyItsOwn()
 		{
 			// the everyday case: right-click one application, take its recent logs
