@@ -16,6 +16,10 @@ Typical uses:
   in one go.
 * Browse a set of files scattered over several machines as if it were one folder tree.
 
+This page is the conceptual and reference documentation. For a task-oriented walk-through of the
+most common use - gathering the logs of many applications from many machines into one downloadable
+bundle - start with [Collecting Log Files from Multiple Machines](LogFileCollection.md).
+
 Contents:
 
 * [Concepts](#concepts)
@@ -732,6 +736,7 @@ different account.
 
 ## See also
 
+* [Collecting log files](LogFileCollection.md) - the same material as a cookbook of worked examples
 * [Actions](Actions.md) - the general action mechanism and the full list of action variables
 * [Tools](Tools.md) - defining the tool applications that actions start
 * [Scripts](Scripts.md) - writing scripts, including ones that consume a resolved node tree

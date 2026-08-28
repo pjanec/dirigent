@@ -39,6 +39,8 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Files, Folders and Packages](docs/Files.md)
 
+[Collecting Log Files](docs/LogFileCollection.md)
+
 [Environment Variables](docs/EnvVars.md)
 
 #### Configuration
