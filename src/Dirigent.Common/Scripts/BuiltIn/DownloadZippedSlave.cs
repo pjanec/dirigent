@@ -217,12 +217,7 @@ namespace Dirigent.Scripts.BuiltIn
 													? entryPrefix
 													: entryPrefix + SanitizeName( node.AppId ) + "/";
 
-							var entryName = MakeUniqueEntryName(
-								fileEntryPrefix + Path.GetFileName( node.Path! ),
-								usedEntryNames
-							);
-
-							AddFile( zip, entryName, node.Path! );
+							AddFile( zip, fileEntryPrefix, node, usedEntryNames, notes );
 						}
 						catch (Exception e)
 						{
@@ -234,7 +229,7 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// Writes what the collection left out into a text entry at the root of the archive.
+		/// Writes what the collection left out or cut short into a text entry at the root of the archive.
 		/// </summary>
 		/// <remarks>
 		/// Without it an archive missing half a log folder looks exactly like a complete one, and
@@ -245,7 +240,7 @@ namespace Dirigent.Scripts.BuiltIn
 			if( notes.Count == 0 ) return;
 
 			var text = new StringBuilder();
-			text.AppendLine( $"Files left out of this archive by {Dirig.Name}:" );
+			text.AppendLine( $"What {Dirig.Name} could not put into this archive in full:" );
 			text.AppendLine();
 			foreach( var note in notes )
 			{
@@ -260,11 +255,22 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// Streams one file into the archive under the given entry name.
+		/// Streams one file into the archive, taking only its tail if the node asks for that.
 		/// </summary>
-		static void AddFile( ZipArchive zip, string entryName, string filePath )
+		static void AddFile( ZipArchive zip, string entryPrefix, VfsNodeDef node,
+				HashSet<string> usedEntryNames, List<string> notes )
 		{
+			var filePath = node.Path!;
 			var info = new FileInfo( filePath );
+			var truncate = FileTail.Applies( info.Length, node.TailBytes );
+
+			// a truncated file is named for what it holds, so that the archive listing alone shows
+			// which files are partial
+			var fileName = truncate
+							? FileTail.EntryNameFor( Path.GetFileName( filePath ), node.TailBytes )
+							: Path.GetFileName( filePath );
+
+			var entryName = MakeUniqueEntryName( entryPrefix + fileName, usedEntryNames );
 
 			// The share flags are not optional here:
 			//  - ReadWrite, because a log file is typically held open for writing by the application
@@ -281,6 +287,23 @@ namespace Dirigent.Scripts.BuiltIn
 			entry.LastWriteTime = ZipTimeOf( info.LastWriteTime );
 
 			using var dst = entry.Open();
+
+			if( truncate )
+			{
+				// the length is read from the open stream, not from the FileInfo: a live log grows
+				var startedAt = FileTail.SeekToTailStart( src, node.TailBytes );
+				var taken = src.Length - startedAt;
+
+				// the entry has to say what it is, for whoever opens the archive with no access
+				// to the configuration that made it
+				var header = Encoding.UTF8.GetBytes(
+					FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
+				dst.Write( header, 0, header.Length );
+
+				notes.Add( $"'{filePath}' is {src.Length} bytes; only its last {taken} were collected,"
+						+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}')." );
+			}
+
 			src.CopyTo( dst );
 		}
 

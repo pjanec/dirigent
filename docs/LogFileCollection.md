@@ -345,6 +345,33 @@ These `<Folder>` nodes are written *inside* the package, which is fine as conten
 unreferenceable - only nodes declared directly under `<Shared>`, `<Machine>`, `<App>` or
 `<AppTemplate>` can be found by a `<FileRef>`.
 
+### Logs Too Big to Download
+
+A logger that never rotates grows one file to tens of gigabytes, which no download can carry.
+`TailBytes` collects only the end of such a file - which is the part an investigation wants
+anyway:
+
+```xml
+<Machine Name="station1" IP="192.168.1.100">
+    <Share Name="C" Path="C:\"/>
+
+    <!-- the last 50 MB of any log in the tree bigger than that; smaller ones come whole -->
+    <Folder Id="all_logs" Path="C:\Logs" Mask="*.log" TailBytes="52428800"/>
+
+    <!-- or one known-huge file -->
+    <File Id="trace_log" Path="C:\Logs\trace.log" TailBytes="10485760"/>
+</Machine>
+```
+
+Only those last bytes are read and compressed, so collecting the tail of a 60 GB file costs no
+more than collecting a 50 MB one. The cut is moved to the next line break, the entry is named
+`trace.last10MB.log` so the truncation shows in the archive listing, and its first line says which
+file it came from and how big that file was. See
+[Files too big to collect whole](Files.md#files-too-big-to-collect-whole) for the details.
+
+Rotation itself is the producing application's job - Dirigent takes the files as they are.
+`TailBytes` is what makes an unrotated one collectable at all.
+
 ### Using Filters for Recent Files
 
 Use the `Filter="Newest"` attribute to collect only the most recent files of one folder:
@@ -591,20 +618,25 @@ stations.
 
 3. **Bound the Result**: Use `Filter="Newest"` with `MaxFiles` / `MaxSeconds`, or a `<Folder>` with
    `MaxFiles` / `MaxSeconds` / `MaxTotalBytes`, so that a full log folder cannot turn into a
-   gigabyte-sized download.
+   gigabyte-sized download. Note `MaxTotalBytes` works on `<Folder>` only - on a `Filter="Newest"`
+   node it is ignored without a word, so bound that one with `MaxFiles`.
 
-4. **Organize with VFolders**: Their titles become the folder names inside the ZIP, so shape the
+4. **Expect the Unrotated Log**: One file that grew to gigabytes is the usual reason a collection
+   becomes untransferable. `TailBytes` keeps it collectable; see
+   [Logs Too Big to Download](#logs-too-big-to-download).
+
+5. **Organize with VFolders**: Their titles become the folder names inside the ZIP, so shape the
    archive by station, app or log type while you are declaring it.
 
-5. **Prefer Variables to Relative Paths**: `%APP_STARTUPDIR%`, `%APP_BINDIR%`, `%MACHINE_ID%`,
+6. **Prefer Variables to Relative Paths**: `%APP_STARTUPDIR%`, `%APP_BINDIR%`, `%MACHINE_ID%`,
    `%DOWNLOADS%` and the app's own environment variables are all expanded on the machine owning
    the node. A *relative* path is **not** taken against the app's folder - it is resolved against
    the root for relative paths (by default the folder holding `SharedConfig.xml`).
 
-6. **Test the Shares**: Before relying on a path, open `\\{IP}\{ShareName}\{path}` in Explorer from
+7. **Test the Shares**: Before relying on a path, open `\\{IP}\{ShareName}\{path}` in Explorer from
    the operator's machine. Most collection failures are share failures.
 
-7. **Combine Approaches**: App-scoped, machine-scoped and global definitions all land in one
+8. **Combine Approaches**: App-scoped, machine-scoped and global definitions all land in one
    registry; a single package can reference all three.
 
 ## Troubleshooting
@@ -626,6 +658,14 @@ stations.
 - An unmatched reference, and a `Filter="Newest"` folder holding nothing, resolve to nothing
   silently - no error is reported
 - The order of declarations does not matter; the whole config is read before anything is resolved
+
+### The Archive Contains an `_incomplete.txt`
+
+That file is the collection telling you what it could not include in full, and it names each case:
+
+- a file over the `MaxTotalBytes` budget of its node - it was passed over, and the files behind it
+  were still collected. Raise the budget, or set `TailBytes` so a big file costs only its tail
+- a file truncated by `TailBytes` - expected; the entry named `*.last<size>*` holds its end
 
 ### Files Not Found
 

@@ -34,6 +34,7 @@ Contents:
   * [`<File>`](#file)
   * [`<File Filter="Newest">`](#file-filternewest)
   * [`<Folder>`](#folder)
+  * [Files too big to collect whole](#files-too-big-to-collect-whole)
   * [`<VFolder>`](#vfolder)
   * [`<FilePackage>`](#filepackage)
   * [`<FileRef>`](#fileref)
@@ -199,6 +200,7 @@ A single physical file.
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Path`    | **Mandatory.** Full path to the file, or - with `Filter="Newest"` - to the folder to search. May contain environment variables and [path variables](#path-variables). A relative path is taken against the root for relative paths.               |
 | `Filter`  | Optional resolution filter. Only `Newest` is implemented, see below.                                                                                                                                                                             |
+| `TailBytes` | Collect only the last this many bytes of the file, if it is bigger than that. `0` (the default) collects whole files. See [Files too big to collect whole](#files-too-big-to-collect-whole).                                                     |
 
 A `<File>` with **no machine association** - declared at the top level of `<Shared>`, in
 `<MainMenu>`, or with `MachineId=""` - must be given a UNC path. The config reader rejects
@@ -224,6 +226,10 @@ only node type that can restrict results by age.
 | `Mask`       | all files | File mask, see [File masks](#file-masks). Applied to the file names in the folder itself; never recursive.         |
 | `MaxFiles`   | `1`      | Maximum number of files to return. Values below 1 are treated as 1.                                                |
 | `MaxSeconds` | no limit | Maximum age in seconds, measured from the file's last-write time. `0` means *no limit*.                             |
+| `TailBytes`  | 0 = whole files | Collect only the last this many bytes of a file bigger than that. See [Files too big to collect whole](#files-too-big-to-collect-whole). |
+
+`MaxTotalBytes` is **not** implemented here - it applies to `<Folder>` only, and is ignored
+without a word if written on a `Newest` node. Bound the result with `MaxFiles` instead.
 
 The files are taken **newest first**, so the age, count and size limits always keep the most
 recent files.
@@ -256,7 +262,8 @@ A physical folder, resolved into a subtree of its content.
 | `Mask`          | all files | File mask, see [File masks](#file-masks). Matched against the paths relative to this folder.                          |
 | `MaxSeconds`    | no limit  | Maximum age in seconds, measured from the file's last-write time. `0` = whatever age.                                 |
 | `MaxFiles`      | no limit  | Maximum number of files to include. `0` = unlimited.                                                                 |
-| `MaxTotalBytes` | no limit  | Maximum total size of the included files, in bytes. `0` = unlimited. One file is always included, however big.        |
+| `MaxTotalBytes` | no limit  | Maximum total size of the included files, in bytes. `0` = unlimited. One file is always included, however big. A file that does not fit is passed over - the walk continues, so the smaller files behind it are still collected - and the archive gets an `_incomplete.txt` naming what was left out. With `TailBytes` set, what counts against this budget is the size of the tail, not of the file. |
+| `TailBytes`     | 0 = whole files | Collect only the last this many bytes of a file bigger than that, for every file this folder yields. See [Files too big to collect whole](#files-too-big-to-collect-whole). |
 
 Subfolders are descended into without a depth limit. The resulting tree mirrors the location of
 the matching files, and contains no folders that ended up empty.
@@ -265,6 +272,45 @@ When a count or size limit applies, the **newest** files are kept - the limits a
 a growing log folder from producing an unbounded download. Note that `MaxSeconds` on a `<Folder>`
 filters the files it contributes; to pick just the few newest files of one folder, use
 [`<File Filter="Newest">`](#file-filternewest) instead.
+
+### Files too big to collect whole
+
+A logger that never rotates grows a single file to tens of gigabytes. Such a file cannot be
+downloaded at all - and what an investigation wants is almost always its end. `TailBytes` says
+to collect only that:
+
+```xml
+<!-- the last 50 MB of any file in the tree that is bigger than that -->
+<Folder Id="logs" Title="Logs" Path="D:\Logs" Mask="*.log" TailBytes="52428800"/>
+
+<!-- one known-huge file -->
+<File Id="trace" Title="Trace" Path="D:\Logs\trace.log" TailBytes="10485760"/>
+```
+
+What happens to a file over the limit:
+
+* Only its last `TailBytes` bytes are read and compressed - the rest is never touched, so
+  collecting the tail of a 60 GB file costs the same as collecting a 50 MB one.
+* The cut is moved forward to the **next line break**, so the first line is a whole line rather
+  than a fragment. A file with no line break near the cut - a binary one - is cut at the exact
+  offset instead.
+* The entry is named `<name>.last<size><ext>` - `app.last50MB.log` - so the archive listing alone
+  shows which files are partial.
+* Its **first line** states which file it came from, how big that file was, and when the tail was
+  taken. An archive read months later has nothing else to go by.
+* The archive also gets an `_incomplete.txt` at its root, listing every file that was truncated
+  or left out entirely.
+* A `MaxTotalBytes` budget counts the size of the tail, not of the file, so a folder full of huge
+  tailed logs is affordable rather than looking impossible.
+
+A file **below** the limit is collected whole, under its own name. `TailBytes` applies to the node
+that declares it - a `<File>`, or every file a `<Folder>` yields - and is deliberately **not**
+inherited by the children of a `<VFolder>` or `<FilePackage>`, which are nodes in their own right
+and may well live on another machine.
+
+The tail is a property of collecting into an archive. Opening or browsing the node still points at
+the real, whole file; `%FILE_PATH%` is unaffected. And since a live log keeps growing, the tail is
+a snapshot: the bytes taken are the last ones as of the moment of collection.
 
 ### `<VFolder>`
 
@@ -414,9 +460,9 @@ What it does:
 2. Skips the machines that are not currently connected. If none is left, it says so and stops
    instead of producing an empty archive.
 3. Starts a slave script (`BuiltIns/DownloadZippedSlave.cs`) on each of the remaining machines.
-   Each slave copies **its own local files** into a temp tree mirroring the virtual folder
-   structure, zips it, and uploads the archive to a staging folder next to the requestor's
-   download folder. A slave running on the machine that owns that folder writes to it as a plain
+   Each slave streams **its own local files** straight into a zip archive - the virtual folder
+   structure becoming the entry names, nothing copied anywhere first - and uploads that archive to
+   a staging folder next to the requestor's download folder. A slave running on the machine that owns that folder writes to it as a plain
    local path; the others go through the UNC path (see
    [the destination folder](#the-destination-folder) below). Files belonging to no machine (the
    global ones) are handled by the first machine that gets a slave started.
@@ -440,6 +486,7 @@ Incident report_260827_1432.zip
       AppLogs/
          recorder/
             app.log
+   _incomplete.txt                <- only when something was truncated or left out
 ```
 
 Notable properties:
@@ -447,6 +494,11 @@ Notable properties:
 * Folders are named after the `Title` of the containing node. Files belonging to an app
   additionally go into a subfolder named after the app, so that the same-named log files of
   several apps do not clash. Remaining name clashes get a `_2`, `_3`, ... suffix.
+* Anything the collection could not include in full - a file over a `MaxTotalBytes` budget, a file
+  truncated by `TailBytes` - is listed in `_incomplete.txt` at the root of the archive, so that an
+  incomplete collection can be told from a complete one long after the fact.
+* Each collected file keeps its own modification time, which the zip format stores to a resolution
+  of two seconds.
 * The files land in the download folder of the **machine the requestor runs on**. A GUI carries
   that machine in its client name (`<machineId>_gui_<guid>`); for a client named some other way,
   the agent connected from the same address is used instead.

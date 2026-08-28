@@ -122,6 +122,50 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void TailSettingReachesTheResolvedFilesTest()
+		{
+			// the download applies the tail, and only the definition knows about it, so it has to
+			// survive resolution - on the files a folder yields as well as on a single file
+			MakeFile( "top.log", 1 );
+			MakeFile( "sub/nested.log", 1 );
+
+			var folder = Resolve( new FolderDef()
+			{
+				Id = "logs",
+				MachineId = _machineId,
+				Path = _root,
+				Mask = "*.log",
+				TailBytes = 1024,
+			} );
+
+			foreach( var file in FlattenNodes( folder ).Where( n => !n.IsContainer ) )
+				Assert.AreEqual( 1024L, file.TailBytes, $"{file.Path} lost the setting on the way" );
+
+			var single = Resolve( new FileDef()
+			{
+				Guid = Guid.NewGuid(),
+				Id = "one",
+				MachineId = _machineId,
+				Path = Path.Combine( _root, "top.log" ),
+				TailBytes = 2048,
+			} );
+
+			Assert.AreEqual( 2048L, single.TailBytes );
+		}
+
+		/// <summary>Every node of the tree, the containers included.</summary>
+		static List<VfsNodeDef> FlattenNodes( VfsNodeDef root )
+		{
+			var res = new List<VfsNodeDef>();
+			foreach( var child in root.Children )
+			{
+				res.Add( child );
+				res.AddRange( FlattenNodes( child ) );
+			}
+			return res;
+		}
+
+		[TestMethod()]
 		public void FolderAgeLimitTest()
 		{
 			MakeFile( "fresh.log", 0 );

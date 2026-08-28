@@ -123,6 +123,9 @@ namespace Dirigent.TestBed.Scenarios
 		public double? MaxSeconds;
 		public long? MaxTotalBytes;
 
+		/// <summary>Collect only the last this many bytes of a file bigger than that.</summary>
+		public long? TailBytes;
+
 		/// <summary>FileRef only: what to match. Empty string and "*" both mean "anything".</summary>
 		public string? RefMachineId;
 		public string? RefAppId;

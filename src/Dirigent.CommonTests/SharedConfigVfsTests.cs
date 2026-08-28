@@ -47,6 +47,28 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void TailBytesTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<Folder Id='logs' Path='D:\Logs' Mask='*.log' TailBytes='52428800'/>
+						<File Id='one' Path='D:\Logs\huge.log' TailBytes='1024'/>
+						<File Id='newest' Path='D:\Logs' Mask='*.log' Filter='Newest' TailBytes='2048'/>
+						<Folder Id='plain' Path='D:\Other'/>
+					</Machine>
+				</Shared>" );
+
+			// the setting is available on anything that yields files, folders and single files alike
+			Assert.AreEqual( 52428800L, FindNode( cfg, "logs" ).TailBytes );
+			Assert.AreEqual( 1024L, FindNode( cfg, "one" ).TailBytes );
+			Assert.AreEqual( 2048L, FindNode( cfg, "newest" ).TailBytes );
+
+			// whole files unless asked otherwise
+			Assert.AreEqual( 0L, FindNode( cfg, "plain" ).TailBytes );
+		}
+
+		[TestMethod()]
 		public void AppIdTupleOnVfsNodeTest()
 		{
 			var cfg = Parse( @"

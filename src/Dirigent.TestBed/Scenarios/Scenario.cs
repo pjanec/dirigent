@@ -349,7 +349,8 @@ namespace Dirigent.TestBed.Scenarios
 			string title = "Recent logs",
 			string mask = "*.log",
 			int maxFiles = 10,
-			double maxSeconds = 2 * 24 * 3600 )
+			double maxSeconds = 2 * 24 * 3600,
+			long? tailBytes = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -360,13 +361,15 @@ namespace Dirigent.TestBed.Scenarios
 				Mask = mask,
 				MaxFiles = maxFiles,
 				MaxSeconds = maxSeconds,
+				TailBytes = tailBytes,
 			} );
 			return this;
 		}
 
 		/// <summary>Exposes a whole folder as a VFS node.</summary>
 		public AppBuilder WithFolderNode( string id, string path, string? mask = null,
-				double? maxSeconds = null, int? maxFiles = null, long? maxTotalBytes = null )
+				double? maxSeconds = null, int? maxFiles = null, long? maxTotalBytes = null,
+				long? tailBytes = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -377,6 +380,7 @@ namespace Dirigent.TestBed.Scenarios
 				MaxSeconds = maxSeconds,
 				MaxFiles = maxFiles,
 				MaxTotalBytes = maxTotalBytes,
+				TailBytes = tailBytes,
 			} );
 			return this;
 		}

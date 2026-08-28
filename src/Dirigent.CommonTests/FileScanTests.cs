@@ -138,6 +138,26 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void TailedFilesCountOnlyWhatWillBeCollectedTest()
+		{
+			MakeFile( "new.log", 1, sizeBytes: 100 );
+			MakeFile( "huge.log", 2, sizeBytes: 5000 );
+			MakeFile( "old.log", 3, sizeBytes: 100 );
+
+			// with only the last 50 bytes of a big file collected, the budget it consumes is 50,
+			// not 5000 - so everything fits and nothing is dropped
+			var res = FileScan.FindMatchingFiles( _root, "*.log", 0, 0, 300, true, tailBytes: 50 );
+
+			CollectionAssert.AreEquivalent(
+				new List<string>() { "new.log", "huge.log", "old.log" },
+				res.Files.Select( x => x.RelPath ).ToList() );
+			Assert.AreEqual( 0, res.Skipped.Count );
+
+			// without the tail setting the same folder does not fit
+			Assert.AreEqual( 1, FileScan.FindMatchingFiles( _root, "*.log", 0, 0, 300, true ).Skipped.Count );
+		}
+
+		[TestMethod()]
 		public void MaxFilesStopsTheScanTest()
 		{
 			// unlike the size budget, a reached count limit really is the end - nothing further

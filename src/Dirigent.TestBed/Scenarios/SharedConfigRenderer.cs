@@ -158,6 +158,7 @@ namespace Dirigent.TestBed.Scenarios
 					if( node.Mask is not null ) element.SetAttributeValue( "Mask", node.Mask );
 					if( node.MaxFiles.HasValue ) element.SetAttributeValue( "MaxFiles", node.MaxFiles.Value );
 					if( node.MaxSeconds.HasValue ) element.SetAttributeValue( "MaxSeconds", Inv( node.MaxSeconds.Value ) );
+					if( node.TailBytes.HasValue ) element.SetAttributeValue( "TailBytes", node.TailBytes.Value );
 					return element;
 				}
 
@@ -172,6 +173,7 @@ namespace Dirigent.TestBed.Scenarios
 					if( node.MaxFiles.HasValue ) element.SetAttributeValue( "MaxFiles", node.MaxFiles.Value );
 					if( node.MaxSeconds.HasValue ) element.SetAttributeValue( "MaxSeconds", Inv( node.MaxSeconds.Value ) );
 					if( node.MaxTotalBytes.HasValue ) element.SetAttributeValue( "MaxTotalBytes", node.MaxTotalBytes.Value );
+					if( node.TailBytes.HasValue ) element.SetAttributeValue( "TailBytes", node.TailBytes.Value );
 					return element;
 				}
 

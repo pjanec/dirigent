@@ -105,6 +105,64 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task OnlyTheTailOfAHugeLogIsCollected()
+		{
+			// the 60 GB unrotated log, in miniature: the end of it is what an investigation needs,
+			// and the whole of it is not transferable at all
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a
+					.LongRunning()
+					.WithFolderNode( "tailed", "{applogs}", mask: "*.log", tailBytes: 1024 ) );
+
+			// 20 numbered lines of 500 bytes each, so both the cut and its line alignment are visible
+			var lines = string.Concat( Enumerable.Range( 1, 20 )
+							.Select( i => $"line {i:D2} " + new string( 'x', 480 ) + "\n" ) );
+			scenario.Seed( "m1.camera", "huge.log", ageDays: 0, content: lines );
+			scenario.Seed( "m1.camera", "small.log", ageDays: 1, content: "a small complete file\n" );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var node = await bed.Operator.GetVfsNodeAsync( "tailed" );
+			await bed.Operator.DownloadAsync( node, timeout: Timeout );
+
+			var archives = Archive.In( bed.DownloadFolder );
+			Assert.AreEqual( 1, archives.Count, $"found: {Archive.Describe( bed.DownloadFolder )}" );
+
+			var entries = Archive.EntriesOf( archives[0] );
+
+			// the truncated file is named for what it holds, so the listing alone shows it is partial
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "huge.last1KB.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+			Assert.IsFalse( entries.Any( e => e.EndsWith( "/huge.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"the whole file should not be there under its plain name, entries: {string.Join( ", ", entries )}" );
+
+			// a file below the limit is collected whole, under its own name
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "small.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+
+			var tail = Archive.TextOf( archives[0], "huge.last1KB.log" );
+			var tailLines = tail.Split( '\n', StringSplitOptions.RemoveEmptyEntries );
+
+			// the first line explains what this file is
+			StringAssert.Contains( tailLines[0], "Dirigent", "the entry says what it is" );
+			StringAssert.Contains( tailLines[0], "huge.log", "and which file it came from" );
+
+			// what follows is the end of the log, in whole lines
+			Assert.IsTrue( tail.Contains( "line 20" ), "the last line of the log must be there" );
+			Assert.IsFalse( tail.Contains( "line 01" ), "the beginning of the log must not be" );
+			Assert.IsTrue( tailLines.Skip( 1 ).All( l => l.StartsWith( "line " ) ),
+				$"every collected line should be a whole one, got: {string.Join( " | ", tailLines.Skip( 1 ).Select( l => l.Substring( 0, Math.Min( 12, l.Length ) ) ) )}" );
+
+			// roughly the requested amount, never the whole file
+			Assert.IsTrue( tail.Length < 2048, $"about 1 KB expected, got {tail.Length} bytes" );
+
+			// and the archive carries the reason, for whoever opens it later
+			var report = Archive.TextOf( archives[0], "_incomplete.txt" );
+			StringAssert.Contains( report, "huge.log", "the report names the truncated file" );
+			StringAssert.Contains( report, "TailBytes", "and the setting that caused it" );
+		}
+
+		[TestMethod()]
 		public async Task SizeBudgetPassesOverAnOversizedFileAndSaysSo()
 		{
 			// a folder holding one unrotated giant among the rotated ones: the budget must keep the

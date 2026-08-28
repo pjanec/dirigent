@@ -57,6 +57,17 @@ namespace Dirigent
 		public string? Xml;
 
 		/// <summary>
+		/// Collect only the last this many bytes of a file bigger than that. 0 = whole files.
+		/// Set on a &lt;Folder&gt;, it applies to every file the folder yields.
+		/// </summary>
+		/// <remarks>
+		/// For the log files a never-rotating logger grows to tens of gigabytes: the end of such a
+		/// file is what an investigation needs, and the whole of it is not transferable at all.
+		/// </remarks>
+		//[MessagePack.Key( 33 )]
+		public long TailBytes = 0;
+
+		/// <summary>
 		/// What the resolution of this node had to leave out - a file too big for the size budget,
 		/// for instance. Filled in during resolution, empty in a definition.
 		/// </summary>
@@ -81,6 +92,7 @@ namespace Dirigent
 			this.Children.SequenceEqual( other.Children ) &&
 			this.Filter == other.Filter &&
 			this.Xml == other.Xml &&
+			this.TailBytes == other.TailBytes &&
 			( ( this.Notes is null && other.Notes is null )
 				|| ( this.Notes is not null && other.Notes is not null && this.Notes.SequenceEqual( other.Notes ) ) ) &&
 			true;

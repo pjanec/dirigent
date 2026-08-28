@@ -374,6 +374,7 @@ namespace Dirigent
 			r.Title = x.Title;
 			r.MachineId = x.MachineId;
 			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
+			r.TailBytes = x.TailBytes; // the download needs it, and only the definition knows it
 			return r;
 		}
 
@@ -627,7 +628,9 @@ namespace Dirigent
 					folderDef.Mask,
 					folderDef.MaxSeconds,
 					folderDef.MaxFiles,
-					folderDef.MaxTotalBytes
+					folderDef.MaxTotalBytes,
+					recursive: true,
+					tailBytes: folderDef.TailBytes
 				);
 			}
 			catch( Exception ex ) // folder not exists or not accessible?
@@ -661,6 +664,7 @@ namespace Dirigent
 						AppId = folderDef.AppId,
 						IsContainer = false,
 						Title = info.Name,
+						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
 					}
 				);
 			}

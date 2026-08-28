@@ -35,13 +35,18 @@ namespace Dirigent
 		/// <param name="maxFiles">Maximum number of files. 0 = unlimited.</param>
 		/// <param name="maxTotalBytes">Maximum total size of the files. 0 = unlimited. At least one file is always returned.</param>
 		/// <param name="recursive">Whether to descend into the subfolders.</param>
+		/// <param name="tailBytes">
+		/// If set, only the last this many bytes of a bigger file get collected, so that is what the
+		/// size budget counts for it. 0 = whole files.
+		/// </param>
 		public static Result FindMatchingFiles(
 			string folderName,
 			string? mask,
 			double maxAgeSeconds,
 			int maxFiles,
 			long maxTotalBytes,
-			bool recursive = true
+			bool recursive = true,
+			long tailBytes = 0
 		)
 		{
 			if( string.IsNullOrEmpty( folderName ) ) folderName = Directory.GetCurrentDirectory();
@@ -103,8 +108,11 @@ namespace Dirigent
 
 				if( maxTotalBytes > 0 )
 				{
+					// only what will really be collected counts against the budget
+					var effectiveSize = FileTail.EffectiveSize( item.Info.Length, tailBytes );
+
 					// always let at least one file through, however big it is
-					if( res.Files.Count > 0 && totalBytes + item.Info.Length > maxTotalBytes )
+					if( res.Files.Count > 0 && totalBytes + effectiveSize > maxTotalBytes )
 					{
 						// this one does not fit, but a smaller one further down the list still may.
 						// Stopping here instead would throw away the whole older part of the folder
@@ -113,7 +121,7 @@ namespace Dirigent
 						continue;
 					}
 
-					totalBytes += item.Info.Length;
+					totalBytes += effectiveSize;
 				}
 
 				res.Files.Add( item );
