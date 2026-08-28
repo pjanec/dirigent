@@ -36,9 +36,13 @@ namespace Dirigent.TestBed.Scenarios
 		/// </summary>
 		public static Scenario LoggingApps()
 			=> TwoMachines()
-				// deliberately no file shares: a tier-1 bed has no real Windows share, and declaring
-				// one would send the slaves through \\127.0.0.1\C$, which needs an elevated token.
-				// Every "machine" here is this one, so each slave writes to the folder directly.
+				// deliberately no file shares. Not because loopback SMB does not work - \\127.0.0.1\C$
+				// is reachable, unelevated, for a domain account with admin rights (UAC filters the
+				// network-logon token of *local* accounts only). It is that whether it works depends
+				// on the account the tests run as: a local admin account gets a filtered token unless
+				// elevated, and an account outside Administrators is refused by C$'s own ACL, since a
+				// purpose-made share cannot be created without admin rights either.
+				// Every "machine" here is this one anyway, so each slave writes to the folder directly.
 				.App( "m1.camera", a => a.LongRunning().WritesLog().WithLogNode() )
 				.App( "m1.tracker", a => a.LongRunning().WritesLog().WithLogNode() )
 				.App( "m2.recorder", a => a.LongRunning().WritesLog().WithLogNode() )
