@@ -1255,19 +1255,6 @@ namespace Dirigent.Net
 		public Dictionary<string, string>? Attributes; // additional attribute pairs (name, value)
 
 		/// <summary>
-		/// A file to show in the file manager, selected, when the user confirms the notification.
-		/// Empty for none.
-		/// </summary>
-		/// <remarks>
-		/// Deliberately not expressed as an <see cref="Action"/>: an action names a tool that the
-		/// receiving side has to have in its LocalConfig, and telling a user where their download
-		/// landed must not depend on that. The path is local to the machine the notification is
-		/// shown on, which for a download is the machine it was downloaded to.
-		/// </remarks>
-		//[MessagePack.Key( 8 )]
-		public string? RevealFilePath;
-
-		/// <summary>
 		/// How long to keep the mesage displayed in seconds (0=default)
 		/// </summary>
 		//[MessagePack.Key( 8 )]

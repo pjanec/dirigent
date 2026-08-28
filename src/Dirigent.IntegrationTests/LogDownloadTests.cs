@@ -111,35 +111,6 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
-		public async Task TheOperatorIsToldWhereTheArchiveIsAndOfferedToSeeIt()
-		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
-
-			await Worlds.StartLoggingApps( bed, Timeout );
-
-			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
-			await bed.Operator.DownloadAsync( package, timeout: Timeout );
-
-			var archive = Archive.In( bed.DownloadFolder ).Single();
-
-			var notification = bed.Operator.Notifications.Last(
-				n => ( n.Message ?? "" ).Contains( "downloaded", StringComparison.OrdinalIgnoreCase ) );
-
-			// the full path of the archive, so the GUI can select it without guessing where it went
-			Assert.AreEqual( archive, notification.RevealFilePath,
-				"the notification should name the archive that was produced" );
-
-			// an OK/Cancel pair with no explanation is a dialog the user just dismisses
-			StringAssert.Contains( notification.Message, "Explorer",
-				"the message should say what confirming it does" );
-
-			// the reveal is a plain file path, not a <Tool> action - it must work on a machine whose
-			// LocalConfig defines no WinExplorer tool
-			Assert.IsNull( notification.Action,
-				"showing the download should not depend on a tool being configured" );
-		}
-
-		[TestMethod()]
 		public async Task OnlyTheTailOfAHugeLogIsCollected()
 		{
 			// the 60 GB unrotated log, in miniature: the end of it is what an investigation needs,

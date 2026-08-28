@@ -127,22 +127,13 @@ namespace Dirigent.Gui.WinForms
 							_ => throw new Exception( "Unknown notification category" )
 						};
 
-						bool hasSomethingToConfirm = m.Action != null || !string.IsNullOrEmpty( m.RevealFilePath );
-
-						MessageBoxButtons btns = hasSomethingToConfirm ? MessageBoxButtons.OKCancel : MessageBoxButtons.OK;
+						MessageBoxButtons btns = MessageBoxButtons.OK;
+						if (m.Action != null) btns = MessageBoxButtons.OKCancel;
 
 						var dlgres = MessageBox.Show( m.Message, title, btns, icon );
-						if( dlgres == DialogResult.OK )
+						if( m.Action != null && dlgres == DialogResult.OK )
 						{
-							if( m.Action != null )
-							{
-								Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) );
-							}
-
-							if( !string.IsNullOrEmpty( m.RevealFilePath ) )
-							{
-								ShowInExplorer( m.RevealFilePath );
-							}
+							Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) );
 						}
 					}
 					else if (m.PresentationType == Net.UserNotificationMessage.EPresentationType.BalloonTip)
@@ -171,38 +162,6 @@ namespace Dirigent.Gui.WinForms
 				}
 
 				// note: other messages are handled is done in ReflectedStateRepo...
-			}
-		}
-
-		/// <summary>
-		/// Opens Explorer with the given file selected.
-		/// </summary>
-		/// <remarks>
-		/// Hardcoded here on purpose. This GUI is a WinForms application running in the user's own
-		/// session on the machine the file is on, so it can simply do it - whereas going through a
-		/// &lt;Tool&gt; action would need "WinExplorer" to be defined in this machine's LocalConfig,
-		/// and telling a user where their download landed must not depend on that. The built-in
-		/// scripts stay platform neutral by only naming the file to reveal.
-		/// </remarks>
-		static void ShowInExplorer( string filePath )
-		{
-			try
-			{
-				// "/select," wants the path glued to the comma, and quoted for the spaces
-				var args = File.Exists( filePath )
-							? $"/select,\"{filePath}\""
-							: $"\"{Path.GetDirectoryName( filePath )}\""; // gone already? at least open the folder
-
-				System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo()
-				{
-					FileName = "explorer.exe",
-					Arguments = args,
-					UseShellExecute = true,
-				} );
-			}
-			catch( Exception ex )
-			{
-				log.Error( $"Could not show '{filePath}' in Explorer: {ex.Message}" );
 			}
 		}
 		
