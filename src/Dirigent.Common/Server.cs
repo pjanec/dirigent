@@ -128,7 +128,7 @@ namespace Dirigent.Net
 	/// Outgoing multicast messages are sent just to the clients that are subscribed to the message category.
 	/// Outgoing multicast messages are not sent only to clients who already identified themselves by sending a ClientIdent message.
 	/// </summary>
-    public class Server : NetCoreServer.TcpServer, IMasterServer
+    public class Server : NetCoreServer.TcpServer
 	{
 		/// <summary>Called from <see cref="Poll"/> for each received message</summary>
 		public Action<Net.Message>? MessageReceived;
@@ -320,7 +320,6 @@ namespace Dirigent.Net
 			return null;
 		}
 
-        public new bool IsDisposed => base.IsDisposed;
 	}
 
 

@@ -352,9 +352,12 @@ exercised end to end.
 * **`--httpPort 0` does not disable the web server**, it falls back to 8877; `-1` disables. Two
   installations on a machine would fight over that port. `docs/HTTP.md` also had the default wrong.
 
-**And in the harness itself**, which is the same discipline turned inward: teardown depended on
-state having reached the operator, so a test finishing on a file appearing left five applications and
-eleven temp folders behind a green run.
+**And in the harness itself**, twice, which is the same discipline turned inward. A test that
+waited for a file to *exist* and then read it could see it half-written, because the test
+application wrote in place; it now writes beside the target and moves it into position, so
+appearing and being complete are the same event. And teardown depended on
+state having reached the operator, so a test finishing on a file appearing left five applications
+and eleven temp folders behind a green run.
 
 ## The harness that was replaced
 
@@ -382,12 +385,18 @@ launching a process - and no test needed the timing precision, since waiting on 
 the milliseconds a real kill takes. What remained was a second launcher that production never uses,
 a second place for a test to live, and three tests duplicating coverage. Not worth its keep.
 
-What was kept from 3.1: the `IMasterServer` abstraction, the internal `Master( SharedConfig, ... )`
-constructor and the launcher factory threaded through `Agent`, `LocalAppsRegistry` and `LocalApp`.
-They are additive and inert, but **nothing uses them now** - if they find no use, they should go the
-way of the harness they were added for. The one thing that was *not* kept is the
-`DIRIGENT_SERVER_LOCAL_ONLY` environment variable that `Server` read: test-only behaviour has no
-business in shipping code.
+The product seams that existed only to support it went with it: `IMasterServer` and the internal
+`Master( SharedConfig, ... )` constructor, the launcher factory threaded through `Agent`,
+`LocalAppsRegistry` and `LocalApp`, the ten `Launcher` members opened up for overriding, and the
+`DIRIGENT_SERVER_LOCAL_ONLY` environment variable that `Server` read - test-only behaviour has no
+business in shipping code. All of it was compile-time only, and the revert was verified file by
+file against the state before that commit: `Launcher.cs` and `LocalAppsRegistry.cs` byte-identical,
+`LocalApp.cs` and `Server.cs` identical but for whitespace, `Agent.cs` differing only by the
+harness's own seams - the configurable status and download folders, and a config-file handle leak
+fixed along the way.
+
+Should a mocked lane ever be wanted again, the seams are three lines of `git revert` away, and this
+section says what to weigh before bringing them back.
 ## Roadmap
 
 ### Next

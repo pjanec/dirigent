@@ -77,9 +77,9 @@ namespace Dirigent
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		private string _localIpAddr;
 		private int _port;
-        private IMasterServer _server;
+        private Server _server;
 		private CLIProcessor _cliProc;
-        private TelnetServer? _telnetServer;
+        private TelnetServer _telnetServer;
 		private AllClientStateRegistry _allClientStates;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
@@ -140,23 +140,7 @@ namespace Dirigent
             }
         }
 
-        // internal constructor for testing
-        internal Master( SharedConfig sharedConfig, AppConfig ac, string rootForRelativePaths, IMasterServer mockServer )
-        {
-            log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
-            InitializeCommon( ac, rootForRelativePaths );
-
-            // Use injected mock server
-            _server = mockServer;
-
-            // Skip TelnetServer and WebServer in tests
-            log.Info( "Master skipping TelnetServer and WebServer in test constructor." );
-
-            // Initialize from provided shared config
-            InitFromConfig( sharedConfig );
-        }
-
-        // Shared initialization between production and test constructors
+        // Shared initialization, kept from the refactor that introduced it
         [MemberNotNull(
             nameof(_localIpAddr), nameof(_allClientStates), nameof(_allAppStates), nameof(_allAppDefs), nameof(_plans),
             nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_defaultAppDefs),
@@ -577,7 +561,7 @@ namespace Dirigent
 
 		}
 
-        internal void ProcessIncomingMessageAndHandleExceptions( Message msg )
+        void ProcessIncomingMessageAndHandleExceptions( Message msg )
 		{
 			if( _debug )
 			{
@@ -607,11 +591,11 @@ namespace Dirigent
 		/// </summary>
 		private class CLIClient : ICLIClient
 		{
-			IMasterServer _server;
+			Server _server;
 			string _requestor;
 			public string Name => "<master>";
 
-			public CLIClient( IMasterServer server, string requestor )
+			public CLIClient( Server server, string requestor )
 			{
 				_server = server;
 				_requestor = requestor;

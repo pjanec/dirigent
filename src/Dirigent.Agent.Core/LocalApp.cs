@@ -38,8 +38,6 @@ namespace Dirigent
         ///<summary>Starts/kills the app process. Null if app is not supposed to be running (not launched)</summary>
 		public Launcher? Launcher { get; private set; }
 
-		private readonly Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher> _launcherFactory;
-
 		ProcessInfoRegistry? _procInfoReg;
 
 
@@ -56,7 +54,7 @@ namespace Dirigent
 		Action<LocalApp>? _onStartedKilled;
 
 
-		public LocalApp( AppDef ad, SharedContext sharedContext, ProcessInfoRegistry? processInfoRegistry, Action<LocalApp>? onStartedKilled, Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher>? launcherFactory = null )
+		public LocalApp( AppDef ad, SharedContext sharedContext, ProcessInfoRegistry? processInfoRegistry, Action<LocalApp>? onStartedKilled )
 		{
             Id = ad.Id;
             RecentAppDef = ad;
@@ -65,7 +63,6 @@ namespace Dirigent
             _sharedContext = sharedContext;
 			_procInfoReg = processInfoRegistry;
 			_onStartedKilled = onStartedKilled;
-			_launcherFactory = launcherFactory ?? ((appDef, ctx, vars) => new Launcher(appDef, ctx, vars));
 		}
 
 		protected override void Dispose( bool disposing )
@@ -172,7 +169,7 @@ namespace Dirigent
             // remove watchers that might have left from previous run
             _watchers.RemoveHavingFlags( IAppWatcher.EFlags.ClearOnLaunch );
 
-			Launcher = _launcherFactory( appDef, _sharedContext, RecentVars );
+			Launcher = new Launcher( appDef, _sharedContext, RecentVars );
 
             try
             {
@@ -304,7 +301,7 @@ namespace Dirigent
 				// try to adopt before killing
 				if( RecentAppDef.AdoptIfAlreadyRunning )
 				{
-				var launcher = _launcherFactory( UpcomingAppDef, _sharedContext, null );
+				var launcher = new Launcher( UpcomingAppDef, _sharedContext );
 					if( launcher.AdoptAlreadyRunningByName() )
 					{
 						launcher.Kill( flags );
@@ -413,7 +410,7 @@ namespace Dirigent
 			if( Launcher == null )
 			{
 				log.Debug( $"Adopting running app {appDef.Id}, pid {PID}, vars {Tools.EnvVarListToString(vars)}" );
-				Launcher = _launcherFactory( appDef, _sharedContext, vars );
+				Launcher = new Launcher( appDef, _sharedContext, vars );
                 Launcher.AdoptByPID( PID );
                 // act as if just started
                 AfterLaunch( appDef, vars );

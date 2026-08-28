@@ -214,12 +214,25 @@ namespace Dirigent.TestApp
 			}
 		}
 
+		/// <summary>
+		/// Writes the file so that it never exists half-written.
+		/// </summary>
+		/// <remarks>
+		/// A test waits for one of these files to appear and then reads it. With a plain write the
+		/// file exists from the first byte, so a reader on a busy machine can see an empty or partial
+		/// one - which is exactly the kind of failure that gets dismissed as "flaky". Writing beside
+		/// the target and moving into place makes appearing and being complete the same event.
+		/// </remarks>
 		static void WriteFileSafely( string path, string content )
 		{
 			try
 			{
-				Directory.CreateDirectory( Path.GetDirectoryName( Path.GetFullPath( path ) )! );
-				File.WriteAllText( path, content );
+				var fullPath = Path.GetFullPath( path );
+				Directory.CreateDirectory( Path.GetDirectoryName( fullPath )! );
+
+				var staging = fullPath + ".writing";
+				File.WriteAllText( staging, content );
+				File.Move( staging, fullPath, overwrite: true );
 			}
 			catch( Exception ex )
 			{

@@ -21,15 +21,12 @@ namespace Dirigent
 
         Action<LocalApp>? _onStartedKilled;
 
-		private readonly Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher>? _launcherFactory;
-
-		public LocalAppsRegistry( SharedContext shCtx, ProcessInfoRegistry? procInfoReg, Action<LocalApp>? onStartedKilled, Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher>? launcherFactory = null )
+		public LocalAppsRegistry( SharedContext shCtx, ProcessInfoRegistry? procInfoReg, Action<LocalApp>? onStartedKilled )
 		{
 			_sharedContext = shCtx;
             _sharedContext = shCtx;
 			_procInfoReg = procInfoReg;
 			_onStartedKilled = onStartedKilled;
-			_launcherFactory = launcherFactory;
 		}
 
 		public void Tick()
@@ -61,7 +58,7 @@ namespace Dirigent
 			LocalApp? la;
 			if( !_apps.TryGetValue( appDef.Id, out la ) )
 			{
-				la = new LocalApp( appDef, _sharedContext, _procInfoReg, OnLocalAppStartedKilled, _launcherFactory );
+				la = new LocalApp( appDef, _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 				_apps[appDef.Id] = la;
 				return la;
 			}
@@ -84,7 +81,7 @@ namespace Dirigent
 			}
 			else
 			{
-				la = new LocalApp( ad, _sharedContext, _procInfoReg, OnLocalAppStartedKilled, _launcherFactory );
+				la = new LocalApp( ad, _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 				_apps[ad.Id] = la;
 			}
 			return la;
