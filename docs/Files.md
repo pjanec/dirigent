@@ -152,11 +152,13 @@ open requires a matching file share declared for that machine:
 </Machine>
 ```
 
-The shares of the machine are searched for the first one whose `Path` is a prefix of the file
-path (case insensitive); that prefix is then replaced by `\\<machine IP>\<share name>\`, giving
-`\\192.168.0.11\D$\Logs\app.log`. Note it is the first match, not the longest one, so avoid
-declaring overlapping shares. Share paths must be absolute. If no share covers the path,
-resolution fails with `Can't construct UNC path, No file share matching ...`.
+The shares of the machine are searched for the one whose `Path` covers the file path (case
+insensitive); that prefix is then replaced by `\\<machine IP>\<share name>\`, giving
+`\\192.168.0.11\D$\Logs\app.log`. Where several shares cover it, the **most specific** one wins,
+the way a mount table works: with both `D:\` and `D:\Logs` declared, a file under `D:\Logs` goes
+through the `D:\Logs` share. The match ends at a folder boundary, so a share at `D:\Logs` does not
+cover `D:\LogsBackup`. Share paths must be absolute. If no share covers the path, resolution fails
+with `Can't construct UNC path, No file share matching ...`.
 
 Dirigent expects these shares to need **no extra credentials**. If credentials are required,
 the user must have entered them beforehand so that Windows can reuse the cached ones.

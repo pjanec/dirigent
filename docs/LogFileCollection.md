@@ -33,6 +33,7 @@ requestor can open.
     <!-- Path: Local path on the machine (must be absolute) -->
     <Share Name="C" Path="C:\"/>
     <Share Name="D" Path="D:\"/>
+    <Share Name="Logs" Path="C:\Logs"/>  <!-- optional: a dedicated share for the logs -->
 </Machine>
 
 <Machine Name="station2" IP="192.168.1.101">
@@ -45,9 +46,9 @@ requestor can open.
 - Share `Path` must be an absolute path
 - Share `Name` is used in UNC paths: `\\{MachineIP}\{ShareName}\{relative_path}`
 - Windows file shares must be accessible without additional credentials (or credentials must be cached)
-- Dirigent uses the **first** share whose `Path` is a prefix of the file path - *not* the longest
-  match. Avoid overlapping shares (`C:\` and `C:\Logs` on the same machine); which of the two wins
-  is not defined.
+- Where several shares cover the same file, the **most specific** one is used - with both `C:\` and
+  `C:\Logs` declared as above, log files go through the `Logs` share, which is usually the one whose
+  permissions were set up for them
 
 ### 2. Give the Downloading Machine a Share Too
 
@@ -636,7 +637,8 @@ stations.
 ### UNC Path Issues
 
 - `Can't construct UNC path, No file share matching ...` means no `<Share>` of that machine covers
-  the path - add one, and remember it is the *first* matching share that is used, not the longest
+  the path - note the share must cover it up to a folder boundary, so `C:\Logs` does not cover
+  `C:\LogsBackup`
 - Verify the file shares are accessible without additional credentials
 - Check the Windows file sharing permissions
 - Ensure the share `Path` is absolute and is a prefix of your file paths

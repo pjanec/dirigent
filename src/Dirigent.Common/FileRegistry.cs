@@ -137,29 +137,78 @@ namespace Dirigent
 			return m.IP;
 		}
 
+		/// <summary>
+		/// Turns a path local to the given machine into a UNC path leading through one of that
+		/// machine's file shares.
+		/// </summary>
+		/// <remarks>
+		/// The share covering the path most specifically wins, the way a mount table works, so that
+		/// a share dedicated to a subtree (D:\Logs) is preferred over one covering the whole drive
+		/// (D:\). Without that the winner would depend on the order the shares happen to be stored
+		/// in, and a share declared for a particular folder - typically the one with the permissions
+		/// set up for it - could be bypassed.
+		/// </remarks>
 		public string MakeUNC( string path, string? machineId, string whatFor )
 		{
 			// global paths are already UNC
 			if ( string.IsNullOrEmpty(machineId) )
 				return path;
-				
+
 			// find machine
 			if ( !Machines.TryGetValue( machineId, out var m ) )
 				throw new Exception($"Machine {machineId} not found for {whatFor}");
 
 			var IP = GetMachineIP( machineId );
 
+			string? bestName = null;
+			string? bestRoot = null;
+
 			foreach( var (shName, shPath) in m.Shares )
 			{
-				// get path relative to share
-				if( path.StartsWith( shPath, StringComparison.OrdinalIgnoreCase ) )
+				var root = ShareRootCoveringPath( shPath, path );
+				if( root is null )
+					continue;
+
+				if( bestRoot is null
+					|| root.Length > bestRoot.Length
+					// two shares of the same folder: pick by name, just to stay predictable
+					|| ( root.Length == bestRoot.Length && string.CompareOrdinal( shName, bestName ) < 0 ) )
 				{
-					var pathRelativeToShare = path.Substring( shPath.Length );
-					return $"\\\\{IP}\\{shName}\\{pathRelativeToShare}";
+					bestName = shName;
+					bestRoot = root;
 				}
 			}
 
-			throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
+			if( bestRoot is null )
+				throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
+
+			var pathRelativeToShare = path.Substring( bestRoot.Length ).TrimStart( '\\', '/' );
+
+			return string.IsNullOrEmpty( pathRelativeToShare )
+					? $"\\\\{IP}\\{bestName}"
+					: $"\\\\{IP}\\{bestName}\\{pathRelativeToShare}";
+		}
+
+		/// <summary>
+		/// The share's folder, without a trailing separator, if the share contains the given path;
+		/// null if it does not.
+		/// </summary>
+		/// <remarks>
+		/// The path must continue at a folder boundary, otherwise a share at "D:\Logs" would claim
+		/// "D:\LogsBackup\a.txt" and silently produce a UNC path to a different file.
+		/// </remarks>
+		static string? ShareRootCoveringPath( string sharePath, string path )
+		{
+			var shareRoot = sharePath.TrimEnd( '\\', '/' );
+
+			if( !path.StartsWith( shareRoot, StringComparison.OrdinalIgnoreCase ) )
+				return null;
+
+			if( path.Length == shareRoot.Length ) // the share's own folder
+				return shareRoot;
+
+			var next = path[shareRoot.Length];
+			return ( next == '\\' || next == '/' ) ? shareRoot : null;
 		}
 		
 		public string MakeUNCIfNotLocal( string path, string? machineId, string whatFor )
