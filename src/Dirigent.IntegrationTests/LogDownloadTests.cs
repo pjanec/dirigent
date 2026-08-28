@@ -111,6 +111,91 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task ApplicationNameIsNotRepeatedWhenTheContainerCarriesItAlready()
+		{
+			// log nodes titled after the applications they belong to. Collected through a package, each
+			// node's own container is then a folder called "camera" / "tracker", and the per-application
+			// subfolder used to say it again: "log/camera/camera/app.log".
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a.LongRunning().WithLogNode( title: "camera" ) )
+				.App( "m1.tracker", a => a.LongRunning().WithLogNode( title: "tracker" ) )
+				.Package( "logs.all", "Logs/All apps", p => p.RefAll( "log" ) );
+
+			scenario.Seed( "m1.camera", "app.log", ageDays: 0 );
+			scenario.Seed( "m1.tracker", "app.log", ageDays: 0 );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var entries = Archive.EntriesOf( Archive.In( bed.DownloadFolder ).Single() );
+
+			Assert.IsFalse( entries.Any( e => e.Contains( "camera/camera", StringComparison.OrdinalIgnoreCase ) ),
+				$"the application name should appear once, entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "camera/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"the file still belongs under its application's folder, entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "tracker/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
+		public async Task ApplicationNameIsNotRepeatedFromFurtherUpThePath()
+		{
+			// an untitled <Folder> over the application's own directory: the folder is named after the
+			// directory, which is named after the application, and the file sits one level deeper - so
+			// the repetition was not adjacent: "camera/logs/camera/app.log".
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a.LongRunning().WithFolderNode( "tree", "{appdir}", mask: "*.log" ) )
+				.Package( "logs.all", "Logs/All apps", p => p.RefAll( "tree" ) );
+
+			scenario.Seed( "m1.camera", "app.log", ageDays: 0 );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var entries = Archive.EntriesOf( Archive.In( bed.DownloadFolder ).Single() );
+
+			Assert.AreEqual( 1, entries.Count( e => e.EndsWith( "app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "camera/logs/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"the application name belongs on the path once, entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
+		public async Task ApplicationNameStillSeparatesTheSameNamedLogs()
+		{
+			// the reason the per-application subfolder exists: two applications whose log nodes carry
+			// the same generic title resolve into one path, and only the application name keeps their
+			// identically named files apart
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a.LongRunning().WithLogNode( title: "Recent logs" ) )
+				.App( "m1.tracker", a => a.LongRunning().WithLogNode( title: "Recent logs" ) )
+				.Package( "logs.all", "Logs/All apps", p => p.RefAll( "log" ) );
+
+			scenario.Seed( "m1.camera", "app.log", ageDays: 0 );
+			scenario.Seed( "m1.tracker", "app.log", ageDays: 0 );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var entries = Archive.EntriesOf( Archive.In( bed.DownloadFolder ).Single() );
+
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "camera/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "tracker/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+
+			// neither file was renamed out of the way of the other
+			Assert.IsFalse( entries.Any( e => e.Contains( "app_2", StringComparison.OrdinalIgnoreCase ) ),
+				$"the two logs should not have collided, entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
 		public async Task OnlyTheTailOfAHugeLogIsCollected()
 		{
 			// the 60 GB unrotated log, in miniature: the end of it is what an investigation needs,

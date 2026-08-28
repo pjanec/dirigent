@@ -495,6 +495,10 @@ Notable properties:
 * Folders are named after the `Title` of the containing node. Files belonging to an app
   additionally go into a subfolder named after the app, so that the same-named log files of
   several apps do not clash. Remaining name clashes get a `_2`, `_3`, ... suffix.
+* That app subfolder is left out when a folder of the same name is already on the path, which is
+  the case wherever a container is named after the app itself - a node titled or id'd like the app,
+  or an untitled `<Folder>` over the app's own directory. Without it such archives read
+  `log/cgfx/cgfx/app.log`.
 * Anything the collection could not include in full - a file over a `MaxTotalBytes` budget, a file
   truncated by `TailBytes` - is listed in `_incomplete.txt` at the root of the archive, so that an
   incomplete collection can be told from a complete one long after the fact.

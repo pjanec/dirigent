@@ -227,13 +227,7 @@ namespace Dirigent.Scripts.BuiltIn
 					{
 						try
 						{
-							// files belonging to an app go to a subfolder named after the app, so that
-							// the same-named log files of multiple apps do not clash within the archive
-							var fileEntryPrefix = string.IsNullOrEmpty( node.AppId )
-													? entryPrefix
-													: entryPrefix + SanitizeName( node.AppId ) + "/";
-
-							AddFile( zip, fileEntryPrefix, node, usedEntryNames, notes );
+							AddFile( zip, AppFolderFor( node, entryPrefix ), node, usedEntryNames, notes );
 						}
 						catch (Exception e)
 						{
@@ -335,6 +329,38 @@ namespace Dirigent.Scripts.BuiltIn
 		{
 			var earliest = new DateTime( 1980, 1, 1, 0, 0, 0, DateTimeKind.Unspecified );
 			return new DateTimeOffset( lastWriteTime < earliest ? earliest : lastWriteTime );
+		}
+
+		/// <summary>
+		/// The archive folder to put a file into: the folder of its container, plus a subfolder named
+		/// after the application the file belongs to.
+		/// </summary>
+		/// <remarks>
+		/// The application subfolder is what keeps the same-named log files of several applications
+		/// apart within one archive: in the usual layout every application's log node resolves to a
+		/// container of the same title ("Recent logs"), so those collapse into one path and the
+		/// application name is the only thing telling the files apart.
+		///
+		/// It is skipped when a folder of that name is already somewhere on the path, which happens
+		/// wherever a container is named after the application - a node titled or id'd like the app
+		/// (giving "log/cgfx/cgfx/app.log"), or an untitled &lt;Folder&gt; over the app's own directory
+		/// (giving "cgfx/logs/cgfx/app.log"). The whole path is checked, not just the enclosing folder,
+		/// because as the second example shows the repetition need not be adjacent.
+		/// </remarks>
+		static string AppFolderFor( VfsNodeDef node, string entryPrefix )
+		{
+			if( string.IsNullOrEmpty( node.AppId ) )
+				return entryPrefix;
+
+			var appFolder = SanitizeName( node.AppId );
+
+			foreach( var folder in entryPrefix.Split( '/', StringSplitOptions.RemoveEmptyEntries ) )
+			{
+				if( folder.Equals( appFolder, StringComparison.OrdinalIgnoreCase ) )
+					return entryPrefix; // said already, saying it again tells the reader nothing
+			}
+
+			return entryPrefix + appFolder + "/";
 		}
 
 		/// <summary>
