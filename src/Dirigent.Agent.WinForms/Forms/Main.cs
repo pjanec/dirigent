@@ -84,6 +84,7 @@ namespace Dirigent.Gui.WinForms
 			tmrTick.Enabled = true;
 
 			_menuBuilder = new MenuBuilder( _core );
+			_menuBuilder.OperationStarted += ( instance, title ) => AddOperation( instance, title );
 
 			_core.Client.MessageReceived += OnMessage;
 
@@ -231,7 +232,211 @@ namespace Dirigent.Gui.WinForms
 				toolStripStatusLabel1.Text = "Disconnected.";
 			}
 
+			refreshOperations();
 		}
+
+		// ---- long operations in the status bar ---------------------------------------
+
+		/// <summary>
+		/// A script started from this GUI, shown while it runs: what it is, how far it has got, and a
+		/// cross to stop it.
+		/// </summary>
+		class OperationSlot
+		{
+			public Guid Instance;
+			public string Title = string.Empty;
+			public ToolStripStatusLabel Label = null!;
+			public ToolStripProgressBar Bar = null!;
+			public ToolStripButton Cancel = null!;
+			public bool Cancelling;
+			public bool Failed;
+		}
+
+		/// <summary>
+		/// How many operations get a slot of their own before the rest are only counted. Two fit
+		/// beside the connection label on a default sized window.
+		/// </summary>
+		const int _maxOperationSlots = 2;
+
+		/// <summary>Only the operations this GUI started - the ones the person here asked for.</summary>
+		readonly Dictionary<Guid, OperationSlot> _operations = new();
+
+		ToolStripStatusLabel? _moreOperationsLabel;
+
+		void AddOperation( Guid instance, string title )
+		{
+			// a tool action has no script to follow
+			if( instance == Guid.Empty || _operations.ContainsKey( instance ) ) return;
+
+			var slot = new OperationSlot()
+			{
+				Instance = instance,
+				Title = string.IsNullOrEmpty( title ) ? "Working" : LastSegmentOf( title ),
+			};
+
+			slot.Label = new ToolStripStatusLabel() { AutoToolTip = true };
+
+			slot.Bar = new ToolStripProgressBar()
+			{
+				Size = new System.Drawing.Size( 100, 14 ),
+				Style = ProgressBarStyle.Marquee,  // until it says how far it has got
+				MarqueeAnimationSpeed = 30,
+			};
+
+			slot.Cancel = new ToolStripButton()
+			{
+				Text = "✕",
+				DisplayStyle = ToolStripItemDisplayStyle.Text,
+				ForeColor = System.Drawing.Color.Firebrick,
+				ToolTipText = "Cancel this operation",
+				Alignment = ToolStripItemAlignment.Left,
+			};
+			slot.Cancel.Click += ( s, e ) => CancelOrDismiss( slot );
+
+			_operations[instance] = slot;
+
+			// the slots that do not fit are only counted, so the strip cannot overflow its window
+			if( _operations.Count <= _maxOperationSlots )
+			{
+				statusStrip.Items.Add( slot.Label );
+				statusStrip.Items.Add( slot.Bar );
+				statusStrip.Items.Add( slot.Cancel );
+			}
+
+			refreshOperations();
+		}
+
+		void CancelOrDismiss( OperationSlot slot )
+		{
+			// a failed operation stays until it is clicked away; the cross then only dismisses it
+			if( slot.Failed )
+			{
+				RemoveOperation( slot );
+				return;
+			}
+
+			slot.Cancelling = true;
+			slot.Cancel.Enabled = false;
+			slot.Label.Text = $"{slot.Title}: cancelling...";
+			slot.Bar.Style = ProgressBarStyle.Marquee;
+
+			WFT.GuardedOp( () => Ctrl.Send( new Net.KillScriptMessage( Ctrl.Name, slot.Instance ) ) );
+		}
+
+		void RemoveOperation( OperationSlot slot )
+		{
+			statusStrip.Items.Remove( slot.Label );
+			statusStrip.Items.Remove( slot.Bar );
+			statusStrip.Items.Remove( slot.Cancel );
+
+			slot.Label.Dispose();
+			slot.Bar.Dispose();
+			slot.Cancel.Dispose();
+
+			_operations.Remove( slot.Instance );
+
+			// a slot may have come free for one that was only being counted
+			foreach( var waiting in _operations.Values )
+			{
+				if( statusStrip.Items.Contains( waiting.Label ) ) continue;
+				if( VisibleOperationCount() >= _maxOperationSlots ) break;
+
+				statusStrip.Items.Add( waiting.Label );
+				statusStrip.Items.Add( waiting.Bar );
+				statusStrip.Items.Add( waiting.Cancel );
+			}
+		}
+
+		int VisibleOperationCount()
+			=> _operations.Values.Count( x => statusStrip.Items.Contains( x.Label ) );
+
+		/// <summary>
+		/// Follows the operations this GUI started. Runs on the same tick that pumps the client, so the
+		/// states it reads have just arrived and no marshalling is needed.
+		/// </summary>
+		void refreshOperations()
+		{
+			foreach( var slot in _operations.Values.ToList() )
+			{
+				var state = _core.ReflStates.GetScriptState( slot.Instance );
+
+				// a state that has disappeared means the script is long gone
+				if( state is null )
+				{
+					if( !slot.Failed ) RemoveOperation( slot );
+					continue;
+				}
+
+				switch( state.Status )
+				{
+					case EScriptStatus.Failed:
+						slot.Failed = true;
+						slot.Cancel.Enabled = true;
+						slot.Cancel.ToolTipText = "Dismiss";
+						slot.Label.ForeColor = System.Drawing.Color.Firebrick;
+						slot.Label.Text = $"{slot.Title}: failed";
+						slot.Label.ToolTipText = state.Text ?? "failed";
+						slot.Bar.Style = ProgressBarStyle.Continuous;
+						slot.Bar.Value = slot.Bar.Maximum;
+						break;
+
+					case EScriptStatus.Finished:
+					case EScriptStatus.Cancelled:
+						RemoveOperation( slot );
+						break;
+
+					default:
+						slot.Label.Text = slot.Cancelling
+											? $"{slot.Title}: cancelling..."
+											: $"{slot.Title}: {state.Text}";
+						slot.Label.ToolTipText = state.Text ?? slot.Title;
+
+						if( state.Progress is double progress && !slot.Cancelling )
+						{
+							slot.Bar.Style = ProgressBarStyle.Continuous;
+							slot.Bar.Value = Math.Clamp( (int) ( progress * slot.Bar.Maximum ), 0, slot.Bar.Maximum );
+						}
+						else
+						{
+							// running, but with nothing to say about how far - do not invent a number
+							slot.Bar.Style = ProgressBarStyle.Marquee;
+						}
+						break;
+				}
+			}
+
+			RefreshMoreOperationsLabel();
+		}
+
+		void RefreshMoreOperationsLabel()
+		{
+			int hidden = _operations.Count - VisibleOperationCount();
+
+			if( hidden <= 0 )
+			{
+				if( _moreOperationsLabel is not null )
+				{
+					statusStrip.Items.Remove( _moreOperationsLabel );
+					_moreOperationsLabel.Dispose();
+					_moreOperationsLabel = null;
+				}
+				return;
+			}
+
+			if( _moreOperationsLabel is null )
+			{
+				_moreOperationsLabel = new ToolStripStatusLabel() { AutoToolTip = true };
+				statusStrip.Items.Add( _moreOperationsLabel );
+			}
+
+			_moreOperationsLabel.Text = $"+{hidden} more";
+			_moreOperationsLabel.ToolTipText = string.Join( "\n",
+				_operations.Values.Where( x => !statusStrip.Items.Contains( x.Label ) ).Select( x => x.Title ) );
+		}
+
+		/// <summary>An action title is a menu path; the last segment is what names the operation.</summary>
+		static string LastSegmentOf( string title )
+			=> title.Split( new char[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries ).LastOrDefault() ?? title;
 
 		void refreshMenu()
 		{

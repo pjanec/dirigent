@@ -21,6 +21,13 @@ namespace Dirigent.Gui.WinForms
 		protected List<PlanDef> PlanRepo => _core.PlanRepo;
 		protected List<ScriptDef> ScriptRepo => _core.ScriptRepo;
 
+		/// <summary>
+		/// Raised when a menu action started a script worth following - the instance and what to call
+		/// it. Only actions started here, in this GUI, so that a progress indicator shows the
+		/// operations of the person sitting in front of it and nobody else's.
+		/// </summary>
+		public event Action<Guid, string>? OperationStarted;
+
 		public MenuBuilder( GuiCore core )
 		{
 			_core = core;
@@ -115,14 +122,13 @@ namespace Dirigent.Gui.WinForms
 						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, false, true, null );
 						if( resolved is not null )
 						{
-							if( !resolved.IsContainer )
-							{
-								_core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved ) ;
-							}
-							else
-							{
-								_core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved ) ;
-							}
+							var script = !resolved.IsContainer
+								? _core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved )
+								: _core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved );
+
+							// a file action can take minutes (collecting logs from every machine),
+							// so the operation gets a place in the status bar of the GUI that asked
+							OperationStarted?.Invoke( script, action.Title );
 						}
 					}
 				)

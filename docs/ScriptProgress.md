@@ -1,6 +1,7 @@
 # Progress and cancellation for long operations
 
-A design, for review. Nothing of this is implemented yet.
+Implemented as described below. What differed from the design as written is noted at the end,
+under [What the building changed](#what-the-building-changed).
 
 ## The problem
 
@@ -248,3 +249,36 @@ seeded logging world, watch the bar, press the cross.
 3. **Scripts only.** `ReloadSharedConfig`, plan starts and `KillAll` keep their current silence;
    the mechanism is generic enough to cover them later, with no more than their own `SetStatus`
    calls.
+
+## What the building changed
+
+Three things the design did not foresee, each of which had made the feature silently useless:
+
+* **`ReflectedScriptRegistry` copies the script state field by field.** A new field on `ScriptState`
+  travels over the wire but is dropped where every client caches it, so nothing ever saw a
+  `Progress`. Anything added to `ScriptState` has to be added there too.
+* **`await Task.WhenAny(...)` hands back the cancelled task rather than throwing.** The parent's
+  wait therefore ignored its own cancellation and carried on to the end. The token has to be looked
+  at explicitly after the wait.
+* **Cleaning up while the slaves are still dying does not work.** Deleting the staging folder under
+  a slave that is still writing fails, and the slave then recreates it for its own cleanup - leaving
+  an empty folder behind. The parent now waits for the slaves to stop (bounded, 10 s) before taking
+  the folder away.
+
+Two smaller decisions:
+
+* `ScriptRunner` sets `Progress = 1.0` on a finished script, whatever it last reported, so an
+  indicator ends full rather than frozen wherever it got to.
+* The harness seeder can write **incompressible** files. Its usual filler compresses at gigabytes
+  per second, so a world built from it finishes before there is anything to watch or interrupt.
+
+## What is covered
+
+`ScriptProgressTests`, tier 1: progress rises without going backwards and ends at 1.0; each machine
+announces a total it never exceeds; a cancelled download ends as `Cancelled` and leaves no archive,
+no `.part` and no staging folder - checked over an observation window, since a machine that ignored
+the cancel would deliver its archive a moment later.
+
+The status bar itself has no automated cover: tier 1 has no GUI. Run
+`Invoke-DirigentTests.ps1 -KeepAlive -WithGui`, download the seeded logging world from the menu,
+and watch the bar - that is the one part that needs eyes.
