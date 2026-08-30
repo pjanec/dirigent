@@ -1,0 +1,248 @@
+# Progress and cancellation for long operations
+
+A design, for review. Nothing of this is implemented yet.
+
+## The problem
+
+Collecting logs from several machines takes from seconds to many minutes, and while it runs
+Dirigent shows nothing. `BuiltIns/DownloadZipped.cs` sends a one-second balloon at the start
+(*"Downloading from 3 machine(s)..."*) and a message box at the end. In between there is no
+indication that anything is happening, no idea how far along it is, and no way to stop it.
+
+That matters most exactly where it hurts: a folder holding an unrotated multi-gigabyte log takes
+minutes to compress, which is indistinguishable from a hang.
+
+## Scope
+
+Agreed before writing this:
+
+* Only operations **started from the GUI** show progress.
+* Progress appears **only in the GUI that started it**, not in others.
+* No tray-icon tooltip.
+* Cancelling **removes the partial archive**.
+
+Everything else - scripts started from the CLI, the REST surface, or by another script - keeps
+behaving as it does today. They are not silent, they simply report to whoever asked for them.
+
+## What already exists
+
+| Piece | Where | Note |
+| --- | --- | --- |
+| `SetStatus( text, data )` | `Script` | any script can publish a status at any time |
+| `ScriptState { Status, Text, Data }` | `ScriptState.cs` | no number in it, `Data` is script-specific JSON |
+| `ScriptStateMessage` | `Messages.cs` | **broadcast to every subscribed client**, keyed by instance guid |
+| cached states per client | `ReflectedScriptRegistry` | `GetScriptState(guid)` on the GUI side |
+| the instance guid, at start | `RunScriptNoWait` returns it | the starter knows what it started |
+| `GetScriptStateAsync(guid)` | `IDirigAsync` | a script can poll another script |
+| `KillScriptMessage` | master -> agent -> `ScriptRunner` | cancels the runner's `CancellationTokenSource` |
+| `EScriptStatus.Cancelling` | `ScriptState.cs` | a state to display between the click and the stop |
+
+So the transport, the caching and the kill path are all in place. What is missing is a number, an
+aggregation rule, three cancellation checks, and the widget.
+
+## Which script the GUI shows
+
+**The GUI shows the scripts it started itself.** No new flag.
+
+`RunScriptNoWait` already returns the instance guid; the GUI keeps those guids in a set and drops
+each one when its state stops being alive. The nesting question answers itself: the download's
+slave scripts are started by `DownloadZipped`, not by the GUI, so a GUI never has their guids and
+never shows them.
+
+A *"top level"* flag on the script would say *this is worth watching* but not *by whom*, so with
+two GUIs open both would show a bar for a download only one of them asked for. If tracking ever
+needs to survive a GUI restart, the fix is not a flag either: it is to carry `Requestor` (which
+`StartScriptMessage` already has) into `ScriptState`, and let each client show the alive scripts
+whose requestor is itself. Not needed for the agreed scope.
+
+One small change is required: `ToolsRegistry.StartScript` currently discards the guid that
+`RunScriptNoWait` returns. `StartAction` / `StartScript` / `StartFileBoundAction` /
+`StartFilePackageBoundAction` need to return it so `MenuBuilder` can hand it to the status bar.
+
+```mermaid
+flowchart LR
+    subgraph GUI["GUI (the one that clicked)"]
+        M[menu item] -->|StartScript| TR[ToolsRegistry]
+        TR -->|returns guid| SB[status bar slot]
+        RSR[(cached script states)] -->|every tick| SB
+    end
+    subgraph Master
+        MA[master]
+    end
+    subgraph Agents
+        P["DownloadZipped<br/>(parent)"]
+        S1["slave on m1"]
+        S2["slave on m2"]
+    end
+    TR -->|StartScriptMessage| MA --> P
+    P -->|RunScriptAsync| S1
+    P -->|RunScriptAsync| S2
+    S1 -->|"SetStatus(progress)"| MA
+    S2 -->|"SetStatus(progress)"| MA
+    P -->|"SetStatus(aggregated)"| MA
+    MA -->|ScriptStateMessage broadcast| RSR
+```
+
+## The progress number
+
+Add to `ScriptState`:
+
+```csharp
+/// <summary>
+/// How far the operation has got, 0..1. Null means "running, no idea how far" - the GUI then
+/// shows an indeterminate bar rather than a wrong number.
+/// </summary>
+public double? Progress;
+```
+
+and an optional parameter on the script API:
+
+```csharp
+protected Task SetStatus( string? text = null, string? data = null, double? progress = null )
+```
+
+`ScriptRunner` already builds `ScriptState` from `IScript.StatusText` / `StatusData`; it gains one
+more line for `StatusProgress`. Wire-safe in both directions: MessagePack is configured
+contractless here, so members travel by name and a peer that does not know the field ignores it.
+
+Deliberately **not** carried inside `Data`: that is script-specific JSON, and the status bar must
+not have to understand any particular script to draw a bar.
+
+## Aggregation
+
+In the script, not in the framework. `DownloadZipped` already holds every slave's guid in
+`SlaveTask.scriptId` and `GetScriptStateAsync(guid)` exists, so the parent polls its children and
+publishes one number. No parent/child links in the protocol, no tree walking in the GUI. The
+script is the only thing that knows what "half done" means for its own work.
+
+Proposed split for a download:
+
+| Phase | Share of the bar | Text shown |
+| --- | --- | --- |
+| resolving the node, finding machines | 0.00 - 0.05 | `Resolving...` |
+| slaves compressing | 0.05 - 0.85 | `Collecting from m1, m2 (2 of 3 done)` |
+| merging the parts | 0.85 - 1.00 | `Merging...` |
+
+Within the slave phase the parent averages the slaves' own progress, weighted by the bytes each
+one announced - a machine holding 60 GB should not count the same as one holding 2 MB. A slave
+that has not reported yet counts as 0.
+
+What each script reports:
+
+* **`DownloadZippedSlave`** - the total bytes to collect are known before compressing (the resolved
+  tree carries the sizes, and `FileTail` says how much of an oversized file will be taken), so it
+  reports `bytesDone / bytesTotal` and a text naming the current file. Updated every ~4 MB, not
+  per file: one 60 GB file must not sit at one number for minutes.
+* **`MergeZipped`** - entries copied / total entries.
+* **`DownloadZipped`** - the aggregate above, polling the slaves about twice a second.
+
+## Cancellation
+
+The kill path exists end to end, but **none of the three download scripts observes its
+`CancellationToken`** - and `ScriptRunner` explicitly "just lets it go" when a script ignores the
+token. So a cancel button today would remove the bar while the machines carried on working, and a
+zip would appear minutes later. Three things must change before the button is honest:
+
+1. **`DownloadZippedSlave`** - the copy loop becomes a chunked copy that checks the token (or
+   `CopyToAsync(dst, ct)`), so a cancel takes effect inside a huge file rather than after it. The
+   `.part` file is removed by the existing failure path, which is also what satisfies *"partial
+   gone"*: the archive under construction never had its final name.
+2. **`DownloadZipped`** - on cancellation, `KillScript` every slave guid and the merge if it is
+   running, then delete the staging folder. Killing only the parent leaves the slaves compressing.
+3. **`MergeZipped`** - the same token check in its entry loop, and the half-written destination
+   file deleted. It is the one that writes under the final name.
+
+Then a cancelled download leaves: no archive, no `.part`, no staging folder. The script ends as
+`Cancelled`, and the closing message box is skipped - the user knows, they asked for it.
+
+## The user interface
+
+### Where it goes
+
+`Main.Designer.cs` currently has a `statusStrip` holding a single `toolStripStatusLabel1`, which
+`refreshStatusBar()` sets to `Connected.` / `Disconnected.` on every tick.
+
+A `StatusStrip` is a single row, so several operations cannot be stacked without a second strip.
+They go **side by side**, each as a slot of three items:
+
+```
++--------------------------------------------------------------------------------+
+| Connected.   Collecting logs  [######----]  X   Incident report [##--------] X  |
++--------------------------------------------------------------------------------+
+```
+
+| Item | Type | Size |
+| --- | --- | --- |
+| title | `ToolStripStatusLabel` | auto, `AutoToolTip` carrying the full status text |
+| bar | `ToolStripProgressBar` | 100 px, `Continuous`, or `Marquee` while `Progress` is null |
+| cancel | `ToolStripButton` | 20 px, `DisplayStyle = Image`, a red cross, `ToolTipText = "Cancel"` |
+
+At roughly 250 px per slot, two fit next to the connection label on the default 889 px window.
+**Two slots are shown**; beyond that a single `+N more` label appears, its tooltip listing the
+titles. Concurrency above two is rare enough not to design further around.
+
+### Lifecycle
+
+The items are created and removed at run time, not in the designer, since the count varies. A
+small private class holds them together:
+
+```csharp
+class OperationSlot
+{
+    public Guid Instance;
+    public ToolStripStatusLabel Title;
+    public ToolStripProgressBar Bar;
+    public ToolStripButton Cancel;
+    public bool Cancelling;
+}
+```
+
+`Main` keeps `Dictionary<Guid, OperationSlot> _operations`, filled when a menu action returns a
+guid. On every tick, inside the existing `refreshStatusBar()`:
+
+* read `_core.ReflStates.GetScriptState( guid )` for each tracked guid;
+* `Status == Running` / `Cancelling` -> update the title (`Title` + `Text`) and the bar
+  (`Progress * 100`, or marquee if null);
+* anything not alive - `Finished`, `Failed`, `Cancelled`, or a state that has disappeared -> remove
+  the slot. Failures are already reported by the script's own message box, so a lingering red slot
+  would only repeat it;
+* create the items for a newly tracked guid, dispose them on removal.
+
+The tick is the GUI's existing timer (`TickPeriod`, 500 ms by default), which also pumps the
+client - so `ScriptStateMessage` arrives on the UI thread and no marshalling is needed anywhere.
+500 ms is coarse for animation and entirely adequate for a bar that moves over minutes.
+
+### The cancel button
+
+On click: send `KillScriptMessage( Ctrl.Name, instance )`, set the slot to `Cancelling...`, put the
+bar into marquee, and disable the button so it cannot be pressed twice. The slot disappears when
+the state stops being alive. No confirmation dialog - the operation is interruptible by design and
+leaves nothing behind.
+
+### What stays
+
+The start balloon goes (the bar says the same thing, better) and the closing message box stays,
+including its list of errors.
+
+## Testing
+
+Tier 1 covers everything except the widget:
+
+* progress rises and reaches 1.0 for a download; the operator already records script states.
+* a slave reports a total and partial progress for a large file.
+* cancelling mid-download: the script ends `Cancelled`, no archive, no `.part`, no staging folder
+  is left, and the collecting processes stop rather than finishing in the background.
+* the existing download tests must stay green - progress reporting must not change what lands.
+
+The status bar itself is manual: run `Invoke-DirigentTests.ps1 -KeepAlive -WithGui`, download the
+seeded logging world, watch the bar, press the cross.
+
+## Open questions
+
+1. **How often should the parent poll its slaves?** Twice a second costs a message round trip per
+   slave per poll. With a handful of machines that is nothing; with fifty it is worth reconsidering.
+2. **Should a failed operation leave a trace in the bar?** The proposal removes the slot and lets
+   the message box speak. A red slot that stays for a few seconds is the alternative.
+3. **Anything else worth a bar?** `ReloadSharedConfig`, plan starts and `KillAll` are the other
+   operations that can take a while. The mechanism is generic, so they would only need their own
+   `SetStatus` calls.
