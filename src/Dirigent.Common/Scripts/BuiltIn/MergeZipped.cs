@@ -77,13 +77,13 @@ namespace Dirigent.Scripts.BuiltIn
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args == null");
 
-			return Task.FromResult( Tools.Serialize( Merge( args ) ) )!;
+			return Task.FromResult( Tools.Serialize( Merge( args, CancellationToken ) ) )!;
 		}
 
 		/// <summary>
 		/// Joins the archives listed in the arguments into a single one and removes the staging folder.
 		/// </summary>
-		public static TResult Merge( TArgs args )
+		public static TResult Merge( TArgs args, CancellationToken ct = default )
 		{
 			if( string.IsNullOrEmpty( args.StagingFolder ) ) throw new NullReferenceException("Args.StagingFolder is empty");
 			if( string.IsNullOrEmpty( args.DestinationFile ) ) throw new NullReferenceException("Args.DestinationFile is empty");
@@ -134,12 +134,18 @@ namespace Dirigent.Scripts.BuiltIn
 
 								var dstEntry = dstZip.CreateEntry( entryName, CompressionLevel.Fastest );
 
+								ct.ThrowIfCancellationRequested();
+
 								using var srcStream = srcEntry.Open();
 								using var dstStream = dstEntry.Open();
 								srcStream.CopyTo( dstStream );
 
 								result.FileCount++;
 							}
+						}
+						catch( OperationCanceledException )
+						{
+							throw; // a cancel ends the merge, it is not a problem with this one part
 						}
 						catch( Exception e )
 						{
@@ -152,6 +158,22 @@ namespace Dirigent.Scripts.BuiltIn
 				result.ZipFileName = Path.GetFileName( args.DestinationFile );
 
 				return result;
+			}
+			catch( OperationCanceledException )
+			{
+				// unlike the parts, the merged archive is written under its final name, so a
+				// half-written one would look like the download had succeeded
+				try
+				{
+					if( File.Exists( args.DestinationFile ) )
+						File.Delete( args.DestinationFile );
+				}
+				catch( Exception e )
+				{
+					log.Debug( $"Could not remove the unfinished archive {args.DestinationFile}: {e.Message}" );
+				}
+
+				throw;
 			}
 			finally
 			{

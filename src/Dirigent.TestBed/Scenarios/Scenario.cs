@@ -182,7 +182,12 @@ namespace Dirigent.TestBed.Scenarios
 		// ---- files that must already exist ------------------------------------------
 
 		/// <param name="idTuple">"machine.app", or just "machine" for a machine-level file</param>
-		public Scenario Seed( string idTuple, string fileName, double ageDays = 0, int sizeBytes = 64, string? content = null )
+		/// <param name="incompressible">
+		/// Fill it with data that does not compress, so that collecting it costs what a real log of
+		/// that size costs. Needed by anything measuring or interrupting a collection.
+		/// </param>
+		public Scenario Seed( string idTuple, string fileName, double ageDays = 0, int sizeBytes = 64,
+				string? content = null, bool incompressible = false )
 		{
 			var (machineName, appId) = idTuple.Contains( '.' ) ? SplitTuple( idTuple ) : (idTuple, "");
 			Spec.Seeds.Add( new SeedSpec()
@@ -193,6 +198,7 @@ namespace Dirigent.TestBed.Scenarios
 				AgeDays = ageDays,
 				SizeBytes = sizeBytes,
 				Content = content,
+				Incompressible = incompressible,
 			} );
 			return this;
 		}

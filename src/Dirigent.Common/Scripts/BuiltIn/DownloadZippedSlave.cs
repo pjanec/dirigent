@@ -73,12 +73,36 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
+		/// What this slave publishes while it works, so that the script that started it can weigh the
+		/// machines against each other instead of averaging them as equals.
+		/// </summary>
+		public class TProgress
+		{
+			public long BytesDone;
+			public long BytesTotal;
+			public string? CurrentFile;
+		}
+
+		/// <summary>
 		/// Write the archive in chunks this big. A destination reached over a file share is written
 		/// to in as few round trips as the compressed data allows.
 		/// </summary>
 		const int _writeBufferBytes = 1024 * 1024;
 
+		/// <summary>How much of a source file is read at a time - also how often a cancel is noticed.</summary>
+		const int _copyBufferBytes = 256 * 1024;
+
+		/// <summary>
+		/// How much has to be collected before saying so again. One huge file must not sit at the
+		/// same number for minutes, and a folder of small ones must not flood the network.
+		/// </summary>
+		const long _progressReportBytes = 4 * 1024 * 1024;
+
 		TArgs? _args;
+
+		long _bytesTotal;
+		long _bytesDone;
+		long _bytesAtLastReport;
 
 		protected override Task<string?> Run()
 		{
@@ -88,6 +112,10 @@ namespace Dirigent.Scripts.BuiltIn
 			//throw new Exception( "Hey, test exception from a script! " + _Name );
 
 			var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
+
+			// what is ahead of us, so that the progress can be a fraction rather than a byte count
+			_bytesTotal = TotalBytesToCollect( _args.Container! );
+			ReportProgress( null, force: true );
 
 			// exceptions gathered along the way (missing files etc.) - they do not stop the download
 			var exceptions = WriteArchive( destFileName );
@@ -146,23 +174,95 @@ namespace Dirigent.Scripts.BuiltIn
 
 					return exceptions;
 				}
+				catch( OperationCanceledException )
+				{
+					// the user asked us to stop: take the half-written archive with us and do not
+					// try the next destination, which would start the whole thing again
+					DeletePart( partPath );
+					throw;
+				}
 				catch( Exception e )
 				{
 					log.Warn( $"Could not write {destFileName} to '{folder}': {e.Message}" );
 					if( firstFailure is null ) firstFailure = e;
 
-					// a half-written archive must not be left behind under any name
-					if( !string.IsNullOrEmpty( partPath ) )
-					{
-						try { File.Delete( partPath ); }
-						catch( Exception de ) { log.Warn( $"Could not delete {partPath}: {de.Message}" ); }
-					}
+					DeletePart( partPath );
 				}
 			}
 
 			throw firstFailure ?? new Exception(
 				$"No destination folder to write {destFileName} to. The machine holding the download "
 				+ $"folder is not this one and no file share of it covers the folder." );
+		}
+
+		/// <summary>
+		/// Removes a half-written archive. It never had the final name, so nothing has seen it.
+		/// </summary>
+		static void DeletePart( string partPath )
+		{
+			if( string.IsNullOrEmpty( partPath ) ) return;
+
+			try { File.Delete( partPath ); }
+			catch( Exception e ) { log.Warn( $"Could not delete {partPath}: {e.Message}" ); }
+		}
+
+		/// <summary>
+		/// How many bytes this machine is going to put into the archive - the sizes as they will be
+		/// collected, so a file taken by its tail counts as the tail only.
+		/// </summary>
+		long TotalBytesToCollect( VfsNodeDef container )
+		{
+			long total = 0;
+
+			foreach( var node in container.Children )
+			{
+				if( node.IsContainer )
+				{
+					total += TotalBytesToCollect( node );
+					continue;
+				}
+
+				if( !IsLocalNode( node ) && !( IsGlobalNode( node ) && _args!.IncludeGlobals ) )
+					continue;
+
+				// a file we cannot even measure is one that will fail to be collected as well;
+				// the failure is reported from there, this is only an estimate
+				try { total += FileTail.EffectiveSize( new FileInfo( node.Path! ).Length, node.TailBytes ); }
+				catch {}
+			}
+
+			return total;
+		}
+
+		/// <summary>
+		/// Publishes how far this machine has got, unless it said so a moment ago already.
+		/// </summary>
+		void ReportProgress( string? currentFile, bool force = false )
+		{
+			if( !force && _bytesDone - _bytesAtLastReport < _progressReportBytes )
+				return;
+
+			_bytesAtLastReport = _bytesDone;
+
+			// an empty collection is done as soon as it starts; without a total there is no fraction
+			double? progress = _bytesTotal > 0
+								? Math.Min( 1.0, (double) _bytesDone / _bytesTotal )
+								: ( _bytesDone > 0 ? null : (double?) 1.0 );
+
+			var text = currentFile is null
+						? $"{FileTail.FormatSize( _bytesTotal )} to collect"
+						: $"{currentFile} ({FileTail.FormatSize( _bytesDone )} of {FileTail.FormatSize( _bytesTotal )})";
+
+			SetStatus(
+				text,
+				Serialize( new TProgress()
+				{
+					BytesDone = _bytesDone,
+					BytesTotal = _bytesTotal,
+					CurrentFile = currentFile,
+				} ),
+				progress
+			);
 		}
 
 		/// <summary>
@@ -213,6 +313,10 @@ namespace Dirigent.Scripts.BuiltIn
 					{
 						AddLocalFiles( node, entryPrefix + GetFolderName( node ) + "/", zip, usedEntryNames, exceptions, notes );
 					}
+					catch( OperationCanceledException )
+					{
+						throw; // a cancel ends the whole collection, it is not a per-file problem
+					}
 					catch (Exception e)
 					{
 						exceptions.Add( e );
@@ -228,6 +332,10 @@ namespace Dirigent.Scripts.BuiltIn
 						try
 						{
 							AddFile( zip, AppFolderFor( node, entryPrefix ), node, usedEntryNames, notes );
+						}
+						catch( OperationCanceledException )
+						{
+							throw; // a cancel ends the whole collection, it is not a per-file problem
 						}
 						catch (Exception e)
 						{
@@ -267,7 +375,7 @@ namespace Dirigent.Scripts.BuiltIn
 		/// <summary>
 		/// Streams one file into the archive, taking only its tail if the node asks for that.
 		/// </summary>
-		static void AddFile( ZipArchive zip, string entryPrefix, VfsNodeDef node,
+		void AddFile( ZipArchive zip, string entryPrefix, VfsNodeDef node,
 				HashSet<string> usedEntryNames, List<string> notes )
 		{
 			var filePath = node.Path!;
@@ -314,7 +422,31 @@ namespace Dirigent.Scripts.BuiltIn
 						+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}')." );
 			}
 
-			src.CopyTo( dst );
+			CopyWithProgress( src, dst, Path.GetFileName( filePath ) );
+		}
+
+		/// <summary>
+		/// Copies the rest of a source stream into the archive, telling the world how it goes and
+		/// stopping where the user asked for it.
+		/// </summary>
+		/// <remarks>
+		/// Chunked rather than Stream.CopyTo for the sake of those two: a single copy call of a
+		/// 60 GB log would report nothing and ignore a cancel for the several minutes it takes.
+		/// </remarks>
+		void CopyWithProgress( Stream src, Stream dst, string fileName )
+		{
+			var buffer = new byte[_copyBufferBytes];
+
+			int read;
+			while( ( read = src.Read( buffer, 0, buffer.Length ) ) > 0 )
+			{
+				CancellationToken.ThrowIfCancellationRequested();
+
+				dst.Write( buffer, 0, read );
+
+				_bytesDone += read;
+				ReportProgress( fileName );
+			}
 		}
 
 		/// <summary>

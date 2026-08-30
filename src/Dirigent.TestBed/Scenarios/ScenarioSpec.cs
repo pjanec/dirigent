@@ -152,5 +152,12 @@ namespace Dirigent.TestBed.Scenarios
 		public double AgeDays;
 		public int SizeBytes = 64;
 		public string? Content;
+
+		/// <summary>
+		/// Fill the file with data that does not compress, so that collecting it costs what
+		/// collecting a real log of that size costs. The bytes are pseudo random from a fixed seed,
+		/// so two runs produce the same file.
+		/// </summary>
+		public bool Incompressible;
 	}
 }

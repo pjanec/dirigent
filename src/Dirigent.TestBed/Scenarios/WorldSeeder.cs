@@ -42,6 +42,20 @@ namespace Dirigent.TestBed.Scenarios
 				File.WriteAllText( path, seed.Content, Encoding.UTF8 );
 			}
 			else
+			if( seed.Incompressible )
+			{
+				// a fixed seed, so the same scenario yields the same bytes on every run
+				var random = new Random( 20260830 );
+				var block = new byte[64 * 1024];
+
+				using var file = new FileStream( path, FileMode.Create, FileAccess.Write );
+				for( int written = 0; written < seed.SizeBytes; written += block.Length )
+				{
+					random.NextBytes( block );
+					file.Write( block, 0, Math.Min( block.Length, seed.SizeBytes - written ) );
+				}
+			}
+			else
 			{
 				// recognisable filler, so a file that turns up in an archive can be traced back
 				var line = $"seeded {seed.MachineName}.{seed.AppId} {seed.FileName} age={seed.AgeDays}d";

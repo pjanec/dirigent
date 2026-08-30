@@ -284,6 +284,7 @@ namespace Dirigent
 					State.Status = state.Status;
 					State.Text = state.Text;
 					State.Data = state.Data;
+					State.Progress = state.Progress;
 
 					if (state.IsAlive)
 					{

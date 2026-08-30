@@ -203,9 +203,10 @@ guid. On every tick, inside the existing `refreshStatusBar()`:
 * read `_core.ReflStates.GetScriptState( guid )` for each tracked guid;
 * `Status == Running` / `Cancelling` -> update the title (`Title` + `Text`) and the bar
   (`Progress * 100`, or marquee if null);
-* anything not alive - `Finished`, `Failed`, `Cancelled`, or a state that has disappeared -> remove
-  the slot. Failures are already reported by the script's own message box, so a lingering red slot
-  would only repeat it;
+* `Finished` or `Cancelled`, or a state that has disappeared -> remove the slot;
+* `Failed` -> keep the slot, colour it red, show the failure text, and turn its cross into a
+  dismiss button. It stays until clicked away, so an operation cannot fail unnoticed while the user
+  is looking elsewhere;
 * create the items for a newly tracked guid, dispose them on removal.
 
 The tick is the GUI's existing timer (`TickPeriod`, 500 ms by default), which also pumps the
@@ -237,12 +238,13 @@ Tier 1 covers everything except the widget:
 The status bar itself is manual: run `Invoke-DirigentTests.ps1 -KeepAlive -WithGui`, download the
 seeded logging world, watch the bar, press the cross.
 
-## Open questions
+## Decided during review
 
-1. **How often should the parent poll its slaves?** Twice a second costs a message round trip per
-   slave per poll. With a handful of machines that is nothing; with fifty it is worth reconsidering.
-2. **Should a failed operation leave a trace in the bar?** The proposal removes the slot and lets
-   the message box speak. A red slot that stays for a few seconds is the alternative.
-3. **Anything else worth a bar?** `ReloadSharedConfig`, plan starts and `KillAll` are the other
-   operations that can take a while. The mechanism is generic, so they would only need their own
-   `SetStatus` calls.
+1. **Polling stays at the existing 500 ms tick**, for the parent asking its slaves as well as for
+   the GUI refreshing the bar. Revisit only if a system with dozens of machines feels it.
+2. **A failed operation stays in the bar until it is clicked away.** The slot turns red, keeps the
+   failure text, and its cross becomes a dismiss button rather than a cancel. `Finished` and
+   `Cancelled` slots disappear on their own - only a failure demands acknowledgement.
+3. **Scripts only.** `ReloadSharedConfig`, plan starts and `KillAll` keep their current silence;
+   the mechanism is generic enough to cover them later, with no more than their own `SetStatus`
+   calls.

@@ -81,7 +81,8 @@ namespace Dirigent
 				return new ScriptState(
 					_status,
 					(_script as IScript).StatusText,
-					(_script as IScript).StatusData
+					(_script as IScript).StatusData,
+					(_script as IScript).StatusProgress
 				);
 			}
 		}
@@ -155,6 +156,10 @@ namespace Dirigent
 					_status = EScriptStatus.Finished;
 					state.Status = _status;
 					state.Data = result;
+
+					// whatever the script last said about its progress, having finished it is done -
+					// so a progress indicator shows a full bar rather than freezing wherever it got to
+					state.Progress = 1.0;
 				}
 				SendStatus( state );
 			}

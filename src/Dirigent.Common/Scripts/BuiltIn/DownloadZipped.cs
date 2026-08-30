@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -72,6 +72,22 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 
+		/// <summary>How much of the bar each phase gets. The slaves do the work, so they get most of it.</summary>
+		const double _resolvedAt = 0.05;
+		const double _collectedAt = 0.85;
+
+		/// <summary>How often the slaves are asked how far they have got.</summary>
+		const int _pollPeriodMs = 500;
+
+		/// <summary>How long a cancellation waits for the machines to stop before cleaning up after them.</summary>
+		const int _slaveStopTimeoutMs = 10000;
+
+		// kept outside the try so that a cancellation can still clean up after them
+		readonly List<SlaveTask> _slaveTasks = new();
+		string _requestorMachine = string.Empty;
+		string? _stagingFolder;
+		string? _finalArchive;
+
 		protected async override Task<string?> Run()
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
@@ -81,6 +97,8 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
+				await SetStatus( "Looking up the files...", null, 0.0 );
+
 				// A GUI resolves the node before starting us and passes the resolved tree. Anyone else
 				// names it by id and we resolve it here - resolution needs the machine owning the node,
 				// which a CLI or REST caller has no way of reaching.
@@ -201,6 +219,13 @@ namespace Dirigent.Scripts.BuiltIn
 							? uncDownloadsFolder
 							: System.IO.Path.Combine( uncDownloadsFolder, stagingFolderName ) );
 
+				// what a cancellation would have to clean up after us
+				_requestorMachine = requestorMachine;
+				_stagingFolder = perMachine ? null : System.IO.Path.Combine( downloadsFolder, stagingFolderName );
+				_finalArchive = System.IO.Path.Combine( downloadsFolder, $"{zipFileBase}.zip" );
+
+				await SetStatus( $"Collecting from {onlineMachines.Count} machine(s)...", null, _resolvedAt );
+
 				clientStates.TryGetValue( requestorMachine, out var requestorMachineState );
 				var requestorIP = requestorMachineState?.IP;
 
@@ -218,7 +243,7 @@ namespace Dirigent.Scripts.BuiltIn
 				var unreachable = new Dictionary<string,string>();
 
 				// start a slave script on each machine
-				var slaveTasks = new List<SlaveTask>();
+				// (the list itself lives on the instance, so that a cancellation can kill what it started)
 				bool globalsAssigned = false;
 				foreach (var mach in onlineMachines)
 				{
@@ -248,12 +273,12 @@ namespace Dirigent.Scripts.BuiltIn
 					);
 
 					var st = new SlaveTask() { MachineName=mach, scriptId = inst, Task = task! };
-					slaveTasks.Add( st );
+					_slaveTasks.Add( st );
 				}
 
 				// wait for all of them to finish
-				results = await Task.WhenAll( (from x in slaveTasks select x.Task) );
-				for (int i = 0; i < results.Length; i++) slaveTasks[i].Result = results[i];
+				results = await CollectFromSlaves();
+				for (int i = 0; i < results.Length; i++) _slaveTasks[i].Result = results[i];
 
 				var downloadedFiles = (from x in results where x is not null orderby x.ZipFileName select x.ZipFileName).ToList();
 
@@ -265,7 +290,7 @@ namespace Dirigent.Scripts.BuiltIn
 					errorMsg += $"{mach}:\n    {message}\n\n";
 					result.Errors.Add( $"{mach}: {message}" );
 				}
-				foreach( var st in slaveTasks )
+				foreach( var st in _slaveTasks )
 				{
 					result.Machines.Add( st.MachineName );
 
@@ -283,9 +308,9 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// join the per-machine archives into a single one, on the machine holding them
 				// (nothing to join if not a single slave could be started)
-				if( !perMachine && slaveTasks.Count > 0 )
+				if( !perMachine && _slaveTasks.Count > 0 )
 				{
-					var parts = (from x in slaveTasks
+					var parts = (from x in _slaveTasks
 								 where !string.IsNullOrEmpty( x.Result?.ZipFileName )
 								 orderby x.MachineName
 								 select new MergeZipped.TPart()
@@ -303,6 +328,8 @@ namespace Dirigent.Scripts.BuiltIn
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
 					};
+
+					await SetStatus( "Merging the collected files...", null, _collectedAt );
 
 					var mergeResult = await Dirig.RunScriptAsync<MergeZipped.TArgs, MergeZipped.TResult>(
 						requestorMachine, MergeZipped._Name, null, mergeArgs,
@@ -330,6 +357,8 @@ namespace Dirigent.Scripts.BuiltIn
 				result.Files = ( from x in downloadedFiles
 								 select Path.IsPathRooted( x ) ? x : Path.Combine( downloadsFolder, x ) ).ToList();
 
+				await SetStatus( "Downloaded.", null, 1.0 );
+
 				// tell the user it's all done
 				var clickAction = new ToolActionDef { Name = "WinExplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
 
@@ -345,6 +374,14 @@ namespace Dirigent.Scripts.BuiltIn
 					Action = clickAction
 				});
 
+			}
+			catch( OperationCanceledException )
+			{
+				// the user asked us to stop: take the machines and the half-collected parts with us,
+				// and say nothing - they know, they asked for it
+				await SetStatus( "Cancelling...", null, null );
+				await CancelSlavesAndCleanUp();
+				throw;
 			}
 			catch (Exception e)
 			{
@@ -366,6 +403,118 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			return Tools.Serialize( result );
+		}
+
+		/// <summary>
+		/// Waits for the slaves, publishing how far they have got between the checks.
+		/// </summary>
+		/// <remarks>
+		/// The slaves report their own progress in bytes; this weighs them by the amount each one
+		/// announced, so a machine holding a 60 GB log does not count the same as one holding 2 MB.
+		/// </remarks>
+		async Task<DownloadZippedSlave.TResult[]> CollectFromSlaves()
+		{
+			var all = Task.WhenAll( from x in _slaveTasks select x.Task );
+
+			while( true )
+			{
+				// whichever comes first: everything done, or time to report
+				var finished = await Task.WhenAny( all, Task.Delay( _pollPeriodMs, CancellationToken ) );
+				if( finished == all ) break;
+
+				// WhenAny hands back the cancelled delay rather than throwing, so the cancellation
+				// has to be looked at here - otherwise the wait simply carries on to the end
+				CancellationToken.ThrowIfCancellationRequested();
+
+				await ReportCollectionProgress();
+			}
+
+			return await all;
+		}
+
+		/// <summary>
+		/// Asks every slave how far it has got and publishes the total.
+		/// </summary>
+		async Task ReportCollectionProgress()
+		{
+			long done = 0;
+			long total = 0;
+			int finishedMachines = 0;
+			string? currentFile = null;
+
+			foreach( var st in _slaveTasks )
+			{
+				if( st.Task?.IsCompleted ?? false ) finishedMachines++;
+
+				var state = await Dirig.GetScriptStateAsync( st.scriptId );
+				if( state is null ) continue;
+
+				// a slave that has not said anything yet counts as nothing done
+				var progress = Tools.Deserialize<DownloadZippedSlave.TProgress>( state.Data );
+				if( progress is null ) continue;
+
+				done += progress.BytesDone;
+				total += progress.BytesTotal;
+
+				if( currentFile is null && !string.IsNullOrEmpty( progress.CurrentFile ) )
+					currentFile = progress.CurrentFile;
+			}
+
+			// before any slave has announced its size there is nothing to compute a fraction from;
+			// counting the machines is coarse but never wrong
+			double fraction = total > 0
+								? Math.Min( 1.0, (double) done / total )
+								: ( _slaveTasks.Count > 0 ? (double) finishedMachines / _slaveTasks.Count : 1.0 );
+
+			var text = $"Collecting from {_slaveTasks.Count} machine(s)"
+					+ ( total > 0 ? $" - {FileTail.FormatSize( done )} of {FileTail.FormatSize( total )}" : "" )
+					+ ( currentFile is not null ? $" - {currentFile}" : "" );
+
+			await SetStatus( text, null, _resolvedAt + ( _collectedAt - _resolvedAt ) * fraction );
+		}
+
+		/// <summary>
+		/// Stops the slaves and removes what they have produced so far.
+		/// </summary>
+		/// <remarks>
+		/// Killing only this script would leave every slave compressing happily to the end. The
+		/// staging folder is removed by a merge with no parts to merge - it clears the folder
+		/// whatever the outcome, and produces nothing when given an empty list.
+		/// </remarks>
+		async Task CancelSlavesAndCleanUp()
+		{
+			foreach( var st in _slaveTasks )
+			{
+				try { await Dirig.SendAsync( new Net.KillScriptMessage( Requestor, st.scriptId ) ); }
+				catch( Exception e ) { log.Warn( $"Could not stop the collection on {st.MachineName}: {e.Message}" ); }
+			}
+
+			if( string.IsNullOrEmpty( _stagingFolder ) || string.IsNullOrEmpty( _requestorMachine ) )
+				return;
+
+			// Give them a moment to really stop before the folder is taken away. A slave still
+			// writing would fail the deletion and then recreate the folder for its own cleanup,
+			// leaving an empty one behind. Their tasks end cancelled, which WhenAny does not throw on.
+			var stopping = Task.WhenAll( from x in _slaveTasks select x.Task );
+			await Task.WhenAny( stopping, Task.Delay( _slaveStopTimeoutMs ) );
+
+			try
+			{
+				await Dirig.RunScriptAsync<MergeZipped.TArgs, MergeZipped.TResult>(
+					_requestorMachine, MergeZipped._Name, null,
+					new MergeZipped.TArgs()
+					{
+						StagingFolder = _stagingFolder,
+						DestinationFile = _finalArchive,
+						Parts = new List<MergeZipped.TPart>(), // nothing to merge: just take the folder away
+					},
+					$"Cleaning up the cancelled download on {_requestorMachine}", out var _
+				);
+			}
+			catch( Exception e )
+			{
+				log.Warn( $"Could not remove the staging folder {_stagingFolder}: {e.Message}" );
+			}
 		}
 
 		/// <summary>

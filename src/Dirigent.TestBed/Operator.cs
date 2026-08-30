@@ -151,6 +151,35 @@ namespace Dirigent.TestBed
 		}
 
 		/// <summary>
+		/// Starts a script and hands back its instance together with its completion, for tests that
+		/// need to watch it while it runs - progress, or a cancellation - rather than only its result.
+		/// </summary>
+		public async Task<(Guid Instance, Task<TResult?> Completion)> StartScriptAsync<TArgs, TResult>(
+				string scriptName, TArgs args, string hostId = "" )
+		{
+			Guid instance = Guid.Empty;
+
+			var task = await InTick( () =>
+				_states.ScriptReg.RunScriptAsync<TArgs, TResult>(
+					hostId, scriptName, null, args, $"{scriptName} from a test", out instance ) );
+
+			return ( instance, OffPump( task ) );
+		}
+
+		/// <summary>The last state a script published, as this operator has it.</summary>
+		public Task<ScriptState?> GetScriptStateAsync( Guid instance )
+			=> InTick( () => _states.GetScriptState( instance ) );
+
+		/// <summary>The last state of every script this operator knows about.</summary>
+		public Task<IReadOnlyList<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync()
+			=> InTick<IReadOnlyList<KeyValuePair<Guid, ScriptState>>>(
+				() => _states.GetAllScriptsState().ToList() );
+
+		/// <summary>Asks a script to stop, the way the cancel button of a progress indicator would.</summary>
+		public Task KillScriptAsync( Guid instance )
+			=> Send( new Net.KillScriptMessage( _states.Client.Ident.Name, instance ) );
+
+		/// <summary>
 		/// Downloads a VFS node the way a click on a download action would: resolve the node here,
 		/// then let the master's DownloadZipped script collect the files from every machine holding
 		/// them into the download folder of the machine this operator sits on.
