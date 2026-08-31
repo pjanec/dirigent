@@ -159,11 +159,37 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
-		public async Task TheCoverNoteNamesTheAddressThatIdentifiesTheMachine()
+		public async Task TheCoverNoteNamesTheAddressesTheMachineReports()
 		{
 			// The address a connection came from identifies nothing when the client sits on the
-			// master's own machine - it is loopback, which was what the note used to print. The
-			// configured address is the one that says where the machine is.
+			// master's own machine - it is loopback, which is what the note used to print - and the
+			// config usually declares no address at all. What the machine says about itself is the
+			// source that holds up, so that is what the note gives.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var note = Archive.TextOf( Archive.In( bed.DownloadFolder ).Single(), "_comment.txt" );
+
+			// this very machine's real addresses, whatever they are here
+			var own = Tools.LocalIPv4Addresses;
+			Assert.IsTrue( own.Count > 0, "this machine should have at least one routable address" );
+			Assert.IsTrue( own.Any( ip => note.Contains( ip ) ),
+				$"the note should name an address this machine really has ({string.Join( ", ", own )}): {note}" );
+
+			// loopback is what everything connected over, and it identifies nothing
+			Assert.IsFalse( note.Contains( "127.0.0.1" ),
+				$"a loopback address does not belong in the note: {note}" );
+		}
+
+		[TestMethod()]
+		public async Task TheCoverNoteCallsOutAConfiguredAddressTheMachineDoesNotHave()
+		{
+			// A config naming an address the machine does not answer on is a real misconfiguration -
+			// it surfaces otherwise as a file share that cannot be reached, long afterwards.
 			var scenario = Worlds.LoggingWorld()
 				.DeclaredIp( "m1", "192.168.0.150" )
 				.DeclaredIp( "m2", "192.168.0.120" );
@@ -177,12 +203,11 @@ namespace Dirigent.IntegrationTests
 
 			var note = Archive.TextOf( Archive.In( bed.DownloadFolder ).Single(), "_comment.txt" );
 
-			StringAssert.Contains( note, "192.168.0.150", $"the declared address of m1: {note}" );
-			StringAssert.Contains( note, "192.168.0.120", $"the declared address of m2: {note}" );
-
-			// the machines really did connect over loopback here, and saying so would only be noise
-			Assert.IsFalse( note.Contains( "127.0.0.1" ),
-				$"a loopback connection address identifies nothing and does not belong in the note: {note}" );
+			// the declared addresses belong to nothing here, and the note has to say so rather than
+			// repeat them as though they were true
+			StringAssert.Contains( note, "192.168.0.150", $"the declared address is still worth naming: {note}" );
+			StringAssert.Contains( note, "does not have",
+				$"the note should say the machine does not have its configured address: {note}" );
 		}
 
 		[TestMethod()]

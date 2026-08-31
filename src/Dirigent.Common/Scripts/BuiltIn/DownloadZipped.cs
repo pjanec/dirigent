@@ -601,14 +601,18 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// A machine and the address to identify it by.
+		/// A machine and the addresses that identify it.
 		/// </summary>
 		/// <remarks>
-		/// The configured address comes first, because that is the one identifying the machine on the
-		/// network and the one UNC paths are built from. The address the connection came from is only
-		/// printed when it says something else: a client on the master own box connects over loopback,
-		/// so that address identifies nothing, while a machine answering from an address the config
-		/// does not mention is worth noticing.
+		/// What the machine reports about itself is the reliable source: the config usually declares
+		/// no address at all, and what the master observes is where the connection came from, which is
+		/// loopback for anything running beside it. All the reported addresses are given, since a
+		/// machine has several for good reasons and the one that matters depends on the question being
+		/// asked - with the configured address first, when the config named one.
+		///
+		/// A configured address the machine does not actually have is called out. It is a real
+		/// misconfiguration, and it otherwise shows up much later as a file share that cannot be
+		/// reached.
 		/// </remarks>
 		static string DescribeMachine( string machine, Dictionary<string, ClientState> clientStates,
 				Dictionary<string, MachineDef> machineDefs )
@@ -616,20 +620,40 @@ namespace Dirigent.Scripts.BuiltIn
 			machineDefs.TryGetValue( machine, out var def );
 			clientStates.TryGetValue( machine, out var state );
 
-			var configured = def?.IP;
-			var connectedFrom = state?.IP;
+			// A loopback address tells nobody where a machine is, and every machine has one - so a
+			// config declaring 127.0.0.1, which is how a single-machine system is usually written,
+			// is neither worth printing nor a disagreement with what the machine reports.
+			var configured = Locating( def?.IP );
+			var connectedFrom = Locating( state?.IP );
+			var reported = state?.Ident?.LocalAddresses ?? new List<string>();
 
-			bool worthSaying = !string.IsNullOrEmpty( connectedFrom )
-								&& connectedFrom != configured
-								&& !IsLoopback( connectedFrom! );
+			// nothing reported: an older client, or one that could not read its interfaces
+			if( reported.Count == 0 )
+			{
+				if( configured is not null )
+					return connectedFrom is not null && connectedFrom != configured
+							? $"{machine} {configured} (connected from {connectedFrom})"
+							: $"{machine} {configured}";
 
-			if( string.IsNullOrEmpty( configured ) )
-				return worthSaying ? $"{machine} (connected from {connectedFrom})" : machine;
+				return connectedFrom is not null ? $"{machine} (connected from {connectedFrom})" : machine;
+			}
 
-			return worthSaying
-					? $"{machine} {configured} (connected from {connectedFrom})"
-					: $"{machine} {configured}";
+			// the configured address first, so the one the config builds paths from leads the list
+			var ordered = reported.OrderByDescending( a => a == configured ).ToList();
+			var text = $"{machine} {string.Join( ", ", ordered )}";
+
+			if( configured is not null && !reported.Contains( configured ) )
+				text += $" (the config says {configured}, which this machine does not have)";
+
+			return text;
 		}
+
+		/// <summary>
+		/// The address if it locates the machine, null if it does not - empty, or loopback, which
+		/// every machine has and which points back at whoever is asking.
+		/// </summary>
+		static string? Locating( string? ip )
+			=> string.IsNullOrEmpty( ip ) || IsLoopback( ip! ) ? null : ip;
 
 		static bool IsLoopback( string ip )
 			=> System.Net.IPAddress.TryParse( ip, out var parsed ) && System.Net.IPAddress.IsLoopback( parsed );

@@ -666,6 +666,18 @@ namespace Dirigent.Net
 		//[MessagePack.Key( 2 )]
 		public EMsgRecipCateg SubscribedTo;
 
+		/// <summary>
+		/// The IPv4 addresses of the machine this client runs on, as that machine reports them.
+		/// Empty from a client too old to say, or from one that could not read them.
+		/// </summary>
+		/// <remarks>
+		/// The client is the only one who can know this. What the master observes is where the
+		/// connection came from - loopback for a client beside the master - and what the config
+		/// declares is usually nothing at all.
+		/// </remarks>
+		//[MessagePack.Key( 3 )]
+		public List<string> LocalAddresses = new();
+
 		public ClientIdent() {}
 
 		public ClientIdent( string name, EMsgRecipCateg subscription )
