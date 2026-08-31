@@ -13,7 +13,7 @@ The two clicks are **Clear** (or **Mark**) before, and **Download** after.
 Contents:
 
 * [Why marking, not deleting](#why-marking-not-deleting)
-* [`Resettable`: nothing is touched unless it says so](#resettable-nothing-is-touched-unless-it-says-so)
+* [`Clearable`: nothing is touched unless it says so](#clearable-nothing-is-touched-unless-it-says-so)
 * [The three operations](#the-three-operations)
 * [What the collection does with a mark](#what-the-collection-does-with-a-mark)
 * [Where the marks live](#where-the-marks-live)
@@ -44,7 +44,7 @@ collection takes only what came after. It works on a locked file, cannot corrupt
 the part that matters on a production site - destroys no history. Dirigent already has the reading
 half: `FileTail.SeekToTailStart` seeks to an offset and moves forward to a line boundary.
 
-## `Resettable`: nothing is touched unless it says so
+## `Clearable`: nothing is touched unless it says so
 
 A package worth collecting is rarely only logs. The JFTES packages hold the applications' logs
 *and* their configuration files, and a single archive containing both is the point.
@@ -54,12 +54,12 @@ it". So the permission lives on the node, and it is off by default:
 
 ```xml
 <File   Id="log" Title="Log/IgManager" Path="C:\Bagira\JFTES\IG\Logs\IgManager"
-        Filter="Newest" MaxFiles="10" Resettable="1"/>
+        Filter="Newest" MaxFiles="10" Clearable="1"/>
 
 <File   Id="cfg.dds" Title="Config/cyclonedds.xml" Path="%APP_STARTUPDIR%\cyclonedds.xml"/>
 ```
 
-`Resettable="0"` (the default) means the file is never cleared and never marked, whatever any
+`Clearable="0"` (the default) means the file is never cleared and never marked, whatever any
 action, package or argument says. `cfg.dds` above cannot be destroyed by any click.
 
 **It gates marking as well as clearing, and that is deliberate.** Marking looks harmless, but
@@ -67,10 +67,11 @@ marking a configuration file would mean the next collection takes only the bytes
 usually none - so the file would silently arrive empty. A flag that permitted marking but not
 clearing would trade a loud failure for a quiet one.
 
-Hence the name: `Resettable`, not `Clearable`. It answers "may this file's history be treated as
-disposable, whether by emptying it or by drawing a line under it". Where it fits naturally:
+So read `Clearable` as the whole permission, of which marking is the gentler half: a file that may
+be emptied may also have a line drawn under it, and a file that may not is always collected whole.
+Where it fits naturally:
 
-| kind of file | `Resettable` | why |
+| kind of file | `Clearable` | why |
 | --- | --- | --- |
 | application log, append-only | `1` | the run boundary is the whole point |
 | crash dump folder | `1` | old dumps muddy a run; marking one means "already seen" |
@@ -84,7 +85,7 @@ of them. Declaring it in an `<AppTemplate>` covers every app using the template 
 
 Three built-in scripts over one implementation, so that each menu item reads as what it does:
 
-| script | menu | what it does to each **resettable** file in scope |
+| script | menu | what it does to each **clearable** file in scope |
 | --- | --- | --- |
 | `BuiltIns/ClearFiles.cs` | **Clear** | empties it if that is safe, marks it otherwise |
 | `BuiltIns/MarkFiles.cs` | **Mark** | records the mark only, touches no file |
@@ -104,8 +105,8 @@ are marked, and nothing is corrupted either way. **Mark** is the same operation 
 destructive half removed, which is what a production site wants: the run is delimited and the
 history survives.
 
-Each operation reports per machine what happened - cleared, marked, skipped as not resettable,
-failed. The skipped count is what makes a forgotten `Resettable="1"` discoverable: without it, a
+Each operation reports per machine what happened - cleared, marked, skipped as not clearable,
+failed. The skipped count is what makes a forgotten `Clearable="1"` discoverable: without it, a
 log would quietly keep its old contents and the collection would look wrong for no visible reason.
 
 ## What the collection does with a mark
@@ -161,13 +162,13 @@ One package, one archive, four menu items, nothing declared twice:
 </FilePackage>
 ```
 
-The `cfg` nodes need no exclusion: they are not `Resettable`, so Clear and Mark pass over them and
+The `cfg` nodes need no exclusion: they are not `Clearable`, so Clear and Mark pass over them and
 the archive gets them whole.
 
 **Narrowing, when wanted:** the scripts read `Args` as a semicolon-separated list of node id
 patterns - the same wildcard matching `<FileRef>` uses - and act only on the matching children of
-the package. `Args="log*"` clears the logs and leaves other resettable nodes alone. Empty `Args`
-means every resettable node in scope.
+the package. `Args="log*"` clears the logs and leaves other clearable nodes alone. Empty `Args`
+means every clearable node in scope.
 
 `Args` and not a new attribute, because a list of node ids is the script's own argument, and `Args`
 is where a script's arguments belong. `AskComment` is the other way round - a directive the GUI
@@ -193,7 +194,7 @@ Nothing new is needed for the menus; the actions ride the paths the download alr
 
 ```mermaid
 flowchart TD
-    A[Clear or Mark on a package] --> B{node Resettable?}
+    A[Clear or Mark on a package] --> B{node Clearable?}
     B -- no --> S[skipped, counted in the report]
     B -- yes --> C{operation}
     C -- Mark --> M[record length + creation time]
@@ -210,7 +211,7 @@ should use the form's builder, so one subscription covers every path.
 
 ## What this will refuse to do
 
-* **Clear a file that is not `Resettable`.** No action, argument or package can override it.
+* **Clear a file that is not `Clearable`.** No action, argument or package can override it.
 * **Stop an application to free its log.** Dirigent could, and a menu item that stops the system
   under test is not something anybody wants. A held file is marked instead.
 * **Guess.** Clear does not decide by file name, extension or folder whether emptying is safe: it
@@ -220,11 +221,14 @@ should use the form's builder, so one subscription covers every path.
 
 * **One flag, not two.** An earlier draft gated only clearing. Marking a configuration file makes
   the next collection deliver it empty, which is quieter and therefore worse than deleting it.
-* **`Resettable` on the node, not a list on the action.** The first proposal had the Clear action
+* **Called `Clearable`, though it governs marking too.** `Resettable` described the widened meaning
+  more literally, but `Clearable` reads better beside `ClearFiles` and is the name the operation is
+  known by. The wider meaning is documented at the flag instead of encoded in its name.
+* **`Clearable` on the node, not a list on the action.** The first proposal had the Clear action
   naming which node ids to reset, which is one line instead of thirty attributes - but it made
   safety a property of every action that would ever be written, rather than of the file. A config
   survives a badly written action; it does not survive a badly written action plus a click.
-* **No separate operation for dumps.** A dump folder marked `Resettable="1"` is cleared by Clear,
+* **No separate operation for dumps.** A dump folder marked `Clearable="1"` is cleared by Clear,
   because nothing holds a dump open. That is what a separate "delete the dumps" would have done.
 * **Nesting is not needed here.** A package can reference another package - verified - but that
   would put the reset item and the download item in different menus, which is the two-operation feel
@@ -233,9 +237,9 @@ should use the form's builder, so one subscription covers every path.
 ## What tests will cover
 
 At tier 1, without a GUI: mark, append, collect, and assert the archive holds only the new lines
-while the non-resettable config arrives whole in the same archive; a file replaced between mark and
+while the non-clearable config arrives whole in the same archive; a file replaced between mark and
 collect arrives whole with the note; a locked file is marked rather than cleared; a file nobody
-holds is really cleared; a non-resettable node is skipped and counted; `Unmark` restores the full
+holds is really cleared; a non-clearable node is skipped and counted; `Unmark` restores the full
 history; `Args` narrows the set. At tier 0: the mark store's round trip, and the staleness rules.
 
 The status bar, the menus and the message boxes need eyes, as before.
