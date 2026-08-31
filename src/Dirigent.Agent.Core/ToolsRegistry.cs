@@ -175,6 +175,32 @@ namespace Dirigent
 			return StartAction( requestorId, action, vars );
 		}
 
+		/// <summary>
+		/// Starts a script action on a node that has NOT been resolved yet, leaving the resolving to
+		/// the script as part of its own work.
+		/// </summary>
+		/// <remarks>
+		/// For a package spanning many apps on several machines the resolve is one remote round trip
+		/// per node - 8.4 s for 16 nodes, measured - and doing it before the script starts means
+		/// there is no operation for the status bar to show until it is over. Letting the top level
+		/// script resolve gives one operation covering resolve, collect and merge.
+		///
+		/// No FILE_PATH is passed: it cannot be known before resolution. Only scripts that resolve
+		/// their own node may be started this way; tool actions must keep the resolved form.
+		/// </remarks>
+		public Guid StartSelfResolvingScriptAction( string requestorId, ScriptActionDef script, VfsNodeDef unresolved )
+		{
+			var args = new ScriptActionArgs
+			{
+				Args = script.Args,
+				Vars = null,
+				VfsNode = unresolved,
+				VfsNodeNeedsResolving = true,
+			};
+
+			return _reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
+		}
+
 		public Guid StartFileBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
 		{
 			var vars = new Dictionary<string,string>()

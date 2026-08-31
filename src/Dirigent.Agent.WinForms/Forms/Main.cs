@@ -101,13 +101,39 @@ namespace Dirigent.Gui.WinForms
 			// Don't dispose _core here since it's managed by GuiTrayApp now
 		}
 
+		/// <summary>
+		/// Queues a modal dialog to be shown once this message has been handled, instead of opening
+		/// it inside the handler.
+		/// </summary>
+		/// <remarks>
+		/// OnMessage runs on the client's message processing path, and MessageBox.Show is modal: it
+		/// pumps its own loop and does not return until the user clicks. Opening one here stops this
+		/// client from processing anything more, so every state that arrives meanwhile waits behind
+		/// the dialog.
+		///
+		/// Nothing is lost - the transport is TCP and the messages queue up - but the delay is
+		/// unbounded, and it lands in the worst possible place: DownloadZipped broadcasts its
+		/// closing notification about 2 ms BEFORE the script's Finished state, so the box opens
+		/// first and the Finished sits behind it. The progress indicator stays at whatever it last
+		/// showed - 85%, mid-merge - for as long as the box is left open.
+		/// </remarks>
+		void ShowDialogAfterPumping( System.Windows.Forms.MethodInvoker show )
+		{
+			if( IsDisposed || !IsHandleCreated ) return;
+			// fully qualified: this file also has "using System.Reflection", which since .NET 8
+			// brings a second MethodInvoker into scope and makes the bare name ambiguous
+			BeginInvoke( (System.Windows.Forms.MethodInvoker) ( () => WFT.GuardedOp( show ) ) );
+		}
+
 		void OnMessage( Net.Message msg )
 		{
 			switch( msg )
 			{
 				case Net.RemoteOperationErrorMessage m:
 				{
-					MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+					// deferred, see ShowDialogAfterPumping
+					ShowDialogAfterPumping( () =>
+						MessageBox.Show( m.Message, "Remote Operation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning ) );
 					break;
 				}
 
@@ -131,11 +157,16 @@ namespace Dirigent.Gui.WinForms
 						MessageBoxButtons btns = MessageBoxButtons.OK;
 						if (m.Action != null) btns = MessageBoxButtons.OKCancel;
 
-						var dlgres = MessageBox.Show( m.Message, title, btns, icon );
-						if( m.Action != null && dlgres == DialogResult.OK )
+						// deferred, see ShowDialogAfterPumping - this is the one that was holding
+						// up the Finished state of the very script the box is reporting on
+						ShowDialogAfterPumping( () =>
 						{
-							Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) );
-						}
+							var dlgres = MessageBox.Show( m.Message, title, btns, icon );
+							if( m.Action != null && dlgres == DialogResult.OK )
+							{
+								Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, m.Action, Ctrl.Name, m.Attributes ) );
+							}
+						} );
 					}
 					else if (m.PresentationType == Net.UserNotificationMessage.EPresentationType.BalloonTip)
 					{
@@ -250,7 +281,29 @@ namespace Dirigent.Gui.WinForms
 			public ToolStripButton Cancel = null!;
 			public bool Cancelling;
 			public bool Failed;
+
+			/// <summary>
+			/// Whether a state for this instance has ever been seen. Until it has, a missing state
+			/// means "the start has not been answered yet", not "the script is over". The two are
+			/// indistinguishable from the state cache alone, and AddOperation refreshes
+			/// synchronously - so without this every slot was removed in the same breath as it was
+			/// created and no bar was ever drawn.
+			/// </summary>
+			public bool SeenState;
+
+			/// <summary>When the operation was started, for the case where nothing ever answers.</summary>
+			public DateTime StartedAt = DateTime.Now;
 		}
+
+		/// <summary>
+		/// How long to wait for the first state of an operation before giving up on it.
+		/// </summary>
+		/// <remarks>
+		/// A start that is never answered - the host is gone, the script name is wrong - produces no
+		/// state at all, so a slot waiting for its first one would sit there for ever with nothing
+		/// able to clear it. It becomes a failed slot instead, which the user can dismiss.
+		/// </remarks>
+		static readonly TimeSpan _startTimeout = TimeSpan.FromSeconds( 15 );
 
 		/// <summary>
 		/// How many operations get a slot of their own before the rest are only counted. Two fit
@@ -274,7 +327,19 @@ namespace Dirigent.Gui.WinForms
 				Title = string.IsNullOrEmpty( title ) ? "Working" : LastSegmentOf( title ),
 			};
 
-			slot.Label = new ToolStripStatusLabel() { AutoToolTip = true };
+			// Fixed width, NOT auto-sized. A status text such as
+			//   "Collecting from 1 machine(s) - 5GB of 5GB - BScene-3901_2026-05-13_14-12-24.log"
+			// is ~80 characters, and with the operation title in front the label grows past the
+			// width of the window. A StatusStrip is a single row, so an oversized item sends the
+			// whole slot - label, bar AND cancel button - into the ToolStrip's hidden overflow, and
+			// the operation looks as though it had disappeared while it is in fact still running.
+			// The detail belongs in the tooltip, which is what AutoToolTip is for.
+			slot.Label = new ToolStripStatusLabel()
+			{
+				AutoToolTip = true,
+				AutoSize = false,
+				Width = 170,
+			};
 
 			slot.Bar = new ToolStripProgressBar()
 			{
@@ -304,6 +369,23 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			refreshOperations();
+		}
+
+		/// <summary>
+		/// Turns a slot into a failed one: it stays until the user clicks it away, so that an
+		/// operation cannot fail unnoticed while they are looking elsewhere.
+		/// </summary>
+		void MarkFailed( OperationSlot slot, string reason )
+		{
+			slot.Failed = true;
+			slot.Cancelling = false;
+			slot.Cancel.Enabled = true;
+			slot.Cancel.ToolTipText = "Dismiss";
+			slot.Label.ForeColor = System.Drawing.Color.Firebrick;
+			slot.Label.Text = $"{slot.Title}: failed";
+			slot.Label.ToolTipText = reason;
+			slot.Bar.Style = ProgressBarStyle.Continuous;
+			slot.Bar.Value = slot.Bar.Maximum;
 		}
 
 		void CancelOrDismiss( OperationSlot slot )
@@ -361,23 +443,24 @@ namespace Dirigent.Gui.WinForms
 				var state = _core.ReflStates.GetScriptState( slot.Instance );
 
 				// a state that has disappeared means the script is long gone
+				// a state that has disappeared means the script is long gone - but only once one
+				// has actually been seen, see OperationSlot.SeenState
 				if( state is null )
 				{
-					if( !slot.Failed ) RemoveOperation( slot );
+					if( slot.SeenState && !slot.Failed ) RemoveOperation( slot );
+
+					// nothing ever answered the start - say so rather than spin for ever
+					else if( !slot.SeenState && !slot.Failed && DateTime.Now - slot.StartedAt > _startTimeout )
+						MarkFailed( slot, "no answer - is the machine hosting the script connected?" );
+
 					continue;
 				}
+				slot.SeenState = true;
 
 				switch( state.Status )
 				{
 					case EScriptStatus.Failed:
-						slot.Failed = true;
-						slot.Cancel.Enabled = true;
-						slot.Cancel.ToolTipText = "Dismiss";
-						slot.Label.ForeColor = System.Drawing.Color.Firebrick;
-						slot.Label.Text = $"{slot.Title}: failed";
-						slot.Label.ToolTipText = state.Text ?? "failed";
-						slot.Bar.Style = ProgressBarStyle.Continuous;
-						slot.Bar.Value = slot.Bar.Maximum;
+						MarkFailed( slot, state.Text ?? "failed" );
 						break;
 
 					case EScriptStatus.Finished:
@@ -386,9 +469,15 @@ namespace Dirigent.Gui.WinForms
 						break;
 
 					default:
+						// keep the label short so the bar and the cross keep their place; the
+						// detail (machine, file, bytes) goes to the tooltip. A percentage is
+						// worth the few characters - readable at a glance on a 100 px bar.
+						var pct = state.Progress is double pr && !slot.Cancelling
+									? $" {(int) ( pr * 100 )}%"
+									: string.Empty;
 						slot.Label.Text = slot.Cancelling
 											? $"{slot.Title}: cancelling..."
-											: $"{slot.Title}: {state.Text}";
+											: $"{slot.Title}{pct}";
 						slot.Label.ToolTipText = state.Text ?? slot.Title;
 
 						if( state.Progress is double progress && !slot.Cancelling )

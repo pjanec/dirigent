@@ -80,6 +80,43 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task ADownloadCanBeGivenTheNodeDefinitionToResolveItself()
+		{
+			// What the GUI does now: hand over the definition rather than a resolved tree, so that
+			// resolving - one remote round trip per node, seconds for a package spanning machines -
+			// happens inside the operation being watched instead of in front of it.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			// the definition as declared in the config, not resolved
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			Assert.AreEqual( 0, package.Children.Count( c => !c.IsContainer && c.Path is not null ),
+				"the definition should not carry resolved files yet" );
+
+			var result = await bed.Operator.RunScriptAsync<
+					Scripts.BuiltIn.DownloadZipped.TArgs, Scripts.BuiltIn.DownloadZipped.TResult>(
+				Scripts.BuiltIn.DownloadZipped._Name,
+				new Scripts.BuiltIn.DownloadZipped.TArgs()
+				{
+					VfsNode = package,
+					VfsNodeNeedsResolving = true,
+				},
+				timeout: Timeout );
+
+			Assert.IsNotNull( result );
+
+			var archives = Archive.In( bed.DownloadFolder );
+			Assert.AreEqual( 1, archives.Count, $"found: {Archive.Describe( bed.DownloadFolder )}" );
+
+			var entries = Archive.EntriesOf( archives[0] );
+			Assert.IsTrue( Archive.HasEntryMatching( entries, "m1/", "camera/", "app.log" ),
+				$"the same result as a pre-resolved download; entries: {string.Join( ", ", entries )}" );
+			Assert.IsTrue( Archive.HasEntryMatching( entries, "m2/", "recorder/", "app.log" ),
+				$"entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
 		public async Task PerMachineDownloadKeepsTheArchivesApart()
 		{
 			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );

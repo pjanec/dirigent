@@ -29,6 +29,24 @@ namespace Dirigent
 		/// </summary>
 		//[MessagePack.Key( 3 )]
 		public VfsNodeDef? VfsNode;
+
+		/// <summary>
+		/// True when <see cref="VfsNode"/> is still a DEFINITION that the script is expected to
+		/// resolve itself; false when it is an already resolved tree handed over by the caller.
+		/// </summary>
+		/// <remarks>
+		/// Resolving a package that spans many apps on several machines costs one remote round trip
+		/// per node - measured at 8.4 s for 16 nodes - and while the GUI did that before starting
+		/// the script there was no operation to show, so the status bar stayed empty and the whole
+		/// thing looked stuck until the last second. Handing the definition over lets the top level
+		/// script own the resolve too, count it in its own progress, and keep its internals to
+		/// itself.
+		///
+		/// Tool actions cannot use this: their FILE_PATH is built by walking the resolved tree, so
+		/// they still need it resolved up front.
+		/// </remarks>
+		//[MessagePack.Key( 4 )]
+		public bool VfsNodeNeedsResolving;
 	}
 
 

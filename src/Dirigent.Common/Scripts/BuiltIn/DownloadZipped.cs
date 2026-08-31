@@ -99,9 +99,14 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				await SetStatus( "Looking up the files...", null, 0.0 );
 
-				// A GUI resolves the node before starting us and passes the resolved tree. Anyone else
-				// names it by id and we resolve it here - resolution needs the machine owning the node,
-				// which a CLI or REST caller has no way of reaching.
+				// Three ways in, all landing on a resolved tree before the work starts:
+				//  - a caller names the node by id (CLI, REST, another script)
+				//  - a caller hands over the DEFINITION and asks us to resolve it, which is what a
+				//    GUI does: resolving spans one remote round trip per node and belongs inside
+				//    this operation, counted in its progress, rather than in front of it where
+				//    nothing is watching
+				//  - a caller hands over an already resolved tree (tool actions still need to
+				//    resolve first for their FILE_PATH, so they arrive this way)
 				var vfsNode = args.VfsNode;
 				if( vfsNode is null )
 				{
@@ -111,6 +116,12 @@ namespace Dirigent.Scripts.BuiltIn
 					vfsNode = await Dirig.ResolveAsync( args.Node.ToFileRef(), false, true );
 					if( vfsNode is null )
 						throw new Exception( $"No VFS node matching {args.Node}." );
+				}
+				else if( args.VfsNodeNeedsResolving )
+				{
+					vfsNode = await Dirig.ResolveAsync( vfsNode, false, true );
+					if( vfsNode is null )
+						throw new Exception( $"Nothing found for {args.VfsNode.Id ?? args.VfsNode.Title}." );
 				}
 
 				// if a single file, create artificial container containing this single file

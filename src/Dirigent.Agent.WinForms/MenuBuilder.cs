@@ -114,11 +114,40 @@ namespace Dirigent.Gui.WinForms
 			}
 		}
 
+		/// <summary>
+		/// Scripts that take a node DEFINITION and resolve it themselves, so the resolve happens
+		/// inside the tracked operation instead of in front of it.
+		/// </summary>
+		static bool ResolvesItsOwnNode( ActionDef action )
+			=> action is ScriptActionDef s && s.Name == Scripts.BuiltIn.DownloadZipped._Name;
+
 		public List<MenuTreeNode> BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
 		{
+			// Name the operation after the NODE, not the action: every download shares the action
+			// title "Download zipped package", so with two running at once the status bar showed
+			// two identical entries and neither said what it was.
+			string OperationName( ActionDef action )
+				=> !string.IsNullOrEmpty( vfsNodeDef.Title ) ? vfsNodeDef.Title
+				 : !string.IsNullOrEmpty( vfsNodeDef.Id ) ? vfsNodeDef.Id
+				 : action.Title;
+
 			return GetMenuItemsFromActions(
 				GetAllVfsNodeActions(vfsNodeDef),
 				async (action) => await WFT.GuardedOpAsync( async () => {
+
+						// Hand the definition straight over where the script can resolve it. This
+						// is what keeps the operation whole: resolving a package that spans many
+						// apps on two machines is one round trip per node, and doing it here first
+						// left the status bar empty for seconds before the operation existed at all.
+						if( ResolvesItsOwnNode( action ) && action is ScriptActionDef selfResolving )
+						{
+							var own = _core.ToolsRegistry.StartSelfResolvingScriptAction( Ctrl.Name, selfResolving, vfsNodeDef );
+							OperationStarted?.Invoke( own, OperationName( action ) );
+							return;
+						}
+
+						// everything else needs the resolved tree up front - a tool action builds
+						// its FILE_PATH by walking it
 						var resolved = await ReflStates.FileReg.ResolveAsync( CtrlAsync, vfsNodeDef, false, true, null );
 						if( resolved is not null )
 						{
@@ -128,7 +157,7 @@ namespace Dirigent.Gui.WinForms
 
 							// a file action can take minutes (collecting logs from every machine),
 							// so the operation gets a place in the status bar of the GUI that asked
-							OperationStarted?.Invoke( script, action.Title );
+							OperationStarted?.Invoke( script, OperationName( action ) );
 						}
 					}
 				)
