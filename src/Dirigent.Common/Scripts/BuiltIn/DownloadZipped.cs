@@ -211,7 +211,10 @@ namespace Dirigent.Scripts.BuiltIn
 				}
 
 				// get the name of the archive file to download
-				string zipFileBase = System.IO.Path.GetFileName(title) + DateTime.Now.ToString("_yyMMdd_HHmm");
+				// the title is free text and ends up as a file name; a colon in it used to fail the
+				// download at the write, after everything had already been collected
+				string zipFileBase = Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
+									+ DateTime.Now.ToString("_yyMMdd_HHmm");
 
 				// Each machine produces its own archive. To get a single one, the machines upload
 				// their archives to a staging folder next to the final one and a merging script
@@ -413,11 +416,20 @@ namespace Dirigent.Scripts.BuiltIn
 					Message = $"File download failed!\n\n"+e.Message,
 				});
 
-				// The script still finishes: one machine or one missing file must not turn into a
-				// failed script, and a GUI already has the balloon. A caller reading the result is
-				// how the failure gets noticed anywhere else.
 				result.Errors.Add( e.Message );
+
+				// One machine or one missing file must not turn the whole download into a failed
+				// script - what the other machines delivered is still worth having. Producing
+				// nothing at all is another matter: reporting that as a finished script leaves a
+				// progress indicator showing success, and a balloon is easy to miss.
+				if( result.Files.Count == 0 )
+					throw;
 			}
+
+			// the same for a download that ran to the end and produced nothing: the errors say why,
+			// and the status has to agree with them
+			if( result.Files.Count == 0 && result.Errors.Count > 0 )
+				throw new Exception( "Nothing was downloaded. " + string.Join( " ", result.Errors ) );
 
 			return Tools.Serialize( result );
 		}

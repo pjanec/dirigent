@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.Scripts.BuiltIn;
 using Dirigent.TestBed;
@@ -173,18 +173,21 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartBed();
 
-			var result = await bed.Operator.RunScriptAsync<DownloadZipped.TArgs, DownloadZipped.TResult>(
-				DownloadZipped._Name,
-				new DownloadZipped.TArgs()
-				{
-					Node = new VfsNodeSelector() { Id = "logs.all" },
-					ToMachine = "nosuchmachine",
-				},
-				timeout: Timeout );
+			// a download that produces nothing fails, rather than finishing with the reason tucked
+			// into its result - a finished script tells a progress indicator, and a REST caller
+			// reading the status, that all is well
+			var failure = await Assert.ThrowsExceptionAsync<Dirigent.DeserializedException>(
+				async () => await bed.Operator.RunScriptAsync<DownloadZipped.TArgs, DownloadZipped.TResult>(
+					DownloadZipped._Name,
+					new DownloadZipped.TArgs()
+					{
+						Node = new VfsNodeSelector() { Id = "logs.all" },
+						ToMachine = "nosuchmachine",
+					},
+					timeout: Timeout ) );
 
-			Assert.AreEqual( 0, result!.Files.Count );
-			Assert.IsTrue( result.Errors.Any( e => e.Contains( "nosuchmachine" ) ),
-				$"the result should name the machine it could not use, got: {string.Join( " | ", result.Errors )}" );
+			StringAssert.Contains( failure.Message, "nosuchmachine",
+				$"the failure should name the machine it could not use, got: {failure.Message}" );
 		}
 
 		[TestMethod()]
@@ -192,12 +195,12 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartBed();
 
-			var result = await bed.Operator.DownloadAsync(
-				new VfsNodeSelector() { Id = "no.such.node" }, timeout: Timeout );
+			var failure = await Assert.ThrowsExceptionAsync<Dirigent.DeserializedException>(
+				async () => await bed.Operator.DownloadAsync(
+					new VfsNodeSelector() { Id = "no.such.node" }, timeout: Timeout ) );
 
-			Assert.AreEqual( 0, result.Files.Count, "nothing should have been produced" );
-			Assert.IsTrue( result.Errors.Any( e => e.Contains( "no.such.node" ) ),
-				$"the result should say what was not found, got: {string.Join( " | ", result.Errors )}" );
+			StringAssert.Contains( failure.Message, "no.such.node",
+				$"the failure should say what was not found, got: {failure.Message}" );
 		}
 
 		static System.Collections.Generic.IEnumerable<string> Files( VfsNodeDef node )

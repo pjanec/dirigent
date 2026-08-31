@@ -14,6 +14,28 @@ namespace Dirigent
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
+		/// <summary>
+		/// Makes a string usable as a file name: the characters Windows refuses become underscores.
+		/// </summary>
+		/// <remarks>
+		/// Node titles reach file names - a download names its archive after the node it collected -
+		/// and a title is free text that nobody writes with file naming in mind. A colon in one used
+		/// to fail the download at the very end, after all the collecting was already done.
+		/// </remarks>
+		public static string SanitizeFileName( string name )
+		{
+			var invalid = System.IO.Path.GetInvalidFileNameChars();
+			var sb = new System.Text.StringBuilder();
+			foreach( var c in name )
+			{
+				sb.Append( Array.IndexOf( invalid, c ) >= 0 ? '_' : c );
+			}
+
+			// a trailing dot or space is legal to write and impossible to open afterwards
+			var res = sb.ToString().Trim( ' ', '.' );
+			return string.IsNullOrEmpty( res ) ? "_" : res;
+		}
+
 		public static bool BoolFromString( string boolString )
 		{
 			return ( new List<string>() { "1", "YES", "Y", "TRUE" } .Contains( boolString.ToUpper() ) );

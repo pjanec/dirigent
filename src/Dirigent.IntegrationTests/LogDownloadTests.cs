@@ -117,6 +117,35 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task ATitleThatIsNoFileNameStillProducesAnArchive()
+		{
+			// The archive is named after the node, and a title is free text nobody writes with file
+			// naming in mind. A colon in one used to fail the write at the very end - after every
+			// machine had already collected and uploaded its part.
+			var scenario = Scenario.OneMachine()
+				.App( "m1.camera", a => a.LongRunning().WithLogNode( title: "Logs: today 12:00" ) );
+
+			scenario.Seed( "m1.camera", "app.log", ageDays: 0 );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var node = await bed.Operator.GetVfsNodeAsync( "log" );
+			await bed.Operator.DownloadAsync( node, timeout: Timeout );
+
+			var archives = Archive.In( bed.DownloadFolder );
+			Assert.AreEqual( 1, archives.Count, $"found: {Archive.Describe( bed.DownloadFolder )}" );
+
+			var name = Path.GetFileName( archives[0] );
+			Assert.IsFalse( name.Contains( ':' ), $"the archive name must be openable: {name}" );
+			StringAssert.StartsWith( name, "Logs_ today 12_00",
+				$"the title should still be recognisable in the name: {name}" );
+
+			var entries = Archive.EntriesOf( archives[0] );
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"entries: {string.Join( ", ", entries )}" );
+		}
+
+		[TestMethod()]
 		public async Task PerMachineDownloadKeepsTheArchivesApart()
 		{
 			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );

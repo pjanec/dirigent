@@ -763,7 +763,14 @@ verb, and the ImGui GUI does not render VFS nodes at all.
 **Silent misses.** A node that resolves to nothing - an unmatched `<FileRef>`, a
 `Filter="Newest"` folder with no matching file - makes its menu item do nothing at all when
 clicked, without a message. The Files tab is the way to tell: its **Resolve** command reports
-`Not found` for the same node.
+`Not found` for the same node. *Download zipped* is the exception: it resolves the node itself and
+reports a node that yields nothing as a failed operation, visible in the status bar.
+
+**A download that produces nothing fails.** One machine or one unreadable file does not fail a
+download - what the others delivered is still collected, and the errors are listed in the closing
+message and in the result. But a download that produces no archive at all ends as a *failed*
+script, so a progress indicator shows red rather than success, and a CLI or REST caller reading
+the script status sees the failure instead of a `Finished` with the reason buried in the result.
 
 **Unknown config content is accepted silently.** Unrecognised elements and attributes are
 skipped without any warning, deliberately, so that a config written for a newer Dirigent still
