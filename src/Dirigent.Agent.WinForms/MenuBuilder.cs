@@ -125,9 +125,13 @@ namespace Dirigent.Gui.WinForms
 		/// <summary>
 		/// Asks the user for a note where the action wants one, and says whether to go ahead.
 		/// </summary>
-		/// <param name="aboutWhat">
-		/// Description of the thing being acted on, used when the action itself carries none. Only
-		/// VFS nodes have one; null is fine, the dialog then names the operation alone.
+		/// <param name="subject">
+		/// What the action acts on - a package, an app, a machine - for the dialog to name. Null if
+		/// nothing in particular, as for a bare action in the main menu.
+		/// </param>
+		/// <param name="description">
+		/// The config author's explanation of the thing being acted on, used when the action carries
+		/// none of its own. Only VFS nodes have one.
 		/// </param>
 		/// <param name="comment">what the user wrote, null when they were not asked at all</param>
 		/// <returns>false if the user cancelled, in which case nothing is started</returns>
@@ -138,16 +142,16 @@ namespace Dirigent.Gui.WinForms
 		/// Any script action may ask - the comment reaches every script the same way, as
 		/// ScriptActionArgs.Comment - though only a script that reads it does anything with it.
 		/// </remarks>
-		bool AskForComment( ActionDef action, string? aboutWhat, string title, out string? comment )
+		bool AskForComment( ActionDef action, string? subject, string? description, out string? comment )
 		{
 			comment = null;
 
 			if( action is not ScriptActionDef script || !script.AskComment )
 				return true;
 
-			var description = !string.IsNullOrEmpty( action.Description ) ? action.Description : aboutWhat;
+			var explanation = !string.IsNullOrEmpty( action.Description ) ? action.Description : description;
 
-			using var dlg = new frmCollectionComment( title, description );
+			using var dlg = new frmActionComment( action.Title, subject, explanation );
 			if( dlg.ShowDialog() != DialogResult.OK )
 				return false;
 
@@ -173,7 +177,7 @@ namespace Dirigent.Gui.WinForms
 						// is what keeps the operation whole: resolving a package that spans many
 						// apps on two machines is one round trip per node, and doing it here first
 						// left the status bar empty for seconds before the operation existed at all.
-						if( !AskForComment( action, vfsNodeDef.Description, OperationName( action ), out var comment ) )
+						if( !AskForComment( action, OperationName( action ), vfsNodeDef.Description, out var comment ) )
 							return; // cancelled: nothing starts, nothing is shown
 
 						if( ResolvesItsOwnNode( action ) && action is ScriptActionDef selfResolving )
@@ -207,7 +211,7 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				GetAllMachineActions(machDef),
 					(action) => WFT.GuardedOp( () => {
-						if( !AskForComment( action, null, action.Title, out var comment ) ) return;
+						if( !AskForComment( action, machDef.Id, null, out var comment ) ) return;
 						_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef, comment ) ;
 					}
 				)
@@ -219,7 +223,7 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				GetAllAppActions(appDef),
 					(action) => WFT.GuardedOp( () => {
-						if( !AskForComment( action, null, action.Title, out var comment ) ) return;
+						if( !AskForComment( action, appDef.Id.ToString(), null, out var comment ) ) return;
 						_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef, comment ) ;
 					}
 				)
@@ -263,8 +267,8 @@ namespace Dirigent.Gui.WinForms
 		/// For the paths that dispatch an action as a message rather than starting it here - the main
 		/// menu, where the action may be hosted by another client altogether.
 		/// </remarks>
-		public bool TryGetComment( ActionDef action, string? aboutWhat, out string? comment )
-			=> AskForComment( action, aboutWhat, action.Title, out comment );
+		public bool TryGetComment( ActionDef action, string? subject, out string? comment )
+			=> AskForComment( action, subject, null, out comment );
 
 		public MenuTreeNode AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
 		{
