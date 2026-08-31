@@ -66,6 +66,13 @@ namespace Dirigent.Scripts.BuiltIn
 			public Guid scriptId;
 			public Task<DownloadZippedSlave.TResult>? Task;
 			public DownloadZippedSlave.TResult? Result;
+
+			/// <summary>
+			/// The last progress this machine announced. Kept because a machine stops announcing when
+			/// it finishes - its state then carries the result instead - and forgetting what it had
+			/// announced would drop its bytes out of the total.
+			/// </summary>
+			public DownloadZippedSlave.TProgress? LastProgress;
 		}
 
 
@@ -232,7 +239,7 @@ namespace Dirigent.Scripts.BuiltIn
 				_stagingFolder = localSlaveDestination;
 				_finalArchive = System.IO.Path.Combine( downloadsFolder, $"{zipFileBase}.zip" );
 
-				await SetStatus( $"Collecting from {onlineMachines.Count} machine(s)...", null, _resolvedAt );
+				await Publish( $"Collecting from {onlineMachines.Count} machine(s)...", _resolvedAt );
 
 				clientStates.TryGetValue( requestorMachine, out var requestorMachineState );
 				var requestorIP = requestorMachineState?.IP;
@@ -376,7 +383,7 @@ namespace Dirigent.Scripts.BuiltIn
 				result.Files = ( from x in downloadedFiles
 								 select Path.IsPathRooted( x ) ? x : Path.Combine( downloadsFolder, x ) ).ToList();
 
-				await SetStatus( "Downloaded.", null, 1.0 );
+				await Publish( "Downloaded.", 1.0 );
 
 				// tell the user it's all done
 				var clickAction = new ToolActionDef { Name = "WinExplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
@@ -476,9 +483,8 @@ namespace Dirigent.Scripts.BuiltIn
 				var state = await Dirig.GetScriptStateAsync( mergeInstance );
 				var fraction = state?.Progress ?? 0.0;
 
-				await SetStatus(
+				await Publish(
 					string.IsNullOrEmpty( state?.Text ) ? "Merging the collected files..." : state!.Text,
-					null,
 					_collectedAt + ( 1.0 - _collectedAt ) * fraction );
 			}
 
@@ -493,29 +499,40 @@ namespace Dirigent.Scripts.BuiltIn
 			long done = 0;
 			long total = 0;
 			int finishedMachines = 0;
+			int announced = 0;
 			string? currentFile = null;
 
 			foreach( var st in _slaveTasks )
 			{
-				if( st.Task?.IsCompleted ?? false ) finishedMachines++;
+				bool finished = st.Task?.IsCompleted ?? false;
+				if( finished ) finishedMachines++;
 
 				var state = await Dirig.GetScriptStateAsync( st.scriptId );
-				if( state is null ) continue;
 
-				// a slave that has not said anything yet counts as nothing done
-				var progress = Tools.Deserialize<DownloadZippedSlave.TProgress>( state.Data );
-				if( progress is null ) continue;
+				// A machine announces its progress only while it works; once it is done its state
+				// carries the result instead, which deserializes into an empty progress rather than
+				// into nothing - so what it announced has to be remembered, or its bytes vanish from
+				// the total and the fraction falls back down the bar.
+				var reported = Tools.Deserialize<DownloadZippedSlave.TProgress>( state?.Data );
+				if( reported is not null && reported.BytesTotal > 0 ) st.LastProgress = reported;
 
-				done += progress.BytesDone;
-				total += progress.BytesTotal;
+				if( st.LastProgress is null ) continue;
+				announced++;
 
-				if( currentFile is null && !string.IsNullOrEmpty( progress.CurrentFile ) )
-					currentFile = progress.CurrentFile;
+				// a machine that has finished has done all of what it announced
+				done += finished ? st.LastProgress.BytesTotal : st.LastProgress.BytesDone;
+				total += st.LastProgress.BytesTotal;
+
+				if( currentFile is null && !finished && !string.IsNullOrEmpty( st.LastProgress.CurrentFile ) )
+					currentFile = st.LastProgress.CurrentFile;
 			}
 
-			// before any slave has announced its size there is nothing to compute a fraction from;
-			// counting the machines is coarse but never wrong
-			double fraction = total > 0
+			// The byte fraction is only trustworthy once every machine has said how much it has to
+			// collect: a machine announcing late would enlarge the total and pull the fraction back
+			// down. Until then, count the machines - coarse, but it cannot go backwards.
+			bool everyoneAnnounced = announced == _slaveTasks.Count && total > 0;
+
+			double fraction = everyoneAnnounced
 								? Math.Min( 1.0, (double) done / total )
 								: ( _slaveTasks.Count > 0 ? (double) finishedMachines / _slaveTasks.Count : 1.0 );
 
@@ -523,7 +540,24 @@ namespace Dirigent.Scripts.BuiltIn
 					+ ( total > 0 ? $" - {FileTail.FormatSize( done )} of {FileTail.FormatSize( total )}" : "" )
 					+ ( currentFile is not null ? $" - {currentFile}" : "" );
 
-			await SetStatus( text, null, _resolvedAt + ( _collectedAt - _resolvedAt ) * fraction );
+			await Publish( text, _resolvedAt + ( _collectedAt - _resolvedAt ) * fraction );
+		}
+
+		double _lastPublished;
+
+		/// <summary>
+		/// Publishes progress that never decreases.
+		/// </summary>
+		/// <remarks>
+		/// The pieces this is assembled from - machines announcing their sizes at different moments,
+		/// a machine that stops reporting when it finishes - can each make an honest number smaller
+		/// than the one before it. A bar that goes backwards reads as a fault in the operation, which
+		/// is worse than a bar that is briefly pessimistic, so the last value is the floor.
+		/// </remarks>
+		async Task Publish( string text, double progress )
+		{
+			_lastPublished = Math.Max( _lastPublished, progress );
+			await SetStatus( text, null, _lastPublished );
 		}
 
 		/// <summary>

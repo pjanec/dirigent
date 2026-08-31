@@ -198,6 +198,22 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void ReadingTheWrongShapeGivesDefaultsNotNullTest()
+		{
+			// The trap behind a progress bar that jumped backwards: a machine's state carries its
+			// progress while it works and its result once it is done. Reading the result as progress
+			// does not fail and does not return null - it returns a progress of zero bytes, which
+			// looks exactly like a machine that has nothing to collect.
+			var asResult = Tools.Serialize( new DownloadZippedSlave.TResult() { ZipFileName = "logs_m1.zip" } );
+
+			var asProgress = Tools.Deserialize<DownloadZippedSlave.TProgress>( asResult );
+
+			Assert.IsNotNull( asProgress, "Newtonsoft fills what it recognises and ignores the rest" );
+			Assert.AreEqual( 0L, asProgress!.BytesTotal,
+				"so a null check protects nothing here - only the announced total tells the two apart" );
+		}
+
+		[TestMethod()]
 		public void TheUsersCommentReachesAnyScriptTest()
 		{
 			// Whatever the user was asked before an action ran travels to the script as part of its
