@@ -37,6 +37,8 @@ namespace Dirigent.Scripts.BuiltIn
 			/// a GUI wants; a CLI or REST caller has no machine of its own and may name one here.
 			/// </summary>
 			public string? ToMachine;
+
+
 		};
 
 		//[MessagePack.MessagePackObject]
@@ -331,6 +333,11 @@ namespace Dirigent.Scripts.BuiltIn
 						DestinationFile = Path.Combine( downloadsFolder, $"{zipFileBase}.zip" ),
 						Parts = parts,
 
+						// composed here, where the package, the machines and their addresses are known;
+						// the merge only writes it
+						CoverNote = ComposeCoverNote( args.Comment, title, container.Id,
+										requestorMachine, clientStates, onlineMachines ),
+
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
 					};
@@ -561,6 +568,44 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				log.Warn( $"Could not remove the staging folder {_stagingFolder}: {e.Message}" );
 			}
+		}
+
+		/// <summary>
+		/// The note that goes into the archive: what was collected, from where, when and why.
+		/// </summary>
+		/// <remarks>
+		/// Written even when the operator said nothing, because the header alone answers the
+		/// questions an archive raises months later - which machines, at which addresses, from which
+		/// package, and when. The addresses are the ones the master sees on the connections, which
+		/// is what Dirigent actually knows; where the config disagrees, both are given.
+		/// </remarks>
+		static string ComposeCoverNote( string? comment, string title, string packageId,
+				string requestorMachine, Dictionary<string, ClientState> clientStates,
+				List<string> machines )
+		{
+			var text = new StringBuilder();
+
+			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
+			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
+			text.AppendLine( $"Machines  : {string.Join( ", ", machines.Select( m => Describe( m, clientStates ) ) )}" );
+			text.AppendLine( $"Downloaded to: {Describe( requestorMachine, clientStates )}" );
+			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
+			text.AppendLine();
+			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
+
+			return text.ToString();
+		}
+
+		/// <summary>
+		/// A machine and the address Dirigent knows it by - the one the connection came from, and
+		/// the configured one too when they disagree.
+		/// </summary>
+		static string Describe( string machine, Dictionary<string, ClientState> clientStates )
+		{
+			clientStates.TryGetValue( machine, out var state );
+			var connectedIP = state?.IP;
+
+			return string.IsNullOrEmpty( connectedIP ) ? machine : $"{machine} {connectedIP}";
 		}
 
 		/// <summary>

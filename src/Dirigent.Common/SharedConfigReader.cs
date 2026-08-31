@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -293,6 +293,7 @@ namespace Dirigent
 				AppId = e.Attribute( "AppId" )?.Value,
 				Groups = e.Attribute( "Groups" )?.Value,
 				Icon = e.Attribute( "Icon" )?.Value,
+				Description = e.Attribute( "Description" )?.Value,
 				Actions = LoadActions( e, machineId, appId ),
 			};
 
@@ -328,6 +329,7 @@ namespace Dirigent
 			if( x.AppId != null ) a.AppId = x.AppId;
 			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Groups != null ) a.Groups = x.Groups;
+			if( x.Description != null ) a.Description = x.Description;
 
 			// add/replace actions
 			foreach( var item in x.Actions )

@@ -188,7 +188,12 @@ namespace Dirigent
 		/// No FILE_PATH is passed: it cannot be known before resolution. Only scripts that resolve
 		/// their own node may be started this way; tool actions must keep the resolved form.
 		/// </remarks>
-		public Guid StartSelfResolvingScriptAction( string requestorId, ScriptActionDef script, VfsNodeDef unresolved )
+		/// <param name="comment">
+		/// What the operator said about why they are collecting, if they were asked. Handed over here
+		/// because only the script can put it into the archive it produces.
+		/// </param>
+		public Guid StartSelfResolvingScriptAction( string requestorId, ScriptActionDef script,
+				VfsNodeDef unresolved, string? comment = null )
 		{
 			var args = new ScriptActionArgs
 			{
@@ -196,6 +201,7 @@ namespace Dirigent
 				Vars = null,
 				VfsNode = unresolved,
 				VfsNodeNeedsResolving = true,
+				Comment = comment,
 			};
 
 			return _reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );

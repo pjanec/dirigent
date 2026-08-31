@@ -345,6 +345,24 @@ These `<Folder>` nodes are written *inside* the package, which is fine as conten
 unreferenceable - only nodes declared directly under `<Shared>`, `<Machine>`, `<App>` or
 `<AppTemplate>` can be found by a `<FileRef>`.
 
+### Asking the Operator Why
+
+A bundle is usually collected because something went wrong, and the reason is worth keeping with
+it. `Args="askComment"` on the download action shows the package's `Description` and takes a note
+before the collection starts:
+
+```xml
+<FilePackage Id="all_production_logs" Title="Logs/All production logs"
+             Description="Every application's recent log from both stations, plus the configs.">
+    <FileRef Id="webapp_log" MachineId="*" AppId="*"/>
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" Args="askComment"/>
+</FilePackage>
+```
+
+The archive then holds `_comment.txt` at its root with the note, above a header naming the package,
+the machines and their addresses, the time and the Dirigent version. Cancelling the dialog collects
+nothing. See [Asking for a comment](Files.md#asking-for-a-comment).
+
 ### Logs Too Big to Download
 
 A logger that never rotates grows one file to tens of gigabytes, which no download can carry.

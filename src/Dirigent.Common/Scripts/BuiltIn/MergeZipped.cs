@@ -55,6 +55,10 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 4 )]
 			public bool PrefixWithMachine = true;
 
+			// text to write into the archive as _comment.txt; empty for none
+			//[MessagePack.Key( 5 )]
+			public string? CoverNote;
+
 			public override string ToString() => $"{Parts.Count} parts => {DestinationFile}";
 		};
 
@@ -120,6 +124,13 @@ namespace Dirigent.Scripts.BuiltIn
 					var singlePart = Path.Combine( args.StagingFolder, args.Parts[0].FileName );
 					File.Move( singlePart, args.DestinationFile, true );
 
+					// nothing was repacked, so the note goes into the finished archive
+					if( !string.IsNullOrEmpty( args.CoverNote ) )
+					{
+						using var moved = ZipFile.Open( args.DestinationFile, ZipArchiveMode.Update );
+						WriteCoverNote( moved, args.CoverNote! );
+					}
+
 					result.ZipFileName = Path.GetFileName( args.DestinationFile );
 					result.FileCount = CountEntries( args.DestinationFile );
 					return result;
@@ -133,6 +144,10 @@ namespace Dirigent.Scripts.BuiltIn
 
 				using( var dstZip = ZipFile.Open( args.DestinationFile, ZipArchiveMode.Create ) )
 				{
+					// first, so that it is the first thing seen in the listing
+					if( !string.IsNullOrEmpty( args.CoverNote ) )
+						WriteCoverNote( dstZip, args.CoverNote! );
+
 					foreach( var part in args.Parts )
 					{
 						var partPath = Path.Combine( args.StagingFolder, part.FileName );
@@ -212,6 +227,21 @@ namespace Dirigent.Scripts.BuiltIn
 					log.Debug( $"Could not remove the staging folder {args.StagingFolder}: {e.Message}" );
 				}
 			}
+		}
+
+		/// <summary>
+		/// Writes the operator's note, and the header saying what this archive is, into the archive.
+		/// </summary>
+		/// <remarks>
+		/// One archive, one note - which is why it is written here rather than by the machines: each
+		/// of them would have contributed a copy of its own.
+		/// </remarks>
+		static void WriteCoverNote( ZipArchive zip, string text )
+		{
+			var entry = zip.CreateEntry( "_comment.txt", CompressionLevel.Fastest );
+			using var stream = entry.Open();
+			using var writer = new StreamWriter( stream, Encoding.UTF8 );
+			writer.Write( text );
 		}
 
 		static int CountEntries( string zipFilePath )

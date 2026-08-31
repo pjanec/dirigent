@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,6 +29,17 @@ namespace Dirigent
 		/// </summary>
 		//[MessagePack.Key( 3 )]
 		public VfsNodeDef? VfsNode;
+
+		/// <summary>
+		/// What the person who triggered the action had to say about why. Optional; a download puts
+		/// it into the archive it produces.
+		/// </summary>
+		/// <remarks>
+		/// Asking is the GUI's business - a script cannot show a dialog, and a CLI or REST caller has
+		/// nobody to ask - so this always arrives already written, or empty.
+		/// </remarks>
+		//[MessagePack.Key( 5 )]
+		public string? Comment;
 
 		/// <summary>
 		/// True when <see cref="VfsNode"/> is still a DEFINITION that the script is expected to

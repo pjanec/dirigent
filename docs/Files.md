@@ -178,6 +178,7 @@ the user must have entered them beforehand so that Windows can reuse the cached 
 | `AppIdTuple` | Shorthand setting both of the above at once, in the `"machineId.appId"` format. Without a dot it sets the app only, leaving the machine empty. `MachineId` / `AppId` given alongside it still win.                        |
 | `Icon`      | Icon image shown next to the menu item.                                                                                                                                                                                  |
 | `Groups`    | Semicolon-separated group paths, as elsewhere in the config.                                                                                                                                                              |
+| `Description` | What this node is, in prose. Shown where the user has to decide something about it - see [Asking for a comment](#asking-for-a-comment). Being an attribute, a line break in it is written `&#10;`.                       |
 
 Any node may contain `<Tool>` and `<Script>` child elements - see
 [Actions on nodes](#actions-on-nodes).
@@ -487,6 +488,7 @@ Incident report_260827_1432.zip
       AppLogs/
          recorder/
             app.log
+   _comment.txt                   <- what was collected, from where, and why
    _incomplete.txt                <- only when something was truncated or left out
 ```
 
@@ -513,10 +515,48 @@ Notable properties:
 * Callers with no resolved node tree - the CLI, REST, another script - name the node with a
   `Node` selector in the arguments instead, and the script resolves it. See
   [Files without a GUI](#files-without-a-gui).
+* `Args="askComment"` on the action asks the operator for a note before anything starts - see
+  [Asking for a comment](#asking-for-a-comment).
 * One archive is always produced. `Args="perMachine"`, which used to deliver one per machine and
   skip the merging, is **withdrawn**: analysis is normally cross-machine, so a single file is what
   the recipient wants, and one output shape keeps the rest of this page short. An action still
   carrying that word logs a warning and gets the single archive.
+
+#### Asking for a comment
+
+An action carrying `Args="askComment"` puts a dialog in front of the collection: the node's
+`Description` above a box for the operator to say why they are collecting. *Collect* starts the
+download; *Cancel* starts nothing at all.
+
+```xml
+<FilePackage Id="pkg.logs" Title="Logs/All app logs"
+             Description="Every application's recent log from both machines, plus Dirigent's own logs and config. Usually 5-10 MB.">
+    <FileRef Id="log" MachineId="*" AppId="*"/>
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" Args="askComment"/>
+</FilePackage>
+```
+
+The archive then carries `_comment.txt` at its root, holding what the operator wrote under a header
+that answers the questions an archive raises on its own:
+
+```
+Collected : 2026-08-31 14:32:10
+Package   : Logs/All app logs   [pkg.logs]
+Machines  : FrontEnd 192.168.0.150, BackEnd 192.168.0.120
+Downloaded to: FrontEnd 192.168.0.150
+Dirigent  : 3.1.18.6
+
+Symphony froze during the 14:20 run, right after the BScene reload.
+```
+
+The addresses are the ones the master sees on the connections - what Dirigent actually knows the
+machines by, rather than what the config claims. The header is written even when the operator says
+nothing, since it is useful on its own; the comment line then reads `(no comment)`.
+
+Asking happens **before** the collection: it can run for minutes, so a dialog afterwards would be
+one nobody is waiting at, and the words are needed by the collection itself. Only the WinForms GUI
+asks - a script on the master cannot show a dialog, and a CLI or REST caller has nobody to ask, so
+those pass `Comment` in the arguments if they want one.
 
 #### The destination folder
 

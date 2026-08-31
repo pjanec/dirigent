@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -121,6 +121,28 @@ namespace Dirigent.Gui.WinForms
 		static bool ResolvesItsOwnNode( ActionDef action )
 			=> action is ScriptActionDef s && s.Name == Scripts.BuiltIn.DownloadZipped._Name;
 
+		/// <summary>
+		/// Whether the action wants the operator asked for a note before it runs. Same channel as
+		/// the other switches of this script - the free-form Args of the action.
+		/// </summary>
+		static bool WantsComment( ActionDef action )
+			=> !string.IsNullOrEmpty( action.Args )
+				&& action.Args.IndexOf( "askComment", StringComparison.OrdinalIgnoreCase ) >= 0;
+
+		/// <summary>
+		/// Shows the node's description and takes a note from the operator. Null means they cancelled,
+		/// in which case nothing is started at all.
+		/// </summary>
+		/// <remarks>
+		/// A menu click, not the message pump, so a modal dialog here holds nothing up. Asking before
+		/// the start also means the answer can be handed to the script rather than sent after it.
+		/// </remarks>
+		string? AskForComment( VfsNodeDef vfsNodeDef, string title )
+		{
+			using var dlg = new frmCollectionComment( title, vfsNodeDef.Description );
+			return dlg.ShowDialog() == DialogResult.OK ? dlg.Comment : null;
+		}
+
 		public List<MenuTreeNode> BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
 		{
 			// Name the operation after the NODE, not the action: every download shares the action
@@ -141,7 +163,15 @@ namespace Dirigent.Gui.WinForms
 						// left the status bar empty for seconds before the operation existed at all.
 						if( ResolvesItsOwnNode( action ) && action is ScriptActionDef selfResolving )
 						{
-							var own = _core.ToolsRegistry.StartSelfResolvingScriptAction( Ctrl.Name, selfResolving, vfsNodeDef );
+							string? comment = null;
+							if( WantsComment( action ) )
+							{
+								comment = AskForComment( vfsNodeDef, OperationName( action ) );
+								if( comment is null ) return; // cancelled: nothing starts, nothing is shown
+							}
+
+							var own = _core.ToolsRegistry.StartSelfResolvingScriptAction(
+											Ctrl.Name, selfResolving, vfsNodeDef, comment );
 							OperationStarted?.Invoke( own, OperationName( action ) );
 							return;
 						}

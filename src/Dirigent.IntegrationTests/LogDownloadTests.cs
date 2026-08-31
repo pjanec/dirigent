@@ -117,6 +117,68 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task TheArchiveCarriesACoverNote()
+		{
+			// The operator's reason for collecting, and enough context to make sense of the archive
+			// a year later: which machines at which addresses, which package, when.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			var resolved = await bed.Operator.ResolveAsync( package );
+
+			await bed.Operator.RunScriptAsync<
+					Scripts.BuiltIn.DownloadZipped.TArgs, Scripts.BuiltIn.DownloadZipped.TResult>(
+				Scripts.BuiltIn.DownloadZipped._Name,
+				new Scripts.BuiltIn.DownloadZipped.TArgs()
+				{
+					VfsNode = resolved,
+					Comment = "Symphony froze during the 14:20 run.\nRestarted IgManager twice.",
+				},
+				timeout: Timeout );
+
+			var archive = Archive.In( bed.DownloadFolder ).Single();
+			var note = Archive.TextOf( archive, "_comment.txt" );
+
+			// what the operator said, as they said it
+			StringAssert.Contains( note, "Symphony froze during the 14:20 run." );
+			StringAssert.Contains( note, "Restarted IgManager twice." );
+
+			// and the context that makes it useful
+			StringAssert.Contains( note, "Logs/All apps", "the package it came from" );
+			StringAssert.Contains( note, "logs.all", "and its id" );
+			StringAssert.Contains( note, DateTime.Now.ToString( "yyyy-MM-dd" ), "when" );
+
+			// every machine that took part, with the address the master sees it at
+			foreach( var machine in new[] { "m1", "m2" } )
+			{
+				StringAssert.Contains( note, bed.RenderContext.MachineId( machine ),
+					$"{machine} should be named in the note: {note}" );
+			}
+			StringAssert.Contains( note, "127.0.0.1",
+				$"the address Dirigent knows the machines by should be there: {note}" );
+		}
+
+		[TestMethod()]
+		public async Task ACollectionWithNoCommentStillExplainsItself()
+		{
+			// The header answers the questions an archive raises on its own, so it is written even
+			// when the operator had nothing to add.
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var note = Archive.TextOf( Archive.In( bed.DownloadFolder ).Single(), "_comment.txt" );
+
+			StringAssert.Contains( note, "Machines" );
+			StringAssert.Contains( note, "(no comment)" );
+		}
+
+		[TestMethod()]
 		public async Task ATitleThatIsNoFileNameStillProducesAnArchive()
 		{
 			// The archive is named after the node, and a title is free text nobody writes with file
