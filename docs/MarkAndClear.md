@@ -1,27 +1,32 @@
 # Marking and clearing: collecting one run's worth of files
 
-A design, for review. Nothing of this is implemented yet.
-
-## The need
-
-Somebody who can reproduce a problem wants two clicks around it: one before the run, one after, and
-an archive holding only what that run produced. Today the collection takes whatever is in the log
-files, which on a long-running system is mostly somebody else's afternoon.
-
-The two clicks are **Clear** (or **Mark**) before, and **Download** after.
+Why the "reset the logs before a test run" feature is a high-water mark rather than a delete, and
+what had to be true for it to work. Implemented; the attribute and action reference lives in
+[Files.md](Files.md#collecting-one-test-run-clear-mark-and-unmark), and the recipe in
+[Collecting One Test Run](LogFileCollection.md#collecting-one-test-run-not-the-whole-afternoon).
 
 Contents:
 
+* [The need](#the-need)
 * [Why marking, not deleting](#why-marking-not-deleting)
 * [`Clearable`: nothing is touched unless it says so](#clearable-nothing-is-touched-unless-it-says-so)
 * [The three operations](#the-three-operations)
 * [What the collection does with a mark](#what-the-collection-does-with-a-mark)
 * [Where the marks live](#where-the-marks-live)
-* [Configuration](#configuration)
+* [Recognising the file a mark was made on](#recognising-the-file-a-mark-was-made-on)
 * [The user interface](#the-user-interface)
-* [What this will refuse to do](#what-this-will-refuse-to-do)
+* [What this refuses to do](#what-this-refuses-to-do)
 * [Decisions, and what they replaced](#decisions-and-what-they-replaced)
-* [What tests will cover](#what-tests-will-cover)
+* [Found while building it](#found-while-building-it)
+* [What the tests cover](#what-the-tests-cover)
+
+## The need
+
+Somebody who can reproduce a problem wants two clicks around the run: one before it, one after, and
+an archive holding only what that run produced. Before this, the collection took whatever was in the
+log files, which on a long-running system is mostly somebody else's afternoon.
+
+The two clicks are **Clear** (or **Mark**) before, and **Download** after.
 
 ## Why marking, not deleting
 
@@ -41,8 +46,8 @@ can find. Reading the length always works and changes nothing.
 
 So the mechanism is a **high-water mark**: the reset records how long each file is, and the
 collection takes only what came after. It works on a locked file, cannot corrupt anything, and -
-the part that matters on a production site - destroys no history. Dirigent already has the reading
-half: `FileTail.SeekToTailStart` seeks to an offset and moves forward to a line boundary.
+the part that matters on a production site - destroys no history. Dirigent already had the reading
+half: `FileTail` seeks to an offset and moves forward to a line boundary.
 
 ## `Clearable`: nothing is touched unless it says so
 
@@ -69,12 +74,11 @@ clearing would trade a loud failure for a quiet one.
 
 So read `Clearable` as the whole permission, of which marking is the gentler half: a file that may
 be emptied may also have a line drawn under it, and a file that may not is always collected whole.
-Where it fits naturally:
 
 | kind of file | `Clearable` | why |
 | --- | --- | --- |
 | application log, append-only | `1` | the run boundary is the whole point |
-| crash dump folder | `1` | old dumps muddy a run; marking one means "already seen" |
+| crash dump folder | `1` | old dumps muddy a run; nothing holds a dump open |
 | configuration file | `0` (default) | it is the run's input, not its output |
 | a file somebody may need whole | `0` | the default protects it |
 
@@ -83,7 +87,8 @@ of them. Declaring it in an `<AppTemplate>` covers every app using the template 
 
 ## The three operations
 
-Three built-in scripts over one implementation, so that each menu item reads as what it does:
+Three built-in scripts over one implementation (`MarkOrClearFiles`), so that each menu item reads
+as what it does:
 
 | script | menu | what it does to each **clearable** file in scope |
 | --- | --- | --- |
@@ -92,12 +97,12 @@ Three built-in scripts over one implementation, so that each menu item reads as 
 | `BuiltIns/UnmarkFiles.cs` | **Unmark** | drops the mark, so the next collection takes everything |
 
 **Clear** decides per file, and the decision is a measurement rather than a guess: it tries to open
-the file **exclusively** (`FileShare.None`).
+the file **exclusively** (`FileShare.None`), which succeeds only when no other process has it open.
 
-* The open **succeeds** - nobody is holding the file - so it deletes it inside that window, falling
-  back to truncating if the delete fails, and drops any mark it had. The application recreates the
-  file on its next write; a new file has no mark, so the collection takes it whole, which is exactly
-  "since the clear".
+* The open **succeeds** - nobody is holding the file - so it is truncated inside that window and
+  then deleted, and any mark on it is dropped. The application recreates the file on its next
+  write; a new file has no mark, so the collection takes it whole, which is exactly "since the
+  clear".
 * The open **fails** - something is writing - so it marks the file instead and says so.
 
 That is the one click for a QA session: closed logs and crash dumps really are cleared, live logs
@@ -105,31 +110,40 @@ are marked, and nothing is corrupted either way. **Mark** is the same operation 
 destructive half removed, which is what a production site wants: the run is delimited and the
 history survives.
 
-Each operation reports per machine what happened - cleared, marked, skipped as not clearable,
-failed. The skipped count is what makes a forgotten `Clearable="1"` discoverable: without it, a
-log would quietly keep its old contents and the collection would look wrong for no visible reason.
+Each operation reports per machine what happened - cleared, marked, skipped as not clearable, not
+there, failed. The skipped count is what makes a forgotten `Clearable="1"` discoverable: without
+it, a log would quietly keep its old contents and the collection would look wrong for no visible
+reason.
+
+Each runs one slave (`BuiltIns/MarkFilesSlave.cs`) per machine, because the marks are kept per
+machine and a file can only be opened by the machine that owns it. Progress is counted per machine
+as each finishes; these operations read lengths and delete files, so there would be no point in
+weighing them by bytes.
 
 ## What the collection does with a mark
 
-`DownloadZippedSlave` already streams each file into the archive from an offset. It gains one
+`DownloadZippedSlave` already streamed each file into the archive from an offset. It gained one
 question: does this file have a mark?
 
 | what it finds | what it collects |
 | --- | --- |
 | no mark | the whole file - it is all new |
-| a mark, and the file's creation time still matches, and it has not shrunk | from the mark, cut at the next line boundary |
-| a mark, but the creation time changed | the whole file, noting that it was replaced since the mark |
+| a mark, and the file is still the one that was marked | from the mark, cut at the next line boundary |
+| a mark, but the file was replaced | the whole file, noting that it was replaced since the mark |
 | a mark, but the file is shorter than the mark | the whole file, noting that it was truncated or rotated |
 
-Rotation therefore yields slightly **more** than the window, never less: the fresh `app.log` has a
-new creation time so it arrives whole, and `app.log.1` was never marked so it arrives whole too.
-Failing towards too much is the right direction, and the header says why.
+Rotation therefore yields slightly **more** than the window, never less: the fresh `app.log` is a
+different file so it arrives whole, and `app.log.1` was never marked so it arrives whole too.
+Failing towards too much is the right direction, and the archive says why.
 
-Marks and `TailBytes` compose: the file starts at whichever is later, the mark or the tail.
+Marks and `TailBytes` compose: the file starts at whichever cut is later, and the entry is named and
+headed after whichever of the two was binding. Each is a ceiling on what can be delivered - a mark
+inside the tail leaves the tail's start standing, because the bytes before it cannot be transferred
+at all.
 
 A partial entry is named for what it is - `app.since-mark.log` - and its first line states the
-offset, the mark's time and whether the mark was stale, exactly as a `TailBytes` entry does.
-`_comment.txt` gains a line: *"Logs collected since the mark of 2026-08-31 15:02:11"*.
+offset and the mark's time. `_comment.txt` gains a `Since` line naming the beginning of the window,
+which is the difference between "these are the logs" and "these are the logs of one run".
 
 Collecting does **not** clear the mark. Two collections after one mark give the same window, which
 is what somebody re-downloading after a failed transfer expects.
@@ -137,79 +151,61 @@ is what somebody re-downloading after a failed transfer expects.
 ## Where the marks live
 
 On each machine, in a small JSON file beside the agent status file - `--agentStatusFolder` already
-exists as a seam, so marks survive an agent restart and a test can isolate them. They have to live
+existed as a seam, so marks survive an agent restart and a test can isolate them. They have to live
 on the machine because that is where the files are and where the collecting slave runs.
 
 Keyed by **path**, not by node or package, so that "mark, then collect" holds however the collection
 is assembled. Two people marking overlapping packages means the later mark wins; harmless, and every
 entry header states the mark's time, so it is never a mystery which run a file was cut for.
 
-## Configuration
+The store reaches the scripts through the `ScriptFactory` the agent constructs, which puts it on
+`Script.MarkStore`. Not a process-wide static: a tier-1 test bed runs a master and several agents in
+one process, and they must not share each other's marks. A host that keeps no store - the master, a
+GUI - leaves it null, which the scripts read as "nothing has been marked", the safe reading.
 
-One package, one archive, four menu items, nothing declared twice:
+## Recognising the file a mark was made on
 
-```xml
-<FilePackage Id="pkg.run" Title="Logs/Test run"
-             Description="One test run: clear, run the case, download.">
-    <FileRef Id="log"  MachineId="*" AppId="*"/>
-    <FileRef Id="log2" MachineId="*" AppId="*"/>
-    <FileRef Id="cfg"  MachineId="*" AppId="*"/>
+An offset is worth nothing unless the file behind it is still the same file, and on Windows the
+obvious check does not hold. **NTFS tunneling** restores the original creation time on a file
+deleted and recreated under the same name within about fifteen seconds - which is exactly what a
+rotating logger does. A rotated file therefore arrives wearing the marked file's creation time, and
+starting at the mark would deliver a slice of the middle of an unrelated file as if it were the test
+run.
 
-    <Script Title="Clear"    Name="BuiltIns/ClearFiles.cs"/>
-    <Script Title="Mark"     Name="BuiltIns/MarkFiles.cs"/>
-    <Script Title="Unmark"   Name="BuiltIns/UnmarkFiles.cs"/>
-    <Script Title="Download" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
-</FilePackage>
-```
-
-The `cfg` nodes need no exclusion: they are not `Clearable`, so Clear and Mark pass over them and
-the archive gets them whole.
-
-**Narrowing, when wanted:** the scripts read `Args` as a semicolon-separated list of node id
-patterns - the same wildcard matching `<FileRef>` uses - and act only on the matching children of
-the package. `Args="log*"` clears the logs and leaves other clearable nodes alone. Empty `Args`
-means every clearable node in scope.
-
-`Args` and not a new attribute, because a list of node ids is the script's own argument, and `Args`
-is where a script's arguments belong. `AskComment` is the other way round - a directive the GUI
-reads before the script exists - which is why that one is an attribute. The distinction is who
-consumes the value.
+So a mark also keeps the **last 32 bytes before the offset**, and the collection compares them
+before trusting the offset. That checks the one thing that has to be true: that the boundary is
+still where it was put. Creation time and length are kept too - they are free, and they catch the
+cases the bytes cannot (a file shorter than its mark has nothing to compare).
 
 ## The user interface
 
-Nothing new is needed for the menus; the actions ride the paths the download already uses.
+Nothing new was needed for the menus; the actions ride the paths the download already used.
 
 * **A node's context menu** - the actions declared on the package, so Clear / Mark / Unmark appear
   beside Download.
 * **The main menu** - a `<FileRef Id="pkg.run"/>` under `<MainMenu>` is rendered by the same
   builder, so the package becomes a submenu and its actions the items:
-  `File → Logs → Test run → Clear / Mark / Unmark / Download`.
-* **The Files tab** - each row's menu is already built from that node's actions, which is how
-  Download appears there. Adding the three scripts to `DefaultFileActions` and
-  `DefaultFilePackageActions` in `LocalConfig.xml` puts them on every row, with no code.
+  `File -> Logs -> Test run -> Clear / Mark / Unmark / Download`.
+* **The Files tab** - each row's menu is built from that node's actions, which is how Download
+  appears there. Adding the three scripts to `DefaultFileActions` and `DefaultFilePackageActions`
+  in `LocalConfig.xml` puts them on every row, with no code.
 * **Progress and completion** - each operation appears in the status bar of the GUI that started
-  it, with a working cancel, and ends in a message box naming what it did, so the operator knows the
-  phase is over before starting the next one. Progress is counted per machine as each finishes;
-  these operations read lengths and delete files, so there is no point weighting them by bytes.
+  it, with a working cancel, and ends in a message box naming what it did, so the operator knows
+  the phase is over before starting the next one.
 
 ```mermaid
 flowchart TD
     A[Clear or Mark on a package] --> B{node Clearable?}
     B -- no --> S[skipped, counted in the report]
     B -- yes --> C{operation}
-    C -- Mark --> M[record length + creation time]
+    C -- Mark --> M[record length, creation time<br/>and the bytes before the mark]
     C -- Unmark --> U[drop the mark]
     C -- Clear --> D{can it be opened exclusively?}
-    D -- yes --> E[delete, or truncate if delete fails<br/>and drop any mark]
+    D -- yes --> E[truncate, then delete<br/>and drop any mark]
     D -- no --> M
 ```
 
-**One bug to fix on the way.** `MainExtension` builds its own `MenuBuilder`, separate from the
-form's, and only the form's has the subscriber that puts an operation in the status bar. So a
-download started from the **Files tab** shows no progress and offers no cancel today. The tabs
-should use the form's builder, so one subscription covers every path.
-
-## What this will refuse to do
+## What this refuses to do
 
 * **Clear a file that is not `Clearable`.** No action, argument or package can override it.
 * **Stop an application to free its log.** Dirigent could, and a menu item that stops the system
@@ -231,15 +227,46 @@ should use the form's builder, so one subscription covers every path.
 * **No separate operation for dumps.** A dump folder marked `Clearable="1"` is cleared by Clear,
   because nothing holds a dump open. That is what a separate "delete the dumps" would have done.
 * **Nesting is not needed here.** A package can reference another package - verified - but that
-  would put the reset item and the download item in different menus, which is the two-operation feel
-  this design exists to avoid. Nesting stays useful for composing collections.
+  would put the reset item and the download item in different menus, which is the two-operation
+  feel this design exists to avoid. Nesting stays useful for composing collections.
+* **Unmark ignores `Clearable`,** unlike the other two. It only ever removes a mark, which can only
+  make a later collection more complete; refusing it on a node whose `Clearable` was taken away
+  after it had been marked would leave that mark in place with no way of getting rid of it.
 
-## What tests will cover
+## Found while building it
 
-At tier 1, without a GUI: mark, append, collect, and assert the archive holds only the new lines
-while the non-clearable config arrives whole in the same archive; a file replaced between mark and
-collect arrives whole with the note; a locked file is marked rather than cleared; a file nobody
-holds is really cleared; a non-clearable node is skipped and counted; `Unmark` restores the full
-history; `Args` narrows the set. At tier 0: the mark store's round trip, and the staleness rules.
+* **NTFS tunneling**, above: the creation time cannot tell a rotated file from the one that was
+  marked. A tier-0 test recreates a file of exactly the same length so that nothing but the bytes
+  can catch it.
+* **Truncate before deleting, not instead of it.** Once the exclusive handle is held the truncation
+  cannot fail, while the deletion still can - a read-only attribute, a folder's permissions - and a
+  file that has been emptied is cleared either way. Deleting on top of that only keeps the folder
+  tidy.
+* **The `Args` patterns have to match the title as well as the id.** A `<FileRef Id="log"
+  MachineId="*" AppId="*"/>` matching several nodes resolves to a folder carrying the reference's id
+  as its **title** and no id of its own, so `Args="log"` found nothing at all until both were
+  matched.
+* **Two downloads of one package in the same minute collided.** The archive name carries the time to
+  the minute, and the second download failed at the very end, after everything had been collected.
+  Downloading again after a transfer went wrong is precisely when that happens, so the name now
+  steps aside to `_2`. Found by the test that checks a mark survives a second collection.
+* **A count for "not there".** A log that has not been written yet is neither a success nor a
+  failure to report as one, and it is the normal state of a fresh installation.
+* **The Files tab really did build its own `MenuBuilder`**, as the design suspected, so a download
+  started from there showed no progress and offered no cancel. The tabs now share the window's
+  builder, which is the one wired to the status bar.
+
+## What the tests cover
+
+At tier 0 (`FileMarkStoreTests`, 13 tests): the store's round trip, per-machine isolation,
+case-insensitive paths, the staleness rules including the same-length tunneled replacement, a
+damaged store meaning "no marks", and the cut landing on a line boundary.
+
+At tier 1 (`MarkAndClearTests`, 10 tests): mark, append, collect, and the archive holding only the
+new lines while the non-clearable config arrives whole in the same archive; the entry header; a
+locked file marked rather than cleared while a free one is really deleted; a non-clearable node
+skipped and counted; `Unmark` restoring the full history; `Args` narrowing the set; a file replaced
+between mark and collect arriving whole with the note; the `Since` line in `_comment.txt`; marking
+twice moving the line forward; and a second download of the same run yielding the same window.
 
 The status bar, the menus and the message boxes need eyes, as before.

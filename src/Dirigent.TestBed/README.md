@@ -22,6 +22,7 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | Streamed archives, size-budget skips, `TailBytes` | done, 13 tests in `Dirigent.CommonTests` |
 | Progress and cancellation of long operations | done, see [`docs/ScriptProgress.md`](../../docs/ScriptProgress.md) |
 | A note from the operator, kept in the archive | done, 4 tests |
+| Clear / Mark / Unmark, and collecting one run | done, 13 tests in `Dirigent.CommonTests` + 10 at tier 1 |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 

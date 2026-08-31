@@ -35,6 +35,7 @@ Contents:
   * [`<File Filter="Newest">`](#file-filternewest)
   * [`<Folder>`](#folder)
   * [Files too big to collect whole](#files-too-big-to-collect-whole)
+  * [Collecting one test run: Clear, Mark and Unmark](#collecting-one-test-run-clear-mark-and-unmark)
   * [`<VFolder>`](#vfolder)
   * [`<FilePackage>`](#filepackage)
   * [`<FileRef>`](#fileref)
@@ -178,6 +179,7 @@ the user must have entered them beforehand so that Windows can reuse the cached 
 | `AppIdTuple` | Shorthand setting both of the above at once, in the `"machineId.appId"` format. Without a dot it sets the app only, leaving the machine empty. `MachineId` / `AppId` given alongside it still win.                        |
 | `Icon`      | Icon image shown next to the menu item.                                                                                                                                                                                  |
 | `Groups`    | Semicolon-separated group paths, as elsewhere in the config.                                                                                                                                                              |
+| `Clearable` | Whether **Clear** and **Mark** may touch the files this node yields. `0` (the default) means they never do, whatever any action or argument says - see [Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark). |
 | `Description` | What this node is, in prose. Shown where the user has to decide something about it - see [Asking for a comment](#asking-for-a-comment). Being an attribute, a line break in it is written `&#10;`.                       |
 
 Any node may contain `<Tool>` and `<Script>` child elements - see
@@ -312,6 +314,156 @@ and may well live on another machine.
 The tail is a property of collecting into an archive. Opening or browsing the node still points at
 the real, whole file; `%FILE_PATH%` is unaffected. And since a live log keeps growing, the tail is
 a snapshot: the bytes taken are the last ones as of the moment of collection.
+
+### Collecting one test run: Clear, Mark and Unmark
+
+Somebody who can reproduce a problem wants two clicks around the run: one before it, one after,
+and an archive holding only what that run produced. Without the first click the collection takes
+whatever is in the log files, which on a long-running system is mostly somebody else's afternoon.
+
+The mechanism is a **high-water mark**: the first click records how long each file is, and the
+download takes only what came after. It works on a file a logger is holding open, corrupts
+nothing, and destroys no history.
+
+#### Why a mark rather than emptying the file
+
+Measured against a logger that holds its file open - the normal state of a running system:
+
+| the logger permits | delete | truncate to zero | read the length |
+| --- | --- | --- | --- |
+| `Read` (the usual case) | **fails** | **fails** | works |
+| `ReadWrite` | **fails** | succeeds, but see below | works |
+| `ReadWrite \| Delete` | succeeds, but see below | succeeds, but see below | works |
+
+Where truncation succeeds the logger keeps writing at its old offset, so the file comes back as a
+run of NUL bytes followed by the new line. Where deletion succeeds the file is unlinked while the
+logger writes into it, and everything logged afterwards goes somewhere nobody can find. Reading
+the length always works and changes nothing.
+
+#### `Clearable`: nothing is touched unless it says so
+
+A package worth collecting is rarely only logs - the interesting ones hold the applications'
+logs *and* their configuration files, and one archive containing both is the point. So the
+permission lives on the node, and it is **off by default**:
+
+```xml
+<File Id="log" Title="Log/IgManager" Path="D:\Logs\IgManager"
+      Filter="Newest" MaxFiles="10" Clearable="1"/>
+
+<File Id="cfg.dds" Title="Config/cyclonedds.xml" Path="%APP_STARTUPDIR%\cyclonedds.xml"/>
+```
+
+`cfg.dds` above cannot be emptied by any click, action or argument.
+
+The flag gates **marking as well as clearing**, deliberately. Marking looks harmless, but marking
+a configuration file would mean the next collection takes only the bytes appended since - usually
+none - so the file would silently arrive empty. A flag that allowed marking but not clearing would
+trade a loud failure for a quiet one. Read `Clearable` as the whole permission, of which marking is
+the gentler half.
+
+| kind of file | `Clearable` | why |
+| --- | --- | --- |
+| application log, append-only | `1` | the run boundary is the whole point |
+| crash dump folder | `1` | old dumps muddy a run, and nothing holds a dump open |
+| configuration file | `0` (default) | it is the run's input, not its output |
+| anything somebody may need whole | `0` | the default protects it |
+
+Set on a `<Folder>`, it applies to every file that folder yields. Like `TailBytes`, it is **not**
+inherited by the children of a `<VFolder>` or `<FilePackage>`.
+
+#### The three operations
+
+| action | menu | what it does to each **clearable** file in scope |
+| --- | --- | --- |
+| `BuiltIns/ClearFiles.cs` | **Clear** | empties it if that is safe, marks it otherwise |
+| `BuiltIns/MarkFiles.cs` | **Mark** | records the mark only, touches no file |
+| `BuiltIns/UnmarkFiles.cs` | **Unmark** | drops the mark, so the next download takes everything again |
+
+**Clear** decides per file, and the decision is a measurement rather than a guess about names or
+folders: it opens the file **exclusively**, which succeeds only when no other process has it open.
+
+* The open **succeeds** - so the file is truncated inside that window and then deleted, and any
+  mark on it is dropped. Truncate first, because once the exclusive handle is held the truncation
+  cannot fail while the deletion still can - a read-only attribute, a folder's permissions - and an
+  emptied file is cleared either way. The application recreates the file on its next write; a new
+  file has no mark, so the download takes it whole, which is exactly "since the clear".
+* The open **fails** - something is writing - so the file is marked instead, and the report says so.
+
+**Mark** is the same operation with the destructive half removed, which is what a production site
+wants: the run is delimited and the history survives. **Unmark** ignores `Clearable`, being the one
+operation that can only ever make a later collection *more* complete.
+
+Each operation reports per machine what happened - cleared, marked, skipped as not clearable, not
+there, failed - in the status bar while it runs and in a message box when it ends. The *skipped*
+count is what makes a forgotten `Clearable="1"` discoverable; without it a log would quietly keep
+its old contents and the archive would look wrong for no visible reason.
+
+All three work on a whole package, on a single node, and on one row of the Files tab - wherever the
+action is declared.
+
+#### What the download does with a mark
+
+| what it finds | what it collects |
+| --- | --- |
+| no mark | the whole file - all of it is new |
+| a mark, and the file is still the one that was marked | from the mark, cut at the next line break |
+| a mark, but the file was replaced | the whole file, noting that it was replaced |
+| a mark, but the file is shorter than the mark | the whole file, noting that it was truncated or rotated |
+
+Rotation therefore yields slightly **more** than the window, never less: the fresh `app.log` is a
+new file, so it arrives whole, and `app.log.1` was never marked, so it arrives whole too. Failing
+towards too much is the right direction, and `_incomplete.txt` says why.
+
+A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - and its first line
+states the offset and the mark's time, exactly as a `TailBytes` entry does. `_comment.txt` gains a
+line naming the beginning of the window:
+
+```
+Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the mark of that time; the rest are complete.
+```
+
+Marks and `TailBytes` compose: a file starts at whichever cut is later, and the entry is named and
+headed after whichever of the two was binding. Downloading does **not** consume the mark - two
+downloads after one mark give the same window, which is what somebody re-downloading after a failed
+transfer expects.
+
+#### Where the marks live, and how a file is recognised
+
+On each machine, in a small JSON file beside the agent status file (`--agentStatusFolder`), keyed by
+**path** - so that "mark, then collect" holds however the collection happens to be assembled. Two
+people marking overlapping packages means the later mark wins; harmless, and every partial entry
+states the time of the mark it was cut at.
+
+A mark also keeps the **last 32 bytes before the offset**, and a download compares them before
+trusting the offset. That is not belt and braces: on Windows the obvious check does not hold. NTFS
+*tunneling* restores the original creation time on a file deleted and recreated under the same name
+within about fifteen seconds - which is exactly what a rotating logger does - so a rotated file
+arrives wearing the marked file's creation time. Comparing the bytes checks the one thing that has
+to be true for an offset to mean anything: that the boundary is still where it was put.
+
+#### Narrowing what is acted on
+
+The three scripts read their `Args` as a semicolon-separated list of node id patterns - the same
+wildcards `<FileRef>` uses - and act only on the matching entries of the package:
+
+```xml
+<Script Title="Clear" Name="BuiltIns/ClearFiles.cs" Args="log*"/>
+```
+
+Empty `Args` means every clearable node in scope, which is the usual case. The patterns are matched
+against each entry's `Id` **or** `Title`, because a `<FileRef>` matching several nodes resolves to a
+folder carrying the reference's id as its title and no id of its own.
+
+`Args` rather than a new attribute, because a list of node ids is the script's own argument.
+(`AskComment` is the other way round - a directive the GUI reads before the script exists - which
+is why that one is an attribute. The distinction is who consumes the value.)
+
+#### What this deliberately will not do
+
+* **Clear a file that is not `Clearable`.** No action, argument or package can override it.
+* **Stop an application to free its log.** Dirigent could; a menu item that stops the system under
+  test is not something anybody wants. A held file is marked instead.
+* **Guess.** Nothing decides by file name, extension or folder whether emptying is safe.
 
 ### `<VFolder>`
 
@@ -488,7 +640,7 @@ Incident report_260827_1432.zip
       AppLogs/
          recorder/
             app.log
-   _comment.txt                   <- what was collected, from where, and why
+   _comment.txt                   <- what was collected, from where, why, and since when
    _incomplete.txt                <- only when something was truncated or left out
 ```
 
@@ -597,6 +749,30 @@ For the *other* machines the UNC path is the only way in, so the requestor's mac
 
 A machine answering at the same address as the requestor's machine shares its disks with it, so
 where no share is defined at all, such a machine is allowed to use the local path too.
+
+### `BuiltIns/ClearFiles.cs`, `MarkFiles.cs`, `UnmarkFiles.cs` - delimit a test run
+
+Applicable to any node, like the download. Each starts a slave (`BuiltIns/MarkFilesSlave.cs`) on
+every machine holding files of the node, follows them in the status bar, and ends in a message box
+naming what happened per machine. See
+[Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark) for what they do to a
+file and why, and [Marking and clearing](MarkAndClear.md) for the reasoning behind it.
+
+```xml
+<FilePackage Id="pkg.run" Title="Logs/Test run"
+             Description="One test run: clear, run the case, download.">
+    <FileRef Id="log" MachineId="*" AppId="*"/>
+    <FileRef Id="cfg" MachineId="*" AppId="*"/>
+
+    <Script Title="Clear"    Name="BuiltIns/ClearFiles.cs"/>
+    <Script Title="Mark"     Name="BuiltIns/MarkFiles.cs"/>
+    <Script Title="Unmark"   Name="BuiltIns/UnmarkFiles.cs"/>
+    <Script Title="Download" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
+</FilePackage>
+```
+
+The `cfg` nodes need no exclusion: they are not `Clearable`, so Clear and Mark pass over them and
+the archive still gets them whole.
 
 ### `BuiltIns/BrowseInDblCmdVirtPanel.cs` - browse in Double Commander
 
