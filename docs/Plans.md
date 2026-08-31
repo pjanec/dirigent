@@ -77,6 +77,40 @@ If an app is started as part of a plan, Dirigent will not start the app until al
 
 'Satisfied' means that the all those other apps listed in the `dependencies`  attribute dependencies are already running and initialized.
 
+### A step that waits for a Dirigent command
+
+An application of a plan can be a Dirigent command rather than a program -
+`ExeFullPath="[dirigent.command]"` - and, with `InitCondition="cliresponse ok|any"`, the plan waits
+for that command before launching whatever depends on it. The case it exists for is drawing a line
+under the log files before the applications start writing to them:
+
+```xml
+<Plan Name="System Start">
+
+    <App AppIdTuple = "master.mark_logs"
+         ExeFullPath = "[dirigent.command]"
+         CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+         Volatile = "1"
+         InitCondition = "cliresponse any"
+    />
+
+    <App AppIdTuple="m1.camera"   Dependencies="master.mark_logs" ... />
+    <App AppIdTuple="m2.recorder" Dependencies="master.mark_logs" ... />
+
+</Plan>
+```
+
+* `cliresponse any` waits for the command and carries on whatever it answered - for a step that must
+  not hold up a system start. `cliresponse ok` makes a failure of the command a failure of the step,
+  and therefore of the plan.
+* The waiting itself comes from the command: [`WaitForScript`](CLI.md#waitforscript) answers only when
+  the script is over, while most commands answer as soon as they are accepted.
+* `Volatile="1"`, because the step is meant to end - see
+  [Utility plans](#utility-plans-vs-standard-plans).
+
+The whole story, including what happens when the command fails and why it is not an exit code, is in
+[Running a script as a step of a plan](ScriptsInPlans.md).
+
 ### Multiple coexisting plans
 
 Any of the plans can be selected and manipulated independently at any time.

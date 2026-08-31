@@ -1,12 +1,27 @@
 # Running a script as a step of a plan
 
-A design, for review. Nothing of this is implemented.
+**Implemented.** This is the record of what was built and why, kept because most of it is reasoning
+that the reference documentation has no room for. For using it, see
+[`cliresponse`](SharedConfig.md#cliresponse---waiting-for-a-dirigent-command),
+[`WaitForScript`](CLI.md#waitforscript) and
+[A step that waits for a Dirigent command](Plans.md#a-step-that-waits-for-a-dirigent-command).
 
-Fourth revision. Revision 1 had the CLI client do the waiting; revision 2 moved it to the master;
-revision 3 settled the response protocol. This one replaces the last breaking part - redefining a
-`[dirigent.command]` app's exit code - with a **new init condition**, `cliresponse ok|any`. With that,
-nothing existing changes at all: every piece is additive, and a step opts in through its
-`InitCondition`. See [Rejected alternatives](#rejected-alternatives) for what was dropped on the way.
+What was built, in the order the commits went in:
+
+1. a characterisation suite pinning what the master answers to every text command, written first, so
+   that the rest could not change it unnoticed;
+2. `ICommand.Finished`, so a command can outlive one master tick without blocking anything;
+3. `WaitForScript <guid> [timeout=]`, and `[CliResponse(Terminator=...)]` declaring how each command's
+   answer ends;
+4. `Entry.Dispose` scoped back to its own script, which fixed a bug that let one restarted script
+   cancel every other script on the master;
+5. the `[dirigent.command]` response tracker and the `cliresponse ok|any` init condition;
+6. the one-shot `Dirigent.CLI.exe` reading to the terminator its command declares.
+
+The design went through four revisions in review, and the ones that were turned down are as much a
+part of the record as the one that was built - see [Rejected alternatives](#rejected-alternatives).
+The fourth revision is what follows: every piece is additive, and a step opts in through its
+`InitCondition`, so nothing existing changes at all.
 
 ## The need
 

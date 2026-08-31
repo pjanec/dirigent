@@ -15,6 +15,7 @@ Contents:
 * [Where the marks live](#where-the-marks-live)
 * [Recognising the file a mark was made on](#recognising-the-file-a-mark-was-made-on)
 * [The user interface](#the-user-interface)
+* [Marking from a plan](#marking-from-a-plan)
 * [What this refuses to do](#what-this-refuses-to-do)
 * [Decisions, and what they replaced](#decisions-and-what-they-replaced)
 * [Found while building it](#found-while-building-it)
@@ -204,6 +205,31 @@ flowchart TD
     D -- yes --> E[truncate, then delete<br/>and drop any mark]
     D -- no --> M
 ```
+
+## Marking from a plan
+
+The two clicks are for somebody sitting at the GUI. A `System Start` plan can draw the line by
+itself, so that every start of the system is a run boundary and nobody has to remember:
+
+```xml
+<App AppIdTuple = "master.mark_logs"
+     ExeFullPath = "[dirigent.command]"
+     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+     Volatile = "1"
+     InitCondition = "cliresponse any"
+/>
+```
+
+Every application of the plan then names this step in its `Dependencies`, so nothing starts writing
+before the line is drawn. `cliresponse any` is the right value here: a mark that could not be taken
+degrades a later collection, and must not stop the system from starting - the failure goes to the log
+and to the plan's own record of the step.
+
+`ClearFiles` works the same way, and is the destructive half: use it where a QA machine should start
+each run with the logs really emptied.
+
+See [Running a script as a step of a plan](ScriptsInPlans.md) for how the waiting works, and
+[`WaitForScript`](CLI.md#waitforscript) for the command that does it.
 
 ## What this refuses to do
 

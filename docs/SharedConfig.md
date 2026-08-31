@@ -75,6 +75,8 @@ Attributes:
   - `[dirigent.command]` - executes a dirigent command stored in `CmdLineArgs` attribute is if passed to Dirigent.CLI command line (but parsed and executed internally by the dirigent agent). Multiple commands can be entered, separated by a semicolon.  The commands are sent immediately over the network, Dirigent does not wait for their completion so this 'app' never enter the `Running` state and immediately goes to 'Terminated'. Please always mark this app record as Volatile so the plan does not expect the app to stay running .
     Example: `ExeFullPath = "[dirigent.command]" CmdLineArgs = "StartApp m1.a; KillPlan plan2" Volatile="1"`
 
+    Such an app has no process, so it counts as terminated with exit code 0 the moment it is asked - which means `InitCondition="exitcode 0"` on it is satisfied at once, whatever became of the command. To make a plan *wait* for the command and act on how it went, use `InitCondition="cliresponse ok"` (or `any`); see [`cliresponse`](#cliresponse---waiting-for-a-dirigent-command) below and [Running a script as a step of a plan](ScriptsInPlans.md).
+
 - `StartupDir` - startup directory; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
 - `CmdLineArgs` - command line arguments
@@ -193,9 +195,48 @@ App sub-sections:
         <TimeOut>5.0</TimeOut>
       </InitDetectors>
 
-  Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*  
+  Defines a mechanism to detect that the app is fully initialized (by time, by exit code etc.) See chapter *Selecting a boot up completion detector*
 
   If multiple detectors are defined, the first one whose condition is satisfied marks the app as initialized.
+
+  The detectors available are `TimeOut` (seconds), `ExitCode` (a list or ranges of codes, e.g. `0`, `0,2`, `0-7`), `WindowPoppedUp` (Windows only) and `cliresponse` - see below.
+
+  Note on `ExitCode`: a range is expanded into one entry per value, so `0-255` is fine while something like `0-2147483647` would try to build a list of two billion. Name the codes you mean.
+
+##### `cliresponse` - waiting for a dirigent command
+
+For an app whose `ExeFullPath` is `[dirigent.command]`, this detector holds the app *not initialized*
+until the master has answered the command line the app sent. Since a plan launches an app only once
+everything it depends on is initialized, such a step makes the rest of the plan wait for the command.
+
+The value is mandatory:
+
+| | |
+| --- | --- |
+| `cliresponse ok` | initialized once the answer arrives and **every** command of the line succeeded. A failure leaves the step uninitialized, so its dependants never start and the plan reports a failure. |
+| `cliresponse any` | initialized once the answer arrives, whatever it says. The command is waited for, a failure is logged, and the plan carries on. |
+
+```xml
+<App AppIdTuple = "master.mark_logs"
+     ExeFullPath = "[dirigent.command]"
+     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+     Volatile = "1"
+     InitCondition = "cliresponse any"
+/>
+```
+
+Notes:
+
+* it is refused at config load time on an app that is not `[dirigent.command]`, or without a value - such a condition could never be satisfied and would hold the plan for ever;
+* a command that answers as soon as it is accepted (most of them) makes this an immediate initialization; the waiting comes from the command, e.g. [`WaitForScript`](CLI.md#waitforscript), which answers only when the script is over;
+* nothing bounds the waiting by itself. Where a ceiling is wanted, combine the detectors - the first one satisfied wins:
+
+  ```xml
+  <InitDetectors>
+      <cliresponse>any</cliresponse>
+      <TimeOut>60</TimeOut>
+  </InitDetectors>
+  ```
 
 - `Env`
 

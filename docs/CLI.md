@@ -32,6 +32,7 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [StartPlan](#StartPlan)              | Starts launching apps from a plan according to the plan rules. |
 | [StartScript](#StartScript)          | Starts a script on master. |
 | [StopPlan](#StopPlan)                | Stops starting next applications from the plan. Does not kill any app! |
+| [WaitForScript](#WaitForScript)      | Waits for a running script to finish and reports how it went. |
 | [Terminate](#Terminate)              | Terminates Dirigent agents on computers, optionally killing all the apps managed by the Dirigent. |
 
 
@@ -423,6 +424,48 @@ Running a custom script specified by full script file path (on master computer f
 
     StartScript "F85D98C0-E6B1-435B-A56A-192D4CFAC9D0" "C:\DirigentScripts\GetConnectedMachines.cs"
 
+### WaitForScript
+
+Waits until a script finishes, and says how it went.
+
+  `WaitForScript <guid> [timeout=<seconds>]`
+
+Where `StartScript` answers as soon as the script has been *started*, this one answers when it is
+over - which is what a caller that must not carry on yet needs, a plan step marking the log files
+before the applications start writing to them being the case it was written for.
+
+The answer comes in two parts:
+
+  `ACK` immediately, meaning the instance exists and the wait has begun (the usual meaning of ACK:
+  delivered and processed, not finished);
+
+  `END` when the script has finished, or `ERROR: <reason>` if it failed, was cancelled, the timeout
+  expired, or there is no such script instance. When there is nothing to wait for, the `ERROR` is the
+  only line - the ACK is not sent.
+
+`timeout` is optional; without it the wait lasts as long as the script does. When it expires the
+script is **killed**, on the grounds that whoever asked is about to carry on regardless, and work that
+lands afterwards is worse than work that never ran.
+
+Waiting costs the master nothing: the command is ticked between other requests, which are served
+normally throughout.
+
+##### Examples
+
+Start a script and wait for it, in one line:
+
+    StartScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 "BuiltIns/MarkFiles.cs" "'{Node:{Id:''pkg.run''}}'" ; WaitForScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2 timeout=300
+
+Wait for a script somebody else started:
+
+    WaitForScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
+
+##### From a plan
+
+An `<App ExeFullPath="[dirigent.command]" InitCondition="cliresponse ok">` step whose command line
+ends in a `WaitForScript` holds the plan until the script is done - see
+[Running a script as a step of a plan](ScriptsInPlans.md).
+
 ### KillScript
 
 Kills given script if running.
@@ -641,6 +684,20 @@ Clients can but do not need to wait for a response before sending another reques
 ACK does not mean that the command finished successfully! Only that it was delivered and processed.
 
 Some commands do not return ERROR even if the command fails (but ACK is returned).
+
+There are therefore three shapes of answer, and a client has to know which to expect **before** it
+sends:
+
+| shape | commands | the line that ends it |
+| --- | --- | --- |
+| acknowledged, and done | most of them - `StartPlan`, `StartApp`, `StartScript`, ... | `ACK` |
+| a list | `GetAllAppsState`, `GetAllPlansState`, `GetAllClientsState` - one line per item, and no ACK at all | `END` |
+| acknowledged, then finished later | [`WaitForScript`](#WaitForScript) | `ACK`, then `END` |
+
+`ERROR` ends any of them. Each command declares its own terminator in the code, so `Dirigent.CLI.exe`
+knows to read past the `ACK` of a waiting command instead of reporting success at it - and waits
+without a deadline while it does, since the wait is as long as the work. A telnet client sees the same
+lines and can apply the same rule.
 
 ###### Using request id
 
