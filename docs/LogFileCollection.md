@@ -348,14 +348,14 @@ unreferenceable - only nodes declared directly under `<Shared>`, `<Machine>`, `<
 ### Asking the Operator Why
 
 A bundle is usually collected because something went wrong, and the reason is worth keeping with
-it. `Args="askComment"` on the download action shows the package's `Description` and takes a note
+it. `AskComment="1"` on the download action shows the package's `Description` and takes a note
 before the collection starts:
 
 ```xml
 <FilePackage Id="all_production_logs" Title="Logs/All production logs"
              Description="Every application's recent log from both stations, plus the configs.">
     <FileRef Id="webapp_log" MachineId="*" AppId="*"/>
-    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" Args="askComment"/>
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
 </FilePackage>
 ```
 

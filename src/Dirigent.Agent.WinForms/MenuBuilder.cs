@@ -121,13 +121,6 @@ namespace Dirigent.Gui.WinForms
 		static bool ResolvesItsOwnNode( ActionDef action )
 			=> action is ScriptActionDef s && s.Name == Scripts.BuiltIn.DownloadZipped._Name;
 
-		/// <summary>
-		/// Whether the action wants the operator asked for a note before it runs. Same channel as
-		/// the other switches of this script - the free-form Args of the action.
-		/// </summary>
-		static bool WantsComment( ActionDef action )
-			=> !string.IsNullOrEmpty( action.Args )
-				&& action.Args.IndexOf( "askComment", StringComparison.OrdinalIgnoreCase ) >= 0;
 
 		/// <summary>
 		/// Shows the node's description and takes a note from the operator. Null means they cancelled,
@@ -164,7 +157,7 @@ namespace Dirigent.Gui.WinForms
 						if( ResolvesItsOwnNode( action ) && action is ScriptActionDef selfResolving )
 						{
 							string? comment = null;
-							if( WantsComment( action ) )
+							if( selfResolving.AskComment )
 							{
 								comment = AskForComment( vfsNodeDef, OperationName( action ) );
 								if( comment is null ) return; // cancelled: nothing starts, nothing is shown

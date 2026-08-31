@@ -488,6 +488,8 @@ namespace Dirigent
 		{
 			var act = (ActionDef) a;
 			FillActionBase( ref act, e, machineId, appId );
+
+			a.AskComment = X.getBoolAttr( e, "AskComment", a.AskComment );
 			//var hostId = e.Attribute( "HostId" )?.Value;
 			//if (hostId != null) a.HostId = hostId;
 		}

@@ -515,7 +515,7 @@ Notable properties:
 * Callers with no resolved node tree - the CLI, REST, another script - name the node with a
   `Node` selector in the arguments instead, and the script resolves it. See
   [Files without a GUI](#files-without-a-gui).
-* `Args="askComment"` on the action asks the operator for a note before anything starts - see
+* `AskComment="1"` on the action asks the operator for a note before anything starts - see
   [Asking for a comment](#asking-for-a-comment).
 * One archive is always produced. `Args="perMachine"`, which used to deliver one per machine and
   skip the merging, is **withdrawn**: analysis is normally cross-machine, so a single file is what
@@ -524,7 +524,7 @@ Notable properties:
 
 #### Asking for a comment
 
-An action carrying `Args="askComment"` puts a dialog in front of the collection: the node's
+An action carrying `AskComment="1"` puts a dialog in front of the collection: the node's
 `Description` above a box for the operator to say why they are collecting. *Collect* starts the
 download; *Cancel* starts nothing at all.
 
@@ -532,9 +532,13 @@ download; *Cancel* starts nothing at all.
 <FilePackage Id="pkg.logs" Title="Logs/All app logs"
              Description="Every application's recent log from both machines, plus Dirigent's own logs and config. Usually 5-10 MB.">
     <FileRef Id="log" MachineId="*" AppId="*"/>
-    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" Args="askComment"/>
+    <Script Title="Download zipped package" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
 </FilePackage>
 ```
+
+`AskComment` is an attribute of the action rather than a word inside its `Args`, because `Args` is
+the script's own argument string: a directive hidden in there would have to be found by a substring
+search, which any other argument could trip.
 
 The archive then carries `_comment.txt` at its root, holding what the operator wrote under a header
 that answers the questions an archive raises on its own:

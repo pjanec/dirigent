@@ -47,6 +47,33 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void AskCommentIsAnAttributeOfItsOwnTest()
+		{
+			// Not a word inside Args: that string is the script's own arguments, and a UI directive
+			// hidden in it would be found by a substring search that any other argument could trip.
+			var cfg = Parse( @"
+				<Shared>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<FilePackage Id='asks' Description='Everything, from both machines.'>
+							<Script Name='BuiltIns/DownloadZipped.cs' Args='someArg askComment inside' AskComment='1'/>
+						</FilePackage>
+						<FilePackage Id='quiet'>
+							<Script Name='BuiltIns/DownloadZipped.cs' Args='askComment'/>
+						</FilePackage>
+					</Machine>
+				</Shared>" );
+
+			var asks = (ScriptActionDef) FindNode( cfg, "asks" ).Actions.Single();
+			Assert.IsTrue( asks.AskComment );
+			Assert.AreEqual( "someArg askComment inside", asks.Args, "the script's own arguments are left alone" );
+			Assert.AreEqual( "Everything, from both machines.", FindNode( cfg, "asks" ).Description );
+
+			// the word in Args means nothing on its own
+			var quiet = (ScriptActionDef) FindNode( cfg, "quiet" ).Actions.Single();
+			Assert.IsFalse( quiet.AskComment );
+		}
+
+		[TestMethod()]
 		public void TailBytesTest()
 		{
 			var cfg = Parse( @"
