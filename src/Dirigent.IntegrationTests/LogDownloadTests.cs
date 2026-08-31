@@ -180,6 +180,32 @@ namespace Dirigent.IntegrationTests
 			Assert.IsTrue( own.Any( ip => note.Contains( ip ) ),
 				$"the note should name an address this machine really has ({string.Join( ", ", own )}): {note}" );
 
+			// bracketed, so that a machine's addresses read as belonging to it
+			foreach( var machine in new[] { "m1", "m2" } )
+			{
+				StringAssert.Contains( note, $"{bed.RenderContext.MachineId( machine )} [{own[0]}",
+					$"each machine's addresses belong in brackets after its name: {note}" );
+			}
+
+			// and one machine per line - a system of fifty of them is unreadable otherwise. The block
+			// is the "Machines" line plus the indented continuations under it.
+			var lines = note.Split( '\n' ).Select( l => l.TrimEnd( '\r' ) ).ToList();
+			var first = lines.FindIndex( l => l.StartsWith( "Machines" ) );
+			Assert.IsTrue( first >= 0, $"the note should list the machines: {note}" );
+
+			var block = new List<string>() { lines[first] };
+			for( int i = first + 1; i < lines.Count && lines[i].StartsWith( " " ); i++ )
+				block.Add( lines[i] );
+
+			var m1 = bed.RenderContext.MachineId( "m1" );
+			var m2 = bed.RenderContext.MachineId( "m2" );
+
+			Assert.AreEqual( 2, block.Count, $"one line per machine expected: {note}" );
+			Assert.IsTrue( block.Any( l => l.Contains( m1 ) ), $"{m1} should have a line: {note}" );
+			Assert.IsTrue( block.Any( l => l.Contains( m2 ) ), $"{m2} should have a line: {note}" );
+			Assert.IsFalse( block.Any( l => l.Contains( m1 ) && l.Contains( m2 ) ),
+				$"no line should carry two machines: {note}" );
+
 			// loopback is what everything connected over, and it identifies nothing
 			Assert.IsFalse( note.Contains( "127.0.0.1" ),
 				$"a loopback address does not belong in the note: {note}" );

@@ -546,16 +546,27 @@ that answers the questions an archive raises on its own:
 ```
 Collected : 2026-08-31 14:32:10
 Package   : Logs/All app logs   [pkg.logs]
-Machines  : FrontEnd 192.168.0.150, BackEnd 192.168.0.120
-Downloaded to: FrontEnd 192.168.0.150
-Dirigent  : 3.1.18.6
+Machines  : BackEnd [192.168.0.120, 172.21.112.1]
+            FrontEnd [192.168.0.150, 192.168.1.39]
+Downloaded to: FrontEnd [192.168.0.150, 192.168.1.39]
+Dirigent  : 3.1.18.12
 
 Symphony froze during the 14:20 run, right after the BScene reload.
 ```
 
-The addresses are the ones the master sees on the connections - what Dirigent actually knows the
-machines by, rather than what the config claims. The header is written even when the operator says
-nothing, since it is useful on its own; the comment line then reads `(no comment)`.
+One machine per line, in name order, each with the addresses **it reports about itself** - every
+routable IPv4 address of every interface that is up. That is the only reliable source: `<Machine
+IP="...">` is usually not set at all, and the address the master observes is where the connection
+came from, which is loopback for anything running beside it. Nothing is chosen among several
+addresses, because which one matters depends on the question.
+
+Where the config does declare an address it comes first in the brackets, and where it declares one
+the machine does not have, the note says so - a misconfiguration that otherwise surfaces much later
+as a file share that cannot be reached. A declared `127.0.0.1` is not treated as a disagreement:
+every machine has loopback, and a single-machine system is normally written that way.
+
+The header is written even when the operator says nothing, since it is useful on its own; the
+comment line then reads `(no comment)`.
 
 Asking happens **before** the collection: it can run for minutes, so a dialog afterwards would be
 one nobody is waiting at, and the words are needed by the collection itself. Only the WinForms GUI

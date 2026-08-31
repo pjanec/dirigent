@@ -589,9 +589,19 @@ namespace Dirigent.Scripts.BuiltIn
 
 			var text = new StringBuilder();
 
+			// One machine per line, in name order. A system of fifty machines, each with a couple of
+			// addresses, is unreadable as one line - and the order a HashSet yields them in is not
+			// one anybody can look something up in. The continuation lines align under the first.
+			const string label = "Machines  : ";
+			var perMachineLine = Environment.NewLine + new string( ' ', label.Length );
+
+			var described = machines
+					.OrderBy( m => m, StringComparer.OrdinalIgnoreCase )
+					.Select( Describe );
+
 			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
 			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
-			text.AppendLine( $"Machines  : {string.Join( ", ", machines.Select( Describe ) )}" );
+			text.AppendLine( label + string.Join( perMachineLine, described ) );
 			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
 			text.AppendLine();
@@ -627,20 +637,22 @@ namespace Dirigent.Scripts.BuiltIn
 			var connectedFrom = Locating( state?.IP );
 			var reported = state?.Ident?.LocalAddresses ?? new List<string>();
 
-			// nothing reported: an older client, or one that could not read its interfaces
+			// the addresses go in brackets: several machines each with several addresses is otherwise
+			// one long comma-separated line in which nothing shows where a machine ends
 			if( reported.Count == 0 )
 			{
+				// an older client, or one that could not read its interfaces
 				if( configured is not null )
 					return connectedFrom is not null && connectedFrom != configured
-							? $"{machine} {configured} (connected from {connectedFrom})"
-							: $"{machine} {configured}";
+							? $"{machine} [{configured}] (connected from {connectedFrom})"
+							: $"{machine} [{configured}]";
 
 				return connectedFrom is not null ? $"{machine} (connected from {connectedFrom})" : machine;
 			}
 
 			// the configured address first, so the one the config builds paths from leads the list
 			var ordered = reported.OrderByDescending( a => a == configured ).ToList();
-			var text = $"{machine} {string.Join( ", ", ordered )}";
+			var text = $"{machine} [{string.Join( ", ", ordered )}]";
 
 			if( configured is not null && !reported.Contains( configured ) )
 				text += $" (the config says {configured}, which this machine does not have)";
