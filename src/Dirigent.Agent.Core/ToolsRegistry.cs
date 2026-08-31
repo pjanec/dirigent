@@ -53,7 +53,7 @@ namespace Dirigent
 				{
 					if( m.HostClientId == _reflStates.Client.Ident.Name ) // for us?
 					{
-						StartAction( m.Requestor, m.Def!, m.Vars );
+						StartAction( m.Requestor, m.Def!, m.Vars, comment: m.Comment );
 					}
 					break;
 				}
@@ -74,7 +74,12 @@ namespace Dirigent
 		/// follow it - a progress indicator, for one. Empty for a tool, which is a process rather
 		/// than something with a state to watch.
 		/// </returns>
-		public Guid StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNode=null )
+		/// <param name="comment">
+		/// What the user said about why they triggered this, if they were asked. Handed to the script
+		/// as part of its arguments; a tool has nowhere to receive it.
+		/// </param>
+		public Guid StartAction( string? requestorId, ActionDef action, Dictionary<string,string>? vars=null,
+				VfsNodeDef? vfsNode=null, string? comment=null )
 		{
 			if (action is ToolActionDef toolAction)
 			{
@@ -83,7 +88,7 @@ namespace Dirigent
 			}
 			else if (action is ScriptActionDef scriptAction)
 			{
-				return StartScript( requestorId, scriptAction, vars, vfsNode );
+				return StartScript( requestorId, scriptAction, vars, vfsNode, comment );
 			}
 			else
 			{
@@ -127,7 +132,8 @@ namespace Dirigent
 
 		}
 
-		public Guid StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null, VfsNodeDef? vfsNodeDef=null )
+		public Guid StartScript( string? requestorId, ScriptActionDef script, Dictionary<string,string>? vars=null,
+				VfsNodeDef? vfsNodeDef=null, string? comment=null )
 		{
 			//var argsString = vars != null ? Tools.ExpandEnvAndInternalVars( script.Args, vars ) : script.Args;
 			var argsString = script.Args; // we don't expand the vars here, we pass them to the script as a dictionary so they can be expanded on the hosting machine
@@ -136,12 +142,13 @@ namespace Dirigent
 				Args = argsString,
 				Vars = vars,
 				VfsNode = vfsNodeDef,
+				Comment = comment,
 			};
 
 			return _reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
 		}
 
-		public Guid StartAppBoundAction( string? requestorId, ActionDef action, AppDef boundTo )
+		public Guid StartAppBoundAction( string? requestorId, ActionDef action, AppDef boundTo, string? comment=null )
 		{
 			var vars = new Dictionary<string,string>()
 			{
@@ -152,27 +159,27 @@ namespace Dirigent
 				{ "APP_PID", (_reflStates.GetAppState(boundTo.Id)?.PID ?? -1).ToString() },
 				// TODO: resolve app workdir etc. on app's-local computer?
 			};
-			return StartAction( requestorId, action, vars );
+			return StartAction( requestorId, action, vars, comment: comment );
 		}
 		
-		public Guid StartMachineBoundAction( string requestorId, ActionDef action, string localMachineId )
+		public Guid StartMachineBoundAction( string requestorId, ActionDef action, string localMachineId, string? comment=null )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", localMachineId },
 				{ "MACHINE_IP",  _fileReg.GetMachineIP( localMachineId ) },
 			};
-			return StartAction( requestorId, action, vars );
+			return StartAction( requestorId, action, vars, comment: comment );
 		}
 
-		public Guid StartMachineBoundAction( string requestorId, ActionDef action, MachineDef boundTo )
+		public Guid StartMachineBoundAction( string requestorId, ActionDef action, MachineDef boundTo, string? comment=null )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "MACHINE_ID", boundTo.Id },
 				{ "MACHINE_IP",  _fileReg.GetMachineIP( boundTo.Id ) },
 			};
-			return StartAction( requestorId, action, vars );
+			return StartAction( requestorId, action, vars, comment: comment );
 		}
 
 		/// <summary>
@@ -207,17 +214,17 @@ namespace Dirigent
 			return _reflScriptReg.RunScriptNoWait( script.HostId ?? "", script.Name, null, args, script.Title );
 		}
 
-		public Guid StartFileBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
+		public Guid StartFileBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo, string? comment=null )
 		{
 			var vars = new Dictionary<string,string>()
 			{
 				{ "FILE_ID", boundTo.Id },
 				{ "FILE_PATH", _fileReg.MakeUNCIfNotLocal( boundTo.Path!, boundTo.MachineId, $"{boundTo}" ) },
 			};
-			return StartAction( requestorId, action, vars, boundTo );
+			return StartAction( requestorId, action, vars, boundTo, comment );
 		}
 
-		public Guid StartFilePackageBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo )
+		public Guid StartFilePackageBoundAction( string requestorId, ActionDef action, VfsNodeDef boundTo, string? comment=null )
 		{
 			// this gets called also for physical folders (then the vsfNode.Path is non-empty)
 			
@@ -235,7 +242,7 @@ namespace Dirigent
 				vars["FILE_PATH"] = string.Join( " ", list.Select( s => $"\"{s}\"" ) );
 			}
 
-			return StartAction( requestorId, action, vars, boundTo );
+			return StartAction( requestorId, action, vars, boundTo, comment );
 		}
 
 		// puts all files to a plain list

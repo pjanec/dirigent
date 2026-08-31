@@ -198,6 +198,32 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void TheUsersCommentReachesAnyScriptTest()
+		{
+			// Whatever the user was asked before an action ran travels to the script as part of its
+			// arguments - the generic channel, so any script can read it, not only the download.
+			var args = new ScriptActionArgs()
+			{
+				Args = "someArg",
+				Comment = "Symphony froze during the 14:20 run.\nRestarted IgManager twice.",
+			};
+
+			var back = RoundTripJson( args );
+
+			Assert.AreEqual( args.Comment, back.Comment, "including the line breaks" );
+			Assert.AreEqual( "someArg", back.Args, "the script's own arguments stay separate" );
+
+			// and it travels with an action dispatched to whichever client hosts it
+			var msg = new Net.RunActionMessage( "m1_gui_1", new ScriptActionDef() { Name = "s.cs" }, "m2",
+							null, "why I did this" );
+
+			var backMsg = RoundTripMsgPack( msg );
+
+			Assert.AreEqual( "why I did this", backMsg.Comment );
+			Assert.AreEqual( "m2", backMsg.HostClientId );
+		}
+
+		[TestMethod()]
 		public void MergeZippedArgsTest()
 		{
 			var args = new MergeZipped.TArgs()

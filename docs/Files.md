@@ -562,6 +562,13 @@ one nobody is waiting at, and the words are needed by the collection itself. Onl
 asks - a script on the master cannot show a dialog, and a CLI or REST caller has nobody to ask, so
 those pass `Comment` in the arguments if they want one.
 
+`AskComment` is not specific to downloads. Any `<Script>` action can carry it - on a file node, an
+app, a machine, or in the main menu - and the answer reaches the script as
+[`ScriptActionArgs.Comment`](Scripts.md), including when the action is hosted by another client.
+Whether anything comes of it is up to the script: `DownloadZipped` writes it into the archive, and a
+script that never reads `Comment` simply ignores it. Cancelling the dialog always means the action
+does not run.
+
 #### The destination folder
 
 Every participating machine has to be able to write into the requestor's download folder. Each

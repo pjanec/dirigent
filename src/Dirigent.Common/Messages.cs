@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -1175,15 +1175,24 @@ namespace Dirigent.Net
 		//[MessagePack.Key( 4 )]
 		public string? Requestor = null;
 
+		/// <summary>
+		/// What the person who triggered the action had to say about why, if they were asked. Reaches
+		/// the script as ScriptActionArgs.Comment, whichever client ends up hosting it.
+		/// </summary>
+		//[MessagePack.Key( 5 )]
+		public string? Comment = null;
+
 		public RunActionMessage() {}
 
 		/// <param name="vars">if null, variables will NOT be changed from last use</param>
-		public RunActionMessage( string requestorId, ActionDef def, string hostClientId, Dictionary<string,string>? vars=null )
+		public RunActionMessage( string requestorId, ActionDef def, string hostClientId,
+				Dictionary<string,string>? vars=null, string? comment=null )
 		{
 			this.Def = def;
 			this.Vars = vars;
 			this.HostClientId = hostClientId;
 			this.Requestor = requestorId;
+			this.Comment = comment;
 		}
 
 		public override string ToString()

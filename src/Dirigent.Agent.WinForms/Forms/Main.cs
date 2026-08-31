@@ -1025,7 +1025,14 @@ namespace Dirigent.Gui.WinForms
 					vars.Add("MACHINE_IP", machineIp);
 				}				
 
-				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => WFT.GuardedOp( () => { Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, x, hostClientId, vars )); } ) );
+				var menuItem = _menuBuilder.AssocMenuItemDefToMenuItem(item, (x) => WFT.GuardedOp( () =>
+					{
+						// an action here may be hosted by another client, so the note travels with the
+						// message rather than being handed over directly
+						if( !_menuBuilder.TryGetComment( x, null, out var comment ) ) return;
+
+						Ctrl.Send( new Net.RunActionMessage( Ctrl.Name, x, hostClientId, vars, comment ) );
+					} ) );
 
 				menuItems.Add( menuItem );
 			}

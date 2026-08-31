@@ -123,17 +123,36 @@ namespace Dirigent.Gui.WinForms
 
 
 		/// <summary>
-		/// Shows the node's description and takes a note from the operator. Null means they cancelled,
-		/// in which case nothing is started at all.
+		/// Asks the user for a note where the action wants one, and says whether to go ahead.
 		/// </summary>
+		/// <param name="aboutWhat">
+		/// Description of the thing being acted on, used when the action itself carries none. Only
+		/// VFS nodes have one; null is fine, the dialog then names the operation alone.
+		/// </param>
+		/// <param name="comment">what the user wrote, null when they were not asked at all</param>
+		/// <returns>false if the user cancelled, in which case nothing is started</returns>
 		/// <remarks>
 		/// A menu click, not the message pump, so a modal dialog here holds nothing up. Asking before
 		/// the start also means the answer can be handed to the script rather than sent after it.
+		///
+		/// Any script action may ask - the comment reaches every script the same way, as
+		/// ScriptActionArgs.Comment - though only a script that reads it does anything with it.
 		/// </remarks>
-		string? AskForComment( VfsNodeDef vfsNodeDef, string title )
+		bool AskForComment( ActionDef action, string? aboutWhat, string title, out string? comment )
 		{
-			using var dlg = new frmCollectionComment( title, vfsNodeDef.Description );
-			return dlg.ShowDialog() == DialogResult.OK ? dlg.Comment : null;
+			comment = null;
+
+			if( action is not ScriptActionDef script || !script.AskComment )
+				return true;
+
+			var description = !string.IsNullOrEmpty( action.Description ) ? action.Description : aboutWhat;
+
+			using var dlg = new frmCollectionComment( title, description );
+			if( dlg.ShowDialog() != DialogResult.OK )
+				return false;
+
+			comment = dlg.Comment;
+			return true;
 		}
 
 		public List<MenuTreeNode> BuildVfsNodeActionsMenuItems( VfsNodeDef vfsNodeDef )
@@ -154,15 +173,11 @@ namespace Dirigent.Gui.WinForms
 						// is what keeps the operation whole: resolving a package that spans many
 						// apps on two machines is one round trip per node, and doing it here first
 						// left the status bar empty for seconds before the operation existed at all.
+						if( !AskForComment( action, vfsNodeDef.Description, OperationName( action ), out var comment ) )
+							return; // cancelled: nothing starts, nothing is shown
+
 						if( ResolvesItsOwnNode( action ) && action is ScriptActionDef selfResolving )
 						{
-							string? comment = null;
-							if( selfResolving.AskComment )
-							{
-								comment = AskForComment( vfsNodeDef, OperationName( action ) );
-								if( comment is null ) return; // cancelled: nothing starts, nothing is shown
-							}
-
 							var own = _core.ToolsRegistry.StartSelfResolvingScriptAction(
 											Ctrl.Name, selfResolving, vfsNodeDef, comment );
 							OperationStarted?.Invoke( own, OperationName( action ) );
@@ -175,8 +190,8 @@ namespace Dirigent.Gui.WinForms
 						if( resolved is not null )
 						{
 							var script = !resolved.IsContainer
-								? _core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved )
-								: _core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved );
+								? _core.ToolsRegistry.StartFileBoundAction( Ctrl.Name, action, resolved, comment )
+								: _core.ToolsRegistry.StartFilePackageBoundAction( Ctrl.Name, action, resolved, comment );
 
 							// a file action can take minutes (collecting logs from every machine),
 							// so the operation gets a place in the status bar of the GUI that asked
@@ -192,7 +207,8 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				GetAllMachineActions(machDef),
 					(action) => WFT.GuardedOp( () => {
-						_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef ) ;
+						if( !AskForComment( action, null, action.Title, out var comment ) ) return;
+						_core.ToolsRegistry.StartMachineBoundAction( Ctrl.Name, action, machDef, comment ) ;
 					}
 				)
 			);
@@ -203,7 +219,8 @@ namespace Dirigent.Gui.WinForms
 			return GetMenuItemsFromActions(
 				GetAllAppActions(appDef),
 					(action) => WFT.GuardedOp( () => {
-						_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef ) ;
+						if( !AskForComment( action, null, action.Title, out var comment ) ) return;
+						_core.ToolsRegistry.StartAppBoundAction( Ctrl.Name, action, appDef, comment ) ;
 					}
 				)
 			);
@@ -238,6 +255,17 @@ namespace Dirigent.Gui.WinForms
 			return items;
 		}
 		
+		/// <summary>
+		/// Asks for a note where the action wants one, before handing it to the caller's own way of
+		/// starting it. Null means the user cancelled.
+		/// </summary>
+		/// <remarks>
+		/// For the paths that dispatch an action as a message rather than starting it here - the main
+		/// menu, where the action may be hosted by another client altogether.
+		/// </remarks>
+		public bool TryGetComment( ActionDef action, string? aboutWhat, out string? comment )
+			=> AskForComment( action, aboutWhat, action.Title, out comment );
+
 		public MenuTreeNode AssocMenuItemDefToMenuItem( AssocMenuItemDef mitem, Action<ActionDef> onClick )
 		{
 			if( mitem is ActionDef action)
