@@ -150,14 +150,39 @@ namespace Dirigent.IntegrationTests
 			StringAssert.Contains( note, "logs.all", "and its id" );
 			StringAssert.Contains( note, DateTime.Now.ToString( "yyyy-MM-dd" ), "when" );
 
-			// every machine that took part, with the address the master sees it at
+			// every machine that took part
 			foreach( var machine in new[] { "m1", "m2" } )
 			{
 				StringAssert.Contains( note, bed.RenderContext.MachineId( machine ),
 					$"{machine} should be named in the note: {note}" );
 			}
-			StringAssert.Contains( note, "127.0.0.1",
-				$"the address Dirigent knows the machines by should be there: {note}" );
+		}
+
+		[TestMethod()]
+		public async Task TheCoverNoteNamesTheAddressThatIdentifiesTheMachine()
+		{
+			// The address a connection came from identifies nothing when the client sits on the
+			// master's own machine - it is loopback, which was what the note used to print. The
+			// configured address is the one that says where the machine is.
+			var scenario = Worlds.LoggingWorld()
+				.DeclaredIp( "m1", "192.168.0.150" )
+				.DeclaredIp( "m2", "192.168.0.120" );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var note = Archive.TextOf( Archive.In( bed.DownloadFolder ).Single(), "_comment.txt" );
+
+			StringAssert.Contains( note, "192.168.0.150", $"the declared address of m1: {note}" );
+			StringAssert.Contains( note, "192.168.0.120", $"the declared address of m2: {note}" );
+
+			// the machines really did connect over loopback here, and saying so would only be noise
+			Assert.IsFalse( note.Contains( "127.0.0.1" ),
+				$"a loopback connection address identifies nothing and does not belong in the note: {note}" );
 		}
 
 		[TestMethod()]

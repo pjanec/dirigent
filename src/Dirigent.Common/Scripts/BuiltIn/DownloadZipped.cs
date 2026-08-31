@@ -335,7 +335,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 						// composed here, where the package, the machines and their addresses are known;
 						// the merge only writes it
-						CoverNote = ComposeCoverNote( args.Comment, title, container.Id,
+						CoverNote = await ComposeCoverNote( args.Comment, title, container.Id,
 										requestorMachine, clientStates, onlineMachines ),
 
 						// files from a single machine need no folder to tell them apart from the others
@@ -579,16 +579,20 @@ namespace Dirigent.Scripts.BuiltIn
 		/// package, and when. The addresses are the ones the master sees on the connections, which
 		/// is what Dirigent actually knows; where the config disagrees, both are given.
 		/// </remarks>
-		static string ComposeCoverNote( string? comment, string title, string packageId,
+		async Task<string> ComposeCoverNote( string? comment, string title, string packageId,
 				string requestorMachine, Dictionary<string, ClientState> clientStates,
 				List<string> machines )
 		{
+			var machineDefs = ( await Dirig.GetAllMachinesDefAsync() ).ToDictionary( x => x.Id, x => x );
+
+			string Describe( string machine ) => DescribeMachine( machine, clientStates, machineDefs );
+
 			var text = new StringBuilder();
 
 			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
 			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
-			text.AppendLine( $"Machines  : {string.Join( ", ", machines.Select( m => Describe( m, clientStates ) ) )}" );
-			text.AppendLine( $"Downloaded to: {Describe( requestorMachine, clientStates )}" );
+			text.AppendLine( $"Machines  : {string.Join( ", ", machines.Select( Describe ) )}" );
+			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
 			text.AppendLine();
 			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
@@ -597,16 +601,38 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// A machine and the address Dirigent knows it by - the one the connection came from, and
-		/// the configured one too when they disagree.
+		/// A machine and the address to identify it by.
 		/// </summary>
-		static string Describe( string machine, Dictionary<string, ClientState> clientStates )
+		/// <remarks>
+		/// The configured address comes first, because that is the one identifying the machine on the
+		/// network and the one UNC paths are built from. The address the connection came from is only
+		/// printed when it says something else: a client on the master own box connects over loopback,
+		/// so that address identifies nothing, while a machine answering from an address the config
+		/// does not mention is worth noticing.
+		/// </remarks>
+		static string DescribeMachine( string machine, Dictionary<string, ClientState> clientStates,
+				Dictionary<string, MachineDef> machineDefs )
 		{
+			machineDefs.TryGetValue( machine, out var def );
 			clientStates.TryGetValue( machine, out var state );
-			var connectedIP = state?.IP;
 
-			return string.IsNullOrEmpty( connectedIP ) ? machine : $"{machine} {connectedIP}";
+			var configured = def?.IP;
+			var connectedFrom = state?.IP;
+
+			bool worthSaying = !string.IsNullOrEmpty( connectedFrom )
+								&& connectedFrom != configured
+								&& !IsLoopback( connectedFrom! );
+
+			if( string.IsNullOrEmpty( configured ) )
+				return worthSaying ? $"{machine} (connected from {connectedFrom})" : machine;
+
+			return worthSaying
+					? $"{machine} {configured} (connected from {connectedFrom})"
+					: $"{machine} {configured}";
 		}
+
+		static bool IsLoopback( string ip )
+			=> System.Net.IPAddress.TryParse( ip, out var parsed ) && System.Net.IPAddress.IsLoopback( parsed );
 
 		/// <summary>
 		/// Whether the action still asks for the withdrawn one-archive-per-machine mode.

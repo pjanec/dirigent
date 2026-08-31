@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -23,6 +23,8 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppsState() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlansState() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
+		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find( x => x.Id == Id ); }
+		public IEnumerable<MachineDef> GetAllMachinesDef() { return _machineDefs; }
 		public ScriptState? GetScriptState( Guid Id ) { return _reflScripts.GetScriptState( Id ); }
 		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() { return _reflScripts.GetAllScriptsState(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }

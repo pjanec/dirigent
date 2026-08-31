@@ -101,6 +101,18 @@ namespace Dirigent.TestBed.Scenarios
 			return this;
 		}
 
+		/// <summary>
+		/// The address the config declares for a machine, which is not how the bed reaches it: every
+		/// machine here answers on loopback. Only for tests about the declared address itself.
+		/// </summary>
+		public Scenario DeclaredIp( string machineName, string ip )
+		{
+			var machine = Spec.Machines.FirstOrDefault( m => m.Name == machineName )
+				?? throw new ArgumentException( $"machine '{machineName}' is not part of this scenario" );
+			machine.Ip = ip;
+			return this;
+		}
+
 		public Scenario Share( string machineName, string shareName, string path )
 		{
 			var machine = Spec.Machines.FirstOrDefault( m => m.Name == machineName )

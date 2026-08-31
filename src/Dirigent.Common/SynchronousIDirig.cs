@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -84,6 +84,8 @@ namespace Dirigent
 		public async Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsState().ToList() );
 		public async Task<ScriptDef?> GetScriptDefAsync( Guid Id ) => await GuardedFunc( () => _ctrl.GetScriptDef( Id ) );
 		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDefAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsDef().ToList() );
+		public async Task<MachineDef?> GetMachineDefAsync( string Id ) => await GuardedFunc( () => _ctrl.GetMachineDef( Id ) );
+		public async Task<IEnumerable<MachineDef>> GetAllMachinesDefAsync() => await GuardedFunc( () => _ctrl.GetAllMachinesDef().ToList() );
 		public async Task<VfsNodeDef?> GetFileDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
 		public async Task<AppDef?> GetAppDefAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppDef( Id ) );
 		public async Task<PlanState?> GetPlanState( string Id ) => await GuardedFunc( () => _ctrl.GetPlanState( Id ) );
