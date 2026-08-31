@@ -35,6 +35,13 @@ namespace Dirigent.Commands
 
 		public string Name { get { return name; } }
 
+		/// <summary>
+		/// A command is done when Execute returns, unless it says otherwise - see <see cref="ICommand.Finished"/>.
+		/// </summary>
+		public virtual bool Finished => true;
+
+		public virtual void Tick() {}
+
 		public virtual void Execute()
 		{
 			throw new System.NotImplementedException();
