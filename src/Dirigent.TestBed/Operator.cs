@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -213,6 +213,47 @@ namespace Dirigent.TestBed
 				Scripts.BuiltIn.DownloadZipped._Name, args, timeout: timeout );
 
 			return result ?? throw new Exception( "the download returned no result at all" );
+		}
+
+		/// <summary>
+		/// Empties the clearable files of a package, marking whatever is in use - the Clear menu item.
+		/// </summary>
+		/// <param name="args">
+		/// node id patterns to narrow it down to, as the action would carry them; null = everything
+		/// </param>
+		public Task<Scripts.BuiltIn.MarkOrClearFiles.TResult> ClearFilesAsync(
+				VfsNodeDef nodeDef, string? args = null, TimeSpan? timeout = null )
+			=> RunMarkOrClearAsync( Scripts.BuiltIn.ClearFiles._Name, nodeDef, args, timeout );
+
+		/// <summary>Draws a line under them, destroying nothing - the Mark menu item.</summary>
+		public Task<Scripts.BuiltIn.MarkOrClearFiles.TResult> MarkFilesAsync(
+				VfsNodeDef nodeDef, string? args = null, TimeSpan? timeout = null )
+			=> RunMarkOrClearAsync( Scripts.BuiltIn.MarkFiles._Name, nodeDef, args, timeout );
+
+		/// <summary>Forgets the marks - the Unmark menu item.</summary>
+		public Task<Scripts.BuiltIn.MarkOrClearFiles.TResult> UnmarkFilesAsync(
+				VfsNodeDef nodeDef, string? args = null, TimeSpan? timeout = null )
+			=> RunMarkOrClearAsync( Scripts.BuiltIn.UnmarkFiles._Name, nodeDef, args, timeout );
+
+		/// <remarks>
+		/// The definition is handed over unresolved, which is what the GUI does: the resolution is
+		/// part of the operation, not a step in front of it.
+		/// </remarks>
+		async Task<Scripts.BuiltIn.MarkOrClearFiles.TResult> RunMarkOrClearAsync(
+				string scriptName, VfsNodeDef nodeDef, string? args, TimeSpan? timeout )
+		{
+			var result = await RunScriptAsync<
+					Scripts.BuiltIn.MarkOrClearFiles.TArgs, Scripts.BuiltIn.MarkOrClearFiles.TResult>(
+				scriptName,
+				new Scripts.BuiltIn.MarkOrClearFiles.TArgs()
+				{
+					VfsNode = nodeDef,
+					VfsNodeNeedsResolving = true,
+					Args = args,
+				},
+				timeout: timeout );
+
+			return result ?? throw new Exception( $"{scriptName} returned no result at all" );
 		}
 
 		// ---- commands ---------------------------------------------------------------

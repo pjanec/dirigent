@@ -217,6 +217,11 @@ namespace Dirigent.Scripts.BuiltIn
 		///
 		/// Matched against the direct children only: those are the entries the configuration named and
 		/// gave ids to. What a matched entry expands into comes along with it.
+		///
+		/// Against the id or the title, because a reference matching several nodes - which is what
+		/// &lt;FileRef Id="log" MachineId="*" AppId="*"/&gt; is for - resolves to a folder carrying the
+		/// reference's id as its title and no id of its own. Both spellings therefore name the same
+		/// entry of the package, and "log" has to find it either way.
 		/// </remarks>
 		static VfsNodeDef Narrow( VfsNodeDef container, string? patterns )
 		{
@@ -229,9 +234,11 @@ namespace Dirigent.Scripts.BuiltIn
 
 			if( wanted.Count == 0 ) return container;
 
-			bool Matches( VfsNodeDef node )
-				=> !string.IsNullOrEmpty( node.Id )
-				&& wanted.Any( p => FileSystemName.MatchesSimpleExpression( p, node.Id ) );
+			bool MatchesAny( string? name )
+				=> !string.IsNullOrEmpty( name )
+				&& wanted.Any( p => FileSystemName.MatchesSimpleExpression( p, name! ) );
+
+			bool Matches( VfsNodeDef node ) => MatchesAny( node.Id ) || MatchesAny( node.Title );
 
 			var kept = container.Children.Where( Matches ).ToList();
 

@@ -372,7 +372,8 @@ namespace Dirigent.TestBed.Scenarios
 			string mask = "*.log",
 			int maxFiles = 10,
 			double maxSeconds = 2 * 24 * 3600,
-			long? tailBytes = null )
+			long? tailBytes = null,
+			bool? clearable = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -384,6 +385,27 @@ namespace Dirigent.TestBed.Scenarios
 				MaxFiles = maxFiles,
 				MaxSeconds = maxSeconds,
 				TailBytes = tailBytes,
+				Clearable = clearable,
+			} );
+			return this;
+		}
+
+		/// <summary>
+		/// Exposes one named file of the application's folder as a VFS node - a configuration file,
+		/// typically, which is what a package holds besides the logs.
+		/// </summary>
+		public AppBuilder WithFileNode( string id, string fileName, string? title = null,
+				bool? clearable = null )
+		{
+			_spec.VfsNodes.Add( new VfsSpec()
+			{
+				Kind = VfsKind.NewestFiles,
+				Id = id,
+				Title = title ?? fileName,
+				Path = "{applogs}",
+				Mask = fileName,
+				MaxFiles = 1,
+				Clearable = clearable,
 			} );
 			return this;
 		}
@@ -391,7 +413,7 @@ namespace Dirigent.TestBed.Scenarios
 		/// <summary>Exposes a whole folder as a VFS node.</summary>
 		public AppBuilder WithFolderNode( string id, string path, string? mask = null,
 				double? maxSeconds = null, int? maxFiles = null, long? maxTotalBytes = null,
-				long? tailBytes = null )
+				long? tailBytes = null, bool? clearable = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -403,6 +425,7 @@ namespace Dirigent.TestBed.Scenarios
 				MaxFiles = maxFiles,
 				MaxTotalBytes = maxTotalBytes,
 				TailBytes = tailBytes,
+				Clearable = clearable,
 			} );
 			return this;
 		}

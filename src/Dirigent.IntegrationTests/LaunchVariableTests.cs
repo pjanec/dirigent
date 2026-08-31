@@ -45,7 +45,8 @@ namespace Dirigent.IntegrationTests
 				async () => await Task.FromResult( File.Exists( envFile ) ),
 				Timeout, "the worker wrote its environment" );
 
-			Assert.IsTrue( File.ReadAllLines( envFile ).Any( l => l.StartsWith( "DIRIGENT_TEST_ONCE=" ) ),
+			var first = await Files.ReadAllLinesAsync( envFile );
+			Assert.IsTrue( first.Any( l => l.StartsWith( "DIRIGENT_TEST_ONCE=" ) ),
 				"the variable should have reached the first launch" );
 
 			// stop it, and remove the evidence so the next launch cannot be confused with this one
@@ -63,7 +64,7 @@ namespace Dirigent.IntegrationTests
 				async () => await Task.FromResult( File.Exists( envFile ) ),
 				Timeout, "the worker ran again and wrote its environment" );
 
-			var second = File.ReadAllLines( envFile );
+			var second = await Files.ReadAllLinesAsync( envFile );
 			Assert.IsFalse( second.Any( l => l.StartsWith( "DIRIGENT_TEST_ONCE=" ) ),
 				"the variable of the previous launch must not survive into this one" );
 		}

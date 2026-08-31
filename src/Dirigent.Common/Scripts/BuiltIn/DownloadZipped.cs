@@ -218,8 +218,9 @@ namespace Dirigent.Scripts.BuiltIn
 				// get the name of the archive file to download
 				// the title is free text and ends up as a file name; a colon in it used to fail the
 				// download at the write, after everything had already been collected
-				string zipFileBase = Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
-									+ DateTime.Now.ToString("_yyMMdd_HHmm");
+				string zipFileBase = FreeName( downloadsFolder,
+									Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
+									+ DateTime.Now.ToString("_yyMMdd_HHmm") );
 
 				// Each machine produces its own archive. To get a single one, the machines upload
 				// their archives to a staging folder next to the final one and a merging script
@@ -649,6 +650,35 @@ namespace Dirigent.Scripts.BuiltIn
 			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
 
 			return text.ToString();
+		}
+
+		/// <summary>
+		/// The given name, or the first numbered variant of it that is not taken in the folder.
+		/// </summary>
+		/// <remarks>
+		/// The name carries the time to the minute, so two downloads of the same package within one
+		/// minute used to collide - and the second one failed at the very end, after everything had
+		/// been collected, on writing the archive. Downloading again after a transfer went wrong is
+		/// precisely when that happens.
+		///
+		/// The staging folder is checked as well: a download in progress holds one, and taking its
+		/// name would put two collections into the same folder.
+		/// </remarks>
+		static string FreeName( string folder, string baseName )
+		{
+			bool Taken( string name )
+				=> File.Exists( Path.Combine( folder, name + ".zip" ) )
+				|| Directory.Exists( Path.Combine( folder, name + "_parts" ) );
+
+			if( !Taken( baseName ) ) return baseName;
+
+			for( int i = 2; i < 1000; i++ )
+			{
+				var candidate = $"{baseName}_{i}";
+				if( !Taken( candidate ) ) return candidate;
+			}
+
+			return baseName; // give up and let the write fail with its own message
 		}
 
 		/// <summary>
