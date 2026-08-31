@@ -122,6 +122,40 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void WildcardReferenceReachesAMachineScopedNodeTest()
+		{
+			// A node declared under <Machine> has no app at all, and the per-app collection
+			// convention is AppId="*". Whether that reaches such a node decides whether the files of
+			// something Dirigent does not launch - Dirigent itself, say - can be collected without a
+			// reference of their own.
+			MakeFile( "dirigent.log", 0 );
+
+			_reg.SetVfsNodes( new List<VfsNodeDef>()
+			{
+				new FileDef()
+				{
+					Guid = Guid.NewGuid(),
+					Id = "log",
+					MachineId = _machineId,
+					AppId = null,     // exactly what LoadMachines gives a machine-scoped node
+					Path = Path.Combine( _root, "dirigent.log" ),
+				},
+			} );
+
+			var resolved = Resolve( new FileRef()
+			{
+				Guid = Guid.NewGuid(),
+				Id = "log",
+				MachineId = "*",
+				AppId = "*",
+			} );
+
+			Assert.AreEqual( Path.Combine( _root, "dirigent.log" ), resolved.Path,
+				"'*' matches a node with no app, so a machine-scoped node is collected by the "
+				+ "ordinary per-app wildcard as long as its Id matches" );
+		}
+
+		[TestMethod()]
 		public void TailSettingReachesTheResolvedFilesTest()
 		{
 			// the download applies the tail, and only the definition knows about it, so it has to
