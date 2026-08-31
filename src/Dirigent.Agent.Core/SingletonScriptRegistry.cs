@@ -35,7 +35,12 @@ namespace Dirigent
 			{
 				base.Dispose( disposing );
 				if( !disposing ) return;
-				_localScriptRegistry.Dispose();
+
+				// This entry's script, and no other. It used to dispose the whole registry, which is
+				// shared by every entry and by the master itself - so ending one script ended them
+				// all. The intent dates from before the scripts moved into a shared registry, when an
+				// entry owned its instance; the scope is what got lost in that move.
+				_localScriptRegistry.Stop( Def.Guid );
 			}
 
 			public void Tick() {}
@@ -141,6 +146,10 @@ namespace Dirigent
 			{
 				entry.Dispose();
 				_scripts.Remove( id );
+
+				// and make room for the new instance: the old one is only beginning to cancel, and a
+				// start is declined while an instance of that id is still alive
+				_localScriptRegistry.Remove( id );
 			}
 
 			// create a new script def

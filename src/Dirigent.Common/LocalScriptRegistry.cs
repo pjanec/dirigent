@@ -86,6 +86,23 @@ namespace Dirigent
 			_scripts.Remove( entry.Instance );
 		}
 
+		/// <summary>
+		/// Stops a script instance and forgets it. True if there was one.
+		/// </summary>
+		/// <remarks>
+		/// For an owner replacing an instance under the same id: <see cref="Start"/> declines while
+		/// the old one is alive, and Stop only begins the cancellation - so without forgetting it
+		/// first, a restart would stop the old script and quietly not start the new one.
+		/// </remarks>
+		public bool Remove( Guid instance )
+		{
+			if( !_scripts.TryGetValue( instance, out var entry ) )
+				return false;
+
+			Remove( entry );
+			return true;
+		}
+
 		/// <param name="forgetTime">how many seconds to retain a dead script record; negative=forever</param>
 		public void Start( Guid instance, string scriptName, string? sourceCode, string? args, string title, string? requestorId, double forgetTime=10 )
 		{
