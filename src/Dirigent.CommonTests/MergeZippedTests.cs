@@ -101,6 +101,34 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void ReportsItsProgressPerEntryTest()
+		{
+			// Repacking is the longest phase of a large download, so it has to say how it is going -
+			// the indicator otherwise sits at one number for minutes, which is what a hang looks like.
+			MakePart( "Logs_260827_1200_m1.zip", "AppLogs/camera/app.log", "AppLogs/tracker/app.log" );
+			MakePart( "Logs_260827_1200_m2.zip", "AppLogs/recorder/app.log" );
+
+			var seen = new List<(int Done, int Total, string Machine)>();
+
+			var result = MergeZipped.Merge(
+				MakeArgs( true, ("Logs_260827_1200_m1.zip", "m1"), ("Logs_260827_1200_m2.zip", "m2") ),
+				default,
+				( done, total, machine ) => seen.Add( (done, total, machine) ) );
+
+			Assert.AreEqual( 3, result.FileCount );
+
+			// once per entry, counting up from nothing done to one short of the total
+			Assert.AreEqual( 3, seen.Count );
+			CollectionAssert.AreEqual( new List<int>() { 0, 1, 2 }, seen.Select( x => x.Done ).ToList() );
+
+			// the total is the entries of every part, known before the first one is copied
+			Assert.IsTrue( seen.All( x => x.Total == 3 ), $"totals: {string.Join( ", ", seen.Select( x => x.Total ) )}" );
+
+			// and it says which machine's part is being unpacked, since that is what takes the time
+			CollectionAssert.AreEqual( new List<string>() { "m1", "m1", "m2" }, seen.Select( x => x.Machine ).ToList() );
+		}
+
+		[TestMethod()]
 		public void SingleMachineNeedsNoMachineFolderTest()
 		{
 			MakePart( "Logs_260827_1200_m1.zip", "AppLogs/camera/app.log" );

@@ -342,10 +342,16 @@ namespace Dirigent.Scripts.BuiltIn
 
 					await SetStatus( "Merging the collected files...", null, _collectedAt );
 
-					var mergeResult = await Dirig.RunScriptAsync<MergeZipped.TArgs, MergeZipped.TResult>(
+					var mergeTask = Dirig.RunScriptAsync<MergeZipped.TArgs, MergeZipped.TResult>(
 						requestorMachine, MergeZipped._Name, null, mergeArgs,
 						$"Merging the downloaded files on {requestorMachine}", out var mergeInst
 					);
+
+					// followed the same way as the slaves: repacking a large collection is minutes of
+					// work, and an indicator that sits at one number through it is what a frozen one
+					// looks like. It also keeps this script's own state moving, which is what tells
+					// everyone else that it is alive.
+					var mergeResult = await FollowMerge( mergeTask, mergeInst );
 
 					downloadedFiles = string.IsNullOrEmpty( mergeResult?.ZipFileName )
 											? new List<string>()
@@ -441,6 +447,31 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			return await all;
+		}
+
+		/// <summary>
+		/// Waits for the merge, passing its progress on as the last stretch of ours.
+		/// </summary>
+		async Task<MergeZipped.TResult?> FollowMerge( Task<MergeZipped.TResult?> mergeTask, Guid mergeInstance )
+		{
+			while( true )
+			{
+				var finished = await Task.WhenAny( mergeTask, Task.Delay( _pollPeriodMs, CancellationToken ) );
+				if( finished == mergeTask ) break;
+
+				// WhenAny hands back the cancelled delay rather than throwing
+				CancellationToken.ThrowIfCancellationRequested();
+
+				var state = await Dirig.GetScriptStateAsync( mergeInstance );
+				var fraction = state?.Progress ?? 0.0;
+
+				await SetStatus(
+					string.IsNullOrEmpty( state?.Text ) ? "Merging the collected files..." : state!.Text,
+					null,
+					_collectedAt + ( 1.0 - _collectedAt ) * fraction );
+			}
+
+			return await mergeTask;
 		}
 
 		/// <summary>

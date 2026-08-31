@@ -77,13 +77,30 @@ namespace Dirigent.Scripts.BuiltIn
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args == null");
 
-			return Task.FromResult( Tools.Serialize( Merge( args, CancellationToken ) ) )!;
+			return Task.FromResult( Tools.Serialize( Merge( args, CancellationToken, ReportProgress ) ) )!;
+		}
+
+		/// <summary>
+		/// Publishes how far the merge has got. Without it the whole repacking phase - the longest
+		/// part of a large download - passes with the indicator sitting at one number.
+		/// </summary>
+		void ReportProgress( int done, int total, string machine )
+		{
+			SetStatus(
+				total > 0 ? $"Merging {machine} ({done} of {total} files)" : $"Merging {machine}",
+				null,
+				total > 0 ? Math.Min( 1.0, (double) done / total ) : null
+			);
 		}
 
 		/// <summary>
 		/// Joins the archives listed in the arguments into a single one and removes the staging folder.
 		/// </summary>
-		public static TResult Merge( TArgs args, CancellationToken ct = default )
+		/// <param name="onProgress">
+		/// Called before each entry with (entries done, entries in total, machine). Optional: the
+		/// merge is also called directly, without a script instance to report through.
+		/// </param>
+		public static TResult Merge( TArgs args, CancellationToken ct = default, Action<int,int,string>? onProgress = null )
 		{
 			if( string.IsNullOrEmpty( args.StagingFolder ) ) throw new NullReferenceException("Args.StagingFolder is empty");
 			if( string.IsNullOrEmpty( args.DestinationFile ) ) throw new NullReferenceException("Args.DestinationFile is empty");
@@ -110,6 +127,10 @@ namespace Dirigent.Scripts.BuiltIn
 
 				var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 
+				// counted up front, so that the progress is a fraction rather than a running number.
+				// Repacking a large collection is minutes of work with nothing else to show for it.
+				int totalEntries = args.Parts.Sum( p => CountEntries( Path.Combine( args.StagingFolder, p.FileName ) ) );
+
 				using( var dstZip = ZipFile.Open( args.DestinationFile, ZipArchiveMode.Create ) )
 				{
 					foreach( var part in args.Parts )
@@ -135,6 +156,7 @@ namespace Dirigent.Scripts.BuiltIn
 								var dstEntry = dstZip.CreateEntry( entryName, CompressionLevel.Fastest );
 
 								ct.ThrowIfCancellationRequested();
+								onProgress?.Invoke( result.FileCount, totalEntries, part.MachineName );
 
 								using var srcStream = srcEntry.Open();
 								using var dstStream = dstEntry.Open();

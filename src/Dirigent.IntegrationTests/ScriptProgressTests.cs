@@ -122,6 +122,57 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task TheMergeIsFollowedToo()
+		{
+			// Repacking the per-machine parts is the longest phase of a large download, and it used
+			// to pass with the indicator parked at 85% - which is what a frozen one looks like. Two
+			// machines, so there is something to merge at all.
+			var scenario = Worlds.LoggingWorld();
+			foreach( var app in new[] { "m1.camera", "m2.recorder" } )
+				scenario.Seed( app, "bulk.log", ageDays: 0, sizeBytes: 8 * 1024 * 1024, incompressible: true );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			await Worlds.StartLoggingApps( bed, Timeout );
+
+			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
+			var resolved = await bed.Operator.ResolveAsync( package );
+
+			var (instance, completion) = await bed.Operator.StartScriptAsync<
+					DownloadZipped.TArgs, DownloadZipped.TResult>(
+				DownloadZipped._Name, new DownloadZipped.TArgs() { VfsNode = resolved } );
+
+			var mergingTexts = new List<string>();
+			var mergingProgress = new List<double>();
+
+			await bed.WaitUntilAsync(
+				async () =>
+				{
+					var state = await bed.Operator.GetScriptStateAsync( instance );
+					if( ( state?.Text ?? "" ).StartsWith( "Merging", StringComparison.OrdinalIgnoreCase ) )
+					{
+						mergingTexts.Add( state!.Text! );
+						if( state.Progress is double p ) mergingProgress.Add( p );
+					}
+					return completion.IsCompleted;
+				},
+				Timeout, "the download finishes" );
+
+			await completion;
+
+			Assert.IsTrue( mergingTexts.Count > 0,
+				"the merge phase should have been reported at all" );
+
+			// it lives in the last stretch of the bar, above where the collecting ended
+			Assert.IsTrue( mergingProgress.All( p => p >= 0.85 - 0.001 && p <= 1.0 ),
+				$"the merge belongs in the last stretch; saw: {string.Join( ", ", mergingProgress )}" );
+
+			// how the merge's own counts get there is covered deterministically by
+			// MergeZippedTests.ReportsItsProgressPerEntryTest - a merge in a bed this size is over
+			// before the parent's next poll, so catching an intermediate value here would be a race
+		}
+
+		[TestMethod()]
 		public async Task CancellingADownloadStopsItAndLeavesNothingBehind()
 		{
 			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = BulkyWorld() } );
