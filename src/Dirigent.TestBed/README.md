@@ -10,7 +10,7 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | --- | --- |
 | `Dirigent.TestApp` — controllable stand-in application | done |
 | `Dirigent.TestBed` — tier-1 harness (master + agents + operator in one process) | done |
-| `Dirigent.IntegrationTests` — tier-1 tests | 51 tests |
+| `Dirigent.IntegrationTests` — tier-1 tests | 63 tests |
 | Isolation seams (`--agentStatusFolder`, `--downloadFolder`) | done |
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download tests at tier 1 | done, 6 tests |
@@ -20,13 +20,15 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | Tier 3 on the two VMs | deferred - not wanted yet |
 | Merged with branch 3.1, on .NET 8, one harness only | done |
 | Streamed archives, size-budget skips, `TailBytes` | done, 13 tests in `Dirigent.CommonTests` |
+| Progress and cancellation of long operations | done, see [`docs/ScriptProgress.md`](../../docs/ScriptProgress.md) |
+| A note from the operator, kept in the archive | done, 4 tests |
 
 Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` (docs).
 
 ## Running
 
 ```
-dotnet test src/Dirigent.IntegrationTests   # tier 1, ~77 s
+dotnet test src/Dirigent.IntegrationTests   # tier 1, ~80 s
 dotnet test src/Dirigent.CommonTests        # unit tests incl. the scenario renderer
 
 src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1            # tier 2, ~31 s
@@ -34,6 +36,10 @@ src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui
 ```
 
 Tier 2 has its own README in `src/Dirigent.TestBed.PowerShell`.
+
+Every run writes `TestResults/last-run.trx` in the test project, whether or not a logger was asked
+for on the command line. The test that needs it is the one failing once in fifty runs, and by then
+the run is over: the file names it.
 
 ## Writing a test
 

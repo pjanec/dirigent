@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -8,6 +8,15 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--
+      Always write a result file, so that a failure names itself without anyone having to have
+      asked for a logger on the command line. A test that fails once in fifty runs is the one that needs this,
+      and by the time it does, the run is over.
+    -->
+    <VSTestLogger>trx%3bLogFileName=last-run.trx</VSTestLogger>
+    <VSTestResultsDirectory>TestResults</VSTestResultsDirectory>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
