@@ -127,7 +127,7 @@ over the CLI or `POST /cli`, `--startupScript`, or another script. Newtonsoft's 
 accepted, so unquoted keys and single-quoted strings are fine:
 
 ```
-StartScript <guid> BuiltIns/DownloadZipped.cs '{Node:{Id:"logs.all"}, PerMachine:true}'
+StartScript <guid> BuiltIns/DownloadZipped.cs '{Node:{Id:"logs.all"}, ToMachine:"m1"}'
 ```
 
 The consequences are worth being deliberate about:

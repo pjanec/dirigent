@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -184,16 +184,15 @@ namespace Dirigent.TestBed
 		/// then let the master's DownloadZipped script collect the files from every machine holding
 		/// them into the download folder of the machine this operator sits on.
 		/// </summary>
-		/// <param name="perMachine">one archive per machine instead of a single merged one</param>
 		public async Task<Scripts.BuiltIn.DownloadZipped.TResult> DownloadAsync(
-				VfsNodeDef node, bool perMachine = false, TimeSpan? timeout = null )
+				VfsNodeDef node, TimeSpan? timeout = null )
 		{
 			var resolved = await ResolveAsync( node, forceUNC: false, includeContent: true );
 			if( resolved is null )
 				throw new Exception( $"nothing to download - '{node.Id}' resolved to nothing" );
 
 			return await RunDownloadAsync(
-				new Scripts.BuiltIn.DownloadZipped.TArgs() { VfsNode = resolved, PerMachine = perMachine },
+				new Scripts.BuiltIn.DownloadZipped.TArgs() { VfsNode = resolved },
 				timeout );
 		}
 
@@ -202,9 +201,9 @@ namespace Dirigent.TestBed
 		/// resolved tree to pass. The script resolves it itself.
 		/// </summary>
 		public Task<Scripts.BuiltIn.DownloadZipped.TResult> DownloadAsync(
-				Scripts.BuiltIn.VfsNodeSelector node, bool perMachine = false, TimeSpan? timeout = null )
+				Scripts.BuiltIn.VfsNodeSelector node, TimeSpan? timeout = null )
 			=> RunDownloadAsync(
-				new Scripts.BuiltIn.DownloadZipped.TArgs() { Node = node, PerMachine = perMachine },
+				new Scripts.BuiltIn.DownloadZipped.TArgs() { Node = node },
 				timeout );
 
 		async Task<Scripts.BuiltIn.DownloadZipped.TResult> RunDownloadAsync(

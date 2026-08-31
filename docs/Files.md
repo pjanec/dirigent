@@ -513,12 +513,10 @@ Notable properties:
 * Callers with no resolved node tree - the CLI, REST, another script - name the node with a
   `Node` selector in the arguments instead, and the script resolves it. See
   [Files without a GUI](#files-without-a-gui).
-* `Args="perMachine"` on the action gives one archive per machine instead - named
-  `<Title>_<yyMMdd_HHmm>_<machine>.zip`, delivered without any merging step:
-
-  ```xml
-  <Script Title="Download zipped (per machine)" Name="BuiltIns/DownloadZipped.cs" Args="perMachine"/>
-  ```
+* One archive is always produced. `Args="perMachine"`, which used to deliver one per machine and
+  skip the merging, is **withdrawn**: analysis is normally cross-machine, so a single file is what
+  the recipient wants, and one output shape keeps the rest of this page short. An action still
+  carrying that word logs a warning and gets the single archive.
 
 #### The destination folder
 
@@ -635,7 +633,7 @@ Points worth knowing:
 * **The guid is yours to invent**, and it names the script instance for `GetScriptState` and
   `KillScript` afterwards. It shares the namespace with the `<Script>` definitions in the shared
   config, so do not reuse one of those unless you mean to replace it.
-* `PerMachine: true` in the arguments is the same request as `Args="perMachine"` on an action.
+
 * **Where the files land.** A GUI's download goes to the GUI's own machine. A CLI or REST caller is
   on no machine that Dirigent knows, so the files go to the machine running the master; name
   `ToMachine` in the arguments to send them somewhere else. The machine has to have a connected
@@ -743,9 +741,11 @@ Behaviour of the current implementation that the rest of this document would not
 expect.
 
 **Merging repacks the archives.** `System.IO.Compression` has no raw entry-copy API, so joining
-the per-machine parts decompresses and recompresses them on the requestor's machine. The
-transfer over the network stays compressed, but a very large download costs some CPU and disk
-there. `Args="perMachine"` skips the merging altogether.
+the per-machine parts decompresses and recompresses them on the requestor's machine. The transfer
+over the network stays compressed, but a very large download costs some CPU and disk there - about
+what the compressed size costs, so tens of seconds for a multi-gigabyte collection rather than
+minutes, and the progress bar follows it. A collection from a single machine is not repacked at
+all: one part with no machine folder wanted is moved into place.
 
 **The merging machine must run an agent.** The merge happens on the machine the download goes
 to. If the requesting GUI runs on a machine with no agent, the download - and the merging -

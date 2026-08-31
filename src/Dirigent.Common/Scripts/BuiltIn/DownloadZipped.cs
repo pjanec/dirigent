@@ -31,11 +31,6 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			public VfsNodeSelector? Node;
 
-			/// <summary>
-			/// One archive per machine instead of a single merged one. The word "perMachine" in the
-			/// free-form Args does the same, which is how an action in the shared config asks for it.
-			/// </summary>
-			public bool PerMachine;
 
 			/// <summary>
 			/// The machine to download to. Empty means the machine the requestor runs on, which is what
@@ -164,9 +159,10 @@ namespace Dirigent.Scripts.BuiltIn
 					return Tools.Serialize( result );
 				}
 
-				// by default all the files end up in one single archive;
-				// "perMachine" in the action arguments keeps one archive per machine instead
-				bool perMachine = args.PerMachine || WantsPerMachine( args.Args );
+				// Everything ends up in one archive. An older config may still ask for one per
+				// machine; say so rather than quietly doing something else.
+				if( MentionsPerMachine( args.Args ) )
+					log.Warn( "DownloadZipped: 'perMachine' is no longer supported - one archive is produced." );
 
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
@@ -223,19 +219,15 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// the folder each slave uploads to, as a local path and as a UNC path; a slave picks
 				// whichever of them it can actually reach
-				var localSlaveDestination = perMachine
-						? downloadsFolder
-						: System.IO.Path.Combine( downloadsFolder, stagingFolderName );
+				var localSlaveDestination = System.IO.Path.Combine( downloadsFolder, stagingFolderName );
 
 				var uncSlaveDestination = string.IsNullOrEmpty( uncDownloadsFolder )
 						? null
-						: ( perMachine
-							? uncDownloadsFolder
-							: System.IO.Path.Combine( uncDownloadsFolder, stagingFolderName ) );
+						: System.IO.Path.Combine( uncDownloadsFolder, stagingFolderName );
 
 				// what a cancellation would have to clean up after us
 				_requestorMachine = requestorMachine;
-				_stagingFolder = perMachine ? null : System.IO.Path.Combine( downloadsFolder, stagingFolderName );
+				_stagingFolder = localSlaveDestination;
 				_finalArchive = System.IO.Path.Combine( downloadsFolder, $"{zipFileBase}.zip" );
 
 				await SetStatus( $"Collecting from {onlineMachines.Count} machine(s)...", null, _resolvedAt );
@@ -322,7 +314,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// join the per-machine archives into a single one, on the machine holding them
 				// (nothing to join if not a single slave could be started)
-				if( !perMachine && _slaveTasks.Count > 0 )
+				if( _slaveTasks.Count > 0 )
 				{
 					var parts = (from x in _slaveTasks
 								 where !string.IsNullOrEmpty( x.Result?.ZipFileName )
@@ -572,9 +564,9 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// Whether the action asked for one archive per machine instead of a single merged one.
+		/// Whether the action still asks for the withdrawn one-archive-per-machine mode.
 		/// </summary>
-		static bool WantsPerMachine( string? actionArgs )
+		static bool MentionsPerMachine( string? actionArgs )
 			=> !string.IsNullOrEmpty( actionArgs )
 				&& actionArgs.IndexOf( "perMachine", StringComparison.OrdinalIgnoreCase ) >= 0;
 

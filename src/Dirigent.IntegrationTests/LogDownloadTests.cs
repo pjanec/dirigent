@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.TestBed;
 using Dirigent.TestBed.Scenarios;
@@ -143,37 +143,6 @@ namespace Dirigent.IntegrationTests
 			var entries = Archive.EntriesOf( archives[0] );
 			Assert.IsTrue( entries.Any( e => e.EndsWith( "app.log", StringComparison.OrdinalIgnoreCase ) ),
 				$"entries: {string.Join( ", ", entries )}" );
-		}
-
-		[TestMethod()]
-		public async Task PerMachineDownloadKeepsTheArchivesApart()
-		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.LoggingWorld() } );
-
-			await Worlds.StartLoggingApps( bed, Timeout );
-
-			var package = await bed.Operator.GetVfsNodeAsync( "logs.all" );
-			await bed.Operator.DownloadAsync( package, perMachine: true, timeout: Timeout );
-
-			var archives = Archive.In( bed.DownloadFolder );
-			Assert.AreEqual( 2, archives.Count,
-				$"one archive per machine expected, found: {Archive.Describe( bed.DownloadFolder )}" );
-
-			// the machine each archive came from is in its name, and nothing was merged
-			foreach( var machine in new[] { "m1", "m2" } )
-			{
-				Assert.IsTrue(
-					archives.Any( a => Path.GetFileNameWithoutExtension( a ).EndsWith( "_" + machine, StringComparison.Ordinal ) ),
-					$"an archive from {machine} expected, found: {string.Join( ", ", archives.Select( Path.GetFileName ) )}" );
-			}
-
-			// per machine means no machine-name folder inside - the file name already says it
-			var fromM2 = archives.Single( a => Path.GetFileNameWithoutExtension( a ).EndsWith( "_m2", StringComparison.Ordinal ) );
-			var entries = Archive.EntriesOf( fromM2 );
-			Assert.IsTrue( Archive.HasEntryMatching( entries, "recorder/", "app.log" ),
-				$"missing entry; entries: {string.Join( ", ", entries )}" );
-			Assert.IsFalse( entries.Any( e => e.Contains( "camera", StringComparison.OrdinalIgnoreCase ) ),
-				$"m2's archive should hold m2's files only, entries: {string.Join( ", ", entries )}" );
 		}
 
 		[TestMethod()]
