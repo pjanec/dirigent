@@ -308,7 +308,7 @@ namespace Dirigent
 
 
 				// dirigent.AgentCmd command line
-				case "[dirigent.command]":
+				case ReservedExeNames.DirigentCommand:
 					pe.ExeType = EExeType.DirigentCmd;
 					pe.Path = string.Empty;
 					pe.CmdLine = ExpandVars( _appDef.CmdLineArgs );
@@ -497,9 +497,23 @@ namespace Dirigent
 			return true;
 		}
 
+		/// <summary>
+		/// The answer to the dirigent command this launcher sent, if it sent one.
+		/// </summary>
+		/// <remarks>
+		/// Handed over to the LocalApp right after the launch, because such an app has no process:
+		/// it counts as exited at once and its launcher is disposed on the next tick, while the answer
+		/// is still on its way.
+		/// </remarks>
+		public DirigentCmdTracker? CmdTracker { get; private set; }
+
 		bool LaunchDirigentCmd( ParsedExe pe )
 		{
-			ctrl.Send( new Net.CLIRequestMessage( pe.CmdLine ) );
+			// The request carries an id so that its answer can be told from anybody else's. Optional
+			// in the protocol and echoed by the master, so nothing that ignored it before notices.
+			CmdTracker = DirigentCmdTracker.ForCommandLine( pe.CmdLine );
+
+			ctrl.Send( new Net.CLIRequestMessage( CmdTracker.RequestLine( pe.CmdLine ) ) );
 			return true;
 		}
 

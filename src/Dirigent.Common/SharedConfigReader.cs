@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -275,7 +275,73 @@ namespace Dirigent
 				}
 			}
 
+			ValidateInitConditions( a );
+
 			return a;
+		}
+
+		/// <summary>
+		/// Refuses a config asking for something that can never happen.
+		/// </summary>
+		/// <remarks>
+		/// `cliresponse` waits for the master's answer to a dirigent command, so on an app that sends
+		/// none it would hold the app - and everything depending on it - for ever. A loud failure at
+		/// load time is the kinder outcome: on startup a bad config already stops the master, and on
+		/// ReloadSharedConfig the previous config stays in effect and the requestor is told why.
+		///
+		/// Nothing existing can trip over this: the condition is new, so no config in the field uses it.
+		/// </remarks>
+		static void ValidateInitConditions( AppDef a )
+		{
+			foreach( var (name, value) in InitConditionsOf( a ) )
+			{
+				if( !string.Equals( name, InitConditions.CliResponse, StringComparison.OrdinalIgnoreCase ) )
+					continue;
+
+				if( !string.Equals( a.ExeFullPath?.Trim(), ReservedExeNames.DirigentCommand,
+									StringComparison.OrdinalIgnoreCase ) )
+				{
+					throw new Exception(
+						$"App '{a.Id}': the init condition '{InitConditions.CliResponse}' waits for the answer"
+						+ $" to a dirigent command, so it only makes sense with"
+						+ $" ExeFullPath=\"{ReservedExeNames.DirigentCommand}\" - this app has"
+						+ $" \"{a.ExeFullPath}\"." );
+				}
+
+				if( !string.Equals( value, InitConditions.Ok, StringComparison.OrdinalIgnoreCase )
+					&& !string.Equals( value, InitConditions.Any, StringComparison.OrdinalIgnoreCase ) )
+				{
+					throw new Exception(
+						$"App '{a.Id}': the init condition '{InitConditions.CliResponse}' needs a value -"
+						+ $" '{InitConditions.Ok}' (every command must succeed) or '{InitConditions.Any}'"
+						+ $" (any answer will do) - not '{value}'." );
+				}
+			}
+		}
+
+		/// <summary>
+		/// The init conditions of an app, as name and value, however they were written: the
+		/// InitCondition attribute ("name value") and the &lt;InitDetectors&gt; elements alike.
+		/// </summary>
+		static IEnumerable<(string Name, string Value)> InitConditionsOf( AppDef a )
+		{
+			if( !string.IsNullOrWhiteSpace( a.InitializedCondition ) )
+			{
+				var text = a.InitializedCondition.Trim();
+				var space = text.IndexOf( ' ' );
+
+				yield return space < 0
+					? ( text, string.Empty )
+					: ( text.Substring( 0, space ), text.Substring( space + 1 ).Trim() );
+			}
+
+			foreach( var xml in a.InitDetectors )
+			{
+				XElement element;
+				try { element = XElement.Parse( xml ); }
+				catch { continue; } // not our business here; the factory will complain when it runs
+				yield return ( element.Name.LocalName, element.Value.Trim() );
+			}
 		}
 
 		static void FillAssocItem( ref AssocMenuItemDef a, XElement e, string? machineId=null, string? appId=null )

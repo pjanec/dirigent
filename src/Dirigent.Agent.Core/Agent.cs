@@ -307,6 +307,18 @@ namespace Dirigent
 					break;
 				}
 
+				case Net.CLIResponseMessage m:
+				{
+					// the answer to a command an app of ours sent (ExeFullPath="[dirigent.command]");
+					// the launcher that sent it recognises its own request id
+					foreach( var app in _localApps.Apps.Values )
+					{
+						if( app.CmdTracker?.OnResponse( m.Text ) ?? false )
+							break;
+					}
+					break;
+				}
+
 				case Net.StartScriptMessage m:
 				{
 					if( m.HostClientId == _clientIdent.Name ) // is it for us? Note, this message is broadcasted to all nodes...
