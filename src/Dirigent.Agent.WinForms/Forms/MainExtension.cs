@@ -39,7 +39,10 @@ namespace Dirigent.Gui.WinForms
 		{
 			_form = form;
 			_core = core;
-			_menuBuilder = new MenuBuilder( _core );
+
+			// the window's own builder, not one of our own: only that one is wired to the status bar,
+			// so an action started from a tab shows its progress and can be cancelled like any other
+			_menuBuilder = form.MenuBuilder;
 		}
 
 

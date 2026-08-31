@@ -375,6 +375,7 @@ namespace Dirigent
 			r.MachineId = x.MachineId;
 			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
 			r.TailBytes = x.TailBytes; // the download needs it, and only the definition knows it
+			r.Clearable = x.Clearable; // ditto - Clear and Mark act on the resolved node
 			return r;
 		}
 
@@ -665,6 +666,7 @@ namespace Dirigent
 						IsContainer = false,
 						Title = info.Name,
 						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
+						Clearable = folderDef.Clearable, // and so does the permission
 					}
 				);
 			}

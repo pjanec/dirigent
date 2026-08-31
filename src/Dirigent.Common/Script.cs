@@ -71,6 +71,17 @@ namespace Dirigent
 		/// <summary> Who wanted this script to run </summary>
 		public string Requestor { get; set; } = string.Empty;
 
+		/// <summary>
+		/// The marks of the files on this machine, or null if the host running this script keeps none.
+		/// </summary>
+		/// <remarks>
+		/// Only an agent provides one, because only an agent owns files: the store is keyed by local
+		/// path and lives beside the agent status file. A master or a GUI leaves it null, and the
+		/// scripts read that as "nothing has been marked", which is the safe reading - a collection
+		/// then takes whole files.
+		/// </remarks>
+		public FileMarkStore? MarkStore { get; set; }
+
 		public CancellationToken CancellationToken;
 
 

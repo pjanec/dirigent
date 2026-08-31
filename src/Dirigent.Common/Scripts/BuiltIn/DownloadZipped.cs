@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -638,10 +638,38 @@ namespace Dirigent.Scripts.BuiltIn
 			text.AppendLine( label + string.Join( perMachineLine, described ) );
 			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
+
+			// What the archive covers, when a Clear or a Mark drew the line: the difference between
+			// "these are the logs" and "these are the logs of one run" is the first thing whoever opens
+			// the archive needs to know, and it belongs at the top rather than in each entry's header.
+			var marked = MarkWindow();
+			if( marked is not null ) text.AppendLine( marked );
+
 			text.AppendLine();
 			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
 
 			return text.ToString();
+		}
+
+		/// <summary>
+		/// The line saying that this archive holds one run rather than the whole history, or null if
+		/// no mark applied to any of the collected files.
+		/// </summary>
+		string? MarkWindow()
+		{
+			var marks = ( from st in _slaveTasks
+						  where st.Result is not null && st.Result.MarkedFileCount > 0
+						  select st.Result! ).ToList();
+
+			if( marks.Count == 0 ) return null;
+
+			var files = marks.Sum( x => x.MarkedFileCount );
+			var earliest = marks.Where( x => x.EarliestMark.HasValue ).Min( x => x.EarliestMark );
+
+			return earliest.HasValue
+					? $"Since     : {earliest:yyyy-MM-dd HH:mm:ss} - {files} file(s) hold only what was"
+						+ $" written after the mark of that time; the rest are complete."
+					: $"Since     : {files} file(s) hold only what was written after they were marked.";
 		}
 
 		/// <summary>

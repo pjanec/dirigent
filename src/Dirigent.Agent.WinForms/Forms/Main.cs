@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -36,6 +36,16 @@ namespace Dirigent.Gui.WinForms
 		private ContextMenuStrip mnuPlanList;  // context menu for the 'Open' toolbar button
 
 		MenuBuilder _menuBuilder;
+
+		/// <summary>
+		/// The one menu builder of this window, shared with the tabs.
+		/// </summary>
+		/// <remarks>
+		/// One, because the status bar listens to its OperationStarted: a tab that built its own got
+		/// no progress bar and no cancel button for the very same action, which is how a download
+		/// started from the Files tab used to run invisibly.
+		/// </remarks>
+		public MenuBuilder MenuBuilder => _menuBuilder;
 		
 		IDirig Ctrl => _core.Ctrl;
 
@@ -72,6 +82,10 @@ namespace Dirigent.Gui.WinForms
 			_core.ReflStates.OnActionsReceived += () => UpdateMainMenu(); // when Action arrived from master, we rebuild the menu
 
 
+			// before the tabs: they share this instance, see the MenuBuilder property
+			_menuBuilder = new MenuBuilder( _core );
+			_menuBuilder.OperationStarted += ( instance, title ) => AddOperation( instance, title );
+
 			_tabApps = new MainAppsTab( this, _core, gridApps );
 			_tabPlans = new MainPlansTab( this, _core, gridPlans );
 			_tabScripts = new MainScriptsTab( this, _core, gridScripts );
@@ -82,9 +96,6 @@ namespace Dirigent.Gui.WinForms
 			log.DebugFormat( "MainForm's timer period: {0}", ac.TickPeriod );
 			tmrTick.Interval = ac.TickPeriod;
 			tmrTick.Enabled = true;
-
-			_menuBuilder = new MenuBuilder( _core );
-			_menuBuilder.OperationStarted += ( instance, title ) => AddOperation( instance, title );
 
 			_core.Client.MessageReceived += OnMessage;
 

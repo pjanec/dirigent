@@ -369,6 +369,7 @@ namespace Dirigent
 			// applies to any node yielding files; not inherited by the children of a container,
 			// which are nodes in their own right and may live on another machine altogether
 			a.TailBytes = X.getLongAttr( e, "TailBytes", 0 );
+			a.Clearable = X.getBoolAttr( e, "Clearable", false );
 
 			a.Xml = xml.ToString();
 			a.Children.AddRange( x.Children );
