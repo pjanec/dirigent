@@ -1,6 +1,15 @@
 # Web API
 
-Dirigent is running a simple web server on default port 8899, making Dirigent's features available also via the HTTP protocol.
+Dirigent is running a simple web server on default port **8877**, making Dirigent's features
+available also via the HTTP protocol. The port is set with `--httpPort`, master only.
+
+Two things about that option are worth knowing:
+
+* **`--httpPort 0` does not switch the web server off.** Zero means "not specified", so the
+  default 8877 applies. Pass **`-1`** to run without a web server - which also matters when two
+  Dirigent installations share a machine, as they would otherwise fight over the port.
+* No URL reservation or elevation is needed. The server listens on its own socket rather than
+  through the Windows HTTP stack.
 
 ### GET /api/appdefs
 

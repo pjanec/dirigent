@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,7 +20,7 @@ class AgentStarter
             return 1;
         }
 
-        string StatusFileName = AgentStateSaverLoader.GetStatusFilePath( ac.MachineId );
+        string StatusFileName = AgentStateSaverLoader.GetStatusFilePath( ac.MachineId, ac.AgentStatusFolder );
         Debug.WriteLine($"[Dirigent.Agent.Starter] Using status file {StatusFileName}");
 
         var pid = ac.Pid; // PID of the underrlying app, passed by the app itself when it is starteng this Starter

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -64,6 +64,13 @@ namespace Dirigent.Net
 			if( string.IsNullOrEmpty( _ident.Name ) )
 			{
 				_ident.Name = _messageClient.Id.ToString();
+			}
+
+			// told once, here, so that every kind of client says it without having to remember to:
+			// the machine's own addresses are the only ones that identify it
+			if( _ident.LocalAddresses.Count == 0 )
+			{
+				_ident.LocalAddresses.AddRange( Tools.LocalIPv4Addresses );
 			}
 
 			// as the first thing when connected, tell the master who we are 

@@ -118,6 +118,29 @@ On dirigent master command line you specify the GUID of the script record om Sha
 --startupScript "22C526A2-6F7C-4B25-8233-7EF37619E1CB" --startupScriptParams "{plan:'plan2', timeout:10}"
 ```
 
+# Arguments are JSON
+
+A script receives its arguments as a single string, and that string is **always JSON**
+deserialisable into the script's own argument class - never free text for the script to pick
+apart. Every caller then looks the same: an action in the shared config, a `StartScript` command
+over the CLI or `POST /cli`, `--startupScript`, or another script. Newtonsoft's relaxed syntax is
+accepted, so unquoted keys and single-quoted strings are fine:
+
+```
+StartScript <guid> BuiltIns/DownloadZipped.cs '{Node:{Id:"logs.all"}, ToMachine:"m1", Comment:"nightly"}'
+```
+
+The consequences are worth being deliberate about:
+
+* A script declares a `TArgs` class and does `Tools.Deserialize<TArgs>( Args )`. Nothing parses
+  strings, so nothing has to guess.
+* Arguments that do not fit the class **fail the script**. `GetScriptState` reports `Failed` with
+  the exception - far better than a script quietly running with defaults.
+* On a command line, wrap the JSON in single quotes so its double quotes reach the script intact.
+  JSON arrays are fine.
+* A script returns JSON too, in `ScriptState.Data` - so define a `TResult` class and put in it
+  everything a caller might want. A message box helps nobody driving the script from a script.
+
 # Script API
 
 ## Assemblies available to the script:

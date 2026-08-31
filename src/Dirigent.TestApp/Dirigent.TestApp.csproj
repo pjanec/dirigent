@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Dirigent.TestApp</AssemblyName>
+    <RootNamespace>Dirigent.TestApp</RootNamespace>
+    <Product>Dirigent</Product>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

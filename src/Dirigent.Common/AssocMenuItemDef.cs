@@ -73,6 +73,17 @@ namespace Dirigent
 		public string? Icon;
 
 		/// <summary>
+		/// What this is, in the words of whoever wrote the config. Shown where the user has to decide
+		/// something about it - a download asks for a comment and shows this above the box.
+		/// </summary>
+		/// <remarks>
+		/// An attribute, so multi-line text needs &amp;#10;. Kept separate from Title, which is a menu
+		/// path and has to stay short.
+		/// </remarks>
+		//[MessagePack.Key( 9 )]
+		public string? Description;
+
+		/// <summary>
 		/// Submenu items
 		/// </summary>
 		//[MessagePack.Key( 8 )]
@@ -91,6 +102,7 @@ namespace Dirigent
 				this.AppId == other.AppId &&
 				this.Groups == other.Groups &&
 				this.Icon == other.Icon &&
+				this.Description == other.Description &&
 				this.Actions.SequenceEqual( other.Actions ) &&
 				true;
 

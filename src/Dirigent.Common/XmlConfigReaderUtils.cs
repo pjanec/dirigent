@@ -23,6 +23,13 @@ namespace Dirigent
 			return ( s == null ) ? def : int.Parse( s );
 		}
 
+		public static long getLongAttr( XElement? e, string attrName, long def = 0, bool ignoreCase = false )
+		{
+			if( e == null ) return def;
+			var s = Attribute( e, attrName, ignoreCase )?.Value;
+			return ( s == null ) ? def : long.Parse( s );
+		}
+
 		public static double getDoubleAttr( XElement? e, string attrName, double def = 0.0, bool ignoreCase = false )
 		{
 			if( e == null ) return def;

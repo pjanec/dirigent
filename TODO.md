@@ -32,7 +32,6 @@ Support also files downloaded to the gateway, meaning translating gateway
 
 [BUG] FolderDef, when including content, fails with exception if one of the subfolders is inaccessible
 
-[IDEA] Use Glob style masks for filtering file names. 
 
 [TODO] Script libraries - initialized from built-ins as well as by scanning script files. Applies to relative script paths only. At the moment relative paths are resolved to one single physical root folder, by default the location of the shared config file.
 
@@ -119,6 +118,8 @@ Support also files downloaded to the gateway, meaning translating gateway
 [TODO] FolderWatcher from trayapp to Agent
 
 [BUG] ReloadSharedConfig does not change the appdef (changed cmdLineArgs, tested in linux version)
+      Does not reproduce on Windows: src/Dirigent.IntegrationTests ReloadAndReconnectTests.
+      ReloadPicksUpAChangedCommandLine passes and now guards it. Still to be checked on Linux.
 
 [TODO] Unselect app from plan also as CLI operation. Unselected app not affected by start/kill/restart plan. Starting unselected app uses it's default configuration.
 

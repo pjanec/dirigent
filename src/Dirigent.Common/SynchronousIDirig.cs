@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -68,6 +68,7 @@ namespace Dirigent
 
 #pragma warning disable CS8603 // Possible null reference return.
 		public string Name => _ctrl.Name;
+		public string MachineId => _ctrl.MachineId;
 		public       Task SendAsync( Net.Message msg ) { _ctrl.Send( msg ); return Task.CompletedTask; }
 		public async Task<ClientState?> GetClientStateAsync( string Id ) => await GuardedFunc( () => _ctrl.GetClientState(Id) );
 		public async Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsStateAsync() => await GuardedFunc( () => _ctrl.GetAllClientsState().ToList() );
@@ -83,6 +84,8 @@ namespace Dirigent
 		public async Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsState().ToList() );
 		public async Task<ScriptDef?> GetScriptDefAsync( Guid Id ) => await GuardedFunc( () => _ctrl.GetScriptDef( Id ) );
 		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDefAsync() => await GuardedFunc( () => _ctrl.GetAllScriptsDef().ToList() );
+		public async Task<MachineDef?> GetMachineDefAsync( string Id ) => await GuardedFunc( () => _ctrl.GetMachineDef( Id ) );
+		public async Task<IEnumerable<MachineDef>> GetAllMachinesDefAsync() => await GuardedFunc( () => _ctrl.GetAllMachinesDef().ToList() );
 		public async Task<VfsNodeDef?> GetFileDefAsync( Guid guid ) => await GuardedFunc( () => _ctrl.GetVfsNodeDef( guid ) );
 		public async Task<AppDef?> GetAppDefAsync( AppIdTuple Id ) => await GuardedFunc( () => _ctrl.GetAppDef( Id ) );
 		public async Task<PlanState?> GetPlanState( string Id ) => await GuardedFunc( () => _ctrl.GetPlanState( Id ) );

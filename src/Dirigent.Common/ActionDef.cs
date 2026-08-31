@@ -74,10 +74,26 @@ namespace Dirigent
 	//[MessagePack.MessagePackObject]
 	public class ScriptActionDef : ActionDef, IEquatable<ScriptActionDef>
 	{
+		/// <summary>
+		/// Ask the user for a note before running this, and hand it to the script as
+		/// <see cref="ScriptActionArgs.Comment"/>. A download writes it into the archive.
+		/// </summary>
+		/// <remarks>
+		/// Its own attribute rather than a word inside <see cref="ActionDef.Args"/>: Args is the
+		/// script's own argument string, and a UI directive hidden in it would be found by a
+		/// substring search that any other argument could trip.
+		///
+		/// Only the WinForms GUI can ask. Anything else - a CLI or REST caller, another script -
+		/// passes the comment itself if it has one, so this is simply ignored there.
+		/// </remarks>
+		//[MessagePack.Key( 30 )]
+		public bool AskComment = false;
+
 		public override string ToString() =>$"[ScriptAction] {base.ToString()}";
 
 		public bool ThisEquals( ScriptActionDef other ) =>
 				base.ThisEquals( other ) &&
+				this.AskComment == other.AskComment &&
 				true;
 
 		public override bool Equals(object? obj) => this.Equals(obj, ThisEquals);

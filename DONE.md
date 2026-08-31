@@ -1,3 +1,13 @@
+[DONE] Single zip archive from all the machines at once. The machines upload their parts to a staging folder and BuiltIns/MergeZipped.cs joins them on the requestor's machine, each machine becoming a folder in the result. Args="perMachine" on the DownloadZipped action keeps the old one-archive-per-machine behaviour.
+
+[DONE] Glob style masks for the VFS file masks - '**' for any number of folder levels, '{a,b}' alternatives, '*' and '?' within a path segment. A mask with no path separator applies at any depth. See docs/Files.md.
+
+[DONE] MaxSeconds, MaxFiles and MaxTotalBytes limits for the <Folder/> VFS node, keeping a growing log folder from producing an unbounded download.
+
+[DONE] The 'Newest' file filter now really returns the newest files (it used to return the oldest ones).
+
+[DONE] Files tab in the GUI - all the declared VFS nodes in a filterable grid, with an on-demand Resolve command telling whether the file is really there.
+
 [DONE] Add "Power > Reboot" to machine context menu.
 
 [DONE] Add "Power > Wake On Lan" to machine context menu. Add MAC="2C:D8:5D:CE:F0:B8" attribute to `<Machine/>` section. Show WakeOnLAN menu only if MAC is defined tor the machine. https://benniroth.com/blog/2021-6-21-csharp-wake-over-lan/

@@ -51,10 +51,33 @@ namespace Dirigent
 		public string? Filter;
 
 		/// <summary>
-		/// Xml node with attributes passed to filter scripts 
+		/// Xml node with attributes passed to filter scripts
 		/// </summary>
 		//[MessagePack.Key( 31 )]
 		public string? Xml;
+
+		/// <summary>
+		/// Collect only the last this many bytes of a file bigger than that. 0 = whole files.
+		/// Set on a &lt;Folder&gt;, it applies to every file the folder yields.
+		/// </summary>
+		/// <remarks>
+		/// For the log files a never-rotating logger grows to tens of gigabytes: the end of such a
+		/// file is what an investigation needs, and the whole of it is not transferable at all.
+		/// </remarks>
+		//[MessagePack.Key( 33 )]
+		public long TailBytes = 0;
+
+		/// <summary>
+		/// What the resolution of this node had to leave out - a file too big for the size budget,
+		/// for instance. Filled in during resolution, empty in a definition.
+		/// </summary>
+		/// <remarks>
+		/// The point is that a limit must not silently swallow a part of what the user asked for.
+		/// A download writes these into the archive, so that whoever opens it later can tell an
+		/// incomplete collection from a complete one.
+		/// </remarks>
+		//[MessagePack.Key( 32 )]
+		public List<string>? Notes;
 
 
 		public override string ToString()
@@ -69,6 +92,9 @@ namespace Dirigent
 			this.Children.SequenceEqual( other.Children ) &&
 			this.Filter == other.Filter &&
 			this.Xml == other.Xml &&
+			this.TailBytes == other.TailBytes &&
+			( ( this.Notes is null && other.Notes is null )
+				|| ( this.Notes is not null && other.Notes is not null && this.Notes.SequenceEqual( other.Notes ) ) ) &&
 			true;
 
 		// boilerplate
@@ -150,11 +176,34 @@ namespace Dirigent
 		//[MessagePack.Key( 51 )]
 		public string? Mask = String.Empty;
 
+		/// <summary>
+		/// Maximum number of files to include. 0 = unlimited.
+		/// The newest files are preferred if the limit applies.
+		/// </summary>
+		//[MessagePack.Key( 52 )]
+		public int MaxFiles = 0;
+
+		/// <summary>
+		/// Maximum age of the files to include, in seconds, based on the last write time. 0 = whatever age.
+		/// </summary>
+		//[MessagePack.Key( 53 )]
+		public double MaxSeconds = 0;
+
+		/// <summary>
+		/// Maximum total size of the included files, in bytes. 0 = unlimited.
+		/// The newest files are preferred if the limit applies. At least one file is always included.
+		/// </summary>
+		//[MessagePack.Key( 54 )]
+		public long MaxTotalBytes = 0;
+
 		public override string ToString() =>$"[Folder] {base.ToString()}";
 
 		public bool ThisEquals(FolderDef o) =>
 			base.ThisEquals(o) &&
 			this.Mask == o.Mask &&
+			this.MaxFiles == o.MaxFiles &&
+			this.MaxSeconds == o.MaxSeconds &&
+			this.MaxTotalBytes == o.MaxTotalBytes &&
 			true;
 
 		public FolderDef() : base() { IsContainer=true; }

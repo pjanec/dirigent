@@ -27,6 +27,8 @@ namespace Dirigent
 
 		string _rootForRelativePaths;
 
+		string? _downloadFolder;
+
 		public class TMachine
 		{
 			public string Id = string.Empty;
@@ -45,11 +47,16 @@ namespace Dirigent
 
 		IDirig _ctrl;
 		
-		public FileRegistry( IDirig ctrl, string localMachineId, string rootForRelativePaths, GetMachineIPDelegate machineIdDelegate )
+		/// <param name="downloadFolder">
+		/// What %DOWNLOADS% expands to on this machine. Empty or null means the download folder of
+		/// the user this process runs as.
+		/// </param>
+		public FileRegistry( IDirig ctrl, string localMachineId, string rootForRelativePaths, GetMachineIPDelegate machineIdDelegate, string? downloadFolder = null )
 		{
 			_ctrl = ctrl;
 			_localMachineId = localMachineId;
 			_rootForRelativePaths = rootForRelativePaths;
+			_downloadFolder = downloadFolder;
 			_machineIPDelegate = machineIdDelegate;
 		}
 		
@@ -130,29 +137,78 @@ namespace Dirigent
 			return m.IP;
 		}
 
+		/// <summary>
+		/// Turns a path local to the given machine into a UNC path leading through one of that
+		/// machine's file shares.
+		/// </summary>
+		/// <remarks>
+		/// The share covering the path most specifically wins, the way a mount table works, so that
+		/// a share dedicated to a subtree (D:\Logs) is preferred over one covering the whole drive
+		/// (D:\). Without that the winner would depend on the order the shares happen to be stored
+		/// in, and a share declared for a particular folder - typically the one with the permissions
+		/// set up for it - could be bypassed.
+		/// </remarks>
 		public string MakeUNC( string path, string? machineId, string whatFor )
 		{
 			// global paths are already UNC
 			if ( string.IsNullOrEmpty(machineId) )
 				return path;
-				
+
 			// find machine
 			if ( !Machines.TryGetValue( machineId, out var m ) )
 				throw new Exception($"Machine {machineId} not found for {whatFor}");
 
 			var IP = GetMachineIP( machineId );
 
+			string? bestName = null;
+			string? bestRoot = null;
+
 			foreach( var (shName, shPath) in m.Shares )
 			{
-				// get path relative to share
-				if( path.StartsWith( shPath, StringComparison.OrdinalIgnoreCase ) )
+				var root = ShareRootCoveringPath( shPath, path );
+				if( root is null )
+					continue;
+
+				if( bestRoot is null
+					|| root.Length > bestRoot.Length
+					// two shares of the same folder: pick by name, just to stay predictable
+					|| ( root.Length == bestRoot.Length && string.CompareOrdinal( shName, bestName ) < 0 ) )
 				{
-					var pathRelativeToShare = path.Substring( shPath.Length );
-					return $"\\\\{IP}\\{shName}\\{pathRelativeToShare}";
+					bestName = shName;
+					bestRoot = root;
 				}
 			}
 
-			throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
+			if( bestRoot is null )
+				throw new Exception($"Can't construct UNC path, No file share matching {whatFor}");
+
+			var pathRelativeToShare = path.Substring( bestRoot.Length ).TrimStart( '\\', '/' );
+
+			return string.IsNullOrEmpty( pathRelativeToShare )
+					? $"\\\\{IP}\\{bestName}"
+					: $"\\\\{IP}\\{bestName}\\{pathRelativeToShare}";
+		}
+
+		/// <summary>
+		/// The share's folder, without a trailing separator, if the share contains the given path;
+		/// null if it does not.
+		/// </summary>
+		/// <remarks>
+		/// The path must continue at a folder boundary, otherwise a share at "D:\Logs" would claim
+		/// "D:\LogsBackup\a.txt" and silently produce a UNC path to a different file.
+		/// </remarks>
+		static string? ShareRootCoveringPath( string sharePath, string path )
+		{
+			var shareRoot = sharePath.TrimEnd( '\\', '/' );
+
+			if( !path.StartsWith( shareRoot, StringComparison.OrdinalIgnoreCase ) )
+				return null;
+
+			if( path.Length == shareRoot.Length ) // the share's own folder
+				return shareRoot;
+
+			var next = path[shareRoot.Length];
+			return ( next == '\\' || next == '/' ) ? shareRoot : null;
 		}
 		
 		public string MakeUNCIfNotLocal( string path, string? machineId, string whatFor )
@@ -201,14 +257,28 @@ namespace Dirigent
 			{
 				var vars = new Dictionary<string, string>();
 
+				// the download folder of this machine; configurable so that it need not be the
+				// real user folder (a test run must not litter it)
+				vars["DOWNLOADS"] = string.IsNullOrEmpty( _downloadFolder )
+										? Tools.GetDownloadFolderPath()
+										: _downloadFolder;
+
 				// for app-bound files, expand also local vars and define var for app working dir etc.
 				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
 				{
 					// KEEP IN SYNC WITH Launcher.cs
 					vars["MACHINE_ID"] = _localMachineId;
-					vars["MACHINE_IP"] = GetMachineIP( _localMachineId );
 					vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
-					vars["DIRIGENT_MACHINE_IP"] = GetMachineIP( _localMachineId );
+
+					// The IP is only known once the machine definitions have arrived, and asking
+					// for it throws when they have not. Resolving a path that does not mention the
+					// IP at all must not fail for that reason, so only look it up when it is used.
+					if( MentionsMachineIP( path ) )
+					{
+						var machineIP = GetMachineIP( _localMachineId );
+						vars["MACHINE_IP"] = machineIP;
+						vars["DIRIGENT_MACHINE_IP"] = machineIP;
+					}
 				
 					if( !string.IsNullOrEmpty( fdef.AppId ) )
 					{
@@ -248,6 +318,12 @@ namespace Dirigent
 
 			return MakeUNC( path, machineId, $"FileDef {fdef}" );
 		}
+
+		/// <summary>
+		/// Whether the path uses the machine IP variable, in any of its spellings.
+		/// </summary>
+		static bool MentionsMachineIP( string path )
+			=> path.IndexOf( "MACHINE_IP", StringComparison.OrdinalIgnoreCase ) >= 0;
 
 		bool IsMatch( string? pattern, string? str )
 		{
@@ -297,6 +373,8 @@ namespace Dirigent
 			r.Id = x.Id;
 			r.Title = x.Title;
 			r.MachineId = x.MachineId;
+			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
+			r.TailBytes = x.TailBytes; // the download needs it, and only the definition knows it
 			return r;
 		}
 
@@ -347,7 +425,12 @@ namespace Dirigent
 			usedGuids.Add( nodeDef.Guid );
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
-			if( !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
+			// (a FileRef is the exception: it is resolved here, by looking it up in the registry we
+			// hold a copy of. Its machine id is a filter for that lookup and may be a wildcard, so
+			// it is not the name of a machine to send the reference to. Whatever the lookup finds
+			// then gets resolved on its own machine.)
+			if( nodeDef is not FileRef
+				&& !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
 				&& !IsLocalMachine(nodeDef.MachineId) )
 			{
 				// check if required machine is available
@@ -530,129 +613,113 @@ namespace Dirigent
 		{
 			var rootNode = EmptyFrom<VFolderDef>( folderDef );
 			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
-			
-			if( includeContent )
+
+			if( string.IsNullOrEmpty( rootNode.Path ) )
+				return null;
+
+			if( !includeContent )
+				return rootNode;
+
+			FileScan.Result scan;
+			try
 			{
-				// FIXME:
-				// traverse all files & folders 
-				// filter by glob-style mask
-				// convert into vfs tree structure
-				var folderName = ResolveFilePath( folderDef, forceUNC );
-				if( string.IsNullOrEmpty(folderName) )
-					return null;
-				// ....
-
-				var mask = folderDef.Mask;
-				if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
-
-				try
-				{
-					var dirs = FindDirectories( folderName );
-					foreach (var dir in dirs)
-					{
-						var dirDef = new FolderDef
-						{
-							//Id = dir.Name,
-							Path = dir.FullName,
-							MachineId = folderDef.MachineId,
-							AppId = folderDef.AppId,
-							IsContainer = true,
-							Title = dir.Name,
-						};
-						var vfsFolder = ResolveFolder( dirDef, forceUNC, includeContent );
-						if( vfsFolder is not null )
-						{
-							rootNode.Children.Add( vfsFolder );
-						}
-					}
-				}
-				catch( Exception ex ) // folder not exists or not accessible?
-				{
-					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-					return null;
-				}
-
-				try
-				{
-					var files = FindMatchingFileInfos( folderName, mask, false );
-					foreach (var file in files)
-					{
-						var fileDef = new FileDef
-						{
-							//Id = file.Name,
-							Path = file.FullName,
-							MachineId = folderDef.MachineId,
-							AppId = folderDef.AppId,
-							IsContainer = false,
-							Title = file.Name,
-						};
-						rootNode.Children.Add( fileDef );
-					}
-				}
-				catch( Exception ex ) // folder not exists or not accessible?
-				{
-					log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-					return null;
-				}
-
+				scan = FileScan.FindMatchingFiles(
+					rootNode.Path,
+					folderDef.Mask,
+					folderDef.MaxSeconds,
+					folderDef.MaxFiles,
+					folderDef.MaxTotalBytes,
+					recursive: true,
+					tailBytes: folderDef.TailBytes
+				);
 			}
-			
+			catch( Exception ex ) // folder not exists or not accessible?
+			{
+				log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
+				return null;
+			}
+
+			// what the size budget pushed out is worth saying out loud - the user asked for those files
+			if( scan.Skipped.Count > 0 )
+			{
+				var note = $"{scan.Skipped.Count} file(s) of '{rootNode.Path}' left out, over the "
+						+ $"{folderDef.MaxTotalBytes} byte limit of node '{folderDef.Id}': "
+						+ string.Join( ", ", scan.Skipped.Take( 20 ).Select( s => $"{s.RelPath} ({s.Bytes} B)" ) )
+						+ ( scan.Skipped.Count > 20 ? ", ..." : "" );
+
+				log.Warn( note );
+				( rootNode.Notes ??= new List<string>() ).Add( note );
+			}
+
+			// build the tree of virtual subfolders mirroring the location of the files within the scanned folder
+			foreach( var (relPath, info) in scan.Files )
+			{
+				var parent = GetOrCreateSubFolder( rootNode, System.IO.Path.GetDirectoryName( relPath ), folderDef );
+
+				parent.Children.Add(
+					new FileDef
+					{
+						Path = info.FullName,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = false,
+						Title = info.Name,
+						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
+					}
+				);
+			}
+
 			return rootNode;
+		}
+
+		/// <summary>
+		/// Finds (or creates) the chain of virtual subfolders for given folder path relative to the root node.
+		/// Returns the deepest one, or the root node itself if the relative path is empty.
+		/// </summary>
+		static VfsNodeDef GetOrCreateSubFolder( VfsNodeDef rootNode, string? relDirPath, FolderDef folderDef )
+		{
+			var current = rootNode;
+
+			if( string.IsNullOrEmpty( relDirPath ) )
+				return current;
+
+			var pathSoFar = rootNode.Path ?? string.Empty;
+
+			foreach( var segment in relDirPath.Split( new char[]{'/','\\'}, StringSplitOptions.RemoveEmptyEntries ) )
+			{
+				pathSoFar = System.IO.Path.Combine( pathSoFar, segment );
+
+				var subFolder = current.Children.Find(
+					x => x.IsContainer && string.Equals( x.Title, segment, StringComparison.OrdinalIgnoreCase )
+				);
+
+				if( subFolder is null )
+				{
+					subFolder = new VFolderDef
+					{
+						Path = pathSoFar,
+						MachineId = folderDef.MachineId,
+						AppId = folderDef.AppId,
+						IsContainer = true,
+						Title = segment,
+					};
+					current.Children.Add( subFolder );
+				}
+
+				current = subFolder;
+			}
+
+			return current;
 		}
 
 		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds )
 		{
-			var res = new List<string>();
-			var files = FindMatchingFileInfos( folderName, mask, false );
+			// the mask of the 'Newest' filter applies to the files in the given folder only, never to subfolders
+			var scan = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false );
 
-			if( files.Length == 0 ) return res;
-			
-			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
-
-			int numFiles = 0;
-			foreach (var file in files)
-			{
-				if (maxAgeSeconds > 0)
-				{
-					var age = (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds;
-					if (age > maxAgeSeconds) continue;
-				}
-
-				res.Add( file.FullName );
-				numFiles++;
-				if (numFiles >= maxFiles) break;
-			}
-			return res;
+			return ( from x in scan.Files select x.Info.FullName ).ToList();
 		}
 
-		static FileInfo[] FindMatchingFileInfos( string folderName, string mask, bool recursive )
-		{
-			if( string.IsNullOrEmpty(mask) ) mask = "*.*"; //throw new Exception($"No file mask given in '{pathWithMask}'");
-			if( string.IsNullOrEmpty( folderName ) ) folderName = Directory.GetCurrentDirectory();
-			var dirInfo = new DirectoryInfo(folderName);
-			var enumOpts = new EnumerationOptions()
-			{
-				MatchType = MatchType.Win32,
-				RecurseSubdirectories = recursive,
-				ReturnSpecialDirectories = false
-			};
-			FileInfo[] files = dirInfo.GetFiles( mask, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-			return files;
-		}
-
-		static DirectoryInfo[] FindDirectories( string folderName )
-		{
-			var dirInfo = new DirectoryInfo(folderName);
-			DirectoryInfo[] dirs = dirInfo.GetDirectories();
-			return dirs;
-		}
-
-		static string? GetNewest( FileInfo[] files )
-		{
-			if( files.Length == 0 ) return null;
-			Array.Sort( files, (x, y) => x.LastWriteTimeUtc.CompareTo( y.LastWriteTimeUtc ) );
-			return files[files.Length-1].FullName;
-		}
 	}
 }
 

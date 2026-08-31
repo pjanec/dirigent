@@ -62,7 +62,7 @@ namespace Dirigent
 		/// </summary>
 		Dictionary<string, string> _internalVars = new ();
 
-		public Agent( AppConfig ac, string? machineId=null, Func<AppDef, SharedContext, Dictionary<string, string>?, Launcher>? launcherFactory = null )
+		public Agent( AppConfig ac, string? machineId=null )
 		{
 			_ac = ac;
 
@@ -76,7 +76,7 @@ namespace Dirigent
 			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
-			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths );
+			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths, _ac.DownloadFolder );
 
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
@@ -95,9 +95,9 @@ namespace Dirigent
 
 			//_procInfoReg = new ProcessInfoRegistry();
 
-			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled, launcherFactory );
+			_localApps = new LocalAppsRegistry( _sharedContext, _procInfoReg, OnLocalAppStartedKilled );
 
-			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps );
+			_agentStateSaveLoader = new AgentStateSaverLoader( machineId, _localApps, _ac.AgentStatusFolder );
 
 			var toolDefs = new Dictionary<string, AppDef>( StringComparer.OrdinalIgnoreCase );
 			
@@ -446,7 +446,9 @@ namespace Dirigent
 
 			var fullPath = Path.GetFullPath( fileName );
 			log.DebugFormat( "Loading local config file '{0}'", fullPath );
-			return new LocalConfigReader( File.OpenText( fullPath ), machineId ).Config;
+			// dispose the reader so the config file is not held open for the process lifetime
+			using var textReader = File.OpenText( fullPath );
+			return new LocalConfigReader( textReader, machineId ).Config;
 		}
 
 		void InitFromLocalConfig()

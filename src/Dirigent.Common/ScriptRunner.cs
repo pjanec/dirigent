@@ -81,7 +81,8 @@ namespace Dirigent
 				return new ScriptState(
 					_status,
 					(_script as IScript).StatusText,
-					(_script as IScript).StatusData
+					(_script as IScript).StatusData,
+					(_script as IScript).StatusProgress
 				);
 			}
 		}
@@ -155,6 +156,10 @@ namespace Dirigent
 					_status = EScriptStatus.Finished;
 					state.Status = _status;
 					state.Data = result;
+
+					// whatever the script last said about its progress, having finished it is done -
+					// so a progress indicator shows a full bar rather than freezing wherever it got to
+					state.Progress = 1.0;
 				}
 				SendStatus( state );
 			}
@@ -204,7 +209,18 @@ namespace Dirigent
 		}
 
 		ScriptState _lastStateSentFromTick = new();
-		
+		DateTime _lastStateSentAt = DateTime.Now;
+
+		/// <summary>
+		/// How long a running script may stay silent before it says the same thing again.
+		/// </summary>
+		/// <remarks>
+		/// A state is otherwise only sent when it changes, so a script in a long silent phase looks
+		/// exactly like one whose host has died - and nothing watching it can tell the difference.
+		/// Repeating it now and then is what makes "not heard from in a while" mean something.
+		/// </remarks>
+		static readonly TimeSpan _heartbeatPeriod = TimeSpan.FromSeconds( 10 );
+
 		public void Tick()
 		{
 			if( _runTask != null )
@@ -214,11 +230,13 @@ namespace Dirigent
 				// while the script is running, we send the Text and Data as set by the script
 				if( state.Status == EScriptStatus.Running )
 				{
-					if( state != _lastStateSentFromTick )
+					if( state != _lastStateSentFromTick
+						|| DateTime.Now - _lastStateSentAt > _heartbeatPeriod )
 					{
 						SendStatus( state );
 
 						_lastStateSentFromTick = state;
+						_lastStateSentAt = DateTime.Now;
 					}
 				}
 			}

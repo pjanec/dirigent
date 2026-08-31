@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -666,6 +666,18 @@ namespace Dirigent.Net
 		//[MessagePack.Key( 2 )]
 		public EMsgRecipCateg SubscribedTo;
 
+		/// <summary>
+		/// The IPv4 addresses of the machine this client runs on, as that machine reports them.
+		/// Empty from a client too old to say, or from one that could not read them.
+		/// </summary>
+		/// <remarks>
+		/// The client is the only one who can know this. What the master observes is where the
+		/// connection came from - loopback for a client beside the master - and what the config
+		/// declares is usually nothing at all.
+		/// </remarks>
+		//[MessagePack.Key( 3 )]
+		public List<string> LocalAddresses = new();
+
 		public ClientIdent() {}
 
 		public ClientIdent( string name, EMsgRecipCateg subscription )
@@ -1175,15 +1187,24 @@ namespace Dirigent.Net
 		//[MessagePack.Key( 4 )]
 		public string? Requestor = null;
 
+		/// <summary>
+		/// What the person who triggered the action had to say about why, if they were asked. Reaches
+		/// the script as ScriptActionArgs.Comment, whichever client ends up hosting it.
+		/// </summary>
+		//[MessagePack.Key( 5 )]
+		public string? Comment = null;
+
 		public RunActionMessage() {}
 
 		/// <param name="vars">if null, variables will NOT be changed from last use</param>
-		public RunActionMessage( string requestorId, ActionDef def, string hostClientId, Dictionary<string,string>? vars=null )
+		public RunActionMessage( string requestorId, ActionDef def, string hostClientId,
+				Dictionary<string,string>? vars=null, string? comment=null )
 		{
 			this.Def = def;
 			this.Vars = vars;
 			this.HostClientId = hostClientId;
 			this.Requestor = requestorId;
+			this.Comment = comment;
 		}
 
 		public override string ToString()

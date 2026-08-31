@@ -118,3 +118,6 @@ TestCases
 *.7z
 .dumps
 Config
+
+# working notes and snapshots handed over for review, not part of the product
+/scratchpad

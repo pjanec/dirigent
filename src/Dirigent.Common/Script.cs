@@ -17,6 +17,9 @@ namespace Dirigent
 	{
 		string StatusText { get; }
 		string? StatusData { get; }
+
+		/// <summary> How far the script has got, 0..1, or null when it cannot say. </summary>
+		double? StatusProgress { get; }
 	}
 
 	/// <summary>
@@ -32,9 +35,11 @@ namespace Dirigent
 
 		private string? _statusText = "";
 		private string? _statusData = null;
+		private double? _statusProgress = null;
 									
 		string IScript.StatusText  => _statusText ?? "";
 		string? IScript.StatusData  => _statusData;
+		double? IScript.StatusProgress  => _statusProgress;
 
 		protected override void Dispose( bool disposing )
 		{
@@ -138,13 +143,18 @@ namespace Dirigent
 		/// <param name="data">Optional extra data. Script specific. Caller needs to understand the format in order to use it.</param>
 		/// <returns></returns>
 		/// <remarks>The status is sent back to the caller who initiated the script so it can track the script progress.</remarks>
-		protected Task SetStatus( string? text=null, string? data=null )
+		/// <param name="progress">
+		/// How far the script has got, 0..1. Null says the script cannot tell, and whoever shows it
+		/// then indicates that rather than inventing a number.
+		/// </param>
+		protected Task SetStatus( string? text=null, string? data=null, double? progress=null )
 		{
 			lock( this )
 			{
 				// we do not allow setting the Status field directly from script; only the script controller can do that based on what is just happening to the script (init/run/finish...)
 				_statusText = text;
 				_statusData = data;
+				_statusProgress = progress;
 			}
 
 			return Task.CompletedTask;

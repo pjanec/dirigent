@@ -37,6 +37,10 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Actions](docs/Actions.md)
 
+[Files, Folders and Packages](docs/Files.md)
+
+[Collecting Log Files](docs/LogFileCollection.md)
+
 [Environment Variables](docs/EnvVars.md)
 
 #### Configuration
@@ -58,6 +62,8 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 [Architecture](docs/Architecture.md)
 
 [Design notes (not up to date)](docs/Design-notes.md)
+
+[Test harness](docs/TestHarness.md)
 
 # Building from source
 

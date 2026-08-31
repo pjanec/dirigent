@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,84 @@ namespace Dirigent
 	public class Tools
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
+		static List<string>? _localIPv4Addresses;
+
+		/// <summary>
+		/// The IPv4 addresses of this machine, as its own network interfaces report them.
+		/// </summary>
+		/// <remarks>
+		/// The only address Dirigent knew about a machine was what the config declared - usually
+		/// nothing - or where its connection came from, which is loopback for anything running beside
+		/// the master and a NAT address from behind a router. Neither identifies the machine.
+		///
+		/// Everything routable is returned and nothing is chosen: a machine legitimately has several
+		/// addresses (the simulation network, the office LAN, a VPN, virtual switches), and guessing
+		/// which one matters by adapter name is the kind of heuristic that fails on the one machine
+		/// somebody is trying to diagnose. Loopback and link-local (169.254) addresses identify
+		/// nothing and are left out.
+		///
+		/// Read once and remembered: it is asked for on every connection, and an address change is
+		/// picked up the next time the process starts or reconnects.
+		/// </remarks>
+		public static List<string> LocalIPv4Addresses
+		{
+			get
+			{
+				if( _localIPv4Addresses is not null ) return _localIPv4Addresses;
+
+				var found = new List<string>();
+
+				try
+				{
+					foreach( var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces() )
+					{
+						if( nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up ) continue;
+						if( nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback ) continue;
+
+						foreach( var addr in nic.GetIPProperties().UnicastAddresses )
+						{
+							if( addr.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork ) continue;
+							if( System.Net.IPAddress.IsLoopback( addr.Address ) ) continue;
+
+							var text = addr.Address.ToString();
+							if( text.StartsWith( "169.254." ) ) continue; // link-local, i.e. no address at all
+
+							if( !found.Contains( text ) ) found.Add( text );
+						}
+					}
+				}
+				catch( Exception e )
+				{
+					log.Warn( $"Could not read the local network addresses: {e.Message}" );
+				}
+
+				_localIPv4Addresses = found;
+				return _localIPv4Addresses;
+			}
+		}
+
+		/// <summary>
+		/// Makes a string usable as a file name: the characters Windows refuses become underscores.
+		/// </summary>
+		/// <remarks>
+		/// Node titles reach file names - a download names its archive after the node it collected -
+		/// and a title is free text that nobody writes with file naming in mind. A colon in one used
+		/// to fail the download at the very end, after all the collecting was already done.
+		/// </remarks>
+		public static string SanitizeFileName( string name )
+		{
+			var invalid = System.IO.Path.GetInvalidFileNameChars();
+			var sb = new System.Text.StringBuilder();
+			foreach( var c in name )
+			{
+				sb.Append( Array.IndexOf( invalid, c ) >= 0 ? '_' : c );
+			}
+
+			// a trailing dot or space is legal to write and impossible to open afterwards
+			var res = sb.ToString().Trim( ' ', '.' );
+			return string.IsNullOrEmpty( res ) ? "_" : res;
+		}
 
 		public static bool BoolFromString( string boolString )
 		{

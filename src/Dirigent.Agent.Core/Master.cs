@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -23,6 +23,8 @@ namespace Dirigent
 		public IEnumerable<KeyValuePair<AppIdTuple, AppState>> GetAllAppsState() { return _allAppStates.AppStates; }
 		public PlanState? GetPlanState( string Id ) { if( _plans.Plans.TryGetValue(Id, out var x)) return x.State; else return null; }
 		public IEnumerable<KeyValuePair<string, PlanState>> GetAllPlansState() { return from x in _plans.Plans.Values select new KeyValuePair<string, PlanState>( x.Name, x.State ); }
+		public MachineDef? GetMachineDef( string Id ) { return _machineDefs.Find( x => x.Id == Id ); }
+		public IEnumerable<MachineDef> GetAllMachinesDef() { return _machineDefs; }
 		public ScriptState? GetScriptState( Guid Id ) { return _reflScripts.GetScriptState( Id ); }
 		public IEnumerable<KeyValuePair<Guid, ScriptState>> GetAllScriptsState() { return _reflScripts.GetAllScriptsState(); }
 		public AppDef? GetAppDef( AppIdTuple Id ) { if( _allAppDefs.AppDefs.TryGetValue(Id, out var x)) return x; else return null; }
@@ -34,6 +36,9 @@ namespace Dirigent
 		public VfsNodeDef? GetVfsNodeDef( Guid guid ) { return _files.GetVfsNodeDef(guid); }
 		public IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return _files.GetAllVfsNodesDef(); }
 		public string Name => string.Empty;
+
+		/// <summary>The machine the master runs on; always known, unlike the client name.</summary>
+		public string MachineId => _machineId;
 		
 		/// <summary>
 		/// Send to all subcribed. Does not change the sender.
@@ -74,9 +79,9 @@ namespace Dirigent
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 		private string _localIpAddr;
 		private int _port;
-        private IMasterServer _server;
+        private Server _server;
 		private CLIProcessor _cliProc;
-        private TelnetServer? _telnetServer;
+        private TelnetServer _telnetServer;
 		private AllClientStateRegistry _allClientStates;
 		private AllAppsStateRegistry _allAppStates;
 		private AllAppsDefRegistry _allAppDefs;
@@ -137,23 +142,7 @@ namespace Dirigent
             }
         }
 
-        // internal constructor for testing
-        internal Master( SharedConfig sharedConfig, AppConfig ac, string rootForRelativePaths, IMasterServer mockServer )
-        {
-            log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
-            InitializeCommon( ac, rootForRelativePaths );
-
-            // Use injected mock server
-            _server = mockServer;
-
-            // Skip TelnetServer and WebServer in tests
-            log.Info( "Master skipping TelnetServer and WebServer in test constructor." );
-
-            // Initialize from provided shared config
-            InitFromConfig( sharedConfig );
-        }
-
-        // Shared initialization between production and test constructors
+        // Shared initialization, kept from the refactor that introduced it
         [MemberNotNull(
             nameof(_localIpAddr), nameof(_allClientStates), nameof(_allAppStates), nameof(_allAppDefs), nameof(_plans),
             nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_defaultAppDefs),
@@ -203,7 +192,8 @@ namespace Dirigent
                         return state.IP;
                     }
                     return null;
-                }
+                },
+                ac.DownloadFolder
             );
 
             _swClientRefresh = new Stopwatch();
@@ -573,7 +563,7 @@ namespace Dirigent
 
 		}
 
-        internal void ProcessIncomingMessageAndHandleExceptions( Message msg )
+        void ProcessIncomingMessageAndHandleExceptions( Message msg )
 		{
 			if( _debug )
 			{
@@ -603,11 +593,11 @@ namespace Dirigent
 		/// </summary>
 		private class CLIClient : ICLIClient
 		{
-			IMasterServer _server;
+			Server _server;
 			string _requestor;
 			public string Name => "<master>";
 
-			public CLIClient( IMasterServer server, string requestor )
+			public CLIClient( Server server, string requestor )
 			{
 				_server = server;
 				_requestor = requestor;
@@ -776,7 +766,12 @@ namespace Dirigent
 		{
 			SharedConfig sharedConfig;
 			log.DebugFormat( "Loading shared config file '{0}'", fileName );
-			sharedConfig = new SharedConfigReader( System.IO.File.OpenText( fileName ) ).Config;
+			// the reader parses the whole document up front, so releasing the file right away
+			// keeps a reload from leaking a handle and from holding the config file open
+			using( var textReader = System.IO.File.OpenText( fileName ) )
+			{
+				sharedConfig = new SharedConfigReader( textReader ).Config;
+			}
 			_sharedConfigFileName = fileName;
 			return sharedConfig;
 		}

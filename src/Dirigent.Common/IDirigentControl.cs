@@ -85,6 +85,12 @@ namespace Dirigent
 		string Name { get; } 
 
 		/// <summary>
+		/// The machine this code runs on. An agent's client name is its machine id, so the default
+		/// is right for an agent; the master has no client name but does know its machine.
+		/// </summary>
+		string MachineId => Name;
+
+		/// <summary>
 		/// Send is guaranteed to be thread/task safe, is always executed immediately, non-blocking
 		/// </summary>
 		/// <param name="msg"></param>
@@ -136,6 +142,14 @@ namespace Dirigent
 
 		ScriptDef? GetScriptDef( Guid Id ) { return null; }
 		IEnumerable<ScriptDef> GetAllScriptsDef() { return new List<ScriptDef>(); }
+
+		/// <summary>
+		/// The machine as the config declares it - including the address the operator gave it, which
+		/// is what UNC paths are built from and the only address of a machine Dirigent is told rather
+		/// than observing.
+		/// </summary>
+		MachineDef? GetMachineDef( string Id ) { return null; }
+		IEnumerable<MachineDef> GetAllMachinesDef() { return new List<MachineDef>(); }
 
 		VfsNodeDef? GetVfsNodeDef( Guid guid ) { return null; }
 		IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return new List<VfsNodeDef>(); }
@@ -220,6 +234,7 @@ namespace Dirigent
 	public interface IDirigAsync
 	{
 		string Name { get; } 
+		string MachineId { get; }
 		Task SendAsync( Net.Message msg );
 		Task<ClientState?> GetClientStateAsync( string Id );
 		Task<IEnumerable<KeyValuePair<string, ClientState>>> GetAllClientsStateAsync();
@@ -235,6 +250,8 @@ namespace Dirigent
 		Task<IEnumerable<KeyValuePair<Guid, ScriptState>>> GetAllScriptsStateAsync();
 		Task<ScriptDef?> GetScriptDefAsync( Guid Id );
 		Task<IEnumerable<ScriptDef>> GetAllScriptsDefAsync();
+		Task<MachineDef?> GetMachineDefAsync( string Id );
+		Task<IEnumerable<MachineDef>> GetAllMachinesDefAsync();
 		Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid );
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );

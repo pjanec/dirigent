@@ -99,13 +99,28 @@ namespace Dirigent
 				// houskeeping
 				// forget those already dead or starting for too long time
 				const double ForgettableTimeout = 10.0;
+
+				// A script whose host died emits no final state, so its entry would stay Running for
+				// ever and anything following it would stay frozen at the last value. Six missed
+				// heartbeats: a running script repeats its state every 10 s (see ScriptRunner), so
+				// silence this long is not a quiet phase, it is a script that is no longer there.
+				const double StaleRunningTimeout = 60.0;
+
 				var now = DateTime.Now;
+				var silentFor = (now - p.LastAliveTime).TotalSeconds;
+
 				if( p.State.Status != EScriptStatus.Running )
 				{
-					if( (now - p.LastAliveTime).TotalSeconds > ForgettableTimeout )
+					if( silentFor > ForgettableTimeout )
 					{
 						toRemove.Add(p);
 					}
+				}
+				else if( silentFor > StaleRunningTimeout )
+				{
+					log.WarnFormat( "Forgetting script {0}: still marked Running but silent for {1:F0} s.",
+						p.Guid, silentFor );
+					toRemove.Add(p);
 				}
 			}
 
@@ -278,17 +293,20 @@ namespace Dirigent
 					}
 				}
 
+				// hearing from it at all is what keeps it alive here, whether or not it had anything
+				// new to say - a script in a long silent phase repeats its last state on a heartbeat
+				if( state.IsAlive )
+				{
+					LastAliveTime = DateTime.Now;
+				}
+
 				// if anything changed (like the text), update our cached state (which is queried via IDirigent)
 				if( state != State )
 				{
 					State.Status = state.Status;
 					State.Text = state.Text;
 					State.Data = state.Data;
-
-					if (state.IsAlive)
-					{
-						LastAliveTime = DateTime.Now;
-					}
+					State.Progress = state.Progress;
 				}
 			}
 		}

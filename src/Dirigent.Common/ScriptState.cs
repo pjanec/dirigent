@@ -39,18 +39,31 @@ namespace Dirigent
 		//[MessagePack.Key( 3 )]
 		public string? Data = null;
 
+		/// <summary>
+		/// How far the operation has got, 0..1. Null means "running, but with no idea how far" -
+		/// a progress indicator then has to show that rather than invent a number.
+		/// </summary>
+		/// <remarks>
+		/// Deliberately a field of its own rather than something inside <see cref="Data"/>: that is
+		/// script specific, and whoever draws a progress bar must not have to understand any
+		/// particular script to do it.
+		/// </remarks>
+		//[MessagePack.Key( 4 )]
+		public double? Progress = null;
+
 		public ScriptState() {}
-		
-		public ScriptState( EScriptStatus status, string? text=null, string? data=null )
+
+		public ScriptState( EScriptStatus status, string? text=null, string? data=null, double? progress=null )
 		{
 			Status = status;
 			Text = text;
 			Data = data;
+			Progress = progress;
 		}
 
 		public ScriptState Clone()
 		{
-			return new ScriptState( Status, Text, Data );
+			return new ScriptState( Status, Text, Data, Progress );
 		}
 
 		/// <summary>
@@ -68,6 +81,7 @@ namespace Dirigent
 			this.Status == other.Status &&
 			this.Text == other.Text &&
 			this.Data == other.Data && // just reference equality should be enough as the serializer always creates a new array
+			this.Progress == other.Progress &&
 			true;
 
 		// boilerplate

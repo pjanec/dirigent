@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -283,15 +283,17 @@ namespace Dirigent
 			a.MachineId = machineId;
 			a.AppId = appId;
 
-			var x = new 
+			var x = new
 			{
 				Guid = e.Attribute( "Guid" )?.Value,
 				Id = e.Attribute( "Id" )?.Value,
 				Title = e.Attribute( "Title" )?.Value,
+				AppIdTuple = e.Attribute( "AppIdTuple" )?.Value,
 				MachineId = e.Attribute( "MachineId" )?.Value,
 				AppId = e.Attribute( "AppId" )?.Value,
 				Groups = e.Attribute( "Groups" )?.Value,
 				Icon = e.Attribute( "Icon" )?.Value,
+				Description = e.Attribute( "Description" )?.Value,
 				Actions = LoadActions( e, machineId, appId ),
 			};
 
@@ -313,10 +315,21 @@ namespace Dirigent
 			if( x.Id is not null ) a.Id = x.Id;
 			
 			if( x.Title != null ) a.Title = x.Title;
+
+			// "AppIdTuple" sets both the machine and the app at once;
+			// the individual "MachineId"/"AppId" attributes (if any) still win over it
+			if( !string.IsNullOrEmpty( x.AppIdTuple ) )
+			{
+				var idTuple = new AppIdTuple( x.AppIdTuple );
+				a.MachineId = idTuple.MachineId;
+				a.AppId = idTuple.AppId;
+			}
+
 			if( x.MachineId != null ) a.MachineId = x.MachineId;
 			if( x.AppId != null ) a.AppId = x.AppId;
 			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Groups != null ) a.Groups = x.Groups;
+			if( x.Description != null ) a.Description = x.Description;
 
 			// add/replace actions
 			foreach( var item in x.Actions )
@@ -352,6 +365,11 @@ namespace Dirigent
 
 			if( x.Path is not null ) a.Path = x.Path;
 			if( x.Filter is not null ) a.Filter = x.Filter;
+
+			// applies to any node yielding files; not inherited by the children of a container,
+			// which are nodes in their own right and may live on another machine altogether
+			a.TailBytes = X.getLongAttr( e, "TailBytes", 0 );
+
 			a.Xml = xml.ToString();
 			a.Children.AddRange( x.Children );
 
@@ -395,6 +413,9 @@ namespace Dirigent
 				var vfsNode = (VfsNodeDef) a;
 				FillVfsNodeBase( ref vfsNode, e, machineId, appId );
 				a.Mask = e.Attribute( "Mask" )?.Value;
+				a.MaxFiles = X.getIntAttr( e, "MaxFiles", 0 );
+				a.MaxSeconds = X.getDoubleAttr( e, "MaxSeconds", 0 );
+				a.MaxTotalBytes = X.getLongAttr( e, "MaxTotalBytes", 0 );
 				a.IsContainer = true;
 				return a;
 			}
@@ -467,6 +488,8 @@ namespace Dirigent
 		{
 			var act = (ActionDef) a;
 			FillActionBase( ref act, e, machineId, appId );
+
+			a.AskComment = X.getBoolAttr( e, "AskComment", a.AskComment );
 			//var hostId = e.Attribute( "HostId" )?.Value;
 			//if (hostId != null) a.HostId = hostId;
 		}
@@ -655,7 +678,10 @@ namespace Dirigent
 				{
 					foreach( var depName in ad.Dependencies )
 					{
-						var depId = new AppIdTuple( depName );
+						// a dependency without a machine means one on the depending app's own machine, which
+						// is how AppLaunchPlanner reads it at run time; parsing it any other way here would
+						// reject a config that then works
+						var depId = AppIdTuple.fromString( depName, ad.Id.MachineId );
 						if( !AppExists( depId ) )
 						{
 		                    throw new UnknownDependencyException( $"{source}: {ad.Id}: Dependency {depName} not found." );
@@ -673,7 +699,10 @@ namespace Dirigent
 			{
 				foreach( var depName in ad.Dependencies )
 				{
-					var depId = new AppIdTuple( depName );
+					// same as above: a bare name means the depending app's own machine. Parsed without
+					// that default, the recursion below never found the dependency and a cycle written
+					// with bare names went undetected.
+					var depId = AppIdTuple.fromString( depName, ad.Id.MachineId );
 					if( depsUsed.ContainsKey( depId ) )
 					{
 		                throw new CircularDependencyException( $"{planDef.Name}: {ad.Id}: Circular dependency {depName} found." );

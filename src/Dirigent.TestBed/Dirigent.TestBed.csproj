@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Product>Dirigent</Product>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
+    <!-- the real text-command client, so a test can drive the CLI surface as an operator would -->
+    <ProjectReference Include="..\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj" />
+  </ItemGroup>
+
+</Project>

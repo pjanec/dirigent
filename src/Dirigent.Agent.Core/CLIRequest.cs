@@ -90,7 +90,9 @@ namespace Dirigent
 		{
 			uuid = null;
 			rest = null;
-			MatchCollection matches = Regex.Matches( s, @"\s*(?:\[(.*)\])?\s*(.*)" );
+			// the request id is lazy on purpose: greedy, it swallows everything up to the *last* "]"
+			// in the line, which mangles any request carrying a JSON array in its arguments
+			MatchCollection matches = Regex.Matches( s, @"\s*(?:\[(.*?)\])?\s*(.*)" );
 			if( matches.Count > 0 )
 			{
 				Match m = matches[0];
