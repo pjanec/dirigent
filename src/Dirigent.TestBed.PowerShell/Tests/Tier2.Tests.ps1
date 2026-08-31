@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Tier-2 tests: real Dirigent processes on this machine, driven over the command-line interface.
 
@@ -226,6 +226,76 @@ Test-Case 'logs from both machines are collected into one archive' {
         $leftovers = @( Get-ChildItem -Path $world.Manifest.DownloadFolder -Directory )
         Expect-Equal -Expected 0 -Actual $leftovers.Count `
             -Because "no folder is left in the download folder: $( ( $leftovers | ForEach-Object { $_.Name } ) -join ', ' )"
+    }
+    finally { Stop-DirigentWorld -World $world }
+}
+
+# ---- the shipped command line client --------------------------------------------------
+
+Test-Case 'Dirigent.CLI.exe answers and exits 0, as it always has' {
+    $world = Start-DirigentWorld -Scenario LoggingWorld
+    try
+    {
+        # a listing: the lines are printed and the END ends it
+        $lines = Invoke-DirigentCliExe -World $world -Command 'GetAllAppsState'
+        $code = $LASTEXITCODE
+        Expect-Equal -Expected 0 -Actual $code -Because "the exe reported success: $( $lines -join ' | ' )"
+        Expect-Match -Lines $lines -Pattern 'APP:m1.camera:*' -Because 'it printed what the master said'
+        Expect-Match -Lines $lines -Pattern 'END' -Because 'including the terminator'
+
+        # a simple command: one ACK
+        $lines = Invoke-DirigentCliExe -World $world -Command 'StartApp m1.camera'
+        $code = $LASTEXITCODE
+        Expect-Equal -Expected 0 -Actual $code -Because "starting an app succeeded: $( $lines -join ' | ' )"
+        Expect-Match -Lines $lines -Pattern 'ACK' -Because 'the master acknowledged it'
+
+        # and a command nobody knows is a failure, with the reason printed
+        $lines = Invoke-DirigentCliExe -World $world -Command 'NoSuchCommand'
+        $code = $LASTEXITCODE
+        Expect-Equal -Expected 4 -Actual $code -Because "an error is exit code 4: $( $lines -join ' | ' )"
+        Expect-Match -Lines $lines -Pattern 'ERROR*' -Because 'and it says what was wrong'
+    }
+    finally { Stop-DirigentWorld -World $world }
+}
+
+Test-Case 'Dirigent.CLI.exe waits for a script to finish before it returns' {
+    # What a plan step or a batch file needs: the exe must not report success at the ACK, which says
+    # only that the master accepted the command. It waits for the END that WaitForScript sends when
+    # the script is really over.
+    $world = Start-DirigentWorld -Scenario WaitingWorld
+    try
+    {
+        # a script waiting for a machine no agent serves - it cannot finish on its own. The relaxed
+        # JSON goes in single quotes, doubled inside, which is the form that survives both parsers
+        # (see docs/CLI.md).
+        $instance = [Guid]::NewGuid().ToString()
+        $hanging = "StartScript $instance BuiltIns/RunPlanWhenMachinesOnline.cs '{Plan:''never''}'" +
+                   " ; WaitForScript $instance timeout=4"
+
+        $lines = $null
+        $elapsed = Measure-Command { $script:lines = Invoke-DirigentCliExe -World $world -Command $hanging }
+        $code = $LASTEXITCODE
+
+        Expect-True -Condition ( $elapsed.TotalSeconds -ge 3 ) `
+            -Because ( "it waited for the script rather than returning at the ACK: " +
+                       "$( [int]$elapsed.TotalSeconds ) s, answered $( $script:lines -join ' | ' )" )
+        Expect-Equal -Expected 4 -Actual $code `
+            -Because "the wait timed out, which is a failed command: $( $script:lines -join ' | ' )"
+        Expect-Match -Lines $script:lines -Pattern 'ERROR*did not finish*' `
+            -Because 'and the reason is the timeout'
+
+        # and a script that does finish: success, once it is over
+        $instance = [Guid]::NewGuid().ToString()
+        $lines = Invoke-DirigentCliExe -World $world -Command `
+            "StartScript $instance BuiltIns/ListVfsNodes.cs ; WaitForScript $instance timeout=30"
+        $code = $LASTEXITCODE
+
+        Expect-Equal -Expected 0 -Actual $code -Because "the script finished: $( $lines -join ' | ' )"
+        Expect-Match -Lines $lines -Pattern 'END' -Because 'the wait ended with END'
+
+        $state = Invoke-DirigentCli -World $world -Command "GetScriptState $instance"
+        Expect-Match -Lines @( $state ) -Pattern '*Finished*' `
+            -Because "it really had finished by the time the exe returned: $state"
     }
     finally { Stop-DirigentWorld -World $world }
 }

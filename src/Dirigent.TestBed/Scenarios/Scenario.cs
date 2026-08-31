@@ -67,6 +67,18 @@ namespace Dirigent.TestBed.Scenarios
 		}
 
 		/// <summary>
+		/// The logging world plus a plan naming a machine no agent will ever serve.
+		/// </summary>
+		/// <remarks>
+		/// For anything that needs an operation which cannot finish on its own - a script waiting for
+		/// that plan's machines waits for ever, which is how a timeout or a wait is observed without
+		/// sleeping through a real one.
+		/// </remarks>
+		public static Scenario WaitingWorld()
+			=> LoggingWorld()
+				.RawXml( "<Plan Name='never'><App AppIdTuple='ghost.app' ExeFullPath='[cmd]'/></Plan>" );
+
+		/// <summary>
 		/// The presets addressable by name, for callers that get the name as text - the scenario
 		/// generator, and through it the tier-2 PowerShell driver.
 		/// </summary>
@@ -78,6 +90,7 @@ namespace Dirigent.TestBed.Scenarios
 			{ "TwoMachinesWithIdlers", TwoMachinesWithIdlers },
 			{ "LoggingApps", LoggingApps },
 			{ "LoggingWorld", LoggingWorld },
+			{ "WaitingWorld", WaitingWorld },
 		};
 
 		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Tier-2 test driver for Dirigent: brings up a world of real Dirigent processes on this machine
     and talks to it over the command-line interface, the way an operator or a CI job would.
@@ -315,6 +315,30 @@ function Get-DirigentWorldLog
 }
 
 # ---- talking to it --------------------------------------------------------------------
+
+function Invoke-DirigentCliExe
+{
+    <#
+    .SYNOPSIS
+        Runs the shipped Dirigent.CLI.exe against the world's master and returns what it printed.
+
+    .DESCRIPTION
+        Invoke-DirigentCli talks to the command port directly, which is what most tests want. This
+        one goes through the executable, so that its own read loop and exit code are what is being
+        tested - $LASTEXITCODE is left set for the caller to check.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $World,
+        [Parameter(Mandatory)][string] $Command
+    )
+
+    $exe = Get-DirigentTool -Project 'Dirigent.CLI' -Exe 'Dirigent.CLI.exe'
+
+    $output = & $exe '--masterIp' '127.0.0.1' '--CLIPort' $World.CliPort $Command 2>&1
+
+    return @( $output | ForEach-Object { "$_".Trim() } | Where-Object { $_ -ne '' } )
+}
 
 function Invoke-DirigentCli
 {
@@ -642,7 +666,7 @@ Export-ModuleMember -Function @(
     'Get-DirigentRepoRoot', 'Get-DirigentTool', 'Get-DirigentFreePort',
     'New-DirigentWorldFiles', 'Start-DirigentWorld', 'Stop-DirigentWorld',
     'Get-DirigentWorldProcesses', 'Get-DirigentWorldLog', 'Get-DirigentWorldSummary',
-    'Invoke-DirigentCli', 'Invoke-DirigentScript', 'Get-DirigentScriptState',
+    'Invoke-DirigentCli', 'Invoke-DirigentCliExe', 'Invoke-DirigentScript', 'Get-DirigentScriptState',
     'Wait-DirigentCondition', 'Wait-DirigentAppState',
     'Reset-TestResults', 'Set-TestFilter', 'Test-Case', 'Get-TestResults',
     'Expect-True', 'Expect-Equal', 'Expect-Match'
