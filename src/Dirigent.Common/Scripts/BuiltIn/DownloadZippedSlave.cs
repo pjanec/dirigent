@@ -71,6 +71,13 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 2 )]
 			public List<SerializedException> Exceptions = new();
 
+			/// <summary>
+			/// Things this machine was asked for and does not have. Kept apart from the exceptions
+			/// because they are not failures of the collection - see where they are collected.
+			/// </summary>
+			//[MessagePack.Key( 5 )]
+			public List<string> NotCollected = new();
+
 			/// <summary>How many files were cut at a mark rather than collected whole.</summary>
 			//[MessagePack.Key( 3 )]
 			public int MarkedFileCount;
@@ -121,6 +128,9 @@ namespace Dirigent.Scripts.BuiltIn
 		long _bytesDone;
 		long _bytesAtLastReport;
 
+		// what this machine was asked for and does not have; see TResult.NotCollected
+		readonly List<string> _notCollected = new();
+
 		// what the marks did to this collection, for the note that goes into the archive
 		int _markedFileCount;
 		DateTime? _earliestMark;
@@ -139,7 +149,7 @@ namespace Dirigent.Scripts.BuiltIn
 			_bytesTotal = TotalBytesToCollect( _args.Container! );
 			ReportProgress( null, force: true );
 
-			// exceptions gathered along the way (missing files etc.) - they do not stop the download
+			// exceptions gathered along the way - they do not stop the download
 			var exceptions = WriteArchive( destFileName );
 
 			// all done!
@@ -147,6 +157,7 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				ZipFileName = destFileName,
 				Exceptions = SerializedException.MkList( exceptions ),
+				NotCollected = _notCollected,
 				MarkedFileCount = _markedFileCount,
 				EarliestMark = _earliestMark,
 
@@ -367,6 +378,20 @@ namespace Dirigent.Scripts.BuiltIn
 						catch( OperationCanceledException )
 						{
 							throw; // a cancel ends the whole collection, it is not a per-file problem
+						}
+						catch( Exception e ) when ( e is FileNotFoundException or DirectoryNotFoundException )
+						{
+							// Named by the package, absent from the machine. Not a failure of the collection:
+							// a log that was never written and a dump folder on a machine that has never
+							// crashed are the ordinary state of affairs, and reporting them as errors trains
+							// the operator to ignore the errors. Said in the archive and told to the operator
+							// as something missing rather than as something broken - the same treatment a
+							// folder that could not be looked up gets.
+							var note = $"'{node.Path}' is named by the package but is not on"
+									+ $" {Dirig.Name}, so it is not in this archive.";
+
+							notes.Add( note );
+							_notCollected.Add( note );
 						}
 						catch (Exception e)
 						{

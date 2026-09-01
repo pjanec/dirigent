@@ -24,6 +24,7 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | A note from the operator, kept in the archive | done, 4 tests |
 | Clear / Mark / Unmark, and collecting one run | done, 16 tests in `Dirigent.CommonTests` + 14 at tier 1 |
 | Every sequence of those four, as a table | done, 22 tests at tier 1 (`MarkClearSequenceTests`) |
+| A package naming something that is not on the machine | done, 6 tests at tier 1 (`MissingTargetTests`) |
 | The CLI response protocol, as a characterisation suite | done, 11 tests at tier 1 |
 | A plan step waiting for a dirigent command (`cliresponse`) | done, 12 tests in `Dirigent.CommonTests` + 18 at tier 1 + 2 at tier 2 |
 

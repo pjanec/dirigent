@@ -502,16 +502,32 @@ namespace Dirigent
 				return null;
 
 			if ( defs.Count == 1 )
-				return await ResolveAsync( iDirig, defs[0], forceUNC, includeContent, usedGuids );
+			{
+				// Guarded like the many-node case below, and for the same reason - but the note has to
+				// name the node that failed rather than the reference that found it: a reference is
+				// written with wildcards ("every 'dump' node, on any machine"), and "'dump' on *"
+				// tells nobody which machine is missing the folder.
+				var single = EmptyFrom<VFolderDef>( fref );
+				single.IsContainer = true;
+
+				var resolvedSingle = await ResolveChild( iDirig, single, defs[0], forceUNC, usedGuids );
+
+				// the pack exists only to carry a note; when there is none, the node stands alone as
+				// it always did
+				return resolvedSingle ?? single;
+			}
 
 			{
 				var pack = new VFolderDef();
 				pack.Title = fref.Title;
 				if ( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Id;
 				if( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Guid.ToString();
+
+				// guarded one by one, like a container's children: a reference matching thirty nodes
+				// across two machines must not be lost to one of them - see ResolveChild
 				foreach( var def in defs )
 				{
-					var resolved = await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+					var resolved = await ResolveChild( iDirig, pack, def, forceUNC, usedGuids );
 					if( resolved is not null )
 						pack.Children.Add( resolved );
 				}
@@ -600,7 +616,7 @@ namespace Dirigent
 			// FIXME: group children by machineId, resolve whole group by single remote script call
 			foreach ( var child in folderDef.Children )
 			{
-				var resolved = await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
+				var resolved = await ResolveChild( iDirig, rootNode, child, forceUNC, usedGuids );
 				if( resolved is not null )
 				{
 					rootNode.Children.Add( resolved );
@@ -608,6 +624,58 @@ namespace Dirigent
 			}
 
 			return rootNode;
+		}
+
+		/// <summary>
+		/// Resolves one member of a container, turning a failure into a note on the container rather
+		/// than into a failure of the whole thing.
+		/// </summary>
+		/// <remarks>
+		/// A package is a list of things the operator asked for, and the things are independent: a
+		/// folder that is not on this machine, a machine whose shares are unknown, an application that
+		/// has never crashed and therefore has no CrashDumps folder. Before this, any one of those
+		/// aborted the resolution of the whole package - so a system-wide collection could be lost to
+		/// a folder that has never existed on one machine, which is at its most likely just after an
+		/// incident, when the collection matters most.
+		///
+		/// The note travels with the tree into the archive's _incomplete.txt, so that an archive which
+		/// lacks something says so. Resolving a node on its own still fails out loud: there the caller
+		/// asked for that one thing and there is nothing else to deliver.
+		/// </remarks>
+		async Task<VfsNodeDef?> ResolveChild( IDirigAsync iDirig, VfsNodeDef parent, VfsNodeDef child,
+				bool forceUNC, List<Guid>? usedGuids )
+		{
+			try
+			{
+				return await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
+			}
+			catch( Exception ex )
+			{
+				var note = $"{DescribeForNote( child )} could not be looked up, so nothing of it is here:"
+						+ $" {Tools.JustFirstLine( ex.Message )}";
+
+				log.Warn( $"Could not resolve {child}: {ex.Message}" );
+				( parent.Notes ??= new List<string>() ).Add( note );
+
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// A node as a person would name it - for a note read by somebody holding the archive and
+		/// nothing else, so it says which machine and which application it belonged to.
+		/// </summary>
+		static string DescribeForNote( VfsNodeDef node )
+		{
+			var name = !string.IsNullOrEmpty( node.Title ) ? node.Title
+					 : !string.IsNullOrEmpty( node.Id ) ? node.Id
+					 : node.Path ?? node.Guid.ToString();
+
+			var where = string.Empty;
+			if( !string.IsNullOrEmpty( node.AppId ) ) where += $" of {node.AppId}";
+			if( !string.IsNullOrEmpty( node.MachineId ) ) where += $" on {node.MachineId}";
+
+			return $"'{name}'{where}";
 		}
 
 		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
@@ -636,8 +704,11 @@ namespace Dirigent
 			}
 			catch( Exception ex ) // folder not exists or not accessible?
 			{
-				log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-				return null;
+				// Not swallowed any more. As a member of a container this becomes a note there and
+				// the rest of the package is collected as usual; asked for on its own it fails, which
+				// is the honest answer to "give me this folder" when the folder is not there.
+				log.Debug( $"ResolveFolder failed: {folderDef} Error: {ex.Message}" );
+				throw;
 			}
 
 			// what the size budget pushed out is worth saying out loud - the user asked for those files

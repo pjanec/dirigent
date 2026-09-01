@@ -28,6 +28,7 @@ Contents:
   * [Association: app, machine or global](#association-app-machine-or-global)
   * [Where nodes can be declared](#where-nodes-can-be-declared)
   * [Resolution](#resolution)
+  * [When something is not there](#when-something-is-not-there)
   * [UNC paths and file shares](#unc-paths-and-file-shares)
 * [XML reference](#xml-reference)
   * [Attributes common to all node types](#attributes-common-to-all-node-types)
@@ -142,6 +143,32 @@ The result is a tree containing only virtual folders and concrete file paths. Pa
 returned from the perspective of the *requesting* machine: files on other machines, and all
 global files, come back as UNC paths; files on the requestor's own machine come back as plain
 local paths.
+
+### When something is not there
+
+A package names things that need not all exist: a crash-dump folder on a machine that has never
+crashed, a log an application has not written yet, a machine that is offline. **One member that
+cannot be delivered never costs you the rest.**
+
+| what is missing | what happens |
+| --- | --- |
+| the folder of a `<Folder>` or a `<File Filter="Newest">` | the node is left out of the resolved tree |
+| the file of a plain `<File>` | the node resolves, and the collection finds nothing to add |
+| a whole machine (offline) | reported per machine, the others still collect |
+
+In every case the collection carries on, and what was named but not delivered is recorded in two
+places:
+
+* **`_incomplete.txt`** inside the archive, naming the node, the machine and the reason - so that an
+  archive which lacks something says so, months later, to somebody who has only the zip;
+* the **closing message** of the download, under *Not in the archive*, so that the operator standing
+  there hears it too.
+
+Neither is reported as an error. A dump folder that does not exist is the ordinary state of a machine
+that has not crashed, and reporting it as a failure teaches the operator to ignore failures.
+
+Asked for **on its own**, a `<Folder>` or `<File Filter="Newest">` whose folder is missing fails
+instead - there the caller wanted that one thing and there is nothing else to hand back.
 
 ### UNC paths and file shares
 

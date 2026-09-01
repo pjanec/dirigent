@@ -58,6 +58,13 @@ namespace Dirigent.Scripts.BuiltIn
 			/// A download does not fail as a whole because one machine or one file did.
 			/// </summary>
 			public List<string> Errors = new();
+
+			/// <summary>
+			/// Things the package asked for that are not in the archive - a folder that is not on the
+			/// machine, most often. Not errors: the collection did what it could, and this is what it
+			/// could not.
+			/// </summary>
+			public List<string> NotCollected = new();
 		}
 
 		class SlaveTask
@@ -145,6 +152,11 @@ namespace Dirigent.Scripts.BuiltIn
 				if (string.IsNullOrEmpty( title )) title = titleSource.Id;
 				if (string.IsNullOrEmpty( title )) title = "file";
 				container.Title = title;
+
+				// What the resolution could not find. Kept before the machines add their own notes, so
+				// that this is about the lookup only - a package naming a folder that does not exist
+				// on one machine still collects everything else, and this is how anybody hears of it.
+				CollectNotes( container, result.NotCollected );
 
 				// collect all individual machines
 				var allMachines = new HashSet<string>();
@@ -310,6 +322,11 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					result.Machines.Add( st.MachineName );
 
+					// what that machine was asked for and does not have - not an error, see
+					// DownloadZippedSlave.TResult.NotCollected
+					if( st.Result is not null )
+						result.NotCollected.AddRange( st.Result.NotCollected );
+
 					if( st.Result!=null && st.Result.Exceptions.Count > 0 )
 					{
 						hadErrors = true;
@@ -391,6 +408,14 @@ namespace Dirigent.Scripts.BuiltIn
 
 				var infoMsg = downloadedFiles.Count > 0 ? $"Files downloaded:\n\n" : $"No files downloaded.\n";
 				foreach (var x in downloadedFiles) infoMsg += $"    {x}\n";
+
+				// said plainly rather than as an error: the archive is fine, it just holds less than
+				// the package names, and whoever opens it later would otherwise never know
+				if( result.NotCollected.Count > 0 )
+				{
+					infoMsg += $"\nNot in the archive ({result.NotCollected.Count}):\n";
+					foreach( var note in result.NotCollected ) infoMsg += $"    {note}\n";
+				}
 
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
@@ -903,6 +928,15 @@ namespace Dirigent.Scripts.BuiltIn
 			=> clientStates.TryGetValue( machineId, out var state )
 				&& state.Connected
 				&& ( state.Ident?.IsAgent ?? false );
+
+		/// <summary>Everything the tree has to say about what it could not deliver.</summary>
+		static void CollectNotes( VfsNodeDef node, List<string> notes )
+		{
+			if( node.Notes is not null ) notes.AddRange( node.Notes );
+
+			foreach( var child in node.Children )
+				CollectNotes( child, notes );
+		}
 
 		void CollectMachines( VfsNodeDef container, HashSet<string> allMachines )
 		{
