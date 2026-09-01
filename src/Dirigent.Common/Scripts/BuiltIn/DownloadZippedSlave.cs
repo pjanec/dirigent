@@ -80,6 +80,13 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			//[MessagePack.Key( 4 )]
 			public DateTime? EarliestMark;
+
+			/// <summary>
+			/// What drew those lines - "Clear" or "Mark" - or empty if the files disagree, which
+			/// happens when somebody marked, then cleared only part of the system.
+			/// </summary>
+			//[MessagePack.Key( 5 )]
+			public string MarkedBy = string.Empty;
 		}
 
 		/// <summary>
@@ -117,6 +124,7 @@ namespace Dirigent.Scripts.BuiltIn
 		// what the marks did to this collection, for the note that goes into the archive
 		int _markedFileCount;
 		DateTime? _earliestMark;
+		readonly HashSet<string> _markedBy = new( StringComparer.OrdinalIgnoreCase );
 
 		protected override Task<string?> Run()
 		{
@@ -141,6 +149,9 @@ namespace Dirigent.Scripts.BuiltIn
 				Exceptions = SerializedException.MkList( exceptions ),
 				MarkedFileCount = _markedFileCount,
 				EarliestMark = _earliestMark,
+
+				// one word only when every file agrees; a mixture is not worth naming
+				MarkedBy = _markedBy.Count == 1 ? _markedBy.First() : string.Empty,
 			};
 			return Task.FromResult( Tools.Serialize(result) )!;
 		}
@@ -475,8 +486,13 @@ namespace Dirigent.Scripts.BuiltIn
 				_markedFileCount++;
 
 				var mark = MarkStore?.Get( filePath );
-				if( mark is not null && ( _earliestMark is null || mark.MarkedAt < _earliestMark ) )
-					_earliestMark = mark.MarkedAt;
+				if( mark is not null )
+				{
+					if( _earliestMark is null || mark.MarkedAt < _earliestMark )
+						_earliestMark = mark.MarkedAt;
+
+					_markedBy.Add( FileMarkStore.OperationOf( mark ) );
+				}
 			}
 
 			if( truncate )

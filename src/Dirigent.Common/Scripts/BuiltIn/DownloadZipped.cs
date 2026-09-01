@@ -771,10 +771,16 @@ namespace Dirigent.Scripts.BuiltIn
 			var files = marks.Sum( x => x.MarkedFileCount );
 			var earliest = marks.Where( x => x.EarliestMark.HasValue ).Min( x => x.EarliestMark );
 
+			// Named after what somebody actually clicked. A Clear cannot empty a log that is being
+			// written to, so it draws the line instead - and an archive that then talks about a "mark"
+			// reads as though the Clear had not run.
+			var by = marks.Select( x => x.MarkedBy ).Where( x => !string.IsNullOrEmpty( x ) ).Distinct().ToList();
+			var drawnBy = by.Count == 1 ? by[0] : "Clear or Mark";
+
 			return earliest.HasValue
 					? $"Since     : {earliest:yyyy-MM-dd HH:mm:ss} - {files} file(s) hold only what was"
-						+ $" written after the mark of that time; the rest are complete."
-					: $"Since     : {files} file(s) hold only what was written after they were marked.";
+						+ $" written after the {drawnBy} of that time; the rest are complete."
+					: $"Since     : {files} file(s) hold only what was written after the {drawnBy}.";
 		}
 
 		/// <summary>

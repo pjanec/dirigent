@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Dirigent
 {
@@ -40,6 +41,17 @@ namespace Dirigent
 
 			/// <summary>When the mark was made, for the archive to say which run it delimits.</summary>
 			public DateTime MarkedAt;
+
+			/// <summary>
+			/// What put it there - "Clear" or "Mark". Empty in a store written before this was kept.
+			/// </summary>
+			/// <remarks>
+			/// Worth a word in the archive: somebody who ran a Clear does not expect to read about a
+			/// "mark" afterwards, and wonders whether the Clear did anything. It did - a log that is
+			/// being written to cannot be emptied, so a Clear draws the line instead, which is how it
+			/// keeps its promise that the next collection holds only what came after it.
+			/// </remarks>
+			public string MadeBy = string.Empty;
 
 			/// <summary>
 			/// The last few bytes before the mark, as they were when it was made. Null if the file was
@@ -108,7 +120,8 @@ namespace Dirigent
 		/// Marks the file at its current length. Returns the mark, or null if the file could not be
 		/// looked at - which the caller reports rather than swallows.
 		/// </summary>
-		public Mark? MarkFile( string path )
+		/// <param name="madeBy">the operation drawing the line - "Clear" or "Mark"</param>
+		public Mark? MarkFile( string path, string madeBy = "Mark" )
 		{
 			try
 			{
@@ -120,6 +133,7 @@ namespace Dirigent
 					Offset = info.Length,
 					CreatedUtc = info.CreationTimeUtc,
 					MarkedAt = DateTime.Now,
+					MadeBy = madeBy,
 					Fingerprint = ReadFingerprint( path, info.Length ),
 				};
 
@@ -132,6 +146,12 @@ namespace Dirigent
 				return null;
 			}
 		}
+
+		/// <summary>
+		/// The operation a mark came from, as a word for a person to read.
+		/// </summary>
+		public static string OperationOf( Mark mark )
+			=> string.IsNullOrEmpty( mark.MadeBy ) ? "mark" : mark.MadeBy;
 
 		/// <summary>Forgets the mark of a file. True if there was one.</summary>
 		public bool Unmark( string path )
@@ -218,6 +238,8 @@ namespace Dirigent
 				var folder = Path.GetDirectoryName( _filePath );
 				if( !string.IsNullOrEmpty( folder ) ) Directory.CreateDirectory( folder );
 
+				DropMarksOfFilesThatAreGone();
+
 				Content content;
 				lock( _lock ) content = new Content() { Marks = new Dictionary<string, Mark>( _marks ) };
 
@@ -229,6 +251,46 @@ namespace Dirigent
 			{
 				log.Error( $"Could not write the file marks to '{_filePath}': {e.Message}" );
 			}
+		}
+
+		/// <summary>
+		/// Forgets the marks of files that are no longer there.
+		/// </summary>
+		/// <remarks>
+		/// A line drawn under a file that has since vanished says nothing true about whatever may
+		/// appear under that name later, so it is only a trap - and one nothing else would clear
+		/// away: a rotated-out log leaves the resolution of its node altogether, so a later Clear or
+		/// Mark never visits it and never has the chance to drop its mark by hand.
+		///
+		/// A file that is only briefly absent - caught mid-rotation - loses its mark too, and that is
+		/// the right way round: the next collection then takes it whole rather than cutting it at an
+		/// offset that may no longer mean anything.
+		///
+		/// Done when the marks are written, which is when somebody is redrawing the lines anyway.
+		/// </remarks>
+		void DropMarksOfFilesThatAreGone()
+		{
+			List<string> gone;
+
+			lock( _lock )
+			{
+				gone = _marks.Keys.Where( path => !Exists( path ) ).ToList();
+				foreach( var path in gone ) _marks.Remove( path );
+			}
+
+			if( gone.Count > 0 )
+				log.Debug( $"Forgot the marks of {gone.Count} file(s) that are no longer there." );
+		}
+
+		/// <summary>
+		/// Whether the file is there. A path we cannot even look at counts as present - being unable
+		/// to see a file is not evidence that it is gone, and forgetting a mark on that basis would
+		/// quietly widen the next collection.
+		/// </summary>
+		static bool Exists( string path )
+		{
+			try { return File.Exists( path ); }
+			catch { return true; }
 		}
 
 		/// <summary>
@@ -245,22 +307,25 @@ namespace Dirigent
 			var mark = Get( path );
 			if( mark is null ) return ( 0, null );
 
+			// named for what the operator actually did, not for the mechanism underneath
+			var drawn = $"{OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}";
+
 			if( mark.CreatedUtc != currentCreatedUtc )
-				return ( 0, $"the whole file: it was replaced since the mark of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}" );
+				return ( 0, $"the whole file: it was replaced since the {drawn}" );
 
 			if( currentLength < mark.Offset )
-				return ( 0, $"the whole file: it was truncated or rotated since the mark of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}" );
+				return ( 0, $"the whole file: it was truncated or rotated since the {drawn}" );
 
 			// same name, same creation time, long enough - and still a different file; see
 			// Mark.Fingerprint for how Windows manages that
 			if( !FingerprintMatches( path, mark ) )
-				return ( 0, $"the whole file: it was replaced since the mark of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}" );
+				return ( 0, $"the whole file: it was replaced since the {drawn}" );
 
 			// a file that was empty when it was marked is collected whole, and there is nothing to
 			// explain about that - saying "from byte 0" would only puzzle the reader
 			if( mark.Offset <= 0 ) return ( 0, null );
 
-			return ( mark.Offset, $"written after the mark of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss} (byte {mark.Offset})" );
+			return ( mark.Offset, $"written after the {drawn} (byte {mark.Offset})" );
 		}
 	}
 }

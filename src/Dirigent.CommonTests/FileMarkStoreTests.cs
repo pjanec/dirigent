@@ -111,7 +111,7 @@ namespace Dirigent.Tests
 			var (offset, note) = store.WhereToStart( path, info.Length, info.CreationTimeUtc );
 
 			Assert.AreEqual( 7L, offset, "only what was written after the mark" );
-			StringAssert.Contains( note!, "mark", "and the entry says so" );
+			StringAssert.Contains( note!, "Mark of", "and the entry says which operation drew the line" );
 		}
 
 		[TestMethod()]
@@ -198,6 +198,45 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void TheNoteNamesTheOperationThatDrewTheLineTest()
+		{
+			// Somebody who ran a Clear does not expect to read about a "mark" afterwards, and wonders
+			// whether the Clear did anything. It did: a log being written to cannot be emptied, so the
+			// Clear drew the line instead - and the archive should say so in those words.
+			var path = WriteFile( "app.log", "before\n" );
+			var store = Store();
+			store.MarkFile( path, "Clear" );
+
+			File.AppendAllText( path, "after\n" );
+			var info = new FileInfo( path );
+
+			var (offset, note) = store.WhereToStart( path, info.Length, info.CreationTimeUtc );
+
+			Assert.AreEqual( 7L, offset );
+			StringAssert.Contains( note!, "Clear", $"the operator ran a Clear, not a mark: {note}" );
+			Assert.IsFalse( note!.Contains( "the mark of" ), $"and should not be told otherwise: {note}" );
+		}
+
+		[TestMethod()]
+		public void AMarkFromAnOlderVersionIsStillReadableTest()
+		{
+			// a store written before the operation was recorded: the offset is what matters, and the
+			// note falls back to the neutral word
+			var path = WriteFile( "app.log", "before\n" );
+			var store = Store();
+			var mark = store.MarkFile( path )!;
+			mark.MadeBy = string.Empty;
+
+			File.AppendAllText( path, "after\n" );
+			var info = new FileInfo( path );
+
+			var (offset, note) = store.WhereToStart( path, info.Length, info.CreationTimeUtc );
+
+			Assert.AreEqual( 7L, offset );
+			StringAssert.Contains( note!, "mark", note );
+		}
+
+		[TestMethod()]
 		public void UnmarkRestoresTheWholeHistoryTest()
 		{
 			var path = WriteFile( "app.log", "before\n" );
@@ -210,6 +249,30 @@ namespace Dirigent.Tests
 
 			var info = new FileInfo( path );
 			Assert.AreEqual( 0L, store.WhereToStart( path, info.Length, info.CreationTimeUtc ).Offset );
+		}
+
+		[TestMethod()]
+		public void SavingForgetsTheMarksOfFilesThatAreGoneTest()
+		{
+			// The marks of vanished files are otherwise immortal: a rotated-out log leaves its node's
+			// resolution, so no later Clear or Mark ever visits it to drop the line by hand. What is
+			// left is a trap - an offset waiting for a file of the same name to appear.
+			var kept = WriteFile( "app.log", "one\n" );
+			var vanishing = WriteFile( "old.log", "two\n" );
+
+			var store = Store();
+			store.MarkFile( kept );
+			store.MarkFile( vanishing );
+			store.Save();
+
+			Assert.IsNotNull( Store().Get( vanishing ), "both were written" );
+
+			File.Delete( vanishing );
+			store.Save();
+
+			var reloaded = Store();
+			Assert.IsNotNull( reloaded.Get( kept ), "the file that is still there keeps its line" );
+			Assert.IsNull( reloaded.Get( vanishing ), "the one that is gone does not" );
 		}
 
 		[TestMethod()]

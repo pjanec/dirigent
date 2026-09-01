@@ -187,10 +187,17 @@ namespace Dirigent.Scripts.BuiltIn
 
 			if( !File.Exists( path ) )
 			{
-				// a log not written yet needs nothing done to it: with no mark, the collection takes
-				// it whole, which is exactly what came out of this run
+				// A log not written yet needs no line drawn under it: with no mark the collection
+				// takes it whole, which is exactly what came out of this run. Any mark it does carry
+				// is from a file that no longer exists, so it says nothing true about the one that
+				// may appear here later - and leaving it would silently cut the beginning off the
+				// next collection.
+				if( _marks!.Unmark( path! ) )
+					_result.Details.Add( $"Not there; dropped the line drawn under the file that was: {path}" );
+				else
+					_result.Details.Add( $"Not there: {path}" );
+
 				_result.Absent++;
-				_result.Details.Add( $"Not there: {path}" );
 				return;
 			}
 
@@ -202,7 +209,7 @@ namespace Dirigent.Scripts.BuiltIn
 				return;
 			}
 
-			MarkOnly( path!, "Marked" );
+			MarkOnly( path!, "Marked", "Mark" );
 		}
 
 		/// <summary>
@@ -229,8 +236,12 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 			catch( IOException e )
 			{
-				// held open by somebody - the normal state of a log on a running system
-				MarkOnly( path, "In use, marked instead of cleared" );
+				// Held open by somebody - the normal state of a log on a running system. The mark is
+				// how a Clear keeps its promise for such a file: nothing already in it is collected
+				// again, so the next download holds what was written from now on. It is recorded as
+				// the Clear's doing, so the archive can say so rather than talk about a "mark" the
+				// operator never asked for.
+				MarkOnly( path, "In use, marked instead of cleared", "Clear" );
 				log.Debug( $"Could not open '{path}' exclusively ({e.Message}); marked instead." );
 				return;
 			}
@@ -253,9 +264,9 @@ namespace Dirigent.Scripts.BuiltIn
 			_result.Details.Add( deleted ? $"Deleted {path}" : $"Emptied {path}" );
 		}
 
-		void MarkOnly( string path, string what )
+		void MarkOnly( string path, string what, string madeBy )
 		{
-			var mark = _marks!.MarkFile( path );
+			var mark = _marks!.MarkFile( path, madeBy );
 			if( mark is null )
 			{
 				_result.Failed++;

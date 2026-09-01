@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using Dirigent.TestBed;
 using Dirigent.TestBed.Scenarios;
@@ -95,7 +95,7 @@ namespace Dirigent.IntegrationTests
 			var header = text.Split( '\n' )[0];
 
 			StringAssert.Contains( header, "Dirigent", $"header line: {header}" );
-			StringAssert.Contains( header, "mark", $"header line: {header}" );
+			StringAssert.Contains( header, "Mark of", $"header line: {header}" );
 			StringAssert.Contains( header, "not included", $"header line: {header}" );
 		}
 
@@ -144,6 +144,78 @@ namespace Dirigent.IntegrationTests
 			var recorder = Archive.TextOf( archive, "recorder/app.log" );
 			Assert.AreEqual( "recorder: THE RUN\n", recorder.Replace( "\r\n", "\n" ),
 				"a cleared file needs no header - all of it is the run" );
+		}
+
+		[TestMethod()]
+		public async Task TheArchiveSaysAClearDrewTheLineNotAMark()
+		{
+			// Reported from the field: somebody ran a Clear, downloaded, and the archive talked about
+			// a "mark" - which reads as though the Clear had not run. It had: a log being written to
+			// cannot be emptied, so the Clear draws the line instead, and that is how it keeps its
+			// promise. The archive now says so in the words of the operation that was actually run.
+			using var bed = await StartBed();
+
+			var package = await bed.Operator.GetVfsNodeAsync( "run.pkg" );
+			var cameraLog = Worlds.LogOf( bed, "m1", "camera" );
+
+			using( var held = new FileStream( cameraLog, FileMode.Open, FileAccess.Write,
+											FileShare.ReadWrite | FileShare.Delete ) )
+			{
+				var cleared = await bed.Operator.ClearFilesAsync( package, timeout: Timeout );
+				Assert.AreEqual( 1, cleared.Marked, "the held log gets a line drawn under it" );
+			}
+
+			File.AppendAllText( cameraLog, "camera: THE RUN\n" );
+
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var archive = TheArchive( bed );
+
+			var note = Archive.TextOf( archive, "_comment.txt" );
+			StringAssert.Contains( note, "Clear",
+				$"the operator ran a Clear, so the archive should say Clear:\n{note}" );
+
+			var header = Archive.TextOf( archive, "camera/app.since-mark.log" ).Split( '\n' )[0];
+			StringAssert.Contains( header, "Clear", $"and so should the entry: {header}" );
+		}
+
+		[TestMethod()]
+		public async Task AClearForgetsTheLineDrawnUnderAFileThatIsGone()
+		{
+			// A line drawn under a file that has since vanished says nothing true about whatever
+			// appears under that name later. Two things keep that from cutting the next collection
+			// short, and this pins the outcome they exist for: the mark is dropped when the marks are
+			// next written (see FileMarkStoreTests - nothing else would, since a file that is gone
+			// leaves its node's resolution and no Clear visits it by name again), and a mark that did
+			// survive would be recognised as stale by the file's identity anyway.
+			using var bed = await StartBed();
+
+			var package = await bed.Operator.GetVfsNodeAsync( "run.pkg" );
+			var cameraLog = Worlds.LogOf( bed, "m1", "camera" );
+
+			await bed.Operator.MarkFilesAsync( package, timeout: Timeout );
+
+			// the file goes away behind Dirigent's back, as a rotation or a tidy-up would take it
+			File.Delete( cameraLog );
+
+			await bed.Operator.ClearFilesAsync( package, timeout: Timeout );
+
+			// the application starts writing again, under the same name
+			File.WriteAllText( cameraLog, "camera: THE RUN" + Environment.NewLine );
+
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var archive = TheArchive( bed );
+			var entries = Archive.EntriesOf( archive );
+
+			Assert.IsTrue( entries.Any( e => e.EndsWith( "camera/app.log", StringComparison.OrdinalIgnoreCase ) ),
+				$"no line under it any more, so it arrives whole and under its own name: "
+				+ $"{string.Join( ", ", entries )}" );
+
+			var camera = Archive.TextOf( archive, "camera/app.log" );
+			StringAssert.Contains( camera, "camera: THE RUN" );
+			Assert.IsFalse( camera.Contains( "Dirigent:" ),
+				$"and with no header, because nothing was cut:\n{camera}" );
 		}
 
 		[TestMethod()]

@@ -389,6 +389,16 @@ folders: it opens the file **exclusively**, which succeeds only when no other pr
   file has no mark, so the download takes it whole, which is exactly "since the clear".
 * The open **fails** - something is writing - so the file is marked instead, and the report says so.
 
+**A Clear on a running system therefore leaves marks, and that is how it keeps its promise.** A log
+being written to cannot be emptied, so the line under it is what makes the next download hold only
+what came after the Clear. The count of marked files in the closing message says how many; the
+archive names the operation - "written after the Clear of 15:32:10" - rather than talking about a
+"mark" nobody asked for.
+
+The only marks a Clear leaves behind are its own: it drops the mark of every file it empties, and the
+marks of files that have vanished altogether are forgotten when the marks are next written. So after
+a Clear, no mark can refer to a file that is not there.
+
 **Mark** is the same operation with the destructive half removed, which is what a production site
 wants: the run is delimited and the history survives. **Unmark** ignores `Clearable`, being the one
 operation that can only ever make a later collection *more* complete.
@@ -415,12 +425,15 @@ new file, so it arrives whole, and `app.log.1` was never marked, so it arrives w
 towards too much is the right direction, and `_incomplete.txt` says why.
 
 A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - and its first line
-states the offset and the mark's time, exactly as a `TailBytes` entry does. `_comment.txt` gains a
-line naming the beginning of the window:
+states the offset and the time and operation the line was drawn by, exactly as a `TailBytes` entry
+states its own reason. `_comment.txt` gains a line naming the beginning of the window:
 
 ```
-Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the mark of that time; the rest are complete.
+Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the Clear of that time; the rest are complete.
 ```
+
+It says `Clear` or `Mark`, whichever was run - or "Clear or Mark" where the files disagree, which
+happens when part of the system was marked and part of it cleared.
 
 Marks and `TailBytes` compose: a file starts at whichever cut is later, and the entry is named and
 headed after whichever of the two was binding. Downloading does **not** consume the mark - two
