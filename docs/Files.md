@@ -413,6 +413,29 @@ its old contents and the archive would look wrong for no visible reason.
 All three work on a whole package, on a single node, and on one row of the Files tab - wherever the
 action is declared.
 
+#### What one operation does after another
+
+Written out because it is what everybody asks. `A` and `B` stand for lines written to a log, and the
+last column is what the archive holds:
+
+| what was done | collected | |
+| --- | --- | --- |
+| `A B`, download | `A B` | with no line drawn, everything |
+| `A` **Mark** `B`, download | `B` | the run, and only the run |
+| `A` **Clear** `B`, download | `B` | the same, whether the file was emptied or only marked |
+| `A` **Mark** `B` **Unmark** `C`, download | `A B C` | Unmark lifts the line; the history is back |
+| `A` **Mark** `B` **Mark** `C`, download | `C` | the later line wins |
+| `A` **Mark** `B` **Clear** `C`, download | `C` | so does a Clear after a Mark |
+| `A` **Clear** `B` **Mark** `C`, download | `C` | and a Mark after a Clear |
+| `A` **Clear** `B` **Unmark** `C`, download | `B C` | all of the file the Clear left behind |
+| `A` **Unmark** `B`, download | `A B` | an Unmark with no line to lift changes nothing |
+| `A` **Mark** `B`, download, download | `B` twice | a download reads the line, it does not consume it |
+| `A` **Mark** `B`, *rotation*, `C`, download | `C` | the new file arrives whole - see below |
+| any of the above on a file that is not `Clearable` | everything | no line is ever drawn under it |
+
+Every row of that table is a test - `MarkClearSequenceTests` in the integration tests - so it says
+what Dirigent does rather than what it was meant to do.
+
 #### What the download does with a mark
 
 | what it finds | what it collects |
@@ -425,6 +448,10 @@ action is declared.
 Rotation therefore yields slightly **more** than the window, never less: the fresh `app.log` is a
 new file, so it arrives whole, and `app.log.1` was never marked, so it arrives whole too. Failing
 towards too much is the right direction, and `_incomplete.txt` says why.
+
+A file with **nothing** after the line is left out of the archive altogether, and `_incomplete.txt`
+says so: an empty entry would read as a log that is empty, rather than as one whose contents all
+predate the run.
 
 A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - and its first line
 states the offset and the time and operation the line was drawn by, exactly as a `TailBytes` entry

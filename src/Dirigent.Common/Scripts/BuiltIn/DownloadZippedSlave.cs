@@ -453,6 +453,38 @@ namespace Dirigent.Scripts.BuiltIn
 			var (rawStart, byMark, markNote) = WhereToStart( node, info );
 			var truncate = rawStart > 0;
 
+			// The share flags are not optional here:
+			//  - ReadWrite, because a log file is typically held open for writing by the application
+			//    producing it, and an open that does not permit that access is refused;
+			//  - Delete, because we now hold the file open for the whole time it takes to compress it
+			//    (minutes, for a huge log) rather than for a quick copy, and without it a logger
+			//    rotating its file in that window would fail to rename it.
+			// Opened before anything is put into the archive, so that an unreadable file leaves no
+			// empty entry behind.
+			using var src = new FileStream( filePath, FileMode.Open, FileAccess.Read,
+											FileShare.ReadWrite | FileShare.Delete );
+
+			// where the collection begins, and therefore how much of the file there is to collect
+			long startedAt = 0;
+			if( truncate ) startedAt = FileTail.SeekToStart( src, rawStart );
+			var taken = src.Length - startedAt;
+
+			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
+			var mark = byMark ? MarkStore?.Get( filePath ) : null;
+			var drawnBy = mark is not null
+					? $"the {FileMarkStore.OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}"
+					: null;
+
+			// A file with nothing after the line is left out altogether rather than added as an empty
+			// entry. The entry would say nothing the note does not - and it would say it misleadingly,
+			// since an empty file in an archive reads as a file that is empty, not as one whose
+			// contents all predate the run.
+			if( truncate && byMark && taken <= 0 )
+			{
+				notes.Add( NothingNewNote( filePath, src.Length, drawnBy ) );
+				return;
+			}
+
 			// a partial file is named for what it holds, so that the archive listing alone shows
 			// which files are partial and what decided that
 			var fileName = !truncate
@@ -463,48 +495,25 @@ namespace Dirigent.Scripts.BuiltIn
 
 			var entryName = MakeUniqueEntryName( entryPrefix + fileName, usedEntryNames );
 
-			// The share flags are not optional here:
-			//  - ReadWrite, because a log file is typically held open for writing by the application
-			//    producing it, and an open that does not permit that access is refused;
-			//  - Delete, because we now hold the file open for the whole time it takes to compress it
-			//    (minutes, for a huge log) rather than for a quick copy, and without it a logger
-			//    rotating its file in that window would fail to rename it.
-			// Opening before creating the entry keeps an unreadable file from leaving an empty
-			// entry behind in the archive.
-			using var src = new FileStream( filePath, FileMode.Open, FileAccess.Read,
-											FileShare.ReadWrite | FileShare.Delete );
-
 			var entry = zip.CreateEntry( entryName, CompressionLevel.Fastest );
 			entry.LastWriteTime = ZipTimeOf( info.LastWriteTime );
 
 			using var dst = entry.Open();
 
-			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
-			string? drawnBy = null;
-
-			if( truncate && byMark )
+			if( truncate && byMark && mark is not null )
 			{
 				// remembered for the cover note: an archive of files cut at a mark covers a window,
 				// and its beginning is worth stating once at the top rather than per entry
 				_markedFileCount++;
 
-				var mark = MarkStore?.Get( filePath );
-				if( mark is not null )
-				{
-					if( _earliestMark is null || mark.MarkedAt < _earliestMark )
-						_earliestMark = mark.MarkedAt;
+				if( _earliestMark is null || mark.MarkedAt < _earliestMark )
+					_earliestMark = mark.MarkedAt;
 
-					_markedBy.Add( FileMarkStore.OperationOf( mark ) );
-					drawnBy = $"the {FileMarkStore.OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}";
-				}
+				_markedBy.Add( FileMarkStore.OperationOf( mark ) );
 			}
 
 			if( truncate )
 			{
-				// the length is read from the open stream, not from the FileInfo: a live log grows
-				var startedAt = FileTail.SeekToStart( src, rawStart );
-				var taken = src.Length - startedAt;
-
 				// the entry has to say what it is, for whoever opens the archive with no access
 				// to the configuration that made it
 				var header = Encoding.UTF8.GetBytes( byMark
@@ -512,7 +521,7 @@ namespace Dirigent.Scripts.BuiltIn
 						: FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
 				dst.Write( header, 0, header.Length );
 
-				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMark, markNote, drawnBy, node ) );
+				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMark, markNote, node ) );
 			}
 			else if( markNote is not null )
 			{
@@ -534,21 +543,28 @@ namespace Dirigent.Scripts.BuiltIn
 		/// during the run, not a failure to collect it.
 		/// </remarks>
 		static string NoteFor( string filePath, long fileLength, long taken, string entryName,
-				bool byMark, string? markNote, string? drawnBy, VfsNodeDef node )
+				bool byMark, string? markNote, VfsNodeDef node )
 		{
-			if( byMark )
-			{
-				if( taken > 0 )
-					return $"'{filePath}' is {fileLength} bytes; only the {taken} bytes {markNote}"
-						+ $" were collected, as '{entryName}'.";
+			return byMark
+				? $"'{filePath}' is {fileLength} bytes; only the {taken} bytes {markNote}"
+					+ $" were collected, as '{entryName}'."
+				: $"'{filePath}' is {fileLength} bytes; only its last {taken} were collected,"
+					+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}').";
+		}
 
-				var since = drawnBy is not null ? $" since {drawnBy}" : " since it was marked";
-				return $"'{filePath}' is {fileLength} bytes, and nothing has been written to it{since}"
-					+ $" - so the entry '{entryName}' is empty.";
-			}
-
-			return $"'{filePath}' is {fileLength} bytes; only its last {taken} were collected,"
-				+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}').";
+		/// <summary>
+		/// What `_incomplete.txt` says about a file that had nothing new to give.
+		/// </summary>
+		/// <remarks>
+		/// It is in this report rather than in the archive because that is what the report is for:
+		/// naming what is not in there. A quiet log is the ordinary outcome of a run, so this says so
+		/// as a sentence rather than as a count of zero bytes.
+		/// </remarks>
+		static string NothingNewNote( string filePath, long fileLength, string? drawnBy )
+		{
+			var since = drawnBy is not null ? $" since {drawnBy}" : " since it was marked";
+			return $"'{filePath}' is {fileLength} bytes, and nothing has been written to it{since}"
+				+ $" - so it is not in this archive at all.";
 		}
 
 		/// <summary>
