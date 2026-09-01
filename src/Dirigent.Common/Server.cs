@@ -261,7 +261,7 @@ namespace Dirigent.Net
 			{
 				if( !msg.IsFrequent )
 				{
-					log.Debug( $"[master] <= [{msg.Sender}]: {msg}" );
+					log.Debug( $"[master] <= [{msg.Sender}]: {Tools.SafeToString( msg )}" );
 				}
 
 				MessageReceived?.Invoke( msg );
@@ -279,7 +279,7 @@ namespace Dirigent.Net
 
 			if( !msg.IsFrequent )
 			{
-				log.Debug( $"[master] => [*]: {msg}" );
+				log.Debug( $"[master] => [*]: {Tools.SafeToString( msg )}" );
 			}
 
 			foreach( var s in _identifiedClients.Values )
@@ -299,7 +299,7 @@ namespace Dirigent.Net
 			var sessions = _identifiedClients.Values.Where( x => x.Name == clientName );
 			foreach( var session in sessions )
 			{
-				log.Debug( $"[master] => [{clientName}]: {msg}" );
+				log.Debug( $"[master] => [{clientName}]: {Tools.SafeToString( msg )}" );
 
 				var ms = new System.IO.MemoryStream();
 				MsgPackCodec.Serialize( ms, msg );

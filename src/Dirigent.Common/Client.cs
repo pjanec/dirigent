@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -118,7 +118,7 @@ namespace Dirigent.Net
 				{
 					if( !msg.IsFrequent )
 					{
-						log.Debug( $"[{_ident.Name}] <= [master]: {msg}" );
+						log.Debug( $"[{_ident.Name}] <= [master]: {Tools.SafeToString( msg )}" );
 					}
 
 					MessageReceived?.Invoke( msg );

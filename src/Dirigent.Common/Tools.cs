@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -308,6 +308,30 @@ namespace Dirigent
 
 			var stateJsonStr = Tools.Serialize( scriptState );
 			return $"SCRIPT:{scriptId}:{stateJsonStr}";
+		}
+
+		/// <summary>
+		/// What an object says about itself, or a note about why it could not - never an exception.
+		/// </summary>
+		/// <remarks>
+		/// For the log lines on the message dispatch path. A message is logged just before it is
+		/// sent, so a ToString() that throws does not spoil a line of the log - it stops the send and
+		/// fails the operation the message was carrying. That has happened; see MessageToStringTests.
+		/// The individual defect is worth fixing where it is, and this makes the next one cost a
+		/// puzzling log line instead of an outage.
+		/// </remarks>
+		public static string SafeToString( object? o )
+		{
+			if( o is null ) return "(null)";
+
+			try
+			{
+				return o.ToString() ?? "(null)";
+			}
+			catch( Exception e )
+			{
+				return $"({o.GetType().Name}.ToString() failed: {JustFirstLine( e.Message )})";
+			}
 		}
 
 		// returs first line without CR/LF

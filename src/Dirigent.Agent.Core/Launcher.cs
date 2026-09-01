@@ -183,7 +183,9 @@ namespace Dirigent
 		public void AdoptByPID( int PID )
 		{
 			_proc = Process_.GetProcessById( PID );
-			log.DebugFormat( $"Adopted existing process pid={PID}" );
+			// Debug, not DebugFormat: the interpolated string is already finished, and handing it to
+			// a *Format method makes a brace in it a placeholder
+			log.Debug( $"Adopted existing process pid={PID}" );
 		}
 
 		void InstallPerfCounters()
