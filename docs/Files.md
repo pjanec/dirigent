@@ -717,6 +717,21 @@ the machine does not have, the note says so - a misconfiguration that otherwise 
 as a file share that cannot be reached. A declared `127.0.0.1` is not treated as a disagreement:
 every machine has loopback, and a single-machine system is normally written that way.
 
+If a machine was online but could not deliver its files - typically because no file share of the
+requestor's machine covers its download folder - the note says so, loudly, above the comment:
+
+```
+*** NOT COLLECTED - these machines were online but could not deliver their files, so nothing of
+theirs is in this archive: ***
+    BackEnd [192.168.0.120]
+        No file share of FrontEnd covers its download folder, so BackEnd has no way of uploading the files there.
+```
+
+That is the only trace such a machine leaves: it writes no folder and no `_incomplete.txt`, so
+without this line an archive missing a whole machine reads exactly like a complete one - and the
+dialog that reported it is long gone by the time anybody opens the zip. Files that individual
+machines failed to read are listed under it in the same spirit.
+
 The header is written even when the operator says nothing, since it is useful on its own; the
 comment line then reads `(no comment)`.
 

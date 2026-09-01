@@ -344,7 +344,7 @@ namespace Dirigent.Scripts.BuiltIn
 						// composed here, where the package, the machines and their addresses are known;
 						// the merge only writes it
 						CoverNote = await ComposeCoverNote( args.Comment, title, container.Id,
-										requestorMachine, clientStates, onlineMachines ),
+										requestorMachine, clientStates, unreachable ),
 
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
@@ -614,13 +614,22 @@ namespace Dirigent.Scripts.BuiltIn
 		/// package, and when. The addresses are the ones the master sees on the connections, which
 		/// is what Dirigent actually knows; where the config disagrees, both are given.
 		/// </remarks>
+		/// <param name="unreachable">
+		/// Machines that were online but could not deliver anything, and why. They are named in the
+		/// note rather than only in the dialog: a machine that contributed nothing leaves no trace in
+		/// the archive, so without this an incomplete collection is indistinguishable from a complete
+		/// one by the time anybody opens it.
+		/// </param>
 		async Task<string> ComposeCoverNote( string? comment, string title, string packageId,
 				string requestorMachine, Dictionary<string, ClientState> clientStates,
-				List<string> machines )
+				IReadOnlyDictionary<string, string> unreachable )
 		{
 			var machineDefs = ( await Dirig.GetAllMachinesDefAsync() ).ToDictionary( x => x.Id, x => x );
 
 			string Describe( string machine ) => DescribeMachine( machine, clientStates, machineDefs );
+
+			// the machines that actually collected, not the ones that were merely online
+			var machines = ( from st in _slaveTasks select st.MachineName ).ToList();
 
 			var text = new StringBuilder();
 
@@ -639,6 +648,13 @@ namespace Dirigent.Scripts.BuiltIn
 			text.AppendLine( label + string.Join( perMachineLine, described ) );
 			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
+
+			// and what is not in here, before anything else about the contents
+			var missing = DescribeMissing( unreachable, Describe );
+			if( missing is not null ) text.Append( missing );
+
+			var failures = DescribeFailures();
+			if( failures is not null ) text.Append( failures );
 
 			// What the archive covers, when a Clear or a Mark drew the line: the difference between
 			// "these are the logs" and "these are the logs of one run" is the first thing whoever opens
@@ -679,6 +695,65 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			return baseName; // give up and let the write fail with its own message
+		}
+
+		/// <summary>
+		/// The part of the note that names the machines whose files are not in the archive at all,
+		/// or null when every machine delivered.
+		/// </summary>
+		/// <remarks>
+		/// Deliberately loud and deliberately near the top. The dialog that reported this is long gone
+		/// by the time somebody opens the archive, and a machine that never ran a collection writes no
+		/// _incomplete.txt either - so this line is the only thing standing between a reader and the
+		/// assumption that what they are looking at is the whole system.
+		/// </remarks>
+		public static string? DescribeMissing( IReadOnlyDictionary<string, string> unreachable,
+				Func<string, string> describe )
+		{
+			if( unreachable.Count == 0 ) return null;
+
+			var text = new StringBuilder();
+			text.AppendLine();
+			text.AppendLine( "*** NOT COLLECTED - these machines were online but could not deliver"
+							+ " their files, so nothing of theirs is in this archive: ***" );
+
+			foreach( var machine in unreachable.Keys.OrderBy( m => m, StringComparer.OrdinalIgnoreCase ) )
+			{
+				text.AppendLine( $"    {describe( machine )}" );
+				text.AppendLine( $"        {unreachable[machine]}" );
+			}
+
+			return text.ToString();
+		}
+
+		/// <summary>
+		/// The part of the note listing what went wrong on the machines that did collect, or null if
+		/// nothing did.
+		/// </summary>
+		/// <remarks>
+		/// A file that could not be read is reported by its machine and shown in the dialog; the
+		/// archive itself said nothing about it, which is the same problem one size smaller.
+		/// </remarks>
+		string? DescribeFailures()
+		{
+			var failed = ( from st in _slaveTasks
+						   where st.Result is not null && st.Result.Exceptions.Count > 0
+						   orderby st.MachineName, StringComparer.OrdinalIgnoreCase
+						   select st ).ToList();
+
+			if( failed.Count == 0 ) return null;
+
+			var text = new StringBuilder();
+			text.AppendLine();
+			text.AppendLine( "Problems during collection:" );
+
+			foreach( var st in failed )
+			{
+				foreach( var e in st.Result!.Exceptions )
+					text.AppendLine( $"    {st.MachineName}: {Tools.JustFirstLine( e.Message )}" );
+			}
+
+			return text.ToString();
 		}
 
 		/// <summary>
