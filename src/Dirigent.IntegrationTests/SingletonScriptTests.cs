@@ -101,6 +101,20 @@ namespace Dirigent.IntegrationTests
 			var failed = await bed.Operator.GetScriptStateAsync( instance );
 			StringAssert.Contains( failed!.Data ?? "", "no.such.plan",
 				"the failure is the new run's, not the old one's" );
+
+			// and the one that was replaced does not report back afterwards: its cancellation
+			// completes on its own thread, and the Cancelled it would publish carries an instance id
+			// that now belongs to the new script - so everything watching would show the live script
+			// as cancelled. Watched for a while, because the old run notices the cancellation only
+			// when it next comes up for air.
+			var until = DateTime.UtcNow + TimeSpan.FromSeconds( 1.5 );
+			while( DateTime.UtcNow < until )
+			{
+				var state = await bed.Operator.GetScriptStateAsync( instance );
+				Assert.AreEqual( EScriptStatus.Failed, state?.Status,
+					"the replaced run must stay silent - this is the live script's state" );
+				await Task.Delay( 100 );
+			}
 		}
 
 		[TestMethod()]

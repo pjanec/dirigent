@@ -99,6 +99,10 @@ namespace Dirigent
 			if( !_scripts.TryGetValue( instance, out var entry ) )
 				return false;
 
+			// nothing more from this one: a replacement is about to take the instance id over, and a
+			// state published by the old run would be read as the new one's - see ScriptRunner.Abandon
+			entry.Runner.Abandon();
+
 			Remove( entry );
 			return true;
 		}

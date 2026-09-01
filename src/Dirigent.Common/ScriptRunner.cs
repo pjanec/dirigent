@@ -197,8 +197,27 @@ namespace Dirigent
 
 		}
 
+		/// <summary>
+		/// Stops this runner from telling anybody anything else.
+		/// </summary>
+		/// <remarks>
+		/// For a runner whose script instance has been handed to a replacement: the cancellation of
+		/// the old one completes on its own thread, whenever the script gets round to noticing, and
+		/// the Cancelled it would then publish carries the instance id that now belongs to the new
+		/// script. Everything watching is keyed by that id, so the dead run's verdict would land on
+		/// the live one - a script shown as cancelled while it is running.
+		/// </remarks>
+		public void Abandon()
+		{
+			_abandoned = true;
+		}
+
+		private volatile bool _abandoned;
+
 		public void SendStatus( ScriptState state )
 		{
+			if( _abandoned ) return;
+
 			_lastSentState = state.Clone();
 
 			// note: the following should not block, must be thread safe
