@@ -479,6 +479,9 @@ namespace Dirigent.Scripts.BuiltIn
 
 			using var dst = entry.Open();
 
+			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
+			string? drawnBy = null;
+
 			if( truncate && byMark )
 			{
 				// remembered for the cover note: an archive of files cut at a mark covers a window,
@@ -492,6 +495,7 @@ namespace Dirigent.Scripts.BuiltIn
 						_earliestMark = mark.MarkedAt;
 
 					_markedBy.Add( FileMarkStore.OperationOf( mark ) );
+					drawnBy = $"the {FileMarkStore.OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}";
 				}
 			}
 
@@ -508,11 +512,7 @@ namespace Dirigent.Scripts.BuiltIn
 						: FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
 				dst.Write( header, 0, header.Length );
 
-				notes.Add( byMark
-						? $"'{filePath}' is {src.Length} bytes; only the {taken} written {markNote} were"
-							+ $" collected, as '{entryName}'."
-						: $"'{filePath}' is {src.Length} bytes; only its last {taken} were collected,"
-							+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}')." );
+				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMark, markNote, drawnBy, node ) );
 			}
 			else if( markNote is not null )
 			{
@@ -522,6 +522,33 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			CopyWithProgress( src, dst, Path.GetFileName( filePath ) );
+		}
+
+		/// <summary>
+		/// What `_incomplete.txt` says about a file that was not collected whole.
+		/// </summary>
+		/// <remarks>
+		/// Read by somebody who has the archive and nothing else, so it says which file, how much of
+		/// it is here, and what decided that - and it says "nothing" as a word rather than as a count
+		/// of zero, since a file with nothing new is the ordinary outcome for a log that was quiet
+		/// during the run, not a failure to collect it.
+		/// </remarks>
+		static string NoteFor( string filePath, long fileLength, long taken, string entryName,
+				bool byMark, string? markNote, string? drawnBy, VfsNodeDef node )
+		{
+			if( byMark )
+			{
+				if( taken > 0 )
+					return $"'{filePath}' is {fileLength} bytes; only the {taken} bytes {markNote}"
+						+ $" were collected, as '{entryName}'.";
+
+				var since = drawnBy is not null ? $" since {drawnBy}" : " since it was marked";
+				return $"'{filePath}' is {fileLength} bytes, and nothing has been written to it{since}"
+					+ $" - so the entry '{entryName}' is empty.";
+			}
+
+			return $"'{filePath}' is {fileLength} bytes; only its last {taken} were collected,"
+				+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}').";
 		}
 
 		/// <summary>

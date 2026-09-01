@@ -387,7 +387,9 @@ folders: it opens the file **exclusively**, which succeeds only when no other pr
   cannot fail while the deletion still can - a read-only attribute, a folder's permissions - and an
   emptied file is cleared either way. The application recreates the file on its next write; a new
   file has no mark, so the download takes it whole, which is exactly "since the clear".
-* The open **fails** - something is writing - so the file is marked instead, and the report says so.
+* The open **fails** - the file is in use, read-only, or refused for any other reason - so it is
+  marked instead, and the report says which file and why. A file that cannot be emptied is not a
+  failed operation: the line under it delivers the same result to the next collection.
 
 **A Clear on a running system therefore leaves marks, and that is how it keeps its promise.** A log
 being written to cannot be emptied, so the line under it is what makes the next download hold only

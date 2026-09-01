@@ -234,15 +234,22 @@ namespace Dirigent.Scripts.BuiltIn
 					file.SetLength( 0 );
 				}
 			}
-			catch( IOException e )
+			catch( Exception e )
 			{
-				// Held open by somebody - the normal state of a log on a running system. The mark is
-				// how a Clear keeps its promise for such a file: nothing already in it is collected
-				// again, so the next download holds what was written from now on. It is recorded as
-				// the Clear's doing, so the archive can say so rather than talk about a "mark" the
-				// operator never asked for.
-				MarkOnly( path, "In use, marked instead of cleared", "Clear" );
-				log.Debug( $"Could not open '{path}' exclusively ({e.Message}); marked instead." );
+				// The file cannot be emptied. Usually it is simply in use - the normal state of a log
+				// on a running system, an IOException - but a read-only attribute or an ACL gives an
+				// UnauthorizedAccessException, and there is no shortage of other ways for a file not
+				// to open. Whatever the reason, the answer is the same: draw the line instead.
+				//
+				// This is how a Clear keeps its promise for such a file: nothing already in it is
+				// collected again, so the next download holds only what is written from now on. The
+				// reason it could not be emptied is worth reporting, but it must not leave the file
+				// with somebody else's older line under it - which is what happens if this is left to
+				// be caught as a failure further up.
+				var why = e is IOException ? "in use" : Tools.JustFirstLine( e.Message );
+				MarkOnly( path, $"Could not be emptied ({why}), marked instead", "Clear" );
+
+				log.Debug( $"Could not empty '{path}' ({e.GetType().Name}: {e.Message}); marked instead." );
 				return;
 			}
 

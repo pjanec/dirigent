@@ -219,6 +219,79 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task AFileThatCannotBeEmptiedIsMarkedWhateverTheReason()
+		{
+			// Reported from the field: after a Clear, some files still carried the line drawn by an
+			// earlier Mark - so the collection began where that older line was, not where the Clear
+			// was. The cause was the fallback catching IOException only: a file in use gives that,
+			// but a read-only one gives UnauthorizedAccessException, which escaped, was counted as a
+			// failure, and left the older line in place.
+			using var bed = await StartBed();
+
+			var package = await bed.Operator.GetVfsNodeAsync( "run.pkg" );
+			var cameraLog = Worlds.LogOf( bed, "m1", "camera" );
+
+			// an older line, as a plan-start Mark would leave
+			await bed.Operator.MarkFilesAsync( package, timeout: Timeout );
+			File.AppendAllText( cameraLog, "camera: BETWEEN THE TWO" + Environment.NewLine );
+
+			File.SetAttributes( cameraLog, FileAttributes.ReadOnly );
+			try
+			{
+				var cleared = await bed.Operator.ClearFilesAsync( package, timeout: Timeout );
+
+				Assert.AreEqual( 0, cleared.Failed,
+					"a file that cannot be emptied is not a failure - it is marked instead" );
+				Assert.IsTrue( cleared.Marked >= 1, "and the line is drawn under it" );
+			}
+			finally
+			{
+				File.SetAttributes( cameraLog, FileAttributes.Normal );
+			}
+
+			File.AppendAllText( cameraLog, "camera: THE RUN" + Environment.NewLine );
+
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			var camera = Archive.TextOf( TheArchive( bed ), "camera/app.since-mark.log" );
+
+			StringAssert.Contains( camera, "camera: THE RUN" );
+			Assert.IsFalse( camera.Contains( "BETWEEN THE TWO" ),
+				$"the collection starts at the Clear's line, not at the older one:\n{camera}" );
+		}
+
+		[TestMethod()]
+		public async Task TheNotesReadAsSentences()
+		{
+			// _incomplete.txt is read by somebody who has the archive and nothing else. It used to say
+			// "only the 0 written written after the Clear of ...", which is neither.
+			using var bed = await StartBed();
+
+			var package = await bed.Operator.GetVfsNodeAsync( "run.pkg" );
+			await bed.Operator.MarkFilesAsync( package, timeout: Timeout );
+
+			// one file gets something new, the other stays as it was
+			File.AppendAllText( Worlds.LogOf( bed, "m1", "camera" ), "camera: THE RUN" + Environment.NewLine );
+
+			await bed.Operator.DownloadAsync( package, timeout: Timeout );
+
+			// every machine writes its own, and the two cases are on different machines: the camera on
+			// m1 got new lines, the recorder on m2 was left alone
+			var archive = TheArchive( bed );
+			var report = string.Join( Environment.NewLine,
+					Archive.EntriesOf( archive )
+						.Where( e => e.EndsWith( "_incomplete.txt", StringComparison.OrdinalIgnoreCase ) )
+						.Select( e => Archive.TextOf( archive, e ) ) );
+
+			Assert.IsFalse( report.Contains( "written written" ), $"no doubled words:\n{report}" );
+
+			StringAssert.Contains( report, "bytes written after the Mark of",
+				$"the file with new lines says how much of it was collected:\n{report}" );
+			StringAssert.Contains( report, "nothing has been written to it since the Mark of",
+				$"and the untouched one says so as a sentence, not as a count of zero:\n{report}" );
+		}
+
+		[TestMethod()]
 		public async Task ANonClearableNodeIsSkippedAndCounted()
 		{
 			// the count is what makes a forgotten Clearable="1" discoverable: without it a log would
