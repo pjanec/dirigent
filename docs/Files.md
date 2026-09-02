@@ -669,6 +669,48 @@ Actions that should be offered on *every* file or *every* package need not be re
 in `LocalConfig.xml` under `<DefaultFileActions>` and `<DefaultFilePackageActions>`. Which of the
 two applies is decided **after** resolution, from whether the node resolved to a container.
 
+## Looking the files up
+
+Every action below starts by **resolving** the node it was given, and resolution is where the time
+of a collection on a large site goes.
+
+The reason is that a declaration is not an answer. `<Folder Path="C:\Logs" Mask="*.log"/>` on
+machine `m17` says nothing about which files are in that folder right now, and only `m17` can say -
+so the machine holding a node is the machine that resolves it, over the network. A package of
+thirty nodes spread over forty machines is therefore not a local computation at all; it is a
+conversation with the site.
+
+What that conversation costs is the thing worth knowing:
+
+- The tree is walked **here**, on the machine that was asked - a `<FileRef>` is looked up in the
+  registry, a package expands into its members - and every node belonging to somebody else is set
+  aside rather than resolved.
+- When the walk is done, each machine is asked **once**, about **all** of its own nodes, and all
+  the machines are asked **at the same time**.
+
+So the lookup costs **one round trip**, whatever the size of the package and however many machines
+it spans. It used to cost one round trip per node, taken one after another, which is why a
+system-wide collection used to spend longer looking for the files than fetching them.
+
+Two consequences worth remembering:
+
+**A node that cannot be resolved costs only itself.** Nodes travel together to save a round trip,
+but they remain separate things the operator asked for. A folder that has never existed on one
+machine, or a machine that does not answer at all, is left out of the tree and the reason is
+recorded as a note on the container - which reaches the archive's `_incomplete.txt` and the closing
+message. Only a node asked for *on its own* fails out loud, because there is then nothing else to
+deliver. See [Silent misses](#limitations-and-known-issues) for the case where nothing is reported.
+
+**Batching is not backward compatible, and does not need to be.** A machine running an older
+Dirigent would not understand a request about several nodes. A site is upgraded as a whole, so this
+is not a case that arises; it is worth knowing before mixing versions deliberately.
+
+Covered by `ResolutionBatchingTests` (tier 0 - the number of round trips, that they overlap, and
+that a failure still costs only its own node) and `BatchedResolveTests` (tier 1 - a real agent
+answering about many nodes over a real connection). Tier 1 cannot show the cost: every machine of a
+test bed answers on loopback, so the master treats them all as itself and no round trip is ever
+made.
+
 ## Built-in actions
 
 ### `BuiltIns/DownloadZipped.cs` - download as ZIP

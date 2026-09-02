@@ -283,28 +283,26 @@ The states a download publishes, recorded rather than sampled (`DownloadProgress
 ```
   Starting     -
   Running      -                                     <- the runner: it has begun
-  Running      -    Looking up the files...          <- one remote call per node, in sequence
+  Running      -    Looking up the files...          <- one call per machine, all at once
   Running      5%   Collecting from 2 machine(s)...  <- weighted by bytes
   Running     85%   Merging the collected files...
   Finished   100%
 ```
 
 A state with no number makes the bar a **marquee** - a sweep that says "working, no idea how long".
-That is the honest thing for the lookup: resolving a package is one remote call per node, one after
-another, and on a system of two machines and thirty nodes it is the longest part of the whole
-download, with nothing measurable about it in advance. It used to publish `0.0` throughout, which is
-a bar frozen at zero - indistinguishable from a hang, and separated from the brief sweep before it
-by a change of appearance, which is what read as two indicators.
+That is the honest thing for the lookup: it asks every machine of the system what its nodes really
+stand for, and there is nothing measurable about that in advance. It used to publish `0.0`
+throughout, which is a bar frozen at zero - indistinguishable from a hang, and separated from the
+brief sweep before it by a change of appearance, which is what read as two indicators.
 
 So: the phases that can measure themselves publish a number, the one that cannot publishes its name,
 and the label carries the phase whenever there is no number. One indicator, always saying something.
 
-**The duration is a separate matter.** Making the lookup *visible* does not make it *quick*: it is
-still one round trip per node. `FileRegistry.ResolveVFolder` carries a note about that -
-*"FIXME: group children by machineId, resolve whole group by single remote script call"* - and doing
-it would turn thirty round trips into one per machine. That is worth doing and is not done here; it
-needs the resolve script to accept a list of nodes and return a result per node, and an older agent
-would have to be handled, since it would not understand the request.
+**The duration was a separate matter, and is dealt with elsewhere.** Making the lookup *visible* did
+not make it *quick*: it used to be one round trip per node, taken one after another, which on a site
+of forty machines was longer than the download it preceded. It is now one round trip per machine,
+and all the machines are asked at the same time - see *Looking the files up* in `Files.md`. The
+phase is short enough that a marquee is all it needs.
 
 ## What is covered
 
