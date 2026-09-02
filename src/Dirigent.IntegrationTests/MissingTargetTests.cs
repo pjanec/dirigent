@@ -128,8 +128,18 @@ namespace Dirigent.IntegrationTests
 				$"and not as errors - the download did what it could: {string.Join( " | ", result.Errors )}" );
 
 			var messages = bed.Operator.Notifications.Select( n => n.Message ?? "" ).ToList();
-			Assert.IsTrue( messages.Any( m => m.Contains( "Not in the archive" ) ),
+
+			var closing = messages.FirstOrDefault( m => m.Contains( "had nothing to collect" ) );
+			Assert.IsNotNull( closing,
 				$"the closing message says so: {string.Join( " | ", messages )}" );
+
+			// as a count, with the detail in the archive - an incident package over a large system
+			// names hundreds of things that are not there, and a dialog listing them is not read
+			StringAssert.Contains( closing!, $"{result.NotCollected.Count} item(s)", closing );
+			StringAssert.Contains( closing!, "_incomplete.txt", closing );
+
+			foreach( var note in result.NotCollected )
+				Assert.IsFalse( closing!.Contains( note ), $"the notes themselves are in the archive:\n{closing}" );
 		}
 
 		[TestMethod()]

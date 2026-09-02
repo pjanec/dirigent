@@ -156,16 +156,25 @@ cannot be delivered never costs you the rest.**
 | the file of a plain `<File>` | the node resolves, and the collection finds nothing to add |
 | a whole machine (offline) | reported per machine, the others still collect |
 
-In every case the collection carries on, and what was named but not delivered is recorded in two
-places:
+In every case the collection carries on, and what was named but not delivered is recorded in the
+archive - in **`_incomplete.txt`**, naming the node, the machine and the reason, so that an archive
+which lacks something says so, months later, to somebody who has only the zip.
 
-* **`_incomplete.txt`** inside the archive, naming the node, the machine and the reason - so that an
-  archive which lacks something says so, months later, to somebody who has only the zip;
-* the **closing message** of the download, under *Not in the archive*, so that the operator standing
-  there hears it too.
+The **closing message** gives the operator standing there the count and points at that file. It
+deliberately does not list them: an incident package over a large system names hundreds of things
+that are not there - most machines have not crashed - and a dialog of hundreds of sentences is not
+read at all, which also buries the one or two lines in it that were real problems.
 
-Neither is reported as an error. A dump folder that does not exist is the ordinary state of a machine
-that has not crashed, and reporting it as a failure teaches the operator to ignore failures.
+None of this is reported as an error. A dump folder that does not exist is the ordinary state of a
+machine that has not crashed, and reporting it as a failure teaches the operator to ignore failures.
+
+**The one absence that is stated outright is a machine that produced no archive at all.** Every
+other machine leaves its `_incomplete.txt` behind, so even a machine that collected nothing accounts
+for itself; a machine whose part never arrived accounts for nothing, and neither its files nor any
+record of what it held exists. Those machines are named in the closing message and marked in
+`_comment.txt`. It does not fail the download - the other machines' work still arrives, which before
+was not so: one machine unable to write its archive used to end the whole collection and discard
+everything already gathered.
 
 Asked for **on its own**, a `<Folder>` or `<File Filter="Newest">` whose folder is missing fails
 instead - there the caller wanted that one thing and there is nothing else to hand back.

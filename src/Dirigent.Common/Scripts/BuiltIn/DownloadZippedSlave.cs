@@ -78,6 +78,19 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 5 )]
 			public List<string> NotCollected = new();
 
+			/// <summary>
+			/// How many files this machine put into its archive.
+			/// </summary>
+			/// <remarks>
+			/// For the closing message, which says what was collected rather than listing what was
+			/// not. Counted here rather than from the merged archive because that one also holds the
+			/// cover note and the per-machine `_incomplete.txt`, which are not collected files.
+			///
+			/// Zero is not a problem in itself: a machine asked only for a crash dump folder on a
+			/// machine that has never crashed collects nothing, and says so in its `_incomplete.txt`.
+			/// </remarks>
+			public int FilesCollected;
+
 			/// <summary>How many files were cut at a mark rather than collected whole.</summary>
 			//[MessagePack.Key( 3 )]
 			public int MarkedFileCount;
@@ -131,10 +144,31 @@ namespace Dirigent.Scripts.BuiltIn
 		// what this machine was asked for and does not have; see TResult.NotCollected
 		readonly List<string> _notCollected = new();
 
+		// how many files went into the archive; see TResult.FilesCollected
+		int _filesCollected;
+
 		// what the marks did to this collection, for the note that goes into the archive
 		int _markedFileCount;
 		DateTime? _earliestMark;
 		readonly HashSet<string> _markedBy = new( StringComparer.OrdinalIgnoreCase );
+
+		/// <summary>
+		/// Forgets what a collection attempt found out, so that a second destination starts clean.
+		/// </summary>
+		/// <remarks>
+		/// The archive is written straight into the destination folder and there may be more than one
+		/// to try, so the walk can run twice. Everything it gathers per attempt has to be reset with
+		/// it, or an attempt that failed on an unreachable share leaves its notes behind and the
+		/// operator is told twice about each file that was missing.
+		/// </remarks>
+		void ForgetWhatTheLastAttemptFound()
+		{
+			_notCollected.Clear();
+			_filesCollected = 0;
+			_markedFileCount = 0;
+			_earliestMark = null;
+			_markedBy.Clear();
+		}
 
 		protected override Task<string?> Run()
 		{
@@ -158,6 +192,7 @@ namespace Dirigent.Scripts.BuiltIn
 				ZipFileName = destFileName,
 				Exceptions = SerializedException.MkList( exceptions ),
 				NotCollected = _notCollected,
+				FilesCollected = _filesCollected,
 				MarkedFileCount = _markedFileCount,
 				EarliestMark = _earliestMark,
 
@@ -189,6 +224,8 @@ namespace Dirigent.Scripts.BuiltIn
 				var exceptions = new List<Exception>();
 				var notes = new List<string>();
 				var partPath = string.Empty;
+
+				ForgetWhatTheLastAttemptFound();
 
 				try
 				{
@@ -522,6 +559,8 @@ namespace Dirigent.Scripts.BuiltIn
 
 			var entry = zip.CreateEntry( entryName, CompressionLevel.Fastest );
 			entry.LastWriteTime = ZipTimeOf( info.LastWriteTime );
+
+			_filesCollected++;
 
 			using var dst = entry.Open();
 

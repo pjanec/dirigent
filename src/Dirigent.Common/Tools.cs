@@ -334,16 +334,21 @@ namespace Dirigent
 			}
 		}
 
-		// returs first line without CR/LF
+		/// <summary>
+		/// The first line, without the CR/LF that ends it.
+		/// </summary>
+		/// <remarks>
+		/// Whichever break comes first, and a string carrying only one of the two is the ordinary
+		/// case rather than an exotic one: an exception message composed with "\n", or anything at
+		/// all from a machine that is not Windows. Taking the smaller of the two positions without
+		/// looking made that a negative length and threw - inside the shortening of an error
+		/// message, which is the last place that can afford to fail.
+		/// </remarks>
 		public static string JustFirstLine( string multiLineString )
 		{
-			var crPos = multiLineString.IndexOf( '\r' );
-			var lfPos = multiLineString.IndexOf( '\n' );
-			if( crPos >= 0 || lfPos >= 0 )
-			{
-				return multiLineString.Substring( 0, Math.Min( crPos, lfPos ) );
-			}
-			return multiLineString; // no other line found
+			var end = multiLineString.IndexOfAny( new[] { '\r', '\n' } );
+
+			return end < 0 ? multiLineString : multiLineString.Substring( 0, end );
 		}
 
 		//public static string AssemblyDirectory
