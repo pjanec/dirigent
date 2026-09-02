@@ -480,15 +480,19 @@ namespace Dirigent.Gui.WinForms
 						break;
 
 					default:
-						// keep the label short so the bar and the cross keep their place; the
-						// detail (machine, file, bytes) goes to the tooltip. A percentage is
-						// worth the few characters - readable at a glance on a 100 px bar.
-						var pct = state.Progress is double pr && !slot.Cancelling
-									? $" {(int) ( pr * 100 )}%"
-									: string.Empty;
+						// Keep the label short so the bar and the cross keep their place; the detail
+						// (machine, file, bytes) goes to the tooltip. A percentage is worth the few
+						// characters - readable at a glance on a 100 px bar.
+						//
+						// When there is no percentage the bar is a marquee, which says "working" and
+						// nothing else - so the phase goes in the label instead, and the operator can
+						// see it is looking things up rather than wonder whether it has hung.
 						slot.Label.Text = slot.Cancelling
 											? $"{slot.Title}: cancelling..."
-											: $"{slot.Title}{pct}";
+											: state.Progress is double pr
+												? $"{slot.Title} {(int) ( pr * 100 )}%"
+												: $"{slot.Title}: {ShortPhase( state.Text )}";
+
 						slot.Label.ToolTipText = state.Text ?? slot.Title;
 
 						if( state.Progress is double progress && !slot.Cancelling )
@@ -506,6 +510,26 @@ namespace Dirigent.Gui.WinForms
 			}
 
 			RefreshMoreOperationsLabel();
+		}
+
+		/// <summary>
+		/// What a script is doing, short enough to sit next to a progress bar.
+		/// </summary>
+		/// <remarks>
+		/// The status bar has room for a few words; the whole text is in the tooltip. Cut at a word
+		/// so the label does not end mid-syllable.
+		/// </remarks>
+		static string ShortPhase( string? text )
+		{
+			const int limit = 28;
+
+			if( string.IsNullOrWhiteSpace( text ) ) return "working...";
+
+			var line = text!.Trim();
+			if( line.Length <= limit ) return line;
+
+			var cut = line.LastIndexOf( ' ', limit );
+			return ( cut > limit / 2 ? line.Substring( 0, cut ) : line.Substring( 0, limit ) ) + "...";
 		}
 
 		void RefreshMoreOperationsLabel()

@@ -272,6 +272,40 @@ Two smaller decisions:
 * The harness seeder can write **incompressible** files. Its usual filler compresses at gigabytes
   per second, so a world built from it finishes before there is anything to watch or interrupt.
 
+## The phases of a download, and what each can say
+
+Reported from the field: *"a status bar for a short time going from 0 to 100, then another status
+bar a long time staying at zero and then quickly running to 100"*. Both were the **same** operation -
+the GUI only ever creates one indicator per click - shown in two different ways.
+
+The states a download publishes, recorded rather than sampled (`DownloadProgressShapeTests`):
+
+```
+  Starting     -
+  Running      -                                     <- the runner: it has begun
+  Running      -    Looking up the files...          <- one remote call per node, in sequence
+  Running      5%   Collecting from 2 machine(s)...  <- weighted by bytes
+  Running     85%   Merging the collected files...
+  Finished   100%
+```
+
+A state with no number makes the bar a **marquee** - a sweep that says "working, no idea how long".
+That is the honest thing for the lookup: resolving a package is one remote call per node, one after
+another, and on a system of two machines and thirty nodes it is the longest part of the whole
+download, with nothing measurable about it in advance. It used to publish `0.0` throughout, which is
+a bar frozen at zero - indistinguishable from a hang, and separated from the brief sweep before it
+by a change of appearance, which is what read as two indicators.
+
+So: the phases that can measure themselves publish a number, the one that cannot publishes its name,
+and the label carries the phase whenever there is no number. One indicator, always saying something.
+
+**The duration is a separate matter.** Making the lookup *visible* does not make it *quick*: it is
+still one round trip per node. `FileRegistry.ResolveVFolder` carries a note about that -
+*"FIXME: group children by machineId, resolve whole group by single remote script call"* - and doing
+it would turn thirty round trips into one per machine. That is worth doing and is not done here; it
+needs the resolve script to accept a list of nodes and return a result per node, and an older agent
+would have to be handled, since it would not understand the request.
+
 ## What is covered
 
 `ScriptProgressTests`, tier 1: progress rises without going backwards and ends at 1.0; each machine

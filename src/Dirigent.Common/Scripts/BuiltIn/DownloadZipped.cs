@@ -108,7 +108,12 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
-				await SetStatus( "Looking up the files...", null, 0.0 );
+				// No number for this phase, on purpose. Looking a package up is one remote call per
+				// node, in sequence, and on a system of two machines and thirty nodes that is the
+				// longest part of the whole operation - while nothing about it is measurable in
+				// advance. A bar frozen at 0% for half a minute reads as a hung operation; an
+				// indicator that says "working, no idea how long" reads as what it is.
+				await SetStatus( "Looking up the files...", null, null );
 
 				// Three ways in, all landing on a resolved tree before the work starts:
 				//  - a caller names the node by id (CLI, REST, another script)
@@ -569,6 +574,7 @@ namespace Dirigent.Scripts.BuiltIn
 			await Publish( text, _resolvedAt + ( _collectedAt - _resolvedAt ) * fraction );
 		}
 
+		/// <summary>The last fraction published, so that the bar cannot go backwards.</summary>
 		double _lastPublished;
 
 		/// <summary>

@@ -24,6 +24,22 @@ namespace Dirigent.TestBed
 			get { lock( _notificationsLock ) return _notifications.ToList(); }
 		}
 
+		/// <summary>
+		/// Every state a script published, in the order it arrived - what a progress indicator is
+		/// told, message by message.
+		/// </summary>
+		/// <remarks>
+		/// Recorded rather than sampled because a state that lasts less than a tick is never visible
+		/// to a poller: the cache holds the last one that arrived. A test about what the operator is
+		/// shown has to see them all, including the brief ones between two phases of a long job.
+		/// </remarks>
+		public IReadOnlyList<(Guid Instance, ScriptState State)> ScriptStates
+		{
+			get { lock( _notificationsLock ) return _scriptStates.ToList(); }
+		}
+
+		readonly List<(Guid Instance, ScriptState State)> _scriptStates = new();
+
 		readonly Net.Client _client;
 		readonly ReflectedStateRepo _states;
 		readonly SynchronousOpProcessor _syncOps = new();
@@ -57,6 +73,13 @@ namespace Dirigent.TestBed
 			if( msg is Net.UserNotificationMessage notification )
 			{
 				lock( _notificationsLock ) _notifications.Add( notification );
+			}
+
+			if( msg is Net.ScriptStateMessage script )
+			{
+				// cloned: the repository keeps the instance the message carries and would go on
+				// changing it under a test that reads this afterwards
+				lock( _notificationsLock ) _scriptStates.Add( ( script.Instance, script.State.Clone() ) );
 			}
 		}
 
