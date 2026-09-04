@@ -301,6 +301,12 @@ namespace Dirigent
 				}
 
 				// if anything changed (like the text), update our cached state (which is queried via IDirigent)
+				//
+				// NOTE: copied field by field, so a new field on ScriptState has to be added here
+				// too. This is where every client caches the state, so a field added only to
+				// ScriptState travels over the wire correctly and is then dropped on arrival - the
+				// symptom being a value the sender demonstrably publishes and no reader ever sees.
+				// Progress was lost exactly this way until it was added below.
 				if( state != State )
 				{
 					State.Status = state.Status;

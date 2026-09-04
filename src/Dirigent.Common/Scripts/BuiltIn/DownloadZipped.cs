@@ -120,11 +120,11 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
-				// No number for this phase, on purpose. Looking a package up is one remote call per
-				// node, in sequence, and on a system of two machines and thirty nodes that is the
-				// longest part of the whole operation - while nothing about it is measurable in
-				// advance. A bar frozen at 0% for half a minute reads as a hung operation; an
-				// indicator that says "working, no idea how long" reads as what it is.
+				// No number for this phase, on purpose: it asks every machine of the system what its
+				// nodes really stand for, and there is nothing measurable about that in advance. A
+				// bar frozen at 0% reads as a hung operation; a sweep that says "working, no idea
+				// how long" reads as what it is. Publishing 0.0 here was read from the field as a
+				// second, stuck indicator, which is what a bar with a wrong number gets you.
 				await SetStatus( "Looking up the files...", null, null );
 
 				// Three ways in, all landing on a resolved tree before the work starts:

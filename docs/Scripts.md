@@ -202,6 +202,34 @@ the GUI.
 machine announced, so one holding a 60 GB log does not count the same as one holding 2 MB. See
 [the phases of a download](Files.md#what-the-operator-sees-while-it-runs).
 
+```mermaid
+flowchart LR
+    subgraph GUI["the GUI that clicked"]
+        M[menu item] -->|StartScript| TR[ToolsRegistry]
+        TR -->|"returns the instance guid"| SB[status bar slot]
+        RSR[(cached script states)] -->|every tick| SB
+    end
+    subgraph Master
+        MA[master]
+    end
+    subgraph Agents
+        P["DownloadZipped<br/>(parent)"]
+        S1["slave on m1"]
+        S2["slave on m2"]
+    end
+    TR -->|StartScriptMessage| MA --> P
+    P -->|RunScriptAsync| S1
+    P -->|RunScriptAsync| S2
+    S1 -->|"SetStatus(progress)"| MA
+    S2 -->|"SetStatus(progress)"| MA
+    P -->|"SetStatus(aggregated)"| MA
+    MA -->|"ScriptStateMessage, broadcast"| RSR
+```
+
+Every state is broadcast to every subscribed client, so a GUI shows a bar for exactly the scripts
+whose guids it was handed - the slaves were started by the parent, not by a GUI, so no GUI has
+theirs.
+
 > Adding a field to `ScriptState` takes two edits, not one. `ReflectedScriptRegistry` copies the
 > state field by field where every client caches it, so a field added only to `ScriptState` travels
 > over the wire and is then dropped - and nothing ever sees it.

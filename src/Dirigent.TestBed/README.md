@@ -20,7 +20,7 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | Tier 3 on the two VMs | deferred - not wanted yet |
 | Merged with branch 3.1, on .NET 8, one harness only | done |
 | Streamed archives, size-budget skips, `TailBytes` | done, 13 tests in `Dirigent.CommonTests` |
-| Progress and cancellation of long operations | done, see [`docs/ScriptProgress.md`](../../docs/ScriptProgress.md) |
+| Progress and cancellation of long operations | done, `ScriptProgressTests` + `DownloadProgressShapeTests` |
 | A note from the operator, kept in the archive | done, 4 tests |
 | Clear / Mark / Unmark, and collecting one run | done, 16 tests in `Dirigent.CommonTests` + 14 at tier 1 |
 | Every sequence of those four, as a table | done, 22 tests at tier 1 (`MarkClearSequenceTests`) |

@@ -323,6 +323,18 @@ namespace Dirigent.Gui.WinForms
 		const int _maxOperationSlots = 2;
 
 		/// <summary>Only the operations this GUI started - the ones the person here asked for.</summary>
+		/// <remarks>
+		/// Which is why there is no "worth watching" flag on the script: such a flag says *this is
+		/// interesting* but not *to whom*, so with two GUIs open both would show a bar for a download
+		/// only one of them asked for. Holding the guids that RunScript handed back says both at
+		/// once, and it answers the nesting question for free - the download's per-machine slaves are
+		/// started by the download, not by a GUI, so no GUI ever has their guids.
+		///
+		/// The cost is that the set is lost when the GUI restarts, and a download running on the
+		/// system then has no bar anywhere. If that ever needs fixing, a flag is still not the answer:
+		/// carry Requestor - which StartScriptMessage already has - into ScriptState, and let each
+		/// client show the living scripts whose requestor is itself.
+		/// </remarks>
 		readonly Dictionary<Guid, OperationSlot> _operations = new();
 
 		ToolStripStatusLabel? _moreOperationsLabel;

@@ -910,7 +910,7 @@ is told, in order (`DownloadProgressShapeTests` records it):
 A phase with no number sweeps rather than sitting at zero: a bar frozen at 0% is what a hang looks
 like. A phase that cannot measure itself publishes its name instead, so the indicator always says
 something. See [Publishing status and progress](Scripts.md#publishing-status-and-progress) for the
-general rule and [Progress and cancellation](ScriptProgress.md) for why it works this way.
+general rule, and [Cancellation](Scripts.md#cancellation) for what makes the cross honest.
 
 **Cancelling** removes the archive, the `.part` file and the staging folder, and stops the machines
 rather than letting them finish in the background. The closing message box is skipped - the
