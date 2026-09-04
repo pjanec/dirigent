@@ -270,7 +270,7 @@ already waits for.
     <!-- draw the line under the logs before anything starts writing; no process involved -->
     <App AppIdTuple = "master.mark_logs"
          ExeFullPath = "[dirigent.command]"
-         CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+         CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}' ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
          Volatile = "1"
          InitCondition = "cliresponse any"
     />
@@ -282,6 +282,12 @@ already waits for.
 ```
 
 * A fixed guid in the config, which is how singleton scripts are already identified there.
+* **The quoting is load-bearing and passes two levels.** The XML attribute is delimited by double
+  quotes, so the argument must not contain any; the CLI word tokenizer then eats a single quote it
+  reads as a delimiter, so `'{Id:'x'}'` would reach the script as `{Id:x}` and fail to deserialize.
+  Doubling the inner ones - `'{Node:{Id:''pkg.run''}}'` - is what delivers the JSON intact and needs
+  no XML entity. A `;` inside an argument is not possible at all: both sides split the line on it.
+  `ConfigExampleTests` pins this against the working copy in `config/SharedConfig.xml`.
 * One step covers the whole system: `MarkFiles` marks every machine holding files of the package, in
   parallel, by itself.
 * `Volatile="1"`, because the step is meant to end - see

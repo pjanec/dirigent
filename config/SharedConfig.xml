@@ -166,6 +166,46 @@
     <Plan Name="empty">
     </Plan>
 
+    <!-- ==== A plan that marks the logs before anything starts writing =============================
+         The case this was built for: every start of the system draws a line under the logs, so that
+         whatever is collected afterwards belongs to this run and nothing older. See
+         docs/ScriptsInPlans.md.
+
+         The first step is not a process at all. ExeFullPath="[dirigent.command]" sends its
+         CmdLineArgs to the master as a CLI command, and InitCondition="cliresponse ..." is what makes
+         the plan WAIT for it: without that condition such a step counts as initialized the instant it
+         is launched (it has no process to exit), and the applications would start logging while the
+         mark was still being taken.
+
+           cliresponse ok   - a mark that could not be taken fails the step, and so fails the plan
+           cliresponse any  - the answer is still waited for, a failure is logged, the plan carries on
+
+         "any" here, because a missing mark only degrades a later collection - it will hold more than
+         one run - and must not stop the system from starting.
+
+         Two commands on one line, separated by ';': StartScript answers as soon as the script has
+         STARTED, so WaitForScript is what waits for it to be over. Both name the same guid.
+
+         Quoting, which bites: the JSON argument passes through the XML attribute and then the CLI
+         word tokenizer, and the tokenizer eats a single quote it reads as a delimiter. Doubling them
+         ('' inside '...') is what delivers {Node:{Id:'pkg.run'}} to the script intact - and it needs
+         no XML escaping, unlike the double-quoted form. Note also that ';' is a command separator
+         everywhere on the line, so no argument may contain one. -->
+    <Plan Name="System Start (marks the logs first)" Groups="Examples">
+
+        <App AppIdTuple = "m1.mark_logs"
+             ExeFullPath = "[dirigent.command]"
+             CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}' ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+             Volatile = "1"
+             InitCondition = "cliresponse any"
+        />
+
+        <!-- nothing starts until the mark has been drawn -->
+        <App AppIdTuple = "m1.a" Template = "apps.notepad" CmdLineArgs = "aaa.txt"
+             Dependencies = "m1.mark_logs" Volatile = "1"/>
+
+    </Plan>
+
     <!-- single instance scripts in the Scripts tab -->
     <Script Id="2d5b3159-83c6-48d4-9c52-0ce1af92cbb2" Title="Demo1 - built-in" Name="BuiltIns/DemoScript1.cs" Args="{SomeString:'řidič'}" Groups="Examples;;Common/Demo"/>
     <Script Id="0204745E-8867-4168-AE91-81B7D3449A1B" Title="Demo1 - from file #1" Name="%DIRIGENT_SHAREDCONFDIR%/Scripts/DemoScript1.cs" Args="{SomeString:'řidič'}" Groups="Examples;;Common/Demo"/>
@@ -199,6 +239,29 @@
 
     	<FilePackage Title="File/All Logs Package">
     	    <FileRef Id="newest*"/>
+    	</FilePackage>
+
+        <!-- ==== One test run, from the main menu =================================================
+             The whole cycle on the logs of every machine at once:
+
+               Clear    - empty them, and where a file is held open by its application, draw a line
+                          under it instead. Either way a later Download delivers only this run.
+               Mark      - only draw the line, leaving the files in place.
+               Unmark    - forget the line, so the next Download brings the files whole again.
+               Download  - collect what came after the line into one zip, asking why first.
+
+             AskComment="1" puts a dialog in front of the collection and keeps the answer in
+             _comment.txt inside the archive, next to what could not be collected and why. It works
+             on any <Script> action, not only on a download. -->
+    	<FilePackage Id="pkg.run" Title="File/Test run (Clear, Mark, Download)"
+    	             Description="One test run: clear the logs, run the case, download what it wrote.">
+    	    <FileRef Id="applog" MachineId="*" AppId="*"/>
+
+    	    <Script Title="Clear"    Name="BuiltIns/ClearFiles.cs"/>
+    	    <Script Title="Mark"     Name="BuiltIns/MarkFiles.cs"/>
+    	    <Script Title="Unmark"   Name="BuiltIns/UnmarkFiles.cs"/>
+    	    <Script Title="Download" Name="BuiltIns/DownloadZipped.cs" AskComment="1"
+    	            Icon="Icons/Zipped.png"/>
     	</FilePackage>
 
     </MainMenu>
@@ -269,6 +332,23 @@
           <Tool Title="Open in Explorer" Name="WinExplorer"/>
         </Folder>
 
+        <!-- ==== Collecting one test run's worth of logs ==========================================
+             The same node is declared on every machine under the same Id, so one <FileRef Id="applog"
+             MachineId="*"/> in a package collects the lot. See docs/MarkAndClear.md.
+
+             Clearable="1" is the permission to empty this file, or to draw a line under it when it
+             cannot be emptied. It is OFF by default, on purpose: without it a Clear or a Mark passes
+             the node over, which is what keeps a configuration file safe from a package that names it.
+
+             TailBytes caps what is collected from any one file at its last N bytes. A logger that
+             never rotates produces tens of gigabytes, which cannot be transferred at all, and the end
+             of it is what an investigation needs. -->
+        <Folder Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs"
+                Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
+                Clearable="1" TailBytes="1048576">
+          <Tool Title="Open in Explorer" Name="WinExplorer"/>
+        </Folder>
+
         <!-- Tools are added to machine's Tools menu. Tools are always started on local machine.
             Tools are defined in LocalConfig.xml file. -->
 		<Tool Title="VNC to m1" Name="VncViewer" Args="%MACHINE_IP%"/>
@@ -286,6 +366,13 @@
 
     <Machine Name="m2" IP="127.0.0.1" MAC="00-15-5D-00-0A-01">
         <Share Name="C" Path="C:\"/>
+
+        <!-- the same Id as on m1, so one wildcard reference collects both machines.
+             A <Share> covering these paths is what lets the other machines fetch them - and the
+             machine the download goes to needs one covering its own download folder. -->
+        <Folder Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs"
+                Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
+                Clearable="1" TailBytes="1048576"/>
      </Machine>
 
    	<App
