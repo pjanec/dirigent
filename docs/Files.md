@@ -43,7 +43,9 @@ Contents:
   * [File masks](#file-masks)
   * [Path variables](#path-variables)
   * [Actions on nodes](#actions-on-nodes)
+* [Looking the files up](#looking-the-files-up)
 * [Built-in actions](#built-in-actions)
+  * [What the operator sees while it runs](#what-the-operator-sees-while-it-runs)
 * [Where files appear in the UI](#where-files-appear-in-the-ui)
 * [Files without a GUI](#files-without-a-gui)
 * [Examples](#examples)
@@ -884,6 +886,38 @@ For the *other* machines the UNC path is the only way in, so the requestor's mac
 
 A machine answering at the same address as the requestor's machine shares its disks with it, so
 where no share is defined at all, such a machine is allowed to use the local path too.
+
+#### What the operator sees while it runs
+
+A download started from the GUI gets one indicator in the status bar, with a cancel button. What it
+is told, in order (`DownloadProgressShapeTests` records it):
+
+```
+  Starting     -
+  Running      -                                     <- the runner: it has begun
+  Running      -    Looking up the files...          <- one call per machine, all at once
+  Running      5%   Collecting from 2 machine(s)...  <- weighted by bytes
+  Running     85%   Merging the collected files...
+  Finished   100%
+```
+
+| Phase | Share of the bar | Where the number comes from |
+| --- | --- | --- |
+| looking the package up | none - a sweeping bar | nothing about it is measurable in advance |
+| the machines collecting | 0.05 - 0.85 | each machine's own bytes done, weighted by the bytes it announced |
+| merging the parts | 0.85 - 1.00 | entries copied of entries total |
+
+A phase with no number sweeps rather than sitting at zero: a bar frozen at 0% is what a hang looks
+like. A phase that cannot measure itself publishes its name instead, so the indicator always says
+something. See [Publishing status and progress](Scripts.md#publishing-status-and-progress) for the
+general rule and [Progress and cancellation](ScriptProgress.md) for why it works this way.
+
+**Cancelling** removes the archive, the `.part` file and the staging folder, and stops the machines
+rather than letting them finish in the background. The closing message box is skipped - the
+operator knows, they asked for it.
+
+Only the GUI that started the download shows it. A download started from the CLI, the REST surface
+or another script reports to whoever asked for it, through the script state.
 
 ### `BuiltIns/ClearFiles.cs`, `MarkFiles.cs`, `UnmarkFiles.cs` - delimit a test run
 

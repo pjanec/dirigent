@@ -24,20 +24,24 @@ Please see the [DemoScript1.cs](../src/Dirigent.Common/Scripts/DemoScript1.cs) s
 
 Script status is described by a status code and additional details (short text description and a stringized data).
 
-| Status Code | Status Text       | Data                 | Description                           |
-| ----------- | ----------------- | -------------------- | ------------------------------------- |
-| Starting    | N/A               | N/A                  | Script is being instantiated.         |
-| Running     | Set by the script | Set by the script    | Script is running.                    |
-| Finished    | N/A               | N/A                  | Script successfully finished.         |
-| Cancelling  | N/A               | N/A                  | Script is being cancelled.            |
-| Cancelled   | N/A               | N/A                  | Script was cancelled.                 |
-| Failed      | N/A               | Serialized exception | Exception was thrown from the script. |
+| Status Code | Status Text       | Data                 | Progress          | Description                           |
+| ----------- | ----------------- | -------------------- | ----------------- | ------------------------------------- |
+| Starting    | N/A               | N/A                  | N/A               | Script is being instantiated.         |
+| Running     | Set by the script | Set by the script    | Set by the script | Script is running.                    |
+| Finished    | N/A               | N/A                  | 1.0               | Script successfully finished.         |
+| Cancelling  | N/A               | N/A                  | last reported     | Script is being cancelled.            |
+| Cancelled   | N/A               | N/A                  | last reported     | Script was cancelled.                 |
+| Failed      | N/A               | Serialized exception | last reported     | Exception was thrown from the script. |
 
-The status text and data can be set by the script at any time to provide more info on what the script is currently doing.
+The status text, data and progress can be set by the script at any time to provide more info on what the script is currently doing.
 
 The status text is shown to the user on the Dirigent's UI.
 
 The format of data string is script specific, can be JSON.
+
+Progress is a `0.0` to `1.0` fraction, or null for "no idea how far" - see
+[Publishing status and progress](#publishing-status-and-progress) for what to publish and
+[Cancellation](#cancellation) for what a script must do to be interruptible.
 
 ## Remote Execution
 
@@ -169,11 +173,56 @@ Task Wait( int msecs ); // cancellable wait
 
 ```
 
-## Script status
+## Publishing status and progress
 
 ``` c#
-Task SetStatus( string? text=null, string? data=null ); // updates the script status & data; don't use for returning results (use the return statement instead)
+Task SetStatus( string? text=null, string? data=null, double? progress=null ); // updates the script status, data & progress; don't use for returning results (use the return statement instead)
 ```
+
+`progress` is a fraction, `0.0` to `1.0`. Passing `null` - the default - means *running, no idea
+how far*: the GUI then sweeps an indeterminate bar rather than showing a number that is not true.
+Publish the phase name in `text` whenever there is no number, so the indicator always says
+something.
+
+A finished script is set to `1.0` whatever it last reported, so an indicator ends full rather than
+frozen wherever it got to.
+
+Progress is deliberately **not** carried inside `data`: that is script-specific JSON, and the
+status bar must not have to understand a particular script to draw a bar.
+
+### Progress of a script that starts other scripts
+
+Aggregating belongs in the script, not in the framework - only the script knows what "half done"
+means for its own work. A parent holds its children's instance guids from
+`RunScriptAsync`/`RunScriptNoWait`, polls them with `GetScriptStateAsync( guid )`, and publishes a
+single number of its own. There are no parent/child links in the protocol and no tree walking in
+the GUI.
+
+`BuiltIns/DownloadZipped.cs` is the worked example: it weighs each machine by the bytes that
+machine announced, so one holding a 60 GB log does not count the same as one holding 2 MB. See
+[the phases of a download](Files.md#what-the-operator-sees-while-it-runs).
+
+> Adding a field to `ScriptState` takes two edits, not one. `ReflectedScriptRegistry` copies the
+> state field by field where every client caches it, so a field added only to `ScriptState` travels
+> over the wire and is then dropped - and nothing ever sees it.
+
+## Cancellation
+
+`KillScript` cancels the `CancellationToken`, and that is all it does - `ScriptRunner` lets a script
+that ignores its token run to the end. A script is interruptible only if it says so itself:
+
+* **check the token inside long loops**, not only between them. A chunked copy that checks per chunk
+  stops inside a huge file; one that checks per file stops minutes later.
+* **clean up what was half done.** Build under a temporary name and move it into place when
+  complete, so an interrupted run leaves nothing that looks finished.
+* **kill the children.** Cancelling a parent does not touch the scripts it started; they carry on
+  working. Send `KillScript` to each, and wait (bounded) for them to stop before removing anything
+  they are still writing to - deleting a folder under a slave that is still writing fails, and the
+  slave then recreates it for its own cleanup.
+
+> `await Task.WhenAny( work, Task.Delay( period, token ) )` hands back the *cancelled delay* rather
+> than throwing, so a wait built this way ignores its own cancellation and carries on to the end.
+> Look at the token explicitly after the wait.
 
 ## App/Plan/Script API
 

@@ -3,8 +3,8 @@ Dirigent can be controlled remotely using commands.
 
 The commands can come from different sources:
   1. Dirigent UI
-  2. Command line client app called [Dirigent.CLI](#Dirigent.CLI-Console-Command-Line-Utility)
-  3. Over [TCP connection](#CLI-control-over-TCP-line-based connection) from a remote control app.
+  2. Command line client app called [Dirigent.CLI](#dirigentcli-console-command-line-utility)
+  3. Over [TCP connection](#cli-control-over-tcp-line-based-connection) from a remote control app.
 
 Commands are received by Dirigent master agent. The master then asks dirigent agent app to perform necessary operations on the machines affected by the command.
 
