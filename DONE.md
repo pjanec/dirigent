@@ -1,4 +1,20 @@
-[DONE] Single zip archive from all the machines at once. The machines upload their parts to a staging folder and BuiltIns/MergeZipped.cs joins them on the requestor's machine, each machine becoming a folder in the result. Args="perMachine" on the DownloadZipped action keeps the old one-archive-per-machine behaviour.
+[DONE] Looking a package up costs one round trip per machine instead of one per node. The tree is walked on the master, every machine is then asked once about all of its own nodes, and all the machines at the same time. On a 40+ machine site the lookup used to take longer than the download that followed it. NOTE: the whole site must run the same Dirigent version - an older agent does not understand a request about several nodes.
+
+[DONE] Clear, Mark and Unmark, for collecting one test run's worth of files rather than the whole afternoon. BuiltIns/ClearFiles.cs empties what it can and marks the rest; BuiltIns/MarkFiles.cs only draws the line; BuiltIns/UnmarkFiles.cs removes it. A later download then delivers only what was written after the line, and the archive says which operation drew it and when. Needs Clearable="1" on the node, so a config file is safe from any action that names it. See docs/MarkAndClear.md.
+
+[DONE] A script can be a step of a plan, and the plan waits for it. A [dirigent.command] app with InitCondition="cliresponse ok" counts as initialized only once its CLI command has really finished - "any" accepts a failure as well, for a step that must not hold up the plan. The new WaitForScript CLI command answers when the script is over rather than when it was accepted. Meant for putting a Mark at the top of a System Start plan. See docs/ScriptsInPlans.md.
+
+[DONE] Long operations show a progress bar in the status bar of the GUI that started them, with a cross that really stops them. Scripts report progress via SetStatus(text, data, progress); null means "no idea how far" and sweeps instead of claiming a number. Cancelling a download leaves no archive, no .part and no staging folder. See docs/Scripts.md.
+
+[DONE] TailBytes on a <File> or <Folder> collects only the end of a file too big to collect whole - the tens of gigabytes a never-rotating logger produces cannot be transferred at all, while the end of it is what an investigation needs. The entry is named for what it holds and carries a header saying so.
+
+[DONE] The download asks the operator why, and keeps the answer in the archive. AskComment="1" on any script action opens a comment dialog, and _comment.txt in the archive names the package, the machines and their addresses, the download time, the Dirigent version, what is missing and why. Files that could not be collected are listed in _incomplete.txt.
+
+[DONE] Files are streamed straight into the download archive - no temporary copy, and the archive is built in its destination folder under a .part name rather than copied there afterwards. A multi-gigabyte collection no longer needs twice its size in free space on two machines.
+
+[DONE] A test harness, in the repository: tier 0 unit tests, tier 1 a whole Dirigent system in one process (master, agents, GUI-less clients, seeded worlds), tier 2 the real executables driven from PowerShell. 138 + 141 + 10 tests. See docs/TestHarness.md.
+
+[DONE] Single zip archive from all the machines at once. The machines upload their parts to a staging folder and BuiltIns/MergeZipped.cs joins them on the requestor's machine, each machine becoming a folder in the result. (The Args="perMachine" mode that used to keep one archive per machine has been withdrawn - it was never used and doubled every code path.)
 
 [DONE] Glob style masks for the VFS file masks - '**' for any number of folder levels, '{a,b}' alternatives, '*' and '?' within a path segment. A mask with no path separator applies at any depth. See docs/Files.md.
 
