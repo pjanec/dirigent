@@ -18,11 +18,23 @@ namespace Dirigent
 
 		string _scriptRootFolder;
 
+		/// <summary>
+		/// Handed to every script this factory makes. Non-null on an agent only - see
+		/// <see cref="Script.MarkStore"/>.
+		/// </summary>
+		FileMarkStore? _markStore;
+
 		Dictionary<string, Func<Script>> _scriptCreators = new Dictionary<string, Func<Script>>(StringComparer.OrdinalIgnoreCase);
 
-		public ScriptFactory( string scriptRootFolder )
+		/// <param name="markStore">
+		/// The file marks of this machine, for the scripts that read or write them. Passed here rather
+		/// than kept in a static, so that several agents can share one process - which is how the
+		/// integration tests run a whole network - without sharing each other's marks.
+		/// </param>
+		public ScriptFactory( string scriptRootFolder, FileMarkStore? markStore = null )
 		{
 			_scriptRootFolder = scriptRootFolder;
+			_markStore = markStore;
 			AddBuiltIns();
 		}
 
@@ -38,6 +50,7 @@ namespace Dirigent
 			script.Origin = string.IsNullOrEmpty(scriptOrigin) ? string.Empty : scriptOrigin;
 			script.Args = args ?? "";
 			script.Requestor = requestorId ?? "";
+			script.MarkStore = _markStore;
 		}
 
 		public T CreateFromLines<T>( string title, string[] codeLines, string? args, SynchronousIDirig ctrl, string? scriptOrigin, string? requestorId ) where T: Script
@@ -92,6 +105,10 @@ namespace Dirigent
 			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
 			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
 			AddScript( Scripts.BuiltIn.MergeZipped._Name, () => new Scripts.BuiltIn.MergeZipped() );
+			AddScript( Scripts.BuiltIn.ClearFiles._Name, () => new Scripts.BuiltIn.ClearFiles() );
+			AddScript( Scripts.BuiltIn.MarkFiles._Name, () => new Scripts.BuiltIn.MarkFiles() );
+			AddScript( Scripts.BuiltIn.UnmarkFiles._Name, () => new Scripts.BuiltIn.UnmarkFiles() );
+			AddScript( Scripts.BuiltIn.MarkFilesSlave._Name, () => new Scripts.BuiltIn.MarkFilesSlave() );
 			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );
 			AddScript( Scripts.BuiltIn.RunPlanWhenMachinesOnline._Name, () => new Scripts.BuiltIn.RunPlanWhenMachinesOnline() );
 		}

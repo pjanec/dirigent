@@ -159,6 +159,7 @@ namespace Dirigent.TestBed.Scenarios
 					if( node.MaxFiles.HasValue ) element.SetAttributeValue( "MaxFiles", node.MaxFiles.Value );
 					if( node.MaxSeconds.HasValue ) element.SetAttributeValue( "MaxSeconds", Inv( node.MaxSeconds.Value ) );
 					if( node.TailBytes.HasValue ) element.SetAttributeValue( "TailBytes", node.TailBytes.Value );
+					if( node.Clearable.HasValue ) element.SetAttributeValue( "Clearable", node.Clearable.Value ? "1" : "0" );
 					return element;
 				}
 
@@ -174,6 +175,7 @@ namespace Dirigent.TestBed.Scenarios
 					if( node.MaxSeconds.HasValue ) element.SetAttributeValue( "MaxSeconds", Inv( node.MaxSeconds.Value ) );
 					if( node.MaxTotalBytes.HasValue ) element.SetAttributeValue( "MaxTotalBytes", node.MaxTotalBytes.Value );
 					if( node.TailBytes.HasValue ) element.SetAttributeValue( "TailBytes", node.TailBytes.Value );
+					if( node.Clearable.HasValue ) element.SetAttributeValue( "Clearable", node.Clearable.Value ? "1" : "0" );
 					return element;
 				}
 

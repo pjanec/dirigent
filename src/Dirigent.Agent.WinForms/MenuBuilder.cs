@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
@@ -118,8 +118,16 @@ namespace Dirigent.Gui.WinForms
 		/// Scripts that take a node DEFINITION and resolve it themselves, so the resolve happens
 		/// inside the tracked operation instead of in front of it.
 		/// </summary>
+		static readonly HashSet<string> _selfResolvingScripts = new( StringComparer.OrdinalIgnoreCase )
+		{
+			Scripts.BuiltIn.DownloadZipped._Name,
+			Scripts.BuiltIn.ClearFiles._Name,
+			Scripts.BuiltIn.MarkFiles._Name,
+			Scripts.BuiltIn.UnmarkFiles._Name,
+		};
+
 		static bool ResolvesItsOwnNode( ActionDef action )
-			=> action is ScriptActionDef s && s.Name == Scripts.BuiltIn.DownloadZipped._Name;
+			=> action is ScriptActionDef s && !string.IsNullOrEmpty( s.Name ) && _selfResolvingScripts.Contains( s.Name! );
 
 
 		/// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -620,6 +620,19 @@ namespace Dirigent
 
 		void FeedSingleClient( ClientIdent ident )
 		{
+			// The machines and their file shares, to everyone - an agent needs them as much as a GUI.
+			// Only the master reads SharedConfig.xml, so this is the only way anybody else learns of a
+			// <Share>; and an agent is asked to resolve the nodes belonging to its own machine, which
+			// means turning a local path into a UNC one that the other machines can reach.
+			//
+			// Sent before the rest on purpose: the VFS nodes that follow are resolved against this
+			// table, so an agent that receives them in this order is never briefly able to resolve
+			// something without knowing where it lives.
+			{
+				var machines = new Net.MachineDefsMessage( _machineDefs );
+				_server.SendToSingle( machines, ident.Name );
+			}
+
 			if( ident.IsGui )
 			{
 				FeedGui( ident );
@@ -695,12 +708,6 @@ namespace Dirigent
 			// send full list of VFS nodes
 			{
 				var m = new Net.VfsNodesMessage( _files.VfsNodes.Values );
-				_server.SendToSingle( m, ident.Name );
-			}
-
-			// send full list of machines
-			{
-				var m = new Net.MachineDefsMessage( _machineDefs );
 				_server.SendToSingle( m, ident.Name );
 			}
 

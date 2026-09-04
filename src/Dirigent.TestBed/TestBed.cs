@@ -391,6 +391,82 @@ namespace Dirigent.TestBed
 			await Operator.ReloadSharedConfigAsync( killApps );
 		}
 
+		// ---- the text command surface -----------------------------------------------
+
+		/// <summary>
+		/// Sends a command line to the master the way every CLI client does, and returns the
+		/// response lines it produced, in order and verbatim.
+		/// </summary>
+		/// <remarks>
+		/// In process rather than over the CLI port: the same road a request takes from a telnet
+		/// session, a REST call or a [dirigent.command] app - `Master.AddCliRequest` with an
+		/// `ICLIClient` that collects the answer, which is exactly what the REST controller does -
+		/// but with no socket to make the assertions flaky. `AddRequest` is documented as thread
+		/// safe (it enqueues), so this needs no marshalling into the tick.
+		///
+		/// The line carries no request id, so the answers arrive unprefixed and a test can assert
+		/// on them as they are.
+		/// </remarks>
+		public async Task<IReadOnlyList<string>> SendCliCommandAsync( string commandLine, TimeSpan? timeout = null )
+		{
+			var client = new CaptureCliClient();
+			var request = _master.AddCliRequest( client, commandLine );
+
+			var finished = OffPump( request.WaitAsync() );
+			var expired = Task.Delay( timeout ?? TimeSpan.FromSeconds( 30 ) );
+
+			if( await Task.WhenAny( finished, expired ) == expired )
+				throw new TimeoutException(
+					$"the master did not finish '{commandLine}' in time; it answered so far: "
+					+ string.Join( " | ", client.Lines ) );
+
+			await finished;
+			return client.Lines;
+		}
+
+		/// <summary>
+		/// Collects what the master answers, splitting the stream into the lines it wrote.
+		/// </summary>
+		class CaptureCliClient : ICLIClient
+		{
+			readonly List<string> _lines = new();
+			readonly object _lock = new();
+
+			public string Name => "TestBed";
+
+			public IReadOnlyList<string> Lines
+			{
+				get { lock( _lock ) return _lines.ToList(); }
+			}
+
+			public void WriteResponse( string text )
+			{
+				lock( _lock )
+				{
+					foreach( var line in text.Split( new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries ) )
+						_lines.Add( line );
+				}
+			}
+		}
+
+		/// <summary>
+		/// Hands a task's continuation back to the pool - the master completes a request from inside
+		/// its own tick, and a test body must not end up running there. See Operator.OffPump.
+		/// </summary>
+		static Task OffPump( Task task )
+		{
+			var tcs = new TaskCompletionSource( TaskCreationOptions.RunContinuationsAsynchronously );
+
+			task.ContinueWith( t =>
+			{
+				if( t.IsFaulted ) tcs.SetException( t.Exception!.InnerExceptions );
+				else if( t.IsCanceled ) tcs.SetCanceled();
+				else tcs.SetResult();
+			}, TaskContinuationOptions.ExecuteSynchronously );
+
+			return tcs.Task;
+		}
+
 		// ---- the pump ---------------------------------------------------------------
 
 		void PumpLoop()

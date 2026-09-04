@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -58,6 +58,13 @@ namespace Dirigent.Scripts.BuiltIn
 			/// A download does not fail as a whole because one machine or one file did.
 			/// </summary>
 			public List<string> Errors = new();
+
+			/// <summary>
+			/// Things the package asked for that are not in the archive - a folder that is not on the
+			/// machine, most often. Not errors: the collection did what it could, and this is what it
+			/// could not.
+			/// </summary>
+			public List<string> NotCollected = new();
 		}
 
 		class SlaveTask
@@ -66,6 +73,18 @@ namespace Dirigent.Scripts.BuiltIn
 			public Guid scriptId;
 			public Task<DownloadZippedSlave.TResult>? Task;
 			public DownloadZippedSlave.TResult? Result;
+
+			/// <summary>
+			/// Why this machine produced no archive at all, or null if it produced one.
+			/// </summary>
+			/// <remarks>
+			/// The one outcome that leaves nothing behind to explain itself. A machine that collected
+			/// nothing still writes its part - holding its `_incomplete.txt`, which says what it was
+			/// asked for and why none of it is here - so an empty collection is self-describing. A
+			/// machine whose part never arrived is not: neither its files nor its account of them
+			/// exist, and only this says so.
+			/// </remarks>
+			public Exception? Failure;
 
 			/// <summary>
 			/// The last progress this machine announced. Kept because a machine stops announcing when
@@ -101,7 +120,12 @@ namespace Dirigent.Scripts.BuiltIn
 
 			try
 			{
-				await SetStatus( "Looking up the files...", null, 0.0 );
+				// No number for this phase, on purpose. Looking a package up is one remote call per
+				// node, in sequence, and on a system of two machines and thirty nodes that is the
+				// longest part of the whole operation - while nothing about it is measurable in
+				// advance. A bar frozen at 0% for half a minute reads as a hung operation; an
+				// indicator that says "working, no idea how long" reads as what it is.
+				await SetStatus( "Looking up the files...", null, null );
 
 				// Three ways in, all landing on a resolved tree before the work starts:
 				//  - a caller names the node by id (CLI, REST, another script)
@@ -146,6 +170,11 @@ namespace Dirigent.Scripts.BuiltIn
 				if (string.IsNullOrEmpty( title )) title = "file";
 				container.Title = title;
 
+				// What the resolution could not find. Kept before the machines add their own notes, so
+				// that this is about the lookup only - a package naming a folder that does not exist
+				// on one machine still collects everything else, and this is how anybody hears of it.
+				CollectNotes( container, result.NotCollected );
+
 				// collect all individual machines
 				var allMachines = new HashSet<string>();
 				CollectMachines( container, allMachines );
@@ -182,8 +211,6 @@ namespace Dirigent.Scripts.BuiltIn
 					Timeout = 1.0,
 				});
 
-				var results = Array.Empty<DownloadZippedSlave.TResult>();
-
 				// The files are downloaded to the download folder of the machine the requestor runs on.
 				// %DOWNLOADS% gets expanded during the resolution, which happens on that very machine.
 				var requestorMachine = string.IsNullOrEmpty( args.ToMachine )
@@ -218,8 +245,9 @@ namespace Dirigent.Scripts.BuiltIn
 				// get the name of the archive file to download
 				// the title is free text and ends up as a file name; a colon in it used to fail the
 				// download at the write, after everything had already been collected
-				string zipFileBase = Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
-									+ DateTime.Now.ToString("_yyMMdd_HHmm");
+				string zipFileBase = FreeName( downloadsFolder,
+									Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
+									+ DateTime.Now.ToString("_yyMMdd_HHmm") );
 
 				// Each machine produces its own archive. To get a single one, the machines upload
 				// their archives to a staging folder next to the final one and a merging script
@@ -292,30 +320,32 @@ namespace Dirigent.Scripts.BuiltIn
 				}
 
 				// wait for all of them to finish
-				results = await CollectFromSlaves();
-				for (int i = 0; i < results.Length; i++) _slaveTasks[i].Result = results[i];
+				await CollectFromSlaves();
 
-				var downloadedFiles = (from x in results where x is not null orderby x.ZipFileName select x.ZipFileName).ToList();
+				var downloadedFiles = ( from x in _slaveTasks
+										where x.Result is not null
+										orderby x.Result!.ZipFileName
+										select x.Result!.ZipFileName ).ToList();
 
-				bool hadErrors = false;
-				var errorMsg = $"Errors encountered during download:\n\n";
 				foreach( var (mach, message) in unreachable )
-				{
-					hadErrors = true;
-					errorMsg += $"{mach}:\n    {message}\n\n";
 					result.Errors.Add( $"{mach}: {message}" );
-				}
+
 				foreach( var st in _slaveTasks )
 				{
 					result.Machines.Add( st.MachineName );
 
-					if( st.Result!=null && st.Result.Exceptions.Count > 0 )
-					{
-						hadErrors = true;
-						errorMsg += $"{st.MachineName}:";
-						foreach (var e in st.Result.Exceptions) errorMsg += $"\n    {e.Message}";
-						errorMsg += "\n\n";
+					// what that machine was asked for and does not have - not an error, see
+					// DownloadZippedSlave.TResult.NotCollected
+					if( st.Result is not null )
+						result.NotCollected.AddRange( st.Result.NotCollected );
 
+					// no archive from this machine, so nothing of its own to say why - see
+					// SlaveTask.Failure
+					if( st.Failure is not null )
+						result.Errors.Add( $"{st.MachineName}: {Tools.JustFirstLine( st.Failure.Message )}" );
+
+					if( st.Result is not null )
+					{
 						foreach( var e in st.Result.Exceptions )
 							result.Errors.Add( $"{st.MachineName}: {e.Message}" );
 					}
@@ -343,7 +373,7 @@ namespace Dirigent.Scripts.BuiltIn
 						// composed here, where the package, the machines and their addresses are known;
 						// the merge only writes it
 						CoverNote = await ComposeCoverNote( args.Comment, title, container.Id,
-										requestorMachine, clientStates, onlineMachines ),
+										requestorMachine, clientStates, unreachable ),
 
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
@@ -366,13 +396,8 @@ namespace Dirigent.Scripts.BuiltIn
 											? new List<string>()
 											: new List<string>() { mergeResult!.ZipFileName };
 
-					if( mergeResult is not null && mergeResult.Exceptions.Count > 0 )
+					if( mergeResult is not null )
 					{
-						hadErrors = true;
-						errorMsg += $"{requestorMachine} (merging):";
-						foreach (var e in mergeResult.Exceptions) errorMsg += $"\n    {e.Message}";
-						errorMsg += "\n\n";
-
 						foreach( var e in mergeResult.Exceptions )
 							result.Errors.Add( $"{requestorMachine} (merging): {e.Message}" );
 					}
@@ -388,15 +413,21 @@ namespace Dirigent.Scripts.BuiltIn
 				// tell the user it's all done
 				var clickAction = new ToolActionDef { Name = "WinExplorer", Args = $"/select,\"{Path.Combine( downloadsFolder, downloadedFiles.FirstOrDefault()??"")}\"" };
 
-				var infoMsg = downloadedFiles.Count > 0 ? $"Files downloaded:\n\n" : $"No files downloaded.\n";
-				foreach (var x in downloadedFiles) infoMsg += $"    {x}\n";
-
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
 					HostClientId = Requestor,
-					Category=Net.UserNotificationMessage.ECategory.Info, 
+					Category=Net.UserNotificationMessage.ECategory.Info,
 					PresentationType = Net.UserNotificationMessage.EPresentationType.MessageBox,
-					Message = infoMsg + (hadErrors ? $"\n\n{errorMsg}" : ""),
+					Message = ComposeClosingMessage(
+						result.Files,
+						filesCollected: _slaveTasks.Sum( x => x.Result?.FilesCollected ?? 0 ),
+						machinesDelivered: _slaveTasks.Count( x => x.Result is not null ),
+						notCollectedCount: result.NotCollected.Count,
+						machinesWithNoArchive: ( from x in _slaveTasks
+												 where x.Failure is not null
+												 orderby x.MachineName, StringComparer.OrdinalIgnoreCase
+												 select x.MachineName ).ToList(),
+						errors: result.Errors ),
 					Action = clickAction
 				});
 
@@ -447,7 +478,7 @@ namespace Dirigent.Scripts.BuiltIn
 		/// The slaves report their own progress in bytes; this weighs them by the amount each one
 		/// announced, so a machine holding a 60 GB log does not count the same as one holding 2 MB.
 		/// </remarks>
-		async Task<DownloadZippedSlave.TResult[]> CollectFromSlaves()
+		async Task CollectFromSlaves()
 		{
 			var all = Task.WhenAll( from x in _slaveTasks select x.Task );
 
@@ -464,7 +495,116 @@ namespace Dirigent.Scripts.BuiltIn
 				await ReportCollectionProgress();
 			}
 
-			return await all;
+			// asked of each machine separately: awaiting them together hands back the first failure
+			// and nothing else, so a single machine that could not write its archive - an unreachable
+			// share, a full disk - used to end the whole download and throw away what every other
+			// machine had already collected.
+			foreach( var st in _slaveTasks )
+				( st.Result, st.Failure ) = await Outcome( st.Task! );
+		}
+
+		/// <summary>How many problems the closing message names before it stops naming them.</summary>
+		const int _maxErrorsShown = 5;
+
+		/// <summary>
+		/// What the operator is told when the download is done.
+		/// </summary>
+		/// <remarks>
+		/// Counts, not lists. What a collection could not deliver is mostly not a fault at all - a
+		/// crash dump folder on a machine that has never crashed, a log an application has not written
+		/// yet - and an incident package over forty machines names hundreds of such things. Listing
+		/// them one sentence each produced a dialog nobody reads, which is worse than one nobody reads
+		/// carefully: the real problems were in there too, indistinguishable from the ordinary
+		/// absences surrounding them.
+		///
+		/// Nothing is lost by shortening it, because the archive is the record and always was: every
+		/// absence is in the `_incomplete.txt` of the machine it belongs to, and every failure is in
+		/// `_comment.txt`, which also names the machines that delivered nothing. The dialog's job is
+		/// to say whether the archive is worth opening and whether anything wants looking at.
+		/// </remarks>
+		public static string ComposeClosingMessage(
+				IReadOnlyList<string> archives,
+				int filesCollected,
+				int machinesDelivered,
+				int notCollectedCount,
+				IReadOnlyList<string> machinesWithNoArchive,
+				IReadOnlyList<string> errors )
+		{
+			var text = new StringBuilder();
+
+			if( archives.Count > 0 )
+			{
+				text.AppendLine( "Files downloaded:" );
+				text.AppendLine();
+				foreach( var x in archives ) text.AppendLine( $"    {x}" );
+				text.AppendLine();
+				text.AppendLine( $"{filesCollected} file(s) from {machinesDelivered} machine(s)." );
+			}
+			else
+			{
+				text.AppendLine( "No files downloaded." );
+			}
+
+			// Said plainly rather than as an error, and counted rather than listed: the archive is
+			// fine, it just holds less than the package names, and the detail is inside it.
+			if( notCollectedCount > 0 )
+			{
+				text.AppendLine( $"{notCollectedCount} item(s) named by the package had nothing to"
+						+ ( archives.Count > 0
+							? " collect - see _incomplete.txt in the archive."
+							: " collect." ) );
+			}
+
+			// The one absence that does not explain itself, so it is named however many there are:
+			// a machine with no archive has no _incomplete.txt either, and what it was holding is
+			// not recorded anywhere.
+			if( machinesWithNoArchive.Count > 0 )
+			{
+				text.AppendLine();
+				text.AppendLine( $"Nothing at all from {string.Join( ", ", machinesWithNoArchive )}"
+						+ " - not even a record of what was there." );
+			}
+
+			if( errors.Count > 0 )
+			{
+				text.AppendLine();
+				text.AppendLine( errors.Count == 1
+						? "One problem:"
+						: $"{errors.Count} problems"
+							+ ( archives.Count > 0 ? " - all of them in _comment.txt in the archive:" : ":" ) );
+
+				foreach( var e in errors.Take( _maxErrorsShown ) )
+					text.AppendLine( $"    {Tools.JustFirstLine( e )}" );
+
+				if( errors.Count > _maxErrorsShown )
+					text.AppendLine( $"    ...and {errors.Count - _maxErrorsShown} more." );
+			}
+
+			return text.ToString();
+		}
+
+		/// <summary>
+		/// What one slave came back with: its result, or the reason there is none.
+		/// </summary>
+		/// <remarks>
+		/// A cancellation is nobody's private failure - the operator stopped the whole download - so
+		/// it is left to propagate.
+		/// </remarks>
+		public static async Task<(DownloadZippedSlave.TResult? Result, Exception? Failure)> Outcome(
+				Task<DownloadZippedSlave.TResult> task )
+		{
+			try
+			{
+				return ( await task, null );
+			}
+			catch( OperationCanceledException )
+			{
+				throw;
+			}
+			catch( Exception e )
+			{
+				return ( null, e );
+			}
 		}
 
 		/// <summary>
@@ -543,6 +683,7 @@ namespace Dirigent.Scripts.BuiltIn
 			await Publish( text, _resolvedAt + ( _collectedAt - _resolvedAt ) * fraction );
 		}
 
+		/// <summary>The last fraction published, so that the bar cannot go backwards.</summary>
 		double _lastPublished;
 
 		/// <summary>
@@ -613,13 +754,22 @@ namespace Dirigent.Scripts.BuiltIn
 		/// package, and when. The addresses are the ones the master sees on the connections, which
 		/// is what Dirigent actually knows; where the config disagrees, both are given.
 		/// </remarks>
+		/// <param name="unreachable">
+		/// Machines that were online but could not deliver anything, and why. They are named in the
+		/// note rather than only in the dialog: a machine that contributed nothing leaves no trace in
+		/// the archive, so without this an incomplete collection is indistinguishable from a complete
+		/// one by the time anybody opens it.
+		/// </param>
 		async Task<string> ComposeCoverNote( string? comment, string title, string packageId,
 				string requestorMachine, Dictionary<string, ClientState> clientStates,
-				List<string> machines )
+				IReadOnlyDictionary<string, string> unreachable )
 		{
 			var machineDefs = ( await Dirig.GetAllMachinesDefAsync() ).ToDictionary( x => x.Id, x => x );
 
 			string Describe( string machine ) => DescribeMachine( machine, clientStates, machineDefs );
+
+			// the machines that actually collected, not the ones that were merely online
+			var machines = ( from st in _slaveTasks select st.MachineName ).ToList();
 
 			var text = new StringBuilder();
 
@@ -638,10 +788,152 @@ namespace Dirigent.Scripts.BuiltIn
 			text.AppendLine( label + string.Join( perMachineLine, described ) );
 			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
+
+			// and what is not in here, before anything else about the contents
+			var missing = DescribeMissing( unreachable, Describe );
+			if( missing is not null ) text.Append( missing );
+
+			var failures = DescribeFailures();
+			if( failures is not null ) text.Append( failures );
+
+			// What the archive covers, when a Clear or a Mark drew the line: the difference between
+			// "these are the logs" and "these are the logs of one run" is the first thing whoever opens
+			// the archive needs to know, and it belongs at the top rather than in each entry's header.
+			var marked = MarkWindow();
+			if( marked is not null ) text.AppendLine( marked );
+
 			text.AppendLine();
 			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
 
 			return text.ToString();
+		}
+
+		/// <summary>
+		/// The given name, or the first numbered variant of it that is not taken in the folder.
+		/// </summary>
+		/// <remarks>
+		/// The name carries the time to the minute, so two downloads of the same package within one
+		/// minute used to collide - and the second one failed at the very end, after everything had
+		/// been collected, on writing the archive. Downloading again after a transfer went wrong is
+		/// precisely when that happens.
+		///
+		/// The staging folder is checked as well: a download in progress holds one, and taking its
+		/// name would put two collections into the same folder.
+		/// </remarks>
+		static string FreeName( string folder, string baseName )
+		{
+			bool Taken( string name )
+				=> File.Exists( Path.Combine( folder, name + ".zip" ) )
+				|| Directory.Exists( Path.Combine( folder, name + "_parts" ) );
+
+			if( !Taken( baseName ) ) return baseName;
+
+			for( int i = 2; i < 1000; i++ )
+			{
+				var candidate = $"{baseName}_{i}";
+				if( !Taken( candidate ) ) return candidate;
+			}
+
+			return baseName; // give up and let the write fail with its own message
+		}
+
+		/// <summary>
+		/// The part of the note that names the machines whose files are not in the archive at all,
+		/// or null when every machine delivered.
+		/// </summary>
+		/// <remarks>
+		/// Deliberately loud and deliberately near the top. The dialog that reported this is long gone
+		/// by the time somebody opens the archive, and a machine that never ran a collection writes no
+		/// _incomplete.txt either - so this line is the only thing standing between a reader and the
+		/// assumption that what they are looking at is the whole system.
+		/// </remarks>
+		public static string? DescribeMissing( IReadOnlyDictionary<string, string> unreachable,
+				Func<string, string> describe )
+		{
+			if( unreachable.Count == 0 ) return null;
+
+			var text = new StringBuilder();
+			text.AppendLine();
+			text.AppendLine( "*** NOT COLLECTED - these machines were online but could not deliver"
+							+ " their files, so nothing of theirs is in this archive: ***" );
+
+			foreach( var machine in unreachable.Keys.OrderBy( m => m, StringComparer.OrdinalIgnoreCase ) )
+			{
+				text.AppendLine( $"    {describe( machine )}" );
+				text.AppendLine( $"        {unreachable[machine]}" );
+			}
+
+			return text.ToString();
+		}
+
+		/// <summary>
+		/// The part of the note listing what went wrong on the machines that did collect, or null if
+		/// nothing did.
+		/// </summary>
+		/// <remarks>
+		/// A file that could not be read is reported by its machine and shown in the dialog; the
+		/// archive itself said nothing about it, which is the same problem one size smaller.
+		/// </remarks>
+		string? DescribeFailures()
+		{
+			var failed = ( from st in _slaveTasks
+						   where st.Failure is not null
+							  || ( st.Result is not null && st.Result.Exceptions.Count > 0 )
+						   orderby st.MachineName, StringComparer.OrdinalIgnoreCase
+						   select st ).ToList();
+
+			if( failed.Count == 0 ) return null;
+
+			var text = new StringBuilder();
+			text.AppendLine();
+			text.AppendLine( "Problems during collection:" );
+
+			foreach( var st in failed )
+			{
+				// A machine that produced no archive at all is stated as such and stated loudly.
+				// Its files are missing and so is its own account of them - it wrote no
+				// _incomplete.txt either - so this line is the only record that it was asked.
+				if( st.Failure is not null )
+				{
+					text.AppendLine( $"    *** {st.MachineName}: nothing from this machine is in the"
+							+ $" archive, and it left no record of what it held ***" );
+					text.AppendLine( $"        {Tools.JustFirstLine( st.Failure.Message )}" );
+				}
+
+				if( st.Result is null ) continue;
+
+				foreach( var e in st.Result.Exceptions )
+					text.AppendLine( $"    {st.MachineName}: {Tools.JustFirstLine( e.Message )}" );
+			}
+
+			return text.ToString();
+		}
+
+		/// <summary>
+		/// The line saying that this archive holds one run rather than the whole history, or null if
+		/// no mark applied to any of the collected files.
+		/// </summary>
+		string? MarkWindow()
+		{
+			var marks = ( from st in _slaveTasks
+						  where st.Result is not null && st.Result.MarkedFileCount > 0
+						  select st.Result! ).ToList();
+
+			if( marks.Count == 0 ) return null;
+
+			var files = marks.Sum( x => x.MarkedFileCount );
+			var earliest = marks.Where( x => x.EarliestMark.HasValue ).Min( x => x.EarliestMark );
+
+			// Named after what somebody actually clicked. A Clear cannot empty a log that is being
+			// written to, so it draws the line instead - and an archive that then talks about a "mark"
+			// reads as though the Clear had not run.
+			var by = marks.Select( x => x.MarkedBy ).Where( x => !string.IsNullOrEmpty( x ) ).Distinct().ToList();
+			var drawnBy = by.Count == 1 ? by[0] : "Clear or Mark";
+
+			return earliest.HasValue
+					? $"Since     : {earliest:yyyy-MM-dd HH:mm:ss} - {files} file(s) hold only what was"
+						+ $" written after the {drawnBy} of that time; the rest are complete."
+					: $"Since     : {files} file(s) hold only what was written after the {drawnBy}.";
 		}
 
 		/// <summary>
@@ -764,6 +1056,15 @@ namespace Dirigent.Scripts.BuiltIn
 			=> clientStates.TryGetValue( machineId, out var state )
 				&& state.Connected
 				&& ( state.Ident?.IsAgent ?? false );
+
+		/// <summary>Everything the tree has to say about what it could not deliver.</summary>
+		static void CollectNotes( VfsNodeDef node, List<string> notes )
+		{
+			if( node.Notes is not null ) notes.AddRange( node.Notes );
+
+			foreach( var child in node.Children )
+				CollectNotes( child, notes );
+		}
 
 		void CollectMachines( VfsNodeDef container, HashSet<string> allMachines )
 		{

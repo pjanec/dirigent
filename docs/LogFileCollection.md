@@ -363,6 +363,61 @@ The archive then holds `_comment.txt` at its root with the note, above a header 
 the machines and their addresses, the time and the Dirigent version. Cancelling the dialog collects
 nothing. See [Asking for a comment](Files.md#asking-for-a-comment).
 
+### Collecting One Test Run, Not the Whole Afternoon
+
+A tester who can reproduce an issue wants the logs of *that run*, not of the whole day. Two clicks:
+**Clear** before the run, **Download** after it.
+
+```xml
+<AppTemplate Id="station_app">
+    <!-- Clearable="1" is what allows the log to be emptied or marked. Without it the file is
+         always collected whole - which is what a config file wants, and a log does not. -->
+    <File Id="app_log" Title="Logs/Application" Path="%APP_STARTUPDIR%\Logs"
+          Filter="Newest" Mask="*.log" MaxFiles="5" Clearable="1"/>
+
+    <!-- no Clearable: the run's input, collected whole in the same archive -->
+    <File Id="app_cfg" Title="Config/settings.xml" Path="%APP_STARTUPDIR%\settings.xml"/>
+</AppTemplate>
+
+<FilePackage Id="test_run" Title="Logs/Test run"
+             Description="One test run: Clear, run the case, Download.">
+    <FileRef Id="app_log" MachineId="*" AppId="*"/>
+    <FileRef Id="app_cfg" MachineId="*" AppId="*"/>
+
+    <Script Title="Clear"    Name="BuiltIns/ClearFiles.cs"/>
+    <Script Title="Mark"     Name="BuiltIns/MarkFiles.cs"/>
+    <Script Title="Unmark"   Name="BuiltIns/UnmarkFiles.cs"/>
+    <Script Title="Download" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
+</FilePackage>
+```
+
+The package now offers four menu items wherever it appears - in its context menu, in the main menu
+(see [Step 4](#step-4-make-the-package-reachable)) and on its row of the Files tab:
+
+* **Clear** - empties every clearable log that nobody is holding open, and draws a line under the
+  ones that are. Use it before the run.
+* **Mark** - only draws the line, deleting nothing. This is the one for a production site, where
+  the history has to survive.
+* **Download** - the archive then holds only what was written after the line, in entries named
+  `app.since-mark.log`, plus the config files whole.
+* **Unmark** - forget the lines, so the next download brings the full files again.
+
+Each of the three shows its progress in the status bar and ends in a message box saying what
+happened on each machine - *"3 cleared, 1 marked, 2 not clearable"*. A count of **not clearable**
+files is how a forgotten `Clearable="1"` gets noticed.
+
+What to expect of the awkward cases:
+
+* A log the application is writing cannot be emptied on Windows without corrupting it, so **Clear**
+  marks it instead and says so. Nothing has to be stopped.
+* If the log rotates between the Clear and the Download, the new file arrives **whole** rather than
+  cut at a meaningless offset, and `_incomplete.txt` says why. Slightly more than the run, never
+  less.
+* Downloading twice after one Clear gives the same run both times.
+
+See [Collecting one test run](Files.md#collecting-one-test-run-clear-mark-and-unmark) for the
+mechanism, and [Marking and clearing](MarkAndClear.md) for why it is a mark and not a delete.
+
 ### Logs Too Big to Download
 
 A logger that never rotates grows one file to tens of gigabytes, which no download can carry.
@@ -643,18 +698,24 @@ stations.
    becomes untransferable. `TailBytes` keeps it collectable; see
    [Logs Too Big to Download](#logs-too-big-to-download).
 
-5. **Organize with VFolders**: Their titles become the folder names inside the ZIP, so shape the
+5. **Mark the Logs, Not the Configs**: `Clearable="1"` belongs on the append-only files - logs,
+   dump folders - and nowhere else. It is off by default precisely so that a config file collected
+   in the same package cannot be destroyed by a click; see
+   [Collecting One Test Run](#collecting-one-test-run-not-the-whole-afternoon). Declaring it in an
+   `<AppTemplate>` covers every app using the template at once.
+
+6. **Organize with VFolders**: Their titles become the folder names inside the ZIP, so shape the
    archive by station, app or log type while you are declaring it.
 
-6. **Prefer Variables to Relative Paths**: `%APP_STARTUPDIR%`, `%APP_BINDIR%`, `%MACHINE_ID%`,
+7. **Prefer Variables to Relative Paths**: `%APP_STARTUPDIR%`, `%APP_BINDIR%`, `%MACHINE_ID%`,
    `%DOWNLOADS%` and the app's own environment variables are all expanded on the machine owning
    the node. A *relative* path is **not** taken against the app's folder - it is resolved against
    the root for relative paths (by default the folder holding `SharedConfig.xml`).
 
-7. **Test the Shares**: Before relying on a path, open `\\{IP}\{ShareName}\{path}` in Explorer from
+8. **Test the Shares**: Before relying on a path, open `\\{IP}\{ShareName}\{path}` in Explorer from
    the operator's machine. Most collection failures are share failures.
 
-8. **Combine Approaches**: App-scoped, machine-scoped and global definitions all land in one
+9. **Combine Approaches**: App-scoped, machine-scoped and global definitions all land in one
    registry; a single package can reference all three.
 
 ## Troubleshooting
@@ -684,6 +745,16 @@ That file is the collection telling you what it could not include in full, and i
 - a file over the `MaxTotalBytes` budget of its node - it was passed over, and the files behind it
   were still collected. Raise the budget, or set `TailBytes` so a big file costs only its tail
 - a file truncated by `TailBytes` - expected; the entry named `*.last<size>*` holds its end
+
+### A Log Still Holds Yesterday's Lines After a Clear
+
+The node is missing `Clearable="1"`, and Clear passed over it - by design, so that a config file
+can share the package. The closing message box says how many files were skipped for exactly this
+reason. Add the attribute to the log nodes only.
+
+If the file *is* clearable and the message says it was **marked** instead of cleared, that is the
+normal outcome for a log the application is holding open: the collection will still deliver only
+the new lines.
 
 ### Files Not Found
 

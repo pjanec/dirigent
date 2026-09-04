@@ -14,6 +14,10 @@ namespace Dirigent
 		public string? Uid; // unique request id (if provided by client, will become part of response)
 		public bool Finished; // is processing of this request finished? If so, will be discarded.
 
+		// Whether the command at the head of the queue has had its Execute called already. Kept
+		// because Execute is called exactly once - a command that waits is ticked afterwards.
+		private bool _headStarted;
+
 		Queue<ICommand> Commands; // commands to be performed as part of the request
 		CommandRepository cmdRepo;
 		Master ctrl;
@@ -103,28 +107,82 @@ namespace Dirigent
 
 		public virtual void Tick()
 		{
-			// execute commands, all at once
+			if( Finished ) return;
+
+			// Execute the commands, in order, as many as report themselves done. A command that
+			// does not - one waiting for a script to end - stays at the head of the queue and gets
+			// ticked on the next master tick, which is what keeps the wait out of this thread.
 			while( Commands.Count > 0 )
 			{
-				var cmd = Commands.Dequeue();
+				var cmd = Commands.Peek();
 				try
 				{
-					cmd.Execute();
+					if( !_headStarted )
+					{
+						_headStarted = true;
+						cmd.Execute();
+					}
+					else
+					{
+						cmd.Tick();
+					}
 				}
 				catch( Exception e )
 				{
+					// the command is done, badly; the ones after it still run, as they always have
 					WriteResponseLine( "ERROR: " + Tools.JustFirstLine( e.Message ) );
+					Advance();
+					continue;
 				}
-				cmd.Dispose();
+
+				if( !cmd.Finished )
+					return; // come back to it next tick; the request is not finished either
+
+				Advance();
 			}
+
+			SetFinished();
+		}
+
+		/// <summary>Drops the command at the head of the queue and moves on to the next one.</summary>
+		void Advance()
+		{
+			var cmd = Commands.Dequeue();
+			cmd.Dispose();
+			_headStarted = false;
+		}
+
+		/// <summary>
+		/// Marks the request done and lets whoever awaits it go.
+		/// </summary>
+		void SetFinished()
+		{
+			if( Finished ) return;
 			Finished = true;
+			Release();
+		}
+
+		private bool _released;
+
+		/// <summary>Lets a waiter go, at most once however the request ended.</summary>
+		void Release()
+		{
+			if( _released ) return;
+			_released = true;
 			_mutex.Release();
 		}
 
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
+
 			Finished = true;
+
+			// Releasing matters when the request is discarded rather than completed - a pending wait
+			// at shutdown, say. Without it whoever holds WaitAsync - a REST call, or a test - would
+			// wait for an answer that is never coming. Only when disposing: the semaphore is a
+			// managed object and must not be touched from a finalizer.
+			if( disposing ) Release();
 		}
 
 		// waits until the request completes

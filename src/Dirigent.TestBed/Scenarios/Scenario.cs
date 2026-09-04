@@ -67,6 +67,18 @@ namespace Dirigent.TestBed.Scenarios
 		}
 
 		/// <summary>
+		/// The logging world plus a plan naming a machine no agent will ever serve.
+		/// </summary>
+		/// <remarks>
+		/// For anything that needs an operation which cannot finish on its own - a script waiting for
+		/// that plan's machines waits for ever, which is how a timeout or a wait is observed without
+		/// sleeping through a real one.
+		/// </remarks>
+		public static Scenario WaitingWorld()
+			=> LoggingWorld()
+				.RawXml( "<Plan Name='never'><App AppIdTuple='ghost.app' ExeFullPath='[cmd]'/></Plan>" );
+
+		/// <summary>
 		/// The presets addressable by name, for callers that get the name as text - the scenario
 		/// generator, and through it the tier-2 PowerShell driver.
 		/// </summary>
@@ -78,6 +90,7 @@ namespace Dirigent.TestBed.Scenarios
 			{ "TwoMachinesWithIdlers", TwoMachinesWithIdlers },
 			{ "LoggingApps", LoggingApps },
 			{ "LoggingWorld", LoggingWorld },
+			{ "WaitingWorld", WaitingWorld },
 		};
 
 		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>
@@ -372,7 +385,8 @@ namespace Dirigent.TestBed.Scenarios
 			string mask = "*.log",
 			int maxFiles = 10,
 			double maxSeconds = 2 * 24 * 3600,
-			long? tailBytes = null )
+			long? tailBytes = null,
+			bool? clearable = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -384,6 +398,27 @@ namespace Dirigent.TestBed.Scenarios
 				MaxFiles = maxFiles,
 				MaxSeconds = maxSeconds,
 				TailBytes = tailBytes,
+				Clearable = clearable,
+			} );
+			return this;
+		}
+
+		/// <summary>
+		/// Exposes one named file of the application's folder as a VFS node - a configuration file,
+		/// typically, which is what a package holds besides the logs.
+		/// </summary>
+		public AppBuilder WithFileNode( string id, string fileName, string? title = null,
+				bool? clearable = null )
+		{
+			_spec.VfsNodes.Add( new VfsSpec()
+			{
+				Kind = VfsKind.NewestFiles,
+				Id = id,
+				Title = title ?? fileName,
+				Path = "{applogs}",
+				Mask = fileName,
+				MaxFiles = 1,
+				Clearable = clearable,
 			} );
 			return this;
 		}
@@ -391,7 +426,7 @@ namespace Dirigent.TestBed.Scenarios
 		/// <summary>Exposes a whole folder as a VFS node.</summary>
 		public AppBuilder WithFolderNode( string id, string path, string? mask = null,
 				double? maxSeconds = null, int? maxFiles = null, long? maxTotalBytes = null,
-				long? tailBytes = null )
+				long? tailBytes = null, bool? clearable = null )
 		{
 			_spec.VfsNodes.Add( new VfsSpec()
 			{
@@ -403,6 +438,7 @@ namespace Dirigent.TestBed.Scenarios
 				MaxFiles = maxFiles,
 				MaxTotalBytes = maxTotalBytes,
 				TailBytes = tailBytes,
+				Clearable = clearable,
 			} );
 			return this;
 		}

@@ -68,6 +68,22 @@ namespace Dirigent
 		public long TailBytes = 0;
 
 		/// <summary>
+		/// Whether the file may be emptied, or have a line drawn under it, before a test run.
+		/// Off unless the configuration says otherwise.
+		/// </summary>
+		/// <remarks>
+		/// The whole permission, of which marking is the gentler half: a file that may be cleared may
+		/// also be marked, and a file that may not is always collected whole. Marking is gated too
+		/// because a marked configuration file would arrive in the archive empty - no bytes appended
+		/// since the mark - which is quieter, and therefore worse, than deleting it.
+		///
+		/// Off by default, so that a configuration file is safe from any action, argument or package
+		/// that names it. Set on a &lt;Folder&gt;, it applies to every file the folder yields.
+		/// </remarks>
+		//[MessagePack.Key( 34 )]
+		public bool Clearable = false;
+
+		/// <summary>
 		/// What the resolution of this node had to leave out - a file too big for the size budget,
 		/// for instance. Filled in during resolution, empty in a definition.
 		/// </summary>
@@ -93,6 +109,7 @@ namespace Dirigent
 			this.Filter == other.Filter &&
 			this.Xml == other.Xml &&
 			this.TailBytes == other.TailBytes &&
+			this.Clearable == other.Clearable &&
 			( ( this.Notes is null && other.Notes is null )
 				|| ( this.Notes is not null && other.Notes is not null && this.Notes.SequenceEqual( other.Notes ) ) ) &&
 			true;

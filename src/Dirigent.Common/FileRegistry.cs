@@ -375,6 +375,7 @@ namespace Dirigent
 			r.MachineId = x.MachineId;
 			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
 			r.TailBytes = x.TailBytes; // the download needs it, and only the definition knows it
+			r.Clearable = x.Clearable; // ditto - Clear and Mark act on the resolved node
 			return r;
 		}
 
@@ -414,14 +415,77 @@ namespace Dirigent
 		{
 			if (nodeDef is null)
 				throw new ArgumentNullException( nameof( nodeDef ) );
-				
+
+			var pending = new List<RemoteStub>();
+
+			// everything this machine can work out on its own, with a stub left standing wherever
+			// another machine has to be asked
+			var root = ResolveLocally( nodeDef, forceUNC, includeContent, usedGuids, pending, null );
+
+			if( pending.Count > 0 )
+			{
+				await AskTheMachines( iDirig, pending, forceUNC );
+
+				foreach( var stub in pending )
+					root = PutInPlace( stub, root );
+			}
+
+			return root;
+		}
+
+		/// <summary>
+		/// A node of another machine, standing in the tree until that machine has answered about it.
+		/// </summary>
+		/// <remarks>
+		/// The walk happens here, on this machine, and stops at every node belonging to somebody
+		/// else - what a folder on another machine holds is not knowable from here. Each of those
+		/// used to be a round trip of its own, taken one after another, so a package of thirty nodes
+		/// cost thirty waits however few machines it spanned. Now the walk leaves one of these behind
+		/// and carries on, and when it is done every machine is asked once, about all of its own
+		/// nodes, and all the machines at the same time.
+		///
+		/// A stub never leaves this class: by the time the tree is returned every one of them has
+		/// been replaced by what its machine said, or taken out.
+		/// </remarks>
+		class RemoteStub : VfsNodeDef
+		{
+			/// <summary>The node, to be resolved by the machine it belongs to.</summary>
+			public VfsNodeDef Request = null!;
+
+			/// <summary>The container it stands in; null means it is the root of this resolution.</summary>
+			public VfsNodeDef? Parent;
+
+			/// <summary>
+			/// What takes its place if the machine cannot answer, and what then carries the note.
+			/// Null means nothing does - the node is dropped and the container is told why.
+			/// </summary>
+			public VfsNodeDef? Fallback;
+
+			/// <summary>
+			/// Whether the machine should look inside the node. Kept per stub because a container's
+			/// children are always asked for with their content, whatever was asked of the container.
+			/// </summary>
+			public bool IncludeContent;
+
+			public VfsNodeDef? Resolved;
+			public Exception? Failure;
+		}
+
+		/// <summary>
+		/// The part of the resolution this machine can do on its own, leaving a <see cref="RemoteStub"/>
+		/// wherever another machine has to be asked.
+		/// </summary>
+		/// <param name="parent">the container the result will be put into; null for the root</param>
+		VfsNodeDef? ResolveLocally( VfsNodeDef nodeDef, bool forceUNC, bool includeContent,
+				List<Guid>? usedGuids, List<RemoteStub> pending, VfsNodeDef? parent )
+		{
 			if (usedGuids == null) usedGuids = new List<Guid>();
 			if (usedGuids.Contains( nodeDef.Guid ))
 			{
 				//	throw new Exception( $"Circular reference in VFS tree: {nodeDef}" );
 				return null;
 			}
-			
+
 			usedGuids.Add( nodeDef.Guid );
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
@@ -436,26 +500,16 @@ namespace Dirigent
 				// check if required machine is available
 				if( !string.IsNullOrEmpty(nodeDef.MachineId) &&  _machineIPDelegate( nodeDef.MachineId ) is null )
 					throw new Exception($"Machine {nodeDef.MachineId} not connected.");
-					
-				// await script	to resolve remotely
-				var args = new Scripts.BuiltIn.ResolveVfsPath.TArgs
+
+				var stub = new RemoteStub()
 				{
-					VfsNode = nodeDef,
-					ForceUNC = forceUNC,
-					IncludeContent = includeContent
+					Request = nodeDef,
+					Parent = parent,
+					IncludeContent = includeContent,
 				};
 
-				var result = await iDirig.RunScriptAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
-						nodeDef.MachineId ?? "",
-						Scripts.BuiltIn.ResolveVfsPath._Name,
-						"",	// sourceCode
-						args,
-						$"Resolve {nodeDef.Xml}",
-						out var instance
-					);
-
-				return result!.VfsNode!;
-
+				pending.Add( stub );
+				return stub;
 			}
 
 			// from here on, we are on local machine (or master)
@@ -467,12 +521,12 @@ namespace Dirigent
 			else
 			if( nodeDef is FileRef fref )
 			{
-				return await ResolveFileRef( iDirig, forceUNC, includeContent, usedGuids, fref );
+				return ResolveFileRef( forceUNC, includeContent, usedGuids, fref, pending, parent );
 			}
 			else
 			if (nodeDef is VFolderDef vfolderDef)
 			{
-				return await ResolveVFolder( iDirig, vfolderDef, forceUNC, usedGuids );
+				return ResolveVFolder( vfolderDef, forceUNC, usedGuids, pending );
 			}
 			else
 			if( nodeDef is FolderDef folderDef )
@@ -482,7 +536,7 @@ namespace Dirigent
 			else
 			if( nodeDef is FilePackageDef fpdef )
 			{
-				return await ResolveVFolder( iDirig, fpdef, forceUNC, usedGuids );
+				return ResolveVFolder( fpdef, forceUNC, usedGuids, pending );
 			}
 			else
 			{
@@ -490,7 +544,134 @@ namespace Dirigent
 			}
 		}
 
-		private async Task<VfsNodeDef?> ResolveFileRef( IDirigAsync iDirig, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileRef fref )
+		/// <summary>
+		/// Asks every machine about all of its own nodes in one call, and all the machines at once.
+		/// </summary>
+		/// <remarks>
+		/// This is where the time of a collection on a large site is spent, so it is worth being
+		/// precise about what it now costs: one round trip, however many machines and however many
+		/// nodes - where it used to be one round trip per node, in sequence.
+		/// </remarks>
+		async Task AskTheMachines( IDirigAsync iDirig, List<RemoteStub> pending, bool forceUNC )
+		{
+			// Grouped in the order the machines first appear, so that what goes on the wire is as
+			// predictable as what the walk produced. Nodes wanted without their content travel
+			// separately - it is one flag for the whole call.
+			var byMachine = new List<List<RemoteStub>>();
+			var whichGroup = new Dictionary<string, int>();
+
+			foreach( var stub in pending )
+			{
+				var key = $"{stub.Request.MachineId}|{stub.IncludeContent}";
+
+				if( !whichGroup.TryGetValue( key, out var at ) )
+				{
+					at = byMachine.Count;
+					whichGroup[key] = at;
+					byMachine.Add( new List<RemoteStub>() );
+				}
+
+				byMachine[at].Add( stub );
+			}
+
+			log.Debug( $"Resolving {pending.Count} node(s) in {byMachine.Count} call(s)" );
+
+			await Task.WhenAll( byMachine.Select( group => AskOneMachine( iDirig, group, forceUNC ) ) );
+		}
+
+		async Task AskOneMachine( IDirigAsync iDirig, List<RemoteStub> stubs, bool forceUNC )
+		{
+			var machineId = stubs[0].Request.MachineId ?? string.Empty;
+
+			try
+			{
+				var args = new Scripts.BuiltIn.ResolveVfsPath.TArgs
+				{
+					VfsNodes = stubs.Select( x => x.Request ).ToList(),
+					ForceUNC = forceUNC,
+					IncludeContent = stubs[0].IncludeContent
+				};
+
+				var title = stubs.Count == 1
+						? $"Resolve {stubs[0].Request.Xml}"
+						: $"Resolve {stubs.Count} nodes of {machineId}";
+
+				var result = await iDirig.RunScriptAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
+						machineId,
+						Scripts.BuiltIn.ResolveVfsPath._Name,
+						"",	// sourceCode
+						args,
+						title,
+						out var instance
+					);
+
+				var answers = result?.Nodes;
+				if( answers is null || answers.Count != stubs.Count )
+					throw new Exception( $"{machineId} answered about {answers?.Count.ToString() ?? "none"}"
+							+ $" of the {stubs.Count} node(s) it was asked about." );
+
+				for( int i = 0; i < stubs.Count; i++ )
+				{
+					if( answers[i].Error is string error )
+						stubs[i].Failure = new Exception( error );
+					else
+						stubs[i].Resolved = answers[i].VfsNode;
+				}
+			}
+			catch( Exception ex )
+			{
+				// the machine could not be asked at all, or did not answer sensibly - which is every
+				// one of its nodes failing, exactly as each would have failed on its own
+				foreach( var stub in stubs )
+					stub.Failure ??= ex;
+			}
+		}
+
+		/// <summary>
+		/// Puts what a machine answered where the stub was standing, or takes the stub out and says
+		/// why. Returns the root of the tree, which is a different node when the stub was the root.
+		/// </summary>
+		VfsNodeDef? PutInPlace( RemoteStub stub, VfsNodeDef? root )
+		{
+			VfsNodeDef? replacement;
+
+			if( stub.Failure is not null )
+			{
+				// a node asked for on its own leaves nothing else to deliver, so it fails out loud,
+				// just as it did when it had a call of its own - see ResolveChild
+				if( stub.Parent is null && stub.Fallback is null )
+					System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture( stub.Failure ).Throw();
+
+				log.Warn( $"Could not resolve {stub.Request}: {stub.Failure.Message}" );
+
+				var target = stub.Fallback ?? stub.Parent!;
+				( target.Notes ??= new List<string>() ).Add( CouldNotLookUp( stub.Request, stub.Failure ) );
+
+				replacement = stub.Fallback;
+			}
+			else
+			{
+				replacement = stub.Resolved ?? stub.Fallback;
+			}
+
+			if( stub.Parent is null )
+				return ReferenceEquals( root, stub ) ? replacement : root;
+
+			// by reference: two nodes of a tree can be equal by value without being the same node
+			var at = stub.Parent.Children.FindIndex( x => ReferenceEquals( x, stub ) );
+			if( at < 0 )
+				return root;
+
+			if( replacement is null )
+				stub.Parent.Children.RemoveAt( at );
+			else
+				stub.Parent.Children[at] = replacement;
+
+			return root;
+		}
+
+		private VfsNodeDef? ResolveFileRef( bool forceUNC, bool includeContent, List<Guid>? usedGuids,
+				FileRef fref, List<RemoteStub> pending, VfsNodeDef? parent )
 		{
 			var defs = FindById( fref.Id, fref.MachineId, fref.AppId );
 
@@ -501,16 +682,33 @@ namespace Dirigent
 				return null;
 
 			if ( defs.Count == 1 )
-				return await ResolveAsync( iDirig, defs[0], forceUNC, includeContent, usedGuids );
+			{
+				// Guarded like the many-node case below, and for the same reason - but the note has to
+				// name the node that failed rather than the reference that found it: a reference is
+				// written with wildcards ("every 'dump' node, on any machine"), and "'dump' on *"
+				// tells nobody which machine is missing the folder.
+				var single = EmptyFrom<VFolderDef>( fref );
+				single.IsContainer = true;
+
+				var resolvedSingle = ResolveChild( defs[0], forceUNC, usedGuids, pending,
+						parent: parent, fallback: single );
+
+				// the pack exists only to carry a note; when there is none, the node stands alone as
+				// it always did
+				return resolvedSingle ?? single;
+			}
 
 			{
 				var pack = new VFolderDef();
 				pack.Title = fref.Title;
 				if ( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Id;
 				if( string.IsNullOrEmpty(pack.Title) ) pack.Title = fref.Guid.ToString();
+
+				// guarded one by one, like a container's children: a reference matching thirty nodes
+				// across two machines must not be lost to one of them - see ResolveChild
 				foreach( var def in defs )
 				{
-					var resolved = await ResolveAsync( iDirig, def, forceUNC, includeContent, usedGuids );
+					var resolved = ResolveChild( def, forceUNC, usedGuids, pending, parent: pack );
 					if( resolved is not null )
 						pack.Children.Add( resolved );
 				}
@@ -591,15 +789,16 @@ namespace Dirigent
 			throw new Exception( $"Unsupported filter. {fileDef.Xml}" );
 		}
 
-		async Task<VfsNodeDef> ResolveVFolder( IDirigAsync iDirig, VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids )
+		VfsNodeDef ResolveVFolder( VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids, List<RemoteStub> pending )
 		{
 			var rootNode = EmptyFrom<ResolvedVfsNodeDef>( folderDef ); // this produces Iscontainer=false (ResolvedVfsNode does not say if it is a container or not)
 			rootNode.IsContainer = true;
 
-			// FIXME: group children by machineId, resolve whole group by single remote script call
+			// children of other machines become stubs here and are asked for together afterwards,
+			// one call per machine - see RemoteStub
 			foreach ( var child in folderDef.Children )
 			{
-				var resolved = await ResolveAsync( iDirig, child, forceUNC, true, usedGuids );
+				var resolved = ResolveChild( child, forceUNC, usedGuids, pending, parent: rootNode );
 				if( resolved is not null )
 				{
 					rootNode.Children.Add( resolved );
@@ -607,6 +806,80 @@ namespace Dirigent
 			}
 
 			return rootNode;
+		}
+
+		/// <summary>
+		/// Resolves one member of a container, turning a failure into a note on the container rather
+		/// than into a failure of the whole thing.
+		/// </summary>
+		/// <remarks>
+		/// A package is a list of things the operator asked for, and the things are independent: a
+		/// folder that is not on this machine, a machine whose shares are unknown, an application that
+		/// has never crashed and therefore has no CrashDumps folder. Before this, any one of those
+		/// aborted the resolution of the whole package - so a system-wide collection could be lost to
+		/// a folder that has never existed on one machine, which is at its most likely just after an
+		/// incident, when the collection matters most.
+		///
+		/// The note travels with the tree into the archive's _incomplete.txt, so that an archive which
+		/// lacks something says so. Resolving a node on its own still fails out loud: there the caller
+		/// asked for that one thing and there is nothing else to deliver.
+		///
+		/// A child of another machine is not resolved here at all - it becomes a stub, and whatever
+		/// its machine says later is turned into the same note by PutInPlace, which is why the two
+		/// share the wording.
+		/// </remarks>
+		/// <param name="parent">the container the child will be put into; null for the root</param>
+		/// <param name="fallback">
+		/// what stays in the child's place, and carries the note, if it cannot be resolved.
+		/// Null means the child is simply left out and the note goes to the container.
+		/// </param>
+		VfsNodeDef? ResolveChild( VfsNodeDef child, bool forceUNC, List<Guid>? usedGuids,
+				List<RemoteStub> pending, VfsNodeDef? parent, VfsNodeDef? fallback = null )
+		{
+			try
+			{
+				var resolved = ResolveLocally( child, forceUNC, true, usedGuids, pending, parent );
+
+				if( resolved is RemoteStub stub )
+					stub.Fallback = fallback;
+
+				return resolved;
+			}
+			catch( Exception ex )
+			{
+				log.Warn( $"Could not resolve {child}: {ex.Message}" );
+
+				// with nowhere to hang the note, the caller is the one who has to hear about it
+				var target = fallback ?? parent;
+				if( target is null )
+					throw;
+
+				( target.Notes ??= new List<string>() ).Add( CouldNotLookUp( child, ex ) );
+
+				return null;
+			}
+		}
+
+		/// <summary>Why something the operator asked for is not in the tree.</summary>
+		static string CouldNotLookUp( VfsNodeDef node, Exception ex )
+			=> $"{DescribeForNote( node )} could not be looked up, so nothing of it is here:"
+			+ $" {Tools.JustFirstLine( ex.Message )}";
+
+		/// <summary>
+		/// A node as a person would name it - for a note read by somebody holding the archive and
+		/// nothing else, so it says which machine and which application it belonged to.
+		/// </summary>
+		static string DescribeForNote( VfsNodeDef node )
+		{
+			var name = !string.IsNullOrEmpty( node.Title ) ? node.Title
+					 : !string.IsNullOrEmpty( node.Id ) ? node.Id
+					 : node.Path ?? node.Guid.ToString();
+
+			var where = string.Empty;
+			if( !string.IsNullOrEmpty( node.AppId ) ) where += $" of {node.AppId}";
+			if( !string.IsNullOrEmpty( node.MachineId ) ) where += $" on {node.MachineId}";
+
+			return $"'{name}'{where}";
 		}
 
 		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
@@ -635,8 +908,11 @@ namespace Dirigent
 			}
 			catch( Exception ex ) // folder not exists or not accessible?
 			{
-				log.Debug($"ResolveFolder failed: {folderDef} Error: {ex.Message}");
-				return null;
+				// Not swallowed any more. As a member of a container this becomes a note there and
+				// the rest of the package is collected as usual; asked for on its own it fails, which
+				// is the honest answer to "give me this folder" when the folder is not there.
+				log.Debug( $"ResolveFolder failed: {folderDef} Error: {ex.Message}" );
+				throw;
 			}
 
 			// what the size budget pushed out is worth saying out loud - the user asked for those files
@@ -665,6 +941,7 @@ namespace Dirigent
 						IsContainer = false,
 						Title = info.Name,
 						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
+						Clearable = folderDef.Clearable, // and so does the permission
 					}
 				);
 			}

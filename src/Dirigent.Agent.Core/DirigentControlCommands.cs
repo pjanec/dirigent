@@ -35,6 +35,13 @@ namespace Dirigent.Commands
 
 		public string Name { get { return name; } }
 
+		/// <summary>
+		/// A command is done when Execute returns, unless it says otherwise - see <see cref="ICommand.Finished"/>.
+		/// </summary>
+		public virtual bool Finished => true;
+
+		public virtual void Tick() {}
+
 		public virtual void Execute()
 		{
 			throw new System.NotImplementedException();
@@ -264,6 +271,7 @@ namespace Dirigent.Commands
 	}
 
 
+	[CliResponse( Terminator = ETerminator.End )]
 	public class GetAllPlansState : DirigentControlCommand
 	{
 		public GetAllPlansState( Master ctrl, string requestorId )
@@ -283,6 +291,7 @@ namespace Dirigent.Commands
 	}
 
 
+	[CliResponse( Terminator = ETerminator.End )]
 	public class GetAllAppsState : DirigentControlCommand
 	{
 		public GetAllAppsState( Master ctrl, string requestorId )
@@ -563,6 +572,158 @@ namespace Dirigent.Commands
 		}
 	}
 
+	/// <summary>
+	/// Waits for a script to end and says how it went. `WaitForScript &lt;guid&gt; [timeout=&lt;seconds&gt;]`
+	/// </summary>
+	/// <remarks>
+	/// The point of it is a caller that must not carry on yet - a plan step marking the log files
+	/// before the applications start writing to them. `StartScript` answers as soon as the script has
+	/// been started, which is not the same thing.
+	///
+	/// It answers `ACK` when it has accepted the work - the documented meaning of ACK, "delivered and
+	/// processed" - and `END` when the script has finished, so a sender knows the difference between
+	/// "begun" and "over". Waiting costs the master nothing: the command reports itself unfinished and
+	/// is ticked again, while every other request carries on around it.
+	/// </remarks>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class WaitForScript : DirigentControlCommand
+	{
+		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
+
+		/// <summary>Seconds to wait before giving up and stopping the script. 0 = as long as it takes.</summary>
+		double _timeoutSec;
+
+		Guid _id;
+		DateTime _deadline;
+		bool _finished;
+
+		public WaitForScript( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "script id expected." );
+
+			try
+			{
+				_id = Guid.Parse( args[0] );
+			}
+			catch
+			{
+				throw new ArgumentException( "id", "script id must be a guid" );
+			}
+
+			var options = Tools.ParseKeyValList( args );
+			if( Tools.TryGetValueIgnoreKeyCase( options, "timeout", out var timeoutStr ) )
+			{
+				if( !double.TryParse( timeoutStr, System.Globalization.NumberStyles.Float,
+									System.Globalization.CultureInfo.InvariantCulture, out _timeoutSec )
+					|| _timeoutSec < 0 )
+				{
+					throw new ArgumentSyntaxErrorException( "timeout", timeoutStr, "seconds expected" );
+				}
+			}
+
+			// Nothing to wait for is an error, and it is worth failing before the ACK so that the
+			// answer is a single ERROR line. A script that has never run and one whose id nobody
+			// knows look the same from here, and for a wait they are the same case.
+			var state = ctrl.GetScriptState( _requestorId, _id );
+			if( state is null )
+				throw new Exception( $"Script {_id} is not running and has no result to wait for." );
+
+			WriteResponse( "ACK" );
+
+			_deadline = _timeoutSec > 0 ? DateTime.UtcNow.AddSeconds( _timeoutSec ) : DateTime.MaxValue;
+
+			// it may be over already - a caller waiting for a script that has just ended
+			if( !state.IsAlive ) Conclude( state );
+		}
+
+		public override void Tick()
+		{
+			var state = ctrl.GetScriptState( _requestorId, _id );
+
+			if( state is null )
+			{
+				// forgotten while we waited - a generic script's record does not live long
+				Fail( $"Script {_id} disappeared before it finished." );
+				return;
+			}
+
+			if( !state.IsAlive )
+			{
+				Conclude( state );
+				return;
+			}
+
+			if( DateTime.UtcNow >= _deadline )
+			{
+				// Stopping it is the point: whoever asked is about to carry on regardless, and a
+				// script that lands its work afterwards is worse than one that did not run - a mark
+				// arriving after the applications have started cuts the beginning off the run.
+				log.Warn( $"WaitForScript: {_id} did not finish within {_timeoutSec} s; killing it." );
+				try { ctrl.KillScript( _requestorId, _id ); }
+				catch( Exception e ) { log.Warn( $"WaitForScript: could not kill {_id}: {e.Message}" ); }
+
+				Fail( $"Script {_id} did not finish within {_timeoutSec} seconds and was stopped." );
+			}
+		}
+
+		void Conclude( ScriptState state )
+		{
+			_finished = true;
+
+			switch( state.Status )
+			{
+				case EScriptStatus.Finished:
+					WriteResponse( "END" );
+					break;
+
+				case EScriptStatus.Failed:
+					WriteResponse( $"ERROR: script {_id} failed: {ErrorTextOf( state )}" );
+					break;
+
+				case EScriptStatus.Cancelled:
+					WriteResponse( $"ERROR: script {_id} was cancelled." );
+					break;
+
+				default:
+					WriteResponse( $"ERROR: script {_id} ended as {state.Status}." );
+					break;
+			}
+		}
+
+		void Fail( string message )
+		{
+			_finished = true;
+			WriteResponse( "ERROR: " + message );
+		}
+
+		/// <summary>The message of the exception a failed script left behind, if it can be read.</summary>
+		static string ErrorTextOf( ScriptState state )
+		{
+			if( string.IsNullOrEmpty( state.Data ) )
+				return string.IsNullOrEmpty( state.Text ) ? "no details" : state.Text!;
+
+			try
+			{
+				var exception = Tools.Deserialize<SerializedException>( state.Data );
+				if( exception is not null && !string.IsNullOrEmpty( exception.Message ) )
+					return Tools.JustFirstLine( exception.Message );
+			}
+			catch( Exception e )
+			{
+				log.Debug( $"WaitForScript: could not read the script error: {e.Message}" );
+			}
+
+			return Tools.JustFirstLine( state.Data! );
+		}
+	}
+
 	public class ApplyPlan : DirigentControlCommand
 	{
 		public ApplyPlan( Master ctrl, string requestorId )
@@ -604,6 +765,7 @@ namespace Dirigent.Commands
 		}
 	}
 
+	[CliResponse( Terminator = ETerminator.End )]
 	public class GetAllClientsState : DirigentControlCommand
 	{
 		public GetAllClientsState( Master ctrl, string requestorId )

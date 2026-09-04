@@ -28,6 +28,7 @@ Contents:
   * [Association: app, machine or global](#association-app-machine-or-global)
   * [Where nodes can be declared](#where-nodes-can-be-declared)
   * [Resolution](#resolution)
+  * [When something is not there](#when-something-is-not-there)
   * [UNC paths and file shares](#unc-paths-and-file-shares)
 * [XML reference](#xml-reference)
   * [Attributes common to all node types](#attributes-common-to-all-node-types)
@@ -35,6 +36,7 @@ Contents:
   * [`<File Filter="Newest">`](#file-filternewest)
   * [`<Folder>`](#folder)
   * [Files too big to collect whole](#files-too-big-to-collect-whole)
+  * [Collecting one test run: Clear, Mark and Unmark](#collecting-one-test-run-clear-mark-and-unmark)
   * [`<VFolder>`](#vfolder)
   * [`<FilePackage>`](#filepackage)
   * [`<FileRef>`](#fileref)
@@ -142,6 +144,41 @@ returned from the perspective of the *requesting* machine: files on other machin
 global files, come back as UNC paths; files on the requestor's own machine come back as plain
 local paths.
 
+### When something is not there
+
+A package names things that need not all exist: a crash-dump folder on a machine that has never
+crashed, a log an application has not written yet, a machine that is offline. **One member that
+cannot be delivered never costs you the rest.**
+
+| what is missing | what happens |
+| --- | --- |
+| the folder of a `<Folder>` or a `<File Filter="Newest">` | the node is left out of the resolved tree |
+| the file of a plain `<File>` | the node resolves, and the collection finds nothing to add |
+| a whole machine (offline) | reported per machine, the others still collect |
+
+In every case the collection carries on, and what was named but not delivered is recorded in the
+archive - in **`_incomplete.txt`**, naming the node, the machine and the reason, so that an archive
+which lacks something says so, months later, to somebody who has only the zip.
+
+The **closing message** gives the operator standing there the count and points at that file. It
+deliberately does not list them: an incident package over a large system names hundreds of things
+that are not there - most machines have not crashed - and a dialog of hundreds of sentences is not
+read at all, which also buries the one or two lines in it that were real problems.
+
+None of this is reported as an error. A dump folder that does not exist is the ordinary state of a
+machine that has not crashed, and reporting it as a failure teaches the operator to ignore failures.
+
+**The one absence that is stated outright is a machine that produced no archive at all.** Every
+other machine leaves its `_incomplete.txt` behind, so even a machine that collected nothing accounts
+for itself; a machine whose part never arrived accounts for nothing, and neither its files nor any
+record of what it held exists. Those machines are named in the closing message and marked in
+`_comment.txt`. It does not fail the download - the other machines' work still arrives, which before
+was not so: one machine unable to write its archive used to end the whole collection and discard
+everything already gathered.
+
+Asked for **on its own**, a `<Folder>` or `<File Filter="Newest">` whose folder is missing fails
+instead - there the caller wanted that one thing and there is nothing else to hand back.
+
 ### UNC paths and file shares
 
 Turning a remote local path such as `D:\Logs\app.log` on `m1` into something the requestor can
@@ -178,6 +215,7 @@ the user must have entered them beforehand so that Windows can reuse the cached 
 | `AppIdTuple` | Shorthand setting both of the above at once, in the `"machineId.appId"` format. Without a dot it sets the app only, leaving the machine empty. `MachineId` / `AppId` given alongside it still win.                        |
 | `Icon`      | Icon image shown next to the menu item.                                                                                                                                                                                  |
 | `Groups`    | Semicolon-separated group paths, as elsewhere in the config.                                                                                                                                                              |
+| `Clearable` | Whether **Clear** and **Mark** may touch the files this node yields. `0` (the default) means they never do, whatever any action or argument says - see [Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark). |
 | `Description` | What this node is, in prose. Shown where the user has to decide something about it - see [Asking for a comment](#asking-for-a-comment). Being an attribute, a line break in it is written `&#10;`.                       |
 
 Any node may contain `<Tool>` and `<Script>` child elements - see
@@ -312,6 +350,198 @@ and may well live on another machine.
 The tail is a property of collecting into an archive. Opening or browsing the node still points at
 the real, whole file; `%FILE_PATH%` is unaffected. And since a live log keeps growing, the tail is
 a snapshot: the bytes taken are the last ones as of the moment of collection.
+
+### Collecting one test run: Clear, Mark and Unmark
+
+Somebody who can reproduce a problem wants two clicks around the run: one before it, one after,
+and an archive holding only what that run produced. Without the first click the collection takes
+whatever is in the log files, which on a long-running system is mostly somebody else's afternoon.
+
+The mechanism is a **high-water mark**: the first click records how long each file is, and the
+download takes only what came after. It works on a file a logger is holding open, corrupts
+nothing, and destroys no history.
+
+#### Why a mark rather than emptying the file
+
+Measured against a logger that holds its file open - the normal state of a running system:
+
+| the logger permits | delete | truncate to zero | read the length |
+| --- | --- | --- | --- |
+| `Read` (the usual case) | **fails** | **fails** | works |
+| `ReadWrite` | **fails** | succeeds, but see below | works |
+| `ReadWrite \| Delete` | succeeds, but see below | succeeds, but see below | works |
+
+Where truncation succeeds the logger keeps writing at its old offset, so the file comes back as a
+run of NUL bytes followed by the new line. Where deletion succeeds the file is unlinked while the
+logger writes into it, and everything logged afterwards goes somewhere nobody can find. Reading
+the length always works and changes nothing.
+
+#### `Clearable`: nothing is touched unless it says so
+
+A package worth collecting is rarely only logs - the interesting ones hold the applications'
+logs *and* their configuration files, and one archive containing both is the point. So the
+permission lives on the node, and it is **off by default**:
+
+```xml
+<File Id="log" Title="Log/IgManager" Path="D:\Logs\IgManager"
+      Filter="Newest" MaxFiles="10" Clearable="1"/>
+
+<File Id="cfg.dds" Title="Config/cyclonedds.xml" Path="%APP_STARTUPDIR%\cyclonedds.xml"/>
+```
+
+`cfg.dds` above cannot be emptied by any click, action or argument.
+
+The flag gates **marking as well as clearing**, deliberately. Marking looks harmless, but marking
+a configuration file would mean the next collection takes only the bytes appended since - usually
+none - so the file would silently arrive empty. A flag that allowed marking but not clearing would
+trade a loud failure for a quiet one. Read `Clearable` as the whole permission, of which marking is
+the gentler half.
+
+| kind of file | `Clearable` | why |
+| --- | --- | --- |
+| application log, append-only | `1` | the run boundary is the whole point |
+| crash dump folder | `1` | old dumps muddy a run, and nothing holds a dump open |
+| configuration file | `0` (default) | it is the run's input, not its output |
+| anything somebody may need whole | `0` | the default protects it |
+
+Set on a `<Folder>`, it applies to every file that folder yields. Like `TailBytes`, it is **not**
+inherited by the children of a `<VFolder>` or `<FilePackage>`.
+
+#### The three operations
+
+| action | menu | what it does to each **clearable** file in scope |
+| --- | --- | --- |
+| `BuiltIns/ClearFiles.cs` | **Clear** | empties it if that is safe, marks it otherwise |
+| `BuiltIns/MarkFiles.cs` | **Mark** | records the mark only, touches no file |
+| `BuiltIns/UnmarkFiles.cs` | **Unmark** | drops the mark, so the next download takes everything again |
+
+**Clear** decides per file, and the decision is a measurement rather than a guess about names or
+folders: it opens the file **exclusively**, which succeeds only when no other process has it open.
+
+* The open **succeeds** - so the file is truncated inside that window and then deleted, and any
+  mark on it is dropped. Truncate first, because once the exclusive handle is held the truncation
+  cannot fail while the deletion still can - a read-only attribute, a folder's permissions - and an
+  emptied file is cleared either way. The application recreates the file on its next write; a new
+  file has no mark, so the download takes it whole, which is exactly "since the clear".
+* The open **fails** - the file is in use, read-only, or refused for any other reason - so it is
+  marked instead, and the report says which file and why. A file that cannot be emptied is not a
+  failed operation: the line under it delivers the same result to the next collection.
+
+**A Clear on a running system therefore leaves marks, and that is how it keeps its promise.** A log
+being written to cannot be emptied, so the line under it is what makes the next download hold only
+what came after the Clear. The count of marked files in the closing message says how many; the
+archive names the operation - "written after the Clear of 15:32:10" - rather than talking about a
+"mark" nobody asked for.
+
+The only marks a Clear leaves behind are its own: it drops the mark of every file it empties, and the
+marks of files that have vanished altogether are forgotten when the marks are next written. So after
+a Clear, no mark can refer to a file that is not there.
+
+**Mark** is the same operation with the destructive half removed, which is what a production site
+wants: the run is delimited and the history survives. **Unmark** ignores `Clearable`, being the one
+operation that can only ever make a later collection *more* complete.
+
+Each operation reports per machine what happened - cleared, marked, skipped as not clearable, not
+there, failed - in the status bar while it runs and in a message box when it ends. The *skipped*
+count is what makes a forgotten `Clearable="1"` discoverable; without it a log would quietly keep
+its old contents and the archive would look wrong for no visible reason.
+
+All three work on a whole package, on a single node, and on one row of the Files tab - wherever the
+action is declared.
+
+#### What one operation does after another
+
+Written out because it is what everybody asks. `A` and `B` stand for lines written to a log, and the
+last column is what the archive holds:
+
+| what was done | collected | |
+| --- | --- | --- |
+| `A B`, download | `A B` | with no line drawn, everything |
+| `A` **Mark** `B`, download | `B` | the run, and only the run |
+| `A` **Clear** `B`, download | `B` | the same, whether the file was emptied or only marked |
+| `A` **Mark** `B` **Unmark** `C`, download | `A B C` | Unmark lifts the line; the history is back |
+| `A` **Mark** `B` **Mark** `C`, download | `C` | the later line wins |
+| `A` **Mark** `B` **Clear** `C`, download | `C` | so does a Clear after a Mark |
+| `A` **Clear** `B` **Mark** `C`, download | `C` | and a Mark after a Clear |
+| `A` **Clear** `B` **Unmark** `C`, download | `B C` | all of the file the Clear left behind |
+| `A` **Unmark** `B`, download | `A B` | an Unmark with no line to lift changes nothing |
+| `A` **Mark** `B`, download, download | `B` twice | a download reads the line, it does not consume it |
+| `A` **Mark** `B`, *rotation*, `C`, download | `C` | the new file arrives whole - see below |
+| any of the above on a file that is not `Clearable` | everything | no line is ever drawn under it |
+
+Every row of that table is a test - `MarkClearSequenceTests` in the integration tests - so it says
+what Dirigent does rather than what it was meant to do.
+
+#### What the download does with a mark
+
+| what it finds | what it collects |
+| --- | --- |
+| no mark | the whole file - all of it is new |
+| a mark, and the file is still the one that was marked | from the mark, cut at the next line break |
+| a mark, but the file was replaced | the whole file, noting that it was replaced |
+| a mark, but the file is shorter than the mark | the whole file, noting that it was truncated or rotated |
+
+Rotation therefore yields slightly **more** than the window, never less: the fresh `app.log` is a
+new file, so it arrives whole, and `app.log.1` was never marked, so it arrives whole too. Failing
+towards too much is the right direction, and `_incomplete.txt` says why.
+
+A file with **nothing** after the line is left out of the archive altogether, and `_incomplete.txt`
+says so: an empty entry would read as a log that is empty, rather than as one whose contents all
+predate the run.
+
+A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - and its first line
+states the offset and the time and operation the line was drawn by, exactly as a `TailBytes` entry
+states its own reason. `_comment.txt` gains a line naming the beginning of the window:
+
+```
+Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the Clear of that time; the rest are complete.
+```
+
+It says `Clear` or `Mark`, whichever was run - or "Clear or Mark" where the files disagree, which
+happens when part of the system was marked and part of it cleared.
+
+Marks and `TailBytes` compose: a file starts at whichever cut is later, and the entry is named and
+headed after whichever of the two was binding. Downloading does **not** consume the mark - two
+downloads after one mark give the same window, which is what somebody re-downloading after a failed
+transfer expects.
+
+#### Where the marks live, and how a file is recognised
+
+On each machine, in a small JSON file beside the agent status file (`--agentStatusFolder`), keyed by
+**path** - so that "mark, then collect" holds however the collection happens to be assembled. Two
+people marking overlapping packages means the later mark wins; harmless, and every partial entry
+states the time of the mark it was cut at.
+
+A mark also keeps the **last 32 bytes before the offset**, and a download compares them before
+trusting the offset. That is not belt and braces: on Windows the obvious check does not hold. NTFS
+*tunneling* restores the original creation time on a file deleted and recreated under the same name
+within about fifteen seconds - which is exactly what a rotating logger does - so a rotated file
+arrives wearing the marked file's creation time. Comparing the bytes checks the one thing that has
+to be true for an offset to mean anything: that the boundary is still where it was put.
+
+#### Narrowing what is acted on
+
+The three scripts read their `Args` as a semicolon-separated list of node id patterns - the same
+wildcards `<FileRef>` uses - and act only on the matching entries of the package:
+
+```xml
+<Script Title="Clear" Name="BuiltIns/ClearFiles.cs" Args="log*"/>
+```
+
+Empty `Args` means every clearable node in scope, which is the usual case. The patterns are matched
+against each entry's `Id` **or** `Title`, because a `<FileRef>` matching several nodes resolves to a
+folder carrying the reference's id as its title and no id of its own.
+
+`Args` rather than a new attribute, because a list of node ids is the script's own argument.
+(`AskComment` is the other way round - a directive the GUI reads before the script exists - which
+is why that one is an attribute. The distinction is who consumes the value.)
+
+#### What this deliberately will not do
+
+* **Clear a file that is not `Clearable`.** No action, argument or package can override it.
+* **Stop an application to free its log.** Dirigent could; a menu item that stops the system under
+  test is not something anybody wants. A held file is marked instead.
+* **Guess.** Nothing decides by file name, extension or folder whether emptying is safe.
 
 ### `<VFolder>`
 
@@ -448,6 +678,48 @@ Actions that should be offered on *every* file or *every* package need not be re
 in `LocalConfig.xml` under `<DefaultFileActions>` and `<DefaultFilePackageActions>`. Which of the
 two applies is decided **after** resolution, from whether the node resolved to a container.
 
+## Looking the files up
+
+Every action below starts by **resolving** the node it was given, and resolution is where the time
+of a collection on a large site goes.
+
+The reason is that a declaration is not an answer. `<Folder Path="C:\Logs" Mask="*.log"/>` on
+machine `m17` says nothing about which files are in that folder right now, and only `m17` can say -
+so the machine holding a node is the machine that resolves it, over the network. A package of
+thirty nodes spread over forty machines is therefore not a local computation at all; it is a
+conversation with the site.
+
+What that conversation costs is the thing worth knowing:
+
+- The tree is walked **here**, on the machine that was asked - a `<FileRef>` is looked up in the
+  registry, a package expands into its members - and every node belonging to somebody else is set
+  aside rather than resolved.
+- When the walk is done, each machine is asked **once**, about **all** of its own nodes, and all
+  the machines are asked **at the same time**.
+
+So the lookup costs **one round trip**, whatever the size of the package and however many machines
+it spans. It used to cost one round trip per node, taken one after another, which is why a
+system-wide collection used to spend longer looking for the files than fetching them.
+
+Two consequences worth remembering:
+
+**A node that cannot be resolved costs only itself.** Nodes travel together to save a round trip,
+but they remain separate things the operator asked for. A folder that has never existed on one
+machine, or a machine that does not answer at all, is left out of the tree and the reason is
+recorded as a note on the container - which reaches the archive's `_incomplete.txt` and the closing
+message. Only a node asked for *on its own* fails out loud, because there is then nothing else to
+deliver. See [Silent misses](#limitations-and-known-issues) for the case where nothing is reported.
+
+**Batching is not backward compatible, and does not need to be.** A machine running an older
+Dirigent would not understand a request about several nodes. A site is upgraded as a whole, so this
+is not a case that arises; it is worth knowing before mixing versions deliberately.
+
+Covered by `ResolutionBatchingTests` (tier 0 - the number of round trips, that they overlap, and
+that a failure still costs only its own node) and `BatchedResolveTests` (tier 1 - a real agent
+answering about many nodes over a real connection). Tier 1 cannot show the cost: every machine of a
+test bed answers on loopback, so the master treats them all as itself and no round trip is ever
+made.
+
 ## Built-in actions
 
 ### `BuiltIns/DownloadZipped.cs` - download as ZIP
@@ -488,7 +760,7 @@ Incident report_260827_1432.zip
       AppLogs/
          recorder/
             app.log
-   _comment.txt                   <- what was collected, from where, and why
+   _comment.txt                   <- what was collected, from where, why, and since when
    _incomplete.txt                <- only when something was truncated or left out
 ```
 
@@ -565,6 +837,21 @@ the machine does not have, the note says so - a misconfiguration that otherwise 
 as a file share that cannot be reached. A declared `127.0.0.1` is not treated as a disagreement:
 every machine has loopback, and a single-machine system is normally written that way.
 
+If a machine was online but could not deliver its files - typically because no file share of the
+requestor's machine covers its download folder - the note says so, loudly, above the comment:
+
+```
+*** NOT COLLECTED - these machines were online but could not deliver their files, so nothing of
+theirs is in this archive: ***
+    BackEnd [192.168.0.120]
+        No file share of FrontEnd covers its download folder, so BackEnd has no way of uploading the files there.
+```
+
+That is the only trace such a machine leaves: it writes no folder and no `_incomplete.txt`, so
+without this line an archive missing a whole machine reads exactly like a complete one - and the
+dialog that reported it is long gone by the time anybody opens the zip. Files that individual
+machines failed to read are listed under it in the same spirit.
+
 The header is written even when the operator says nothing, since it is useful on its own; the
 comment line then reads `(no comment)`.
 
@@ -597,6 +884,30 @@ For the *other* machines the UNC path is the only way in, so the requestor's mac
 
 A machine answering at the same address as the requestor's machine shares its disks with it, so
 where no share is defined at all, such a machine is allowed to use the local path too.
+
+### `BuiltIns/ClearFiles.cs`, `MarkFiles.cs`, `UnmarkFiles.cs` - delimit a test run
+
+Applicable to any node, like the download. Each starts a slave (`BuiltIns/MarkFilesSlave.cs`) on
+every machine holding files of the node, follows them in the status bar, and ends in a message box
+naming what happened per machine. See
+[Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark) for what they do to a
+file and why, and [Marking and clearing](MarkAndClear.md) for the reasoning behind it.
+
+```xml
+<FilePackage Id="pkg.run" Title="Logs/Test run"
+             Description="One test run: clear, run the case, download.">
+    <FileRef Id="log" MachineId="*" AppId="*"/>
+    <FileRef Id="cfg" MachineId="*" AppId="*"/>
+
+    <Script Title="Clear"    Name="BuiltIns/ClearFiles.cs"/>
+    <Script Title="Mark"     Name="BuiltIns/MarkFiles.cs"/>
+    <Script Title="Unmark"   Name="BuiltIns/UnmarkFiles.cs"/>
+    <Script Title="Download" Name="BuiltIns/DownloadZipped.cs" AskComment="1"/>
+</FilePackage>
+```
+
+The `cfg` nodes need no exclusion: they are not `Clearable`, so Clear and Mark pass over them and
+the archive still gets them whole.
 
 ### `BuiltIns/BrowseInDblCmdVirtPanel.cs` - browse in Double Commander
 

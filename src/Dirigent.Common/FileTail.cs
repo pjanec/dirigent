@@ -49,20 +49,40 @@ namespace Dirigent
 
 		/// <summary>
 		/// Positions the stream where the tail should start, at a line boundary, and returns that
-		/// offset. Cutting at the raw byte offset would make the first line garbage.
+		/// offset.
+		/// </summary>
+		public static long SeekToTailStart( Stream stream, long tailBytes )
+			=> SeekToStart( stream, stream.Length - tailBytes );
+
+		/// <summary>
+		/// The raw offset a tail of this size begins at - what a mark's offset is weighed against.
+		/// </summary>
+		public static long RawTailStart( long fileLength, long tailBytes )
+			=> Applies( fileLength, tailBytes ) ? fileLength - tailBytes : 0;
+
+		/// <summary>
+		/// Positions the stream at the first line boundary at or after the given offset, and returns
+		/// that offset. Cutting at the raw byte offset would make the first line garbage.
 		/// </summary>
 		/// <remarks>
 		/// A file with no line break anywhere near the cut - a binary one, most likely - is cut at
-		/// the raw offset; a tail of such a file is questionable anyway, and the header says where
-		/// it starts.
+		/// the raw offset; a partial copy of such a file is questionable anyway, and the header says
+		/// where it starts.
 		/// </remarks>
-		public static long SeekToTailStart( Stream stream, long tailBytes )
+		public static long SeekToStart( Stream stream, long rawOffset )
 		{
-			var start = stream.Length - tailBytes;
+			var start = rawOffset;
 			if( start <= 0 )
 			{
 				stream.Position = 0;
 				return 0;
+			}
+
+			if( start >= stream.Length )
+			{
+				// nothing new since the mark - an entry with a header and no content
+				stream.Position = stream.Length;
+				return stream.Length;
 			}
 
 			// already at a line boundary? then keep it - skipping forward would drop a whole line
@@ -81,6 +101,25 @@ namespace Dirigent
 			stream.Position = start;
 			return start;
 		}
+
+		/// <summary>
+		/// The name a partial file gets when a mark decided where it starts.
+		/// </summary>
+		public static string MarkedEntryNameFor( string fileName )
+		{
+			var stem = Path.GetFileNameWithoutExtension( fileName );
+			var ext = Path.GetExtension( fileName );
+			return $"{stem}.since-mark{ext}";
+		}
+
+		/// <summary>
+		/// The line put at the top of a partial entry, saying which part of the file it is and why.
+		/// </summary>
+		public static string PartialHeaderFor( string filePath, long fileLength, long takenBytes,
+				DateTime when, string reason )
+			=> $"*** Dirigent: this is {takenBytes} bytes of {filePath} - {reason}."
+				+ $" The file was {fileLength} bytes at {when:yyyy-MM-dd HH:mm:ss}."
+				+ $" The rest of it is not included. ***" + Environment.NewLine;
 
 		/// <summary>
 		/// A byte count as a person would write it, for use in a file name - "50MB", "512KB", "300B".

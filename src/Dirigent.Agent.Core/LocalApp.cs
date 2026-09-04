@@ -38,6 +38,17 @@ namespace Dirigent
         ///<summary>Starts/kills the app process. Null if app is not supposed to be running (not launched)</summary>
 		public Launcher? Launcher { get; private set; }
 
+		/// <summary>
+		/// The answer to the Dirigent command this app sent, if it is one of those - see
+		/// <see cref="DirigentCmdTracker"/>. Null for an ordinary application.
+		/// </summary>
+		/// <remarks>
+		/// Kept here rather than on the launcher because such an app has no process: RefreshAppState
+		/// disposes the launcher of anything that is not running, which happens on the first tick
+		/// after the request was sent and well before the answer comes back.
+		/// </remarks>
+		public DirigentCmdTracker? CmdTracker { get; private set; }
+
 		ProcessInfoRegistry? _procInfoReg;
 
 
@@ -195,6 +206,9 @@ namespace Dirigent
 
 		private void AfterLaunch( AppDef appDef, Dictionary<string, string>? vars )
 		{
+			// taken over from the launcher, which is about to be disposed if there is no process
+			CmdTracker = Launcher?.CmdTracker;
+
 			// now we know the process was launched with the most recent settings
 			RecentAppDef = appDef;
 			AppState.Started = true;

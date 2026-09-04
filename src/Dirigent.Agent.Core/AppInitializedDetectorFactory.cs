@@ -18,6 +18,7 @@ namespace Dirigent
             // register creators
             creators[TimeOutInitDetector.Name] = TimeOutInitDetector.create;
             creators[ExitCodeInitDetector.Name] = ExitCodeInitDetector.create;
+            creators[CliResponseInitDetector.Name] = CliResponseInitDetector.create;
             #if Windows
             creators[WindowPoppedUpInitDetector.Name] = WindowPoppedUpInitDetector.create;
             #endif

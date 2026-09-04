@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -324,7 +324,10 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
-			return string.Format( $"SetAppEnabled {Id.ToString(PlanName)}, {Enabled}"  );
+			// no string.Format around an interpolated string: it would parse the finished text a
+			// second time as a format template, so a brace arriving in any value - a mask like
+			// "{a,b}.xml", say - would be read as a placeholder and throw. See MessageToStringTests.
+			return $"SetAppEnabled {Id.ToString(PlanName)}, {Enabled}";
 		}
 
 	}
@@ -902,7 +905,9 @@ namespace Dirigent.Net
 
 		public override string ToString()
 		{
-			return string.Format( $"StartScriptMessage [{Instance}] {Title} {ScriptName} @ {HostClientId}" );
+			// see the note in SetAppEnabledMessage.ToString: the finished string must not be parsed
+			// again. Title here is the node definition being resolved, braces and all.
+			return $"StartScriptMessage [{Instance}] {Title} {ScriptName} @ {HostClientId}";
 		}
 
 	}

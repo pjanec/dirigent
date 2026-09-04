@@ -70,6 +70,43 @@ namespace Dirigent.Scripts.BuiltIn
 
 			//[MessagePack.Key( 2 )]
 			public List<SerializedException> Exceptions = new();
+
+			/// <summary>
+			/// Things this machine was asked for and does not have. Kept apart from the exceptions
+			/// because they are not failures of the collection - see where they are collected.
+			/// </summary>
+			//[MessagePack.Key( 5 )]
+			public List<string> NotCollected = new();
+
+			/// <summary>
+			/// How many files this machine put into its archive.
+			/// </summary>
+			/// <remarks>
+			/// For the closing message, which says what was collected rather than listing what was
+			/// not. Counted here rather than from the merged archive because that one also holds the
+			/// cover note and the per-machine `_incomplete.txt`, which are not collected files.
+			///
+			/// Zero is not a problem in itself: a machine asked only for a crash dump folder on a
+			/// machine that has never crashed collects nothing, and says so in its `_incomplete.txt`.
+			/// </remarks>
+			public int FilesCollected;
+
+			/// <summary>How many files were cut at a mark rather than collected whole.</summary>
+			//[MessagePack.Key( 3 )]
+			public int MarkedFileCount;
+
+			/// <summary>
+			/// The oldest mark any of them was cut at - the beginning of the window this archive covers.
+			/// </summary>
+			//[MessagePack.Key( 4 )]
+			public DateTime? EarliestMark;
+
+			/// <summary>
+			/// What drew those lines - "Clear" or "Mark" - or empty if the files disagree, which
+			/// happens when somebody marked, then cleared only part of the system.
+			/// </summary>
+			//[MessagePack.Key( 5 )]
+			public string MarkedBy = string.Empty;
 		}
 
 		/// <summary>
@@ -104,6 +141,35 @@ namespace Dirigent.Scripts.BuiltIn
 		long _bytesDone;
 		long _bytesAtLastReport;
 
+		// what this machine was asked for and does not have; see TResult.NotCollected
+		readonly List<string> _notCollected = new();
+
+		// how many files went into the archive; see TResult.FilesCollected
+		int _filesCollected;
+
+		// what the marks did to this collection, for the note that goes into the archive
+		int _markedFileCount;
+		DateTime? _earliestMark;
+		readonly HashSet<string> _markedBy = new( StringComparer.OrdinalIgnoreCase );
+
+		/// <summary>
+		/// Forgets what a collection attempt found out, so that a second destination starts clean.
+		/// </summary>
+		/// <remarks>
+		/// The archive is written straight into the destination folder and there may be more than one
+		/// to try, so the walk can run twice. Everything it gathers per attempt has to be reset with
+		/// it, or an attempt that failed on an unreachable share leaves its notes behind and the
+		/// operator is told twice about each file that was missing.
+		/// </remarks>
+		void ForgetWhatTheLastAttemptFound()
+		{
+			_notCollected.Clear();
+			_filesCollected = 0;
+			_markedFileCount = 0;
+			_earliestMark = null;
+			_markedBy.Clear();
+		}
+
 		protected override Task<string?> Run()
 		{
 			_args = Tools.Deserialize<TArgs>( Args );
@@ -117,11 +183,22 @@ namespace Dirigent.Scripts.BuiltIn
 			_bytesTotal = TotalBytesToCollect( _args.Container! );
 			ReportProgress( null, force: true );
 
-			// exceptions gathered along the way (missing files etc.) - they do not stop the download
+			// exceptions gathered along the way - they do not stop the download
 			var exceptions = WriteArchive( destFileName );
 
 			// all done!
-			var result = new TResult { ZipFileName = destFileName, Exceptions = SerializedException.MkList( exceptions ) };
+			var result = new TResult
+			{
+				ZipFileName = destFileName,
+				Exceptions = SerializedException.MkList( exceptions ),
+				NotCollected = _notCollected,
+				FilesCollected = _filesCollected,
+				MarkedFileCount = _markedFileCount,
+				EarliestMark = _earliestMark,
+
+				// one word only when every file agrees; a mixture is not worth naming
+				MarkedBy = _markedBy.Count == 1 ? _markedBy.First() : string.Empty,
+			};
 			return Task.FromResult( Tools.Serialize(result) )!;
 		}
 
@@ -147,6 +224,8 @@ namespace Dirigent.Scripts.BuiltIn
 				var exceptions = new List<Exception>();
 				var notes = new List<string>();
 				var partPath = string.Empty;
+
+				ForgetWhatTheLastAttemptFound();
 
 				try
 				{
@@ -227,7 +306,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// a file we cannot even measure is one that will fail to be collected as well;
 				// the failure is reported from there, this is only an estimate
-				try { total += FileTail.EffectiveSize( new FileInfo( node.Path! ).Length, node.TailBytes ); }
+				try { total += EffectiveSize( node ); }
 				catch {}
 			}
 
@@ -337,6 +416,20 @@ namespace Dirigent.Scripts.BuiltIn
 						{
 							throw; // a cancel ends the whole collection, it is not a per-file problem
 						}
+						catch( Exception e ) when ( e is FileNotFoundException or DirectoryNotFoundException )
+						{
+							// Named by the package, absent from the machine. Not a failure of the collection:
+							// a log that was never written and a dump folder on a machine that has never
+							// crashed are the ordinary state of affairs, and reporting them as errors trains
+							// the operator to ignore the errors. Said in the archive and told to the operator
+							// as something missing rather than as something broken - the same treatment a
+							// folder that could not be looked up gets.
+							var note = $"'{node.Path}' is named by the package but is not on"
+									+ $" {Dirig.Name}, so it is not in this archive.";
+
+							notes.Add( note );
+							_notCollected.Add( note );
+						}
 						catch (Exception e)
 						{
 							exceptions.Add( e );
@@ -373,22 +466,54 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
-		/// Streams one file into the archive, taking only its tail if the node asks for that.
+		/// Where the collection of a file begins - the start of it, the start of its tail, or the mark
+		/// somebody left on it before a test run.
+		/// </summary>
+		/// <remarks>
+		/// The two cuts compose by taking whichever is later, and each of them is a ceiling on how
+		/// much can be delivered: a mark inside the tail leaves the tail's start standing, because the
+		/// bytes before it are the ones that cannot be transferred at all; a tail shorter than the run
+		/// cuts the run short for the same reason. The entry is named and headed after whichever cut
+		/// won, so that the archive says which of the two limits was the binding one.
+		/// </remarks>
+		(long RawStart, bool ByMark, string? MarkNote) WhereToStart( VfsNodeDef node, FileInfo info )
+		{
+			var tailStart = FileTail.RawTailStart( info.Length, node.TailBytes );
+
+			// only a file the configuration allows to be marked can carry a mark; a stale one is
+			// dropped by the store itself, with a note saying so
+			if( MarkStore is null || !node.Clearable )
+				return ( tailStart, false, null );
+
+			var (markStart, markNote) = MarkStore.WhereToStart( node.Path!, info.Length, info.CreationTimeUtc );
+
+			return markStart >= tailStart && markStart > 0
+					? ( markStart, true, markNote )
+					: ( tailStart, false, markNote ); // the note still explains a stale mark
+		}
+
+		/// <summary>
+		/// How much of a file will really be collected - what the progress should count.
+		/// </summary>
+		long EffectiveSize( VfsNodeDef node )
+		{
+			var info = new FileInfo( node.Path! );
+			var (rawStart, _, _) = WhereToStart( node, info );
+			return Math.Max( 0, info.Length - rawStart );
+		}
+
+		/// <summary>
+		/// Streams one file into the archive, taking only its tail, or only what came after a mark,
+		/// if either applies.
 		/// </summary>
 		void AddFile( ZipArchive zip, string entryPrefix, VfsNodeDef node,
 				HashSet<string> usedEntryNames, List<string> notes )
 		{
 			var filePath = node.Path!;
 			var info = new FileInfo( filePath );
-			var truncate = FileTail.Applies( info.Length, node.TailBytes );
 
-			// a truncated file is named for what it holds, so that the archive listing alone shows
-			// which files are partial
-			var fileName = truncate
-							? FileTail.EntryNameFor( Path.GetFileName( filePath ), node.TailBytes )
-							: Path.GetFileName( filePath );
-
-			var entryName = MakeUniqueEntryName( entryPrefix + fileName, usedEntryNames );
+			var (rawStart, byMark, markNote) = WhereToStart( node, info );
+			var truncate = rawStart > 0;
 
 			// The share flags are not optional here:
 			//  - ReadWrite, because a log file is typically held open for writing by the application
@@ -396,33 +521,114 @@ namespace Dirigent.Scripts.BuiltIn
 			//  - Delete, because we now hold the file open for the whole time it takes to compress it
 			//    (minutes, for a huge log) rather than for a quick copy, and without it a logger
 			//    rotating its file in that window would fail to rename it.
-			// Opening before creating the entry keeps an unreadable file from leaving an empty
-			// entry behind in the archive.
+			// Opened before anything is put into the archive, so that an unreadable file leaves no
+			// empty entry behind.
 			using var src = new FileStream( filePath, FileMode.Open, FileAccess.Read,
 											FileShare.ReadWrite | FileShare.Delete );
+
+			// where the collection begins, and therefore how much of the file there is to collect
+			long startedAt = 0;
+			if( truncate ) startedAt = FileTail.SeekToStart( src, rawStart );
+			var taken = src.Length - startedAt;
+
+			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
+			var mark = byMark ? MarkStore?.Get( filePath ) : null;
+			var drawnBy = mark is not null
+					? $"the {FileMarkStore.OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}"
+					: null;
+
+			// A file with nothing after the line is left out altogether rather than added as an empty
+			// entry. The entry would say nothing the note does not - and it would say it misleadingly,
+			// since an empty file in an archive reads as a file that is empty, not as one whose
+			// contents all predate the run.
+			if( truncate && byMark && taken <= 0 )
+			{
+				notes.Add( NothingNewNote( filePath, src.Length, drawnBy ) );
+				return;
+			}
+
+			// a partial file is named for what it holds, so that the archive listing alone shows
+			// which files are partial and what decided that
+			var fileName = !truncate
+							? Path.GetFileName( filePath )
+							: ( byMark
+								? FileTail.MarkedEntryNameFor( Path.GetFileName( filePath ) )
+								: FileTail.EntryNameFor( Path.GetFileName( filePath ), node.TailBytes ) );
+
+			var entryName = MakeUniqueEntryName( entryPrefix + fileName, usedEntryNames );
 
 			var entry = zip.CreateEntry( entryName, CompressionLevel.Fastest );
 			entry.LastWriteTime = ZipTimeOf( info.LastWriteTime );
 
+			_filesCollected++;
+
 			using var dst = entry.Open();
+
+			if( truncate && byMark && mark is not null )
+			{
+				// remembered for the cover note: an archive of files cut at a mark covers a window,
+				// and its beginning is worth stating once at the top rather than per entry
+				_markedFileCount++;
+
+				if( _earliestMark is null || mark.MarkedAt < _earliestMark )
+					_earliestMark = mark.MarkedAt;
+
+				_markedBy.Add( FileMarkStore.OperationOf( mark ) );
+			}
 
 			if( truncate )
 			{
-				// the length is read from the open stream, not from the FileInfo: a live log grows
-				var startedAt = FileTail.SeekToTailStart( src, node.TailBytes );
-				var taken = src.Length - startedAt;
-
 				// the entry has to say what it is, for whoever opens the archive with no access
 				// to the configuration that made it
-				var header = Encoding.UTF8.GetBytes(
-					FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
+				var header = Encoding.UTF8.GetBytes( byMark
+						? FileTail.PartialHeaderFor( filePath, src.Length, taken, DateTime.Now, markNote! )
+						: FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
 				dst.Write( header, 0, header.Length );
 
-				notes.Add( $"'{filePath}' is {src.Length} bytes; only its last {taken} were collected,"
-						+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}')." );
+				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMark, markNote, node ) );
+			}
+			else if( markNote is not null )
+			{
+				// a mark that no longer fits the file: the whole file is collected instead of the run,
+				// and the archive has to say why it holds more than was asked for
+				notes.Add( $"'{filePath}' was collected in full - {markNote}." );
 			}
 
 			CopyWithProgress( src, dst, Path.GetFileName( filePath ) );
+		}
+
+		/// <summary>
+		/// What `_incomplete.txt` says about a file that was not collected whole.
+		/// </summary>
+		/// <remarks>
+		/// Read by somebody who has the archive and nothing else, so it says which file, how much of
+		/// it is here, and what decided that - and it says "nothing" as a word rather than as a count
+		/// of zero, since a file with nothing new is the ordinary outcome for a log that was quiet
+		/// during the run, not a failure to collect it.
+		/// </remarks>
+		static string NoteFor( string filePath, long fileLength, long taken, string entryName,
+				bool byMark, string? markNote, VfsNodeDef node )
+		{
+			return byMark
+				? $"'{filePath}' is {fileLength} bytes; only the {taken} bytes {markNote}"
+					+ $" were collected, as '{entryName}'."
+				: $"'{filePath}' is {fileLength} bytes; only its last {taken} were collected,"
+					+ $" as '{entryName}' (TailBytes={node.TailBytes} on node '{node.Id}').";
+		}
+
+		/// <summary>
+		/// What `_incomplete.txt` says about a file that had nothing new to give.
+		/// </summary>
+		/// <remarks>
+		/// It is in this report rather than in the archive because that is what the report is for:
+		/// naming what is not in there. A quiet log is the ordinary outcome of a run, so this says so
+		/// as a sentence rather than as a count of zero bytes.
+		/// </remarks>
+		static string NothingNewNote( string filePath, long fileLength, string? drawnBy )
+		{
+			var since = drawnBy is not null ? $" since {drawnBy}" : " since it was marked";
+			return $"'{filePath}' is {fileLength} bytes, and nothing has been written to it{since}"
+				+ $" - so it is not in this archive at all.";
 		}
 
 		/// <summary>

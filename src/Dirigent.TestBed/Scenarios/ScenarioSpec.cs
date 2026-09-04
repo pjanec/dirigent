@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Dirigent.TestBed.Scenarios
@@ -125,6 +125,9 @@ namespace Dirigent.TestBed.Scenarios
 
 		/// <summary>Collect only the last this many bytes of a file bigger than that.</summary>
 		public long? TailBytes;
+
+		/// <summary>Whether Clear and Mark may touch the files this node yields.</summary>
+		public bool? Clearable;
 
 		/// <summary>FileRef only: what to match. Empty string and "*" both mean "anything".</summary>
 		public string? RefMachineId;

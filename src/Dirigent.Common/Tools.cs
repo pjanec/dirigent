@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -310,16 +310,45 @@ namespace Dirigent
 			return $"SCRIPT:{scriptId}:{stateJsonStr}";
 		}
 
-		// returs first line without CR/LF
+		/// <summary>
+		/// What an object says about itself, or a note about why it could not - never an exception.
+		/// </summary>
+		/// <remarks>
+		/// For the log lines on the message dispatch path. A message is logged just before it is
+		/// sent, so a ToString() that throws does not spoil a line of the log - it stops the send and
+		/// fails the operation the message was carrying. That has happened; see MessageToStringTests.
+		/// The individual defect is worth fixing where it is, and this makes the next one cost a
+		/// puzzling log line instead of an outage.
+		/// </remarks>
+		public static string SafeToString( object? o )
+		{
+			if( o is null ) return "(null)";
+
+			try
+			{
+				return o.ToString() ?? "(null)";
+			}
+			catch( Exception e )
+			{
+				return $"({o.GetType().Name}.ToString() failed: {JustFirstLine( e.Message )})";
+			}
+		}
+
+		/// <summary>
+		/// The first line, without the CR/LF that ends it.
+		/// </summary>
+		/// <remarks>
+		/// Whichever break comes first, and a string carrying only one of the two is the ordinary
+		/// case rather than an exotic one: an exception message composed with "\n", or anything at
+		/// all from a machine that is not Windows. Taking the smaller of the two positions without
+		/// looking made that a negative length and threw - inside the shortening of an error
+		/// message, which is the last place that can afford to fail.
+		/// </remarks>
 		public static string JustFirstLine( string multiLineString )
 		{
-			var crPos = multiLineString.IndexOf( '\r' );
-			var lfPos = multiLineString.IndexOf( '\n' );
-			if( crPos >= 0 || lfPos >= 0 )
-			{
-				return multiLineString.Substring( 0, Math.Min( crPos, lfPos ) );
-			}
-			return multiLineString; // no other line found
+			var end = multiLineString.IndexOfAny( new[] { '\r', '\n' } );
+
+			return end < 0 ? multiLineString : multiLineString.Substring( 0, end );
 		}
 
 		//public static string AssemblyDirectory

@@ -52,6 +52,9 @@ namespace Dirigent
 		private bool _debug = false; // do not catch exceptions etc.
 		AppConfig _ac;
 		AgentStateSaverLoader _agentStateSaveLoader;
+
+		/// <summary> The file marks of this machine, shared by the scripts that read and write them. </summary>
+		FileMarkStore _fileMarks;
 		bool _updateSavedAgentState = false; // true if the state needs to be updated (e.g. after a new app is started or killed)
 		bool _appDefsReceivedFirstTime = true; // is it the first time we received a new app def for this agent? (we try to restore from recent saved state)
 
@@ -81,7 +84,11 @@ namespace Dirigent
 			_syncOps = new SynchronousOpProcessor();
 			_syncIDirig = new SynchronousIDirig( this, _syncOps );
 
-			ScriptFactory = new ScriptFactory( _rootForRelativePaths );
+			// where the files of this machine had got to when somebody last drew a line under them;
+			// beside the agent status file, so that it survives a restart and a test can isolate it
+			_fileMarks = new FileMarkStore( machineId, _ac.AgentStatusFolder );
+
+			ScriptFactory = new ScriptFactory( _rootForRelativePaths, _fileMarks );
 
 			_sharedContext = new SharedContext(
 				_rootForRelativePaths,
@@ -296,6 +303,18 @@ namespace Dirigent
 						{
 							la.SetWindowStyle( m.WindowStyle, m.Handle );
 						}
+					}
+					break;
+				}
+
+				case Net.CLIResponseMessage m:
+				{
+					// the answer to a command an app of ours sent (ExeFullPath="[dirigent.command]");
+					// the launcher that sent it recognises its own request id
+					foreach( var app in _localApps.Apps.Values )
+					{
+						if( app.CmdTracker?.OnResponse( m.Text ) ?? false )
+							break;
 					}
 					break;
 				}
