@@ -445,11 +445,18 @@ namespace Dirigent.Gui.WinForms
 				DataGridViewRow focused = _grid.Rows[currentRow];
 				var id = getAppTupleFromAppGridRow( focused );
 
+				// Both can be missing, and the grid is no guarantee that either exists: its rows come
+				// from the app STATES (see the fill above), so an app the master still remembers but
+				// the current configuration no longer defines has a row and no definition. That is
+				// not a fault to be hidden - a leftover of a removed app is worth seeing - and the
+				// status column has always coped with it (Tools.GetAppStateText takes AppDef?).
+				// Only this menu did not, and right-clicking such a row threw.
 				var appDef = Ctrl.GetAppDef( id );
 				var st = Ctrl.GetAppState( id );
 				bool connected = Client.IsConnected;
 				//bool isLocalApp = id.MachineId == this._machineId;
 				bool isAccessible = connected; // can we change its state?
+				bool isRunning = st?.Running ?? false;
 
 				if( e.Button == MouseButtons.Right )
 				{
@@ -505,51 +512,73 @@ namespace Dirigent.Gui.WinForms
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Show Window" );
 						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Normal, 0 ) ) );
-						item.Enabled = isAccessible && st.Running;
+						item.Enabled = isAccessible && isRunning;
 						popup.Items.Add( item );
 					}
 
 					{
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Hide Window" );
 						item.Click += ( s, a ) => WFT.GuardedOp( () => Ctrl.Send( new Net.SetWindowStyleMessage( id, EWindowStyle.Hidden, 0 ) ) );
-						item.Enabled = isAccessible && st.Running;
+						item.Enabled = isAccessible && isRunning;
 						popup.Items.Add( item );
 					}
 
+					// The files and the actions are declared by the definition, so an app that has
+					// none simply offers neither.
+					if( appDef is not null )
 					{
-						var vfsNodesMenuItems = _menuBuilder.BuildVfsNodesMenuItems( appDef.VfsNodes );
-						if ( vfsNodesMenuItems.Count > 0 )
 						{
-							popup.Items.Add( new ToolStripSeparator() );
+							var vfsNodesMenuItems = _menuBuilder.BuildVfsNodesMenuItems( appDef.VfsNodes );
+							if ( vfsNodesMenuItems.Count > 0 )
+							{
+								popup.Items.Add( new ToolStripSeparator() );
+							}
+							foreach ( var item in vfsNodesMenuItems )
+							{
+								popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
+							}
 						}
-						foreach ( var item in vfsNodesMenuItems )
-						{
-							popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
-						}
-					}
 
-					{
-						var appActionsMenuItems = _menuBuilder.BuildAppActionsMenuItems( appDef );
-						if ( appActionsMenuItems.Count > 0 )
 						{
-							popup.Items.Add( new ToolStripSeparator() );
-						}
-						foreach ( var item in appActionsMenuItems )
-						{
-							popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
+							var appActionsMenuItems = _menuBuilder.BuildAppActionsMenuItems( appDef );
+							if ( appActionsMenuItems.Count > 0 )
+							{
+								popup.Items.Add( new ToolStripSeparator() );
+							}
+							foreach ( var item in appActionsMenuItems )
+							{
+								popup.Items.AddRange( WFT.MenuItemToToolStrips(item) );
+							}
 						}
 					}
 
 					{
 						popup.Items.Add( new ToolStripSeparator() );
 						var item = new System.Windows.Forms.ToolStripMenuItem( "&Properties" );
-						item.Click += ( s, a ) => WFT.GuardedOp( () => 
+						item.Click += ( s, a ) => WFT.GuardedOp( () =>
 						{
-							var appDef = Ctrl.GetAppDef( id );
-							var frm = new frmAppProperties( _core, appDef );
+							var def = Ctrl.GetAppDef( id );
+							if( def is null ) return; // gone between the click and the menu opening
+							var frm = new frmAppProperties( _core, def );
 							frm.Show();
 						});
-						item.Enabled = true;
+						item.Enabled = appDef is not null;
+						popup.Items.Add( item );
+					}
+
+					// Said rather than left to be guessed: without this the menu of a leftover app is
+					// just short, which reads as a broken menu rather than as an app the configuration
+					// no longer knows.
+					if( appDef is null )
+					{
+						popup.Items.Add( new ToolStripSeparator() );
+
+						var item = new System.Windows.Forms.ToolStripMenuItem(
+								"Not in the current configuration" );
+						item.Enabled = false;
+						item.ToolTipText = $"'{id}' is still remembered by the master - it has a state -"
+										+ " but no application of that name is defined in the shared"
+										+ " configuration, so there is nothing to show or run here.";
 						popup.Items.Add( item );
 					}
 
