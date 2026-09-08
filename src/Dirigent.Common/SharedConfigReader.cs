@@ -758,33 +758,63 @@ namespace Dirigent
 			}
 		}
 
-		// Checks within a single plan only
-		// Does not find cross-plan circular dependencies...
-		void CheckDependenciesCircular( PlanDef planDef, AppDef ad, Dictionary<AppIdTuple, bool> depsUsed )
+		/// <summary>
+		/// Refuses a plan whose dependencies lead back to where they started.
+		/// Checks within a single plan only - it cannot tell whether a cross-plan cycle is a problem.
+		/// </summary>
+		/// <param name="onPath">
+		/// The applications between the start of this walk and here. A dependency that is already on
+		/// the path is a cycle; one merely *visited before* is not, which is the distinction this used
+		/// to get wrong - see the remarks.
+		/// </param>
+		/// <param name="chain">the same, in order, so the message can show the loop</param>
+		/// <param name="proven">applications already walked and found acyclic; shared across one plan</param>
+		/// <remarks>
+		/// This used to keep one set of "dependencies used" for the whole walk and never take anything
+		/// out of it when a branch finished, so it fired on any application reachable by two routes at
+		/// once. A plan where two applications wait for the same third one - a database, a licence
+		/// server, a recorder - was refused as circular and the master would not load the config at
+		/// all. Reported from a live site, and pinned by DependencyCheckTests.
+		///
+		/// Marking what has been proven acyclic is what keeps this linear: without it a diamond is
+		/// walked once per route into it, and a chain of diamonds costs two to the power of its length.
+		/// </remarks>
+		void CheckDependenciesCircular( PlanDef planDef, AppDef ad,
+				HashSet<AppIdTuple> onPath, List<AppIdTuple> chain, HashSet<AppIdTuple> proven )
 		{
+			if( proven.Contains( ad.Id ) ) return; // walked already, and no cycle came of it
+
+			onPath.Add( ad.Id );
+			chain.Add( ad.Id );
+
 			if( ad.Dependencies is not null )
 			{
 				foreach( var depName in ad.Dependencies )
 				{
-					// same as above: a bare name means the depending app's own machine. Parsed without
-					// that default, the recursion below never found the dependency and a cycle written
-					// with bare names went undetected.
+					// a bare name means the depending app's own machine. Parsed without that default,
+					// the recursion below never found the dependency and a cycle written with bare
+					// names went undetected.
 					var depId = AppIdTuple.fromString( depName, ad.Id.MachineId );
-					if( depsUsed.ContainsKey( depId ) )
+
+					if( onPath.Contains( depId ) )
 					{
-		                throw new CircularDependencyException( $"{planDef.Name}: {ad.Id}: Circular dependency {depName} found." );
+						throw new CircularDependencyException(
+								$"{planDef.Name}: {ad.Id}: Circular dependency {depName} found."
+								+ $" ({string.Join( " -> ", chain )} -> {depId})" );
 					}
-					// remember this dep
-					depsUsed[depId] = true;
-					
+
 					// check it recursively
 					var depAppDef = planDef.AppDefs.FirstOrDefault( x => x.Id == depId );
 					if( depAppDef is not null )
 					{
-						CheckDependenciesCircular( planDef, depAppDef, depsUsed );
+						CheckDependenciesCircular( planDef, depAppDef, onPath, chain, proven );
 					}
 				}
 			}
+
+			chain.RemoveAt( chain.Count - 1 );
+			onPath.Remove( ad.Id );
+			proven.Add( ad.Id );
 		}
 
 		void CheckDependencies()
@@ -801,10 +831,13 @@ namespace Dirigent
 			// WARNING: does not find cross-plan circular dependencies.. not possible to tell if such dep is a real problem or not
 			foreach( var pd in _cfg.Plans )
 			{
+				// what has been proven acyclic carries over between the starting points: every
+				// application of the plan is then walked once, however the dependencies fan in
+				var proven = new HashSet<AppIdTuple>();
+
 				foreach( var ad in pd.AppDefs )
 				{
-					Dictionary<AppIdTuple, bool> depsUsed = new ();
-					CheckDependenciesCircular( pd, ad, depsUsed );
+					CheckDependenciesCircular( pd, ad, new HashSet<AppIdTuple>(), new List<AppIdTuple>(), proven );
 				}
 			}
 
