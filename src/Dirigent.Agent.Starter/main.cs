@@ -19,6 +19,7 @@ class AgentStarter
 		// and nothing wrong - answer them and do not start watching anything
 		if( ac.HelpOrVersionRequested )
 		{
+			ac.WriteHelpOrVersion();
 			return 0;
 		}
 

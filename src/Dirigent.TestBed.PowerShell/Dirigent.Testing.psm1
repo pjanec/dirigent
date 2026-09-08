@@ -662,11 +662,60 @@ function Expect-Match
     }
 }
 
+function Invoke-DirigentToolCapture
+{
+    <#
+    .SYNOPSIS
+        Runs one of the executables and returns its exit code with stdout and stderr apart.
+
+    .DESCRIPTION
+        Through files rather than the pipeline, on purpose. Redirecting a native command with
+        '2>&1' under Windows PowerShell wraps every stderr line in an ErrorRecord and makes it
+        terminating, so a test doing that fails on the very output it means to inspect - and it
+        merges the streams, which loses which one the text arrived on.
+
+        No master and no world: this is for the command line surface of the executables.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $Exe,
+        [Parameter(Mandatory)][string[]] $Arguments
+    )
+
+    $outFile = [System.IO.Path]::GetTempFileName()
+    $errFile = [System.IO.Path]::GetTempFileName()
+
+    try
+    {
+        $p = Start-Process -FilePath $Exe -ArgumentList $Arguments -Wait -PassThru -NoNewWindow `
+                -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+
+        $stdout = ( Get-Content $outFile -Raw )
+        $stderr = ( Get-Content $errFile -Raw )
+
+        # one line, whitespace squeezed, so a failure message stays readable
+        $flat = { param( $t ) ( ( "$t" -replace '\s+', ' ' ).Trim() ) }
+
+        return [pscustomobject] @{
+            ExitCode = $p.ExitCode
+            StdOut   = ( & $flat $stdout )
+            StdErr   = ( & $flat $stderr )
+            All      = ( & $flat ( "$stdout $stderr" ) )
+        }
+    }
+    finally
+    {
+        Remove-Item $outFile, $errFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+
 Export-ModuleMember -Function @(
     'Get-DirigentRepoRoot', 'Get-DirigentTool', 'Get-DirigentFreePort',
     'New-DirigentWorldFiles', 'Start-DirigentWorld', 'Stop-DirigentWorld',
     'Get-DirigentWorldProcesses', 'Get-DirigentWorldLog', 'Get-DirigentWorldSummary',
     'Invoke-DirigentCli', 'Invoke-DirigentCliExe', 'Invoke-DirigentScript', 'Get-DirigentScriptState',
+    'Invoke-DirigentToolCapture',
     'Wait-DirigentCondition', 'Wait-DirigentAppState',
     'Reset-TestResults', 'Set-TestFilter', 'Test-Case', 'Get-TestResults',
     'Expect-True', 'Expect-Equal', 'Expect-Match'

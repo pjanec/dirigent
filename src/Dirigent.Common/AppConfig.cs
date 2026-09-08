@@ -154,17 +154,54 @@ namespace Dirigent
 		public bool HadErrors = false;
 
 		/// <summary>
-		/// True when the command line asked for --help or --version. The text has already been
-		/// written by the parser; the application should print nothing more and exit successfully
-		/// rather than carry on and start.
+		/// True when the command line asked for --help or --version, which
+		/// <see cref="WriteHelpOrVersion"/> then answers. The application should print nothing else
+		/// and exit successfully rather than carry on and start.
 		/// </summary>
 		public bool HelpOrVersionRequested = false;
+
+		/// <summary>Which of the two was asked for.</summary>
+		bool _versionRequested = false;
 
 		ParserResult<Options> _parserResult;
 
 		public string GetUsageHelpText()
 		{
 			return HelpText.AutoBuild( _parserResult ).ToString();
+		}
+
+		/// <summary>
+		/// Answers --help or --version on standard output. Call it when
+		/// <see cref="HelpOrVersionRequested"/> is set; it prints nothing otherwise.
+		/// </summary>
+		/// <remarks>
+		/// Printed here rather than by the parser, and on stdout rather than stderr, because a
+		/// question that was asked deserves an answer on the ordinary output - a version a script
+		/// cannot read without redirecting stderr is not much of a version. The parser's own writer
+		/// is switched off for the same reason it has to be: it wrote the usage text to stderr on
+		/// every bad command line as well, while each executable was already writing that same text
+		/// itself, so one mistyped option produced the whole option list twice on two streams.
+		/// </remarks>
+		public void WriteHelpOrVersion()
+		{
+			if( !HelpOrVersionRequested ) return;
+
+			Console.Out.WriteLine( _versionRequested ? VersionText() : GetUsageHelpText() );
+		}
+
+		/// <summary>The program and its version, as the parser's banner used to say it.</summary>
+		static string VersionText()
+		{
+			var asm = System.Reflection.Assembly.GetEntryAssembly();
+
+			var name = asm?.GetName().Name ?? "Dirigent";
+			var version = asm?.GetCustomAttributes( typeof( System.Reflection.AssemblyInformationalVersionAttribute ), false )
+							.OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+							.FirstOrDefault()?.InformationalVersion
+						?? asm?.GetName().Version?.ToString()
+						?? "unknown";
+
+			return $"{name} {version}";
 		}
 
 		Options options = new Options();
@@ -203,7 +240,19 @@ namespace Dirigent
 			// path there it never did, so "--version" - advertised in our own help screen - came back
 			// as "Option 'version' is unknown". Dropped here rather than stripped from Items later,
 			// which is what used to happen.
-			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>(
+			// Not Parser.Default: its HelpWriter is Console.Error and it writes the whole option list
+			// there for a bad command line as well as for --help, which every executable here then
+			// wrote again itself. Silenced, so that what reaches the console is written once, by us,
+			// on the stream that suits it - see WriteHelpOrVersion.
+			var parser = new CommandLine.Parser( settings =>
+			{
+				settings.HelpWriter = null;
+				settings.CaseSensitive = true;   // as Parser.Default has it
+				settings.AutoHelp = true;
+				settings.AutoVersion = true;
+			} );
+
+			_parserResult = parser.ParseArguments<Options>(
 					System.Environment.GetCommandLineArgs().Skip( 1 ) );
 
 			_parserResult.WithParsed<Options>( ( Options options ) =>
@@ -238,13 +287,15 @@ namespace Dirigent
 			} )
 			.WithNotParsed<Options>( ( errList ) =>
 			{
-				// CommandLineParser reports --help and --version through this same path, having
-				// already written the text to the console. That is a request answered, not a mistake
-				// on the command line, so it must not be logged as an error or exited non-zero.
-				HelpOrVersionRequested = errList.Any(
-						e => e.Tag == CommandLine.ErrorType.HelpRequestedError
-						  || e.Tag == CommandLine.ErrorType.HelpVerbRequestedError
-						  || e.Tag == CommandLine.ErrorType.VersionRequestedError );
+				// CommandLineParser reports --help and --version through this same path. That is a
+				// request answered, not a mistake on the command line, so it must not be logged as
+				// an error or exited non-zero - and, the writer being off, somebody has to print it:
+				// WriteHelpOrVersion, called by each executable.
+				_versionRequested = errList.Any( e => e.Tag == CommandLine.ErrorType.VersionRequestedError );
+
+				HelpOrVersionRequested = _versionRequested
+						|| errList.Any( e => e.Tag == CommandLine.ErrorType.HelpRequestedError
+										  || e.Tag == CommandLine.ErrorType.HelpVerbRequestedError );
 
 				HadErrors = !HelpOrVersionRequested;
 			} );

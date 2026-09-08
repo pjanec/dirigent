@@ -43,6 +43,7 @@ namespace Dirigent.Gui
 				// nothing to add and nothing wrong - answer them and do not start
 				if( ac.HelpOrVersionRequested )
 				{
+					ac.WriteHelpOrVersion();
 					exitCode = EAppExitCode.NoError;
 				}
 				else if( ac.HadErrors )

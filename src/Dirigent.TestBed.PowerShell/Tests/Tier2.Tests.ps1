@@ -258,16 +258,21 @@ Test-Case 'Dirigent.CLI.exe answers and exits 0, as it always has' {
     finally { Stop-DirigentWorld -World $world }
 }
 
-Test-Case '--version and --help are answered, not rejected' {
-    # Every executable advertises --version in its own help screen and used to answer it with
-    # "Option 'version' is unknown" and exit code 2. The cause was the argument array: the
-    # parser was handed Environment.GetCommandLineArgs(), which leads with the executable's own
-    # path, so a positional value was always present and CommandLineParser's built-in handling
-    # of a lone --version never triggered.
+Test-Case '--version and --help are answered on stdout, and printed once' {
+    # Every executable advertises --version two lines from the bottom of its own help screen,
+    # and used to answer it with "Option 'version' is unknown" and exit code 2. The cause was
+    # the argument array: the parser was handed Environment.GetCommandLineArgs(), which leads
+    # with the executable's own path, so a positional value was always present and
+    # CommandLineParser's built-in handling of a lone --version never triggered.
+    #
+    # The stream matters as much as the exit code: a version a script cannot read without
+    # redirecting stderr is not much of a version. And the parser's own writer used to put the
+    # usage text on stderr for a bad command line while the executable wrote the same text
+    # itself, so one mistyped option produced the whole option list twice, on two streams.
     #
     # No world needed - this never reaches a master. Tested here because nothing below tier 2
-    # can see a real process's exit code, and reading it by hand is how the bug survived a
-    # first investigation.
+    # can see a real process's streams and exit code, and reading them by hand is how the bug
+    # survived a first investigation.
     $checked = 0
 
     foreach ( $tool in @(
@@ -279,38 +284,43 @@ Test-Case '--version and --help are answered, not rejected' {
 
         foreach ( $option in @( '--version', '--help' ) )
         {
-            # Start-Process with the streams redirected to files, deliberately: the version text
-            # goes to stderr, and '2>&1' on a native command turns every stderr line into a
-            # terminating NativeCommandError under Windows PowerShell, which fails the test on
-            # the very output it is meant to inspect.
-            $outFile = [System.IO.Path]::GetTempFileName()
-            $errFile = [System.IO.Path]::GetTempFileName()
+            # the streams to files, deliberately: '2>&1' on a native command turns every stderr
+            # line into a terminating NativeCommandError under Windows PowerShell, which fails
+            # the test on the very output it is meant to inspect - and it would hide which
+            # stream the text arrived on, which is half of what is being checked
+            $out = Invoke-DirigentToolCapture -Exe $exe -Arguments $option
 
-            $p = Start-Process -FilePath $exe -ArgumentList $option -Wait -PassThru -NoNewWindow `
-                    -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+            Expect-Equal -Expected 0 -Actual $out.ExitCode `
+                -Because "$( $tool.Exe ) $option is a question answered, not an error: $( $out.All )"
 
-            $code = $p.ExitCode
-            $text = ( ( Get-Content $outFile -Raw ) + ' ' + ( Get-Content $errFile -Raw ) )
-            Remove-Item $outFile, $errFile -Force -ErrorAction SilentlyContinue
+            Expect-True -Condition ( -not ( $out.All -like '*is unknown*' ) ) `
+                -Because "$( $tool.Exe ) $option was rejected as an unknown option: $( $out.All )"
 
-            $text = ( $text -replace '\s+', ' ' ).Trim()
+            $program = $tool.Exe -replace '\.exe$', ''
+            Expect-True -Condition ( $out.StdOut -like "*$program*" ) `
+                -Because "$( $tool.Exe ) $option answered on stdout, where a script can read it: stdout='$( $out.StdOut )' stderr='$( $out.StdErr )'"
 
-            Expect-Equal -Expected 0 -Actual $code `
-                -Because "$( $tool.Exe ) $option is a question answered, not an error: $text"
-
-            Expect-True -Condition ( -not ( $text -like '*is unknown*' ) ) `
-                -Because "$( $tool.Exe ) $option was rejected as an unknown option: $text"
-
-            Expect-True -Condition ( $text -like "*$( $tool.Exe -replace '\.exe$', '' )*" ) `
-                -Because "$( $tool.Exe ) $option printed something naming the program: $text"
+            Expect-Equal -Expected '' -Actual $out.StdErr `
+                -Because "$( $tool.Exe ) $option wrote nothing to stderr: '$( $out.StdErr )'"
 
             $checked++
         }
+
+        # and a genuine mistake still fails, with the usage text once rather than twice
+        $bad = Invoke-DirigentToolCapture -Exe $exe -Arguments '--nosuchoption'
+
+        Expect-True -Condition ( $bad.ExitCode -ne 0 ) `
+            -Because "$( $tool.Exe ) still refuses an unknown option: $( $bad.All )"
+
+        # at most once - the point is that it is not printed once per writer. The Starter prints
+        # none of it: it is a background watchdog and says its piece through Debug.WriteLine.
+        $listings = @( [regex]::Matches( $bad.All, '--masterPort' ) ).Count
+        Expect-True -Condition ( $listings -le 1 ) `
+            -Because "$( $tool.Exe ) printed the option list at most once, not once per writer (saw $listings)"
     }
 
     Expect-Equal -Expected 6 -Actual $checked -Because 'every executable and option was tried'
 }
-
 
 Test-Case 'Dirigent.CLI.exe waits for a script to finish before it returns' {
     # What a plan step or a batch file needs: the exe must not report success at the ACK, which says
