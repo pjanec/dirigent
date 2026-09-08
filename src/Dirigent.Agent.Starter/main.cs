@@ -14,6 +14,14 @@ class AgentStarter
 	static int Main(string[] args)
     {
 		var ac = new AppConfig();
+
+		// --help and --version: the parser has written the text already, so there is nothing to add
+		// and nothing wrong - answer them and do not start watching anything
+		if( ac.HelpOrVersionRequested )
+		{
+			return 0;
+		}
+
 		if( ac.HadErrors )
         {
 			Debug.WriteLine( $"[Dirigent.Agent.Starter] Command line parsing error." );

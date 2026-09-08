@@ -50,7 +50,13 @@ namespace Dirigent
 			{
 				log.Debug( $"Started with cmdLine: {Environment.CommandLine}" );
 				var ac = new AppConfig();
-				if( ac.HadErrors )
+				// --help and --version: the parser has written the text already, so there is
+				// nothing to add and nothing wrong - answer them and do not start
+				if( ac.HelpOrVersionRequested )
+				{
+					exitCode = EAppExitCode.OK;
+				}
+				else if( ac.HadErrors )
 				{
 					log.Error( "Error parsing command line arguments.\n" + ac.GetUsageHelpText() );
 					exitCode = EAppExitCode.CmdLineError;

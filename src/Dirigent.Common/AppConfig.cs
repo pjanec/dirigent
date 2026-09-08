@@ -153,6 +153,13 @@ namespace Dirigent
 
 		public bool HadErrors = false;
 
+		/// <summary>
+		/// True when the command line asked for --help or --version. The text has already been
+		/// written by the parser; the application should print nothing more and exit successfully
+		/// rather than carry on and start.
+		/// </summary>
+		public bool HelpOrVersionRequested = false;
+
 		ParserResult<Options> _parserResult;
 
 		public string GetUsageHelpText()
@@ -190,11 +197,18 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.GuiAppExe != "" ) GuiAppExe = Common.Properties.Settings.Default.GuiAppExe;
 			if( Common.Properties.Settings.Default.Debug != "" ) Debug = Common.Properties.Settings.Default.Debug;
 
-			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>( System.Environment.GetCommandLineArgs() );
+			// GetCommandLineArgs() leads with this executable's own path, and the parser must not be
+			// given it: a positional value is then always present, and CommandLineParser answers
+			// --version and --help itself only when such an option stands alone on the line. With the
+			// path there it never did, so "--version" - advertised in our own help screen - came back
+			// as "Option 'version' is unknown". Dropped here rather than stripped from Items later,
+			// which is what used to happen.
+			_parserResult = CommandLine.Parser.Default.ParseArguments<Options>(
+					System.Environment.GetCommandLineArgs().Skip( 1 ) );
 
 			_parserResult.WithParsed<Options>( ( Options options ) =>
 			{
-				NonOptionArgs = options.Items.ToList().GetRange( 1, options.Items.Count() - 1 ); // strip the executable name
+				NonOptionArgs = options.Items.ToList();
 
 				if( options.MachineId != "" ) MachineId = options.MachineId;
 				if( options.MasterIP != "" ) MasterIP = options.MasterIP;
@@ -224,7 +238,15 @@ namespace Dirigent
 			} )
 			.WithNotParsed<Options>( ( errList ) =>
 			{
-				HadErrors = true;
+				// CommandLineParser reports --help and --version through this same path, having
+				// already written the text to the console. That is a request answered, not a mistake
+				// on the command line, so it must not be logged as an error or exited non-zero.
+				HelpOrVersionRequested = errList.Any(
+						e => e.Tag == CommandLine.ErrorType.HelpRequestedError
+						  || e.Tag == CommandLine.ErrorType.HelpVerbRequestedError
+						  || e.Tag == CommandLine.ErrorType.VersionRequestedError );
+
+				HadErrors = !HelpOrVersionRequested;
 			} );
 
 

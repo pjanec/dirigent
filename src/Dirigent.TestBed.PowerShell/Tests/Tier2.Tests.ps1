@@ -258,6 +258,60 @@ Test-Case 'Dirigent.CLI.exe answers and exits 0, as it always has' {
     finally { Stop-DirigentWorld -World $world }
 }
 
+Test-Case '--version and --help are answered, not rejected' {
+    # Every executable advertises --version in its own help screen and used to answer it with
+    # "Option 'version' is unknown" and exit code 2. The cause was the argument array: the
+    # parser was handed Environment.GetCommandLineArgs(), which leads with the executable's own
+    # path, so a positional value was always present and CommandLineParser's built-in handling
+    # of a lone --version never triggered.
+    #
+    # No world needed - this never reaches a master. Tested here because nothing below tier 2
+    # can see a real process's exit code, and reading it by hand is how the bug survived a
+    # first investigation.
+    $checked = 0
+
+    foreach ( $tool in @(
+        @{ Project = 'Dirigent.CLI';            Exe = 'Dirigent.CLI.exe' },
+        @{ Project = 'Dirigent.Agent.Console';  Exe = 'Dirigent.Agent.exe' },
+        @{ Project = 'Dirigent.Agent.Starter';  Exe = 'Dirigent.Agent.Starter.exe' } ) )
+    {
+        $exe = Get-DirigentTool -Project $tool.Project -Exe $tool.Exe
+
+        foreach ( $option in @( '--version', '--help' ) )
+        {
+            # Start-Process with the streams redirected to files, deliberately: the version text
+            # goes to stderr, and '2>&1' on a native command turns every stderr line into a
+            # terminating NativeCommandError under Windows PowerShell, which fails the test on
+            # the very output it is meant to inspect.
+            $outFile = [System.IO.Path]::GetTempFileName()
+            $errFile = [System.IO.Path]::GetTempFileName()
+
+            $p = Start-Process -FilePath $exe -ArgumentList $option -Wait -PassThru -NoNewWindow `
+                    -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+
+            $code = $p.ExitCode
+            $text = ( ( Get-Content $outFile -Raw ) + ' ' + ( Get-Content $errFile -Raw ) )
+            Remove-Item $outFile, $errFile -Force -ErrorAction SilentlyContinue
+
+            $text = ( $text -replace '\s+', ' ' ).Trim()
+
+            Expect-Equal -Expected 0 -Actual $code `
+                -Because "$( $tool.Exe ) $option is a question answered, not an error: $text"
+
+            Expect-True -Condition ( -not ( $text -like '*is unknown*' ) ) `
+                -Because "$( $tool.Exe ) $option was rejected as an unknown option: $text"
+
+            Expect-True -Condition ( $text -like "*$( $tool.Exe -replace '\.exe$', '' )*" ) `
+                -Because "$( $tool.Exe ) $option printed something naming the program: $text"
+
+            $checked++
+        }
+    }
+
+    Expect-Equal -Expected 6 -Actual $checked -Because 'every executable and option was tried'
+}
+
+
 Test-Case 'Dirigent.CLI.exe waits for a script to finish before it returns' {
     # What a plan step or a batch file needs: the exe must not report success at the ACK, which says
     # only that the master accepted the command. It waits for the END that WaitForScript sends when
