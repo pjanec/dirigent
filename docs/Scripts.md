@@ -20,6 +20,23 @@ Scripts can
 ## Script example
 Please see the [DemoScript1.cs](../src/Dirigent.Common/Scripts/DemoScript1.cs) source file
 
+## Where a script comes from
+
+A script is named either by a **file path**, resolved on the machine that runs it, or by a
+`BuiltIns/...` name.
+
+**A `BuiltIns/...` name is not a file, and there is no `BuiltIns` folder to look in.** The built-in
+scripts are compiled into the Dirigent binary and registered by name at startup
+(`ScriptFactory.AddBuiltIns`), so `BuiltIns/DownloadZipped.cs` resolves whether or not anything of
+that name exists on disk. Their sources live in the repository under
+[`src/Dirigent.Common/Scripts/BuiltIn/`](../src/Dirigent.Common/Scripts/BuiltIn/) and are not
+shipped in the release archive.
+
+The `Scripts\` folder next to the executables is a different thing: a few **example** scripts
+(`DemoScript1.cs` and friends) that the sample configuration refers to by path. Adding a file there
+does not make it a built-in, and it is reached as `Scripts/YourScript.cs` or through
+`%DIRIGENT_SHAREDCONFDIR%`.
+
 ## Script Status
 
 Script status is described by a status code and additional details (short text description and a stringized data).

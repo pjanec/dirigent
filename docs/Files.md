@@ -152,6 +152,13 @@ A package names things that need not all exist: a crash-dump folder on a machine
 crashed, a log an application has not written yet, a machine that is offline. **One member that
 cannot be delivered never costs you the rest.**
 
+> **This changed in 3.1.18.** Before that, a `<Folder>` whose folder did not exist on one machine
+> **aborted the resolution of the whole package**, so a system-wide collection could be lost to a
+> folder that had never existed anywhere - at its most likely just after an incident, when the
+> collection matters most. If you are on an older build, or working from a runbook written against
+> one, that is the behaviour you remember, and declaring no node for a folder that might be absent
+> was the right way to work around it. It is no longer necessary.
+
 | what is missing | what happens |
 | --- | --- |
 | the folder of a `<Folder>` or a `<File Filter="Newest">` | the node is left out of the resolved tree |

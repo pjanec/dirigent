@@ -625,7 +625,32 @@ Dirigent performs actions related to a plan selection. For example it might exec
 
     Dirigent.CLI.exe <command> <arg1> <arg2>; <command> <arg1>...
 
-Zero exit code is returned on success, positive error code on failure.
+#### Exit codes
+
+| code | meaning |
+| --- | --- |
+| 0 | the command was answered and the answer was not an error |
+| 1 | another instance is already running |
+| 2 | the command line could not be parsed |
+| 3 | an exception escaped |
+| 4 | the answer was `ERROR`, was malformed, or **never arrived** |
+
+With several commands on one line, the code is that of the last one that failed.
+
+> **Do not use the exit code alone with `GetPlanState`, `GetAppState`, `GetScriptState` or
+> `GetClientState`.** Those four answer with a single line and no terminator (the fourth shape
+> [above](#response-texts)), so the utility has nothing to recognise as the end of the answer.
+> **The answer itself is immediate** - it is printed as soon as the master sends it - but the process
+> then waits out its five-second read timeout before exiting **4**. Judge these by the output line
+> (`PLAN:`, `APP:`, `SCRIPT:`, `CLIENT:`, as each command's **Response text** above specifies) rather
+> than by the code, and note that a caller which waits for the process to exit pays the five seconds
+> even though the answer arrived at once. Every other command reports its outcome in the exit code
+> correctly and exits as soon as it is answered.
+>
+> This is long-standing behaviour, identical in 3.1.14, 3.1.17 and 3.1.18, and the per-command
+> response texts have always specified the single line rather than an `ACK`. It is therefore what
+> existing callers are written against, and **not** something to be "fixed" into an exit code of 0:
+> the answer on the wire is the contract, and clients read the line.
 
 For example:
 
@@ -685,7 +710,7 @@ ACK does not mean that the command finished successfully! Only that it was deliv
 
 Some commands do not return ERROR even if the command fails (but ACK is returned).
 
-There are therefore three shapes of answer, and a client has to know which to expect **before** it
+There are therefore four shapes of answer, and a client has to know which to expect **before** it
 sends:
 
 | shape | commands | the line that ends it |
@@ -693,11 +718,19 @@ sends:
 | acknowledged, and done | most of them - `StartPlan`, `StartApp`, `StartScript`, ... | `ACK` |
 | a list | `GetAllAppsState`, `GetAllPlansState`, `GetAllClientsState` - one line per item, and no ACK at all | `END` |
 | acknowledged, then finished later | [`WaitForScript`](#WaitForScript) | `ACK`, then `END` |
+| one line, and nothing after it | `GetPlanState`, `GetAppState`, `GetScriptState`, `GetClientState` | **nothing at all** |
 
 `ERROR` ends any of them. Each command declares its own terminator in the code, so `Dirigent.CLI.exe`
 knows to read past the `ACK` of a waiting command instead of reporting success at it - and waits
 without a deadline while it does, since the wait is as long as the work. A telnet client sees the same
 lines and can apply the same rule.
+
+**The fourth shape has no terminator at all**: the answer is one line - `PLAN:...`, `APP:...`,
+`SCRIPT:...`, `CLIENT:...` - and nothing follows it, so a client cannot tell a complete answer from
+one still arriving except by knowing which command it sent. Each command's **Response text** above
+says which line to expect, and that has always been the contract for these four - they have never
+sent an `ACK`, in any release. A client reads the line; see [Exit codes](#exit-codes) for the one
+consequence worth knowing about.
 
 ###### Using request id
 

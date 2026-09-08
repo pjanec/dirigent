@@ -43,6 +43,27 @@ The `machineId` is unique globally.
 
 The `applicationInstanceId` is unique within the launch plan where it is used.
 
+## An application Dirigent knows about but the config does not define
+
+**A state and a definition are two different things, and the states can outlive the definitions.**
+The master keeps a state per application it has heard of; the shared config supplies the definitions.
+Remove an application from `SharedConfig.xml` and reload, and its definition is gone while its state
+stays - so the application still appears in the GUI's Apps tab and still counts in
+`GetAllAppsState`, with no definition behind it.
+
+**An application count higher than the configuration's is therefore not automatically a fault.** What
+it usually means is that something was removed from the config, or renamed, on a master that has not
+been restarted since. An agent recovering what it was managing from its status file in
+`%LocalAppData%\Dirigent` - see [post-crash recovery](Agent.md), which is deliberate, so that a
+restarted agent adopts its applications instead of starting a second copy of each - can contribute
+the same way.
+
+Seeing them is the point - a leftover of a removed application is worth noticing rather than hiding -
+so they are listed like any other. Such a row offers less than the others, since the files and the
+actions of an application are declared by its definition: its context menu says *"Not in the current
+configuration"* and its Properties are unavailable. Restart the master, or put the definition back,
+and the row goes away or becomes whole.
+
 ## Detecting that an app has initialized
 
 Some apps take a long time to boot up and initialize. 

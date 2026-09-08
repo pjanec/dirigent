@@ -6,6 +6,18 @@ Local configuration is stored in the `LocalConfig.xlm` file. The location of the
 
 Local configuration file is optional.
 
+### When the file is read
+
+**Once, by the agent, when that agent starts.** There is no command that re-reads it:
+[`ReloadSharedConfig`](CLI.md#ReloadSharedConfig) re-reads `SharedConfig.xml` only, whatever its name
+suggests. So a change here - a new `<Tool>`, a `<FolderWatcher>`, an entry in
+`DefaultFileActions` or `DefaultFilePackageActions` - takes effect only after **the agent on that
+machine** is restarted, and only on that machine.
+
+Worth planning for on a site of any size: the file is per machine, so a tool added to every machine
+means restarting every agent. A menu action that stubbornly fails to appear after a config reload is
+almost always this.
+
 ### Basic structure
 
 The file defines

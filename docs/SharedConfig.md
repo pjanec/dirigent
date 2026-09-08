@@ -8,6 +8,37 @@ Shared configuration is stored in the `SharedConfig.xlm` file. The location of t
 
 Shared config file is mandatory. Dirigent agent executable in master mode won't start without it.
 
+#### When the file is read
+
+**Once, by the master, at startup - and then held in memory.** Editing the file changes nothing by
+itself: until the master reads it again, a plan you have just added does not exist as far as Dirigent
+is concerned, and `GetAllPlansState` will keep answering with the plans it started with. That is the
+answer to "my edit had no effect" and to a plan count that disagrees with the file.
+
+To make an edit take effect, either
+
+* run [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig) - from the CLI, the GUI or `POST /cli` - which
+  re-reads the file and hands the new definitions to the agents, no restart anywhere; or
+* restart the master.
+
+A reload picks up everything this file defines: plans, application definitions, machines and their
+shares, file and package nodes, scripts, menus. `killApps=0` leaves running applications alone, and a
+changed application definition then applies the next time that application is started.
+
+**It does not read `LocalConfig.xml`.** Despite the name covering "the config", each agent reads its
+own local file once when *that agent* starts, so `<Tool>` definitions, `<FolderWatcher>` entries and
+the `DefaultFileActions` / `DefaultFilePackageActions` blocks need the **agent** restarted on the
+machine concerned - see [Local Config](LocalConfig.md#when-the-file-is-read). A new tool action not
+appearing in a menu after a reload is this, not a mistake in the file.
+
+#### A trap when commenting the file
+
+**An XML comment may not contain `--`.** That is plain XML rather than anything of Dirigent's, but
+this file invites it: a header comment explaining the command line options, or a note about
+`--machineId`, makes the whole file unparseable, and the master then refuses to start over what looks
+like a perfectly ordinary comment. Write the option without its dashes, or as `<Option>machineId`, or
+put it in an attribute value where dashes are fine.
+
 #### Basic structure
 
 The file defines
