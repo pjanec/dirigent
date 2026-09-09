@@ -87,6 +87,8 @@ reads it, so the number in the binaries, in the archive names and in the tag can
 The release runs the whole test suite first and stops on the first failing step. Anything
 that ends up in the release folder and is neither on the configuration list nor plain code
 fails the release rather than being filed into whichever archive its extension suggests.
+The helpers and guards those checks are made of live in `build-lib.ps1` and have their own
+tests: `powershell -NoProfile -File .\test-build-lib.ps1`.
 
 To have GitHub do it instead, run the **Release** workflow
 (`.github/workflows/release.yml`): it takes a commit, tag or branch, builds on a Windows

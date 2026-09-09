@@ -52,15 +52,10 @@ $releasePath = "$PSScriptRoot\release\win-x64\$buildconf"
 $sevenZip = Get-SevenZip
 
 #
-# The two archives split by upgrade behaviour, not by file type: an upgrade is done by
-# copying the binaries over an existing installation, so the binaries archive must not carry
-# anything an operator may have edited. Hence no .config and no .xml in it, and both the
-# application configuration files and the sample configurations in the other one.
-#
-# That split used to be expressed as wildcards on both sides, which quietly misfiles anything
-# new: a .xml the binaries genuinely need would have landed in the configs archive and nobody
-# would have found out until a site unpacked it. The settled set is listed here instead, and
-# anything not on the list fails the release.
+# The operator-editable files, which go into the configs archive and are kept out of the
+# binaries archive so that an upgrade can be done by copying binaries over an existing
+# installation. Assert-ExpectedConfigFiles explains why the set is named rather than matched
+# by extension; anything else with those extensions fails the release.
 #
 $configFiles = @(
 	"Dirigent.Agent.dll.config"
@@ -70,24 +65,7 @@ $configFiles = @(
 	"SharedConfig.xml"
 )
 
-$found = @( Get-ChildItem -Path $releasePath -Recurse -File |
-	Where-Object { $_.Extension -eq ".config" -or $_.Extension -eq ".xml" } |
-	ForEach-Object { $_.FullName.Substring( $releasePath.Length + 1 ) } |
-	Sort-Object )
-
-$unexpected = $found | Where-Object { $configFiles -notcontains $_ }
-if( $unexpected )
-{
-	throw "Not sure which archive these belong in: $($unexpected -join ', '). " +
-		"Add them to `$configFiles in make_release.ps1 if they are operator-editable, " +
-		"or to the exclusion list of the binaries archive if they ship with the code."
-}
-
-$missing = $configFiles | Where-Object { $found -notcontains $_ }
-if( $missing )
-{
-	throw "Expected configuration files are not in ${releasePath}: $($missing -join ', ')"
-}
+Assert-ExpectedConfigFiles -Path $releasePath -Expected $configFiles
 
 # 4. Binaries: everything except the configuration files, the logs and any stray archives.
 $binZip = "$PSScriptRoot\Dirigent-$version-win-x64.7z"

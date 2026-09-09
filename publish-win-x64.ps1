@@ -54,20 +54,8 @@ foreach( $app in $apps )
 
 Copy-Item "$PSScriptRoot\VersionStamp.txt" -Destination $releasePath -Force
 
-# 3. Complain about localized resource assemblies rather than deleting them.
-#
-#    SatelliteResourceLanguages in Directory.Build.props stops them being built, which
-#    replaced a loop here that deleted thirteen language folders by name. If some dependency
-#    ever ignores that property the folders come back, and silently deleting them by a
-#    hardcoded list is how that stayed invisible for years. Fail instead.
-$cultureLike = Get-ChildItem -Path $releasePath -Directory |
-	Where-Object { $_.Name -match '^[a-z]{2}(-[A-Za-z]{2,4})?$' }
-
-if( $cultureLike )
-{
-	$names = ($cultureLike | ForEach-Object { $_.Name }) -join ", "
-	throw "Unexpected localized resource folders in ${releasePath}: $names. " +
-		"SatelliteResourceLanguages in Directory.Build.props should have prevented these."
-}
+# 3. The publish script used to delete thirteen language folders by name here. They are no
+#    longer produced; if they reappear, say so rather than tidying them away.
+Assert-NoSatelliteFolders $releasePath
 
 "Assembled $releasePath"
