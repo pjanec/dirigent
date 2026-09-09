@@ -3,10 +3,8 @@
 How Dirigent is tested, why it is arranged this way, what exists today, and what comes next.
 
 This is the canonical design document for the harness; it supersedes the earlier "Rehearsal Room"
-document. The practical how-to-run guides live next to the code:
-[`src/Dirigent.TestBed/README.md`](../src/Dirigent.TestBed/README.md) for tier 1 and
-[`src/Dirigent.TestBed.PowerShell/README.md`](../src/Dirigent.TestBed.PowerShell/README.md) for
-tier 2.
+document. The practical how-to-run guide lives next to the code:
+[`src/Dirigent.TestBed/README.md`](../src/Dirigent.TestBed/README.md).
 
 Contents:
 
@@ -86,9 +84,9 @@ must never steal focus. A test suite that interrupts work does not get run.
 
 ```mermaid
 flowchart LR
-    T0["<b>Tier 0</b><br/>unit tests<br/>69 tests, 0.5 s"]
-    T1["<b>Tier 1</b><br/>in-process bed<br/>51 tests, 80 s"]
-    T2["<b>Tier 2</b><br/>real processes<br/>8 tests, 32 s"]
+    T0["<b>Tier 0</b><br/>unit tests<br/>152 tests, 2 s"]
+    T1["<b>Tier 1</b><br/>in-process bed<br/>144 tests, 3 min"]
+    T2["<b>Tier 2</b><br/>real processes<br/>12 tests, 48 s"]
     T3["<b>Tier 3</b><br/>two VMs<br/>not built"]
 
     T0 --> T1 --> T2 --> T3
@@ -201,11 +199,11 @@ flowchart TB
     S --> R2["WorldSeeder<br/><i>folders and<br/>back-dated files</i>"]
 
     R1 --> T1["<b>tier 1</b><br/>config written to a<br/>temp tree, bed started"]
-    R1 --> GEN["<b>Dirigent.TestBed.Gen</b><br/><i>scenario to folder</i>"]
+    R1 --> GEN["<b>WorldOnDisk</b><br/><i>scenario to a folder</i>"]
     R2 --> T1
     R2 --> GEN
 
-    GEN --> T2["<b>tier 2</b><br/>SharedConfig.xml<br/>LocalConfig.xml<br/>world.json manifest"]
+    GEN --> T2["<b>tier 2</b><br/>SharedConfig.xml<br/>LocalConfig.xml<br/>real processes started"]
     GEN --> T3["<b>tier 3</b><br/>copied to the VMs"]
 
     R1 --> RT["<b>tier 0</b> round-trip guard:<br/><i>a rendering is parsed back by<br/>the real SharedConfigReader</i>"]
@@ -227,27 +225,29 @@ them.
 
 ## Tier 2: real processes
 
-The same worlds, rendered to disk and driven from PowerShell over the command-line interface — the
-road an operator or a CI job takes. Windows PowerShell 5.1, nothing to install.
+The same worlds, rendered to disk and driven over the command-line interface — the road an operator
+or a CI job takes. `Dirigent.SystemTests`, in C#, run by `dotnet test` like the other two tiers.
 
 ```mermaid
 flowchart TB
-    PS["<b>Invoke-DirigentTests.ps1</b><br/><i>tests, or -KeepAlive for<br/>a world to poke at</i>"]
-    GEN["Dirigent.TestBed.Gen"]
-    W["world folder<br/><i>configs, app folders,<br/>seeds, world.json</i>"]
+    T["<b>Dirigent.SystemTests</b><br/><i>SystemWorld + the tests</i>"]
+    GEN["WorldOnDisk<br/><i>in Dirigent.TestBed</i>"]
+    W["world folder<br/><i>configs, app folders, seeds</i>"]
 
-    PS -->|"scenario name"| GEN --> W
+    T -->|"scenario name"| GEN --> W
 
-    PS -->|"Start-DirigentWorld"| MASTER["<b>Dirigent.Agent.exe</b><br/><i>isMaster, machineId m1</i>"]
-    PS -->|"Start-DirigentWorld"| AGENT["<b>Dirigent.Agent.exe</b><br/><i>machineId m2</i>"]
+    T -->|"SystemWorld.Start"| MASTER["<b>Dirigent.Agent.exe</b><br/><i>isMaster, machineId m1</i>"]
+    T -->|"SystemWorld.Start"| AGENT["<b>Dirigent.Agent.exe</b><br/><i>machineId m2</i>"]
 
     W -.->|"config path"| MASTER
     W -.->|"config path"| AGENT
 
     AGENT <-->|TCP| MASTER
 
-    PS -->|"Invoke-DirigentCli<br/><i>raw socket</i>"| CLI["CLI port"]
-    PS -->|"Invoke-RestMethod"| REST["POST /api/cli"]
+    T -->|"Cli / CliList<br/><i>raw socket</i>"| CLI["CLI port"]
+    T -->|"CliExe<br/><i>the shipped exe</i>"| EXE["Dirigent.CLI.exe"]
+    T -->|"HttpClient"| REST["POST /api/cli"]
+    EXE --- CLI
     CLI --- MASTER
     REST --- MASTER
 
@@ -255,14 +255,36 @@ flowchart TB
     AGENT -->|launches| APPS
 ```
 
-Tier 2 is small on purpose — eight tests: the world comes up; an application starts and stops on the
-right machine; an agent killed hard adopts its applications when it returns; the file nodes can be
-listed, resolved on another machine, and collected into one archive; the web server answers the same
-commands; and a run leaves nothing behind.
+Tier 2 is small on purpose — twelve tests: the world comes up; an application starts and stops on
+the right machine; an agent killed hard adopts its applications when it returns; the file nodes can
+be listed, resolved on another machine, and collected into one archive; the shipped CLI answers,
+exits with the right code, waits for a script, and handles `--help` and `--version`; the web server
+answers the same commands; and a run leaves nothing behind.
 
-`-KeepAlive -WithGui` replaces the old batch-file workflow: it builds a curated world, starts the
-master as a tray GUI, prints the ports and ids, and binds the world to `$w` so it can be driven by
-hand with the same verbs the tests use.
+### Why it is C# and not a shell script
+
+It was PowerShell until 3.1.18.51, and the reasons it no longer is are worth recording, since
+"drive the shipped executables from a shell" sounds like a shell's job:
+
+* **Almost nothing in it was shell work.** The driver reached for `System.Net.Sockets`,
+  `System.IO.Compression`, `System.Diagnostics.Process` and `Stopwatch` — .NET types in PowerShell
+  syntax. The language was supplying a runner and an assertion vocabulary, not capability.
+* **The language boundary cost a whole executable.** Scenarios are C#, so a `Dirigent.TestBed.Gen`
+  process existed only to render one to a folder and write a JSON manifest for PowerShell to read
+  back. `WorldOnDisk` is now called directly and the exe is gone.
+* **One runner.** All three tiers are `dotnet test`, appear in an IDE's test list, and are debugged
+  the same way. That matters more now that most of the work is done by agents rather than by hand.
+* **The traps were real.** `2>&1` on a native command makes every stderr line a terminating error
+  under Windows PowerShell, which failed a test on the very output it was inspecting; and there is
+  no type checking to catch a renamed field.
+
+What was genuinely awkward to port was one thing: finding an agent's child processes, which has no
+BCL API. The product already solved it - `WinApi.GetChildProcesses` is what its own `KillTree` uses -
+so the test calls that.
+
+The manual-world mode (`-KeepAlive -WithGui`) went with it. It existed to replace a pair of batch
+files for poking at a running system by hand; if that is wanted again, it belongs in a small tool of
+its own rather than in the test harness.
 
 ### Files need no commands of their own
 
@@ -287,16 +309,20 @@ As of the merge with branch 3.1:
 * Everything targets **.NET 8**, matching the rest of the solution.
 * **One harness.** The mock-based one that 3.1 carried, and the product seams that existed only to
   support it, are gone - see [The harness that was replaced](#the-harness-that-was-replaced).
-* **51 tier-1 tests** (~80 s), **69 tier-0** (~0.5 s), **8 tier-2** (~32 s). Green, twice in a row,
-  with no leaked processes or temporary folders.
+* **144 tier-1 tests** (~3 min), **152 tier-0** (~2 s), **12 tier-2** (~48 s). Green, twice in a
+  row, with no leaked processes or temporary folders.
+* **One technology.** All three tiers are C# and run under `dotnet test`; the PowerShell driver and
+  the generator process it needed are gone - see
+  [Why it is C# and not a shell script](#why-it-is-c-and-not-a-shell-script).
 
 Run them:
 
 ```
-dotnet test src/Dirigent.CommonTests
-dotnet test src/Dirigent.IntegrationTests
-src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1
-src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui   # a world to poke at
+dotnet test src/Dirigent.CommonTests        # tier 0
+dotnet test src/Dirigent.IntegrationTests   # tier 1
+dotnet test src/Dirigent.SystemTests        # tier 2, real processes
+
+dotnet test src/Dirigent.NetCore.sln        # or all of them at once
 ```
 
 ## What exists today
@@ -305,10 +331,9 @@ src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui   #
 | --- | --- |
 | `src/Dirigent.TestApp` | the controllable stand-in application: runs forever, exits with a code, writes logs, reports its environment, refuses to close, spawns children, gives up when orphaned |
 | `src/Dirigent.TestBed` | the tier-1 bed: temp world, ports, pump, components, teardown; the `Operator`; the scenario model and renderers; `CliSession` |
-| `src/Dirigent.TestBed.Gen` | renders a scenario preset to a folder, with a `world.json` manifest |
-| `src/Dirigent.TestBed.PowerShell` | the tier-2 driver, its tests, and its own README |
-| `src/Dirigent.IntegrationTests` | 51 tier-1 tests |
-| `src/Dirigent.CommonTests` | 69 tier-0 tests, including the scenario round-trip guard |
+| `src/Dirigent.SystemTests` | the tier-2 driver (`SystemWorld`: real processes, ports, teardown, the CLI socket, the shipped exes) and 12 tests |
+| `src/Dirigent.IntegrationTests` | 144 tier-1 tests |
+| `src/Dirigent.CommonTests` | 152 tier-0 tests, including the scenario round-trip guard |
 
 Tier-1 coverage by area:
 

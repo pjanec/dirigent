@@ -15,7 +15,7 @@ design and the roadmap are in [`docs/TestHarness.md`](../../docs/TestHarness.md)
 | Scenario model + renderers + round-trip guard | done, 8 tests in `Dirigent.CommonTests` |
 | Log-download tests at tier 1 | done, 6 tests |
 | Files over the CLI/REST surface | done, 6 tests |
-| Tier 2: `Dirigent.TestBed.Gen` + PowerShell driver | done, 8 tests |
+| Tier 2: `Dirigent.SystemTests` — real processes, in C# | done, 12 tests |
 | Breadth at tier 1 (plans, detectors, restarts, kills, env vars, reload, reconnect) | done |
 | Tier 3 on the two VMs | deferred - not wanted yet |
 | Merged with branch 3.1, on .NET 8, one harness only | done |
@@ -33,14 +33,16 @@ Relevant commits: `43855b1` (harness), `11d9732` (seams + scenarios), `fd7d90c` 
 ## Running
 
 ```
-dotnet test src/Dirigent.IntegrationTests   # tier 1, ~80 s
-dotnet test src/Dirigent.CommonTests        # unit tests incl. the scenario renderer
+dotnet test src/Dirigent.CommonTests        # tier 0, ~2 s
+dotnet test src/Dirigent.IntegrationTests   # tier 1, ~3 min
+dotnet test src/Dirigent.SystemTests        # tier 2, real processes, ~48 s
 
-src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1            # tier 2, ~31 s
-src\Dirigent.TestBed.PowerShell\Invoke-DirigentTests.ps1 -KeepAlive -WithGui
+dotnet test src/Dirigent.NetCore.sln        # or all of them at once
 ```
 
-Tier 2 has its own README in `src/Dirigent.TestBed.PowerShell`.
+All three tiers are C# and run the same way, which is the point: one runner, one assertion
+vocabulary, everything visible in an IDE's test list. Tier 2 used to be a PowerShell driver - see
+[why it no longer is](../../docs/TestHarness.md#why-it-is-c-and-not-a-shell-script).
 
 Every run writes `TestResults/last-run.trx` in the test project, whether or not a logger was asked
 for on the command line. The test that needs it is the one failing once in fifty runs, and by then
@@ -120,8 +122,8 @@ render for real processes and for VMs.
   the remote-control surface rather than the in-process client.
 - `Isolation` — free ports, temp root. Machine ids are used verbatim.
 - `Diagnostics` — process-global log4net capture, cleared per test via `Diagnostics.ClearLog()`.
-- `../Dirigent.TestBed.Gen` — renders a scenario preset to a folder for tiers 2 and 3.
-- `../Dirigent.TestBed.PowerShell` — the tier-2 driver and its tests.
+- `Scenarios/WorldOnDisk.cs` — renders a scenario preset to a real folder, for tiers 2 and 3.
+- `../Dirigent.SystemTests` — the tier-2 driver (`SystemWorld`) and its tests.
 
 ## Known behaviour
 
@@ -158,4 +160,4 @@ render for real processes and for VMs.
 The design, the principles behind these rules, what the harness has found, and the roadmap are in
 [`docs/TestHarness.md`](../../docs/TestHarness.md) - one place, so the plan cannot say two things.
 Tier 2 has its own practical guide in
-[`../Dirigent.TestBed.PowerShell/README.md`](../Dirigent.TestBed.PowerShell/README.md).
+[`../../docs/TestHarness.md`](../../docs/TestHarness.md#tier-2-real-processes).

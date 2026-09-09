@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Tier 3: the shipped executables, started on this machine. Each test brings up a world of real
+      processes on its own ports, so two of them at once would fight over the applications they
+      expect to find. Run one at a time.
+    -->
+    <TestTfmsInParallel>false</TestTfmsInParallel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- always write a result file, so a failure names itself without anyone asking for a logger -->
+    <VSTestLogger>trx%3bLogFileName=last-run.trx</VSTestLogger>
+    <VSTestResultsDirectory>TestResults</VSTestResultsDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
+    <PackageReference Include="coverlet.collector" Version="3.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />
+    <ProjectReference Include="..\Dirigent.Agent.Core\Dirigent.Agent.Core.csproj" />
+    <ProjectReference Include="..\Dirigent.TestBed\Dirigent.TestBed.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Not referenced in code, but a test is meaningless without them: these are the executables it
+      starts. Building this project builds what it drives.
+    -->
+    <ProjectReference Include="..\Dirigent.Agent.Console\Dirigent.Agent.Console.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Dirigent.CLI\Dirigent.CLI.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Dirigent.Agent.Starter\Dirigent.Agent.Starter.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Dirigent.TestApp\Dirigent.TestApp.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Microsoft.VisualStudio.TestTools.UnitTesting.DoNotParallelize" />
+  </ItemGroup>
+
+</Project>
