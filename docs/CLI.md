@@ -657,24 +657,25 @@ Dirigent performs actions related to a plan selection. For example it might exec
 | 1 | another instance is already running |
 | 2 | the command line could not be parsed |
 | 3 | an exception escaped |
-| 4 | the answer was `ERROR`, was malformed, or **never arrived** |
+| 4 | the answer was `ERROR`, was empty, was malformed, or never arrived |
 
 With several commands on one line, the code is that of the last one that failed.
 
-> **Do not use the exit code alone with `GetPlanState`, `GetAppState`, `GetScriptState` or
-> `GetClientState`.** Those four answer with a single line and no terminator (the fourth shape
-> [above](#response-texts)), so the utility has nothing to recognise as the end of the answer.
-> **The answer itself is immediate** - it is printed as soon as the master sends it - but the process
-> then waits out its five-second read timeout before exiting **4**. Judge these by the output line
-> (`PLAN:`, `APP:`, `SCRIPT:`, `CLIENT:`, as each command's **Response text** above specifies) rather
-> than by the code, and note that a caller which waits for the process to exit pays the five seconds
-> even though the answer arrived at once. Every other command reports its outcome in the exit code
-> correctly and exits as soon as it is answered.
->
-> This is long-standing behaviour, identical in 3.1.14, 3.1.17 and 3.1.18, and the per-command
-> response texts have always specified the single line rather than an `ACK`. It is therefore what
-> existing callers are written against, and **not** something to be "fixed" into an exit code of 0:
-> the answer on the wire is the contract, and clients read the line.
+**An answer that is not an error is a success**, for every command, including the four that answer
+with a single line and no terminator - `GetPlanState`, `GetAppState`, `GetScriptState`,
+`GetClientState`. Each command declares the shape of its own answer, and the utility stops when that
+answer is complete rather than waiting for a terminator the command never sends.
+
+> **Changed in 3.1.18.50.** Before that, those four printed the right answer, waited out a
+> five-second read timeout and *then* exited **4** - a failure for a query that had worked. A script
+> written against the old behaviour reads the answer line and ignores the code, which keeps working:
+> the line is unchanged, and so is everything the master sends. Nothing on the wire was touched to
+> fix this, so a telnet client sees exactly what it saw before.
+
+Asking about something that does not exist is still a failure, and an immediate one: an unknown plan,
+application or script instance is answered with an empty line, which carries no state, and the
+utility exits **4**. That makes "no such thing" and "something went wrong" the same exit code - so a
+script that needs to tell them apart reads the answer.
 
 For example:
 
@@ -751,10 +752,15 @@ lines and can apply the same rule.
 
 **The fourth shape has no terminator at all**: the answer is one line - `PLAN:...`, `APP:...`,
 `SCRIPT:...`, `CLIENT:...` - and nothing follows it, so a client cannot tell a complete answer from
-one still arriving except by knowing which command it sent. Each command's **Response text** above
-says which line to expect, and that has always been the contract for these four - they have never
-sent an `ACK`, in any release. A client reads the line; see [Exit codes](#exit-codes) for the one
-consequence worth knowing about.
+one still arriving except by knowing which command it sent. That has always been the contract for
+these four; they have never sent an `ACK`, in any release, and each command's **Response text** above
+says which line to expect.
+
+Which is why the shape is **declared** rather than left to be guessed: each command class carries a
+`[CliResponse( Terminator = ... )]` saying how its answer ends, and `Dirigent.CLI.exe` asks before it
+sends. That is how it knows to read past the `ACK` of a waiting command, and to stop at the single
+line of a getter instead of waiting for a terminator that is never coming. A client of your own can
+use the same rule: the command decides, and the four shapes above are all there are.
 
 ###### Using request id
 

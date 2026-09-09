@@ -32,8 +32,8 @@ namespace Dirigent.Tests
 			{ "KillApp",            ETerminator.Ack },
 			{ "RestartApp",         ETerminator.Ack },
 			{ "SelectPlan",         ETerminator.Ack },
-			{ "GetPlanState",       ETerminator.Ack },
-			{ "GetAppState",        ETerminator.Ack },
+			{ "GetPlanState",       ETerminator.SingleLine },
+			{ "GetAppState",        ETerminator.SingleLine },
 			{ "GetAllPlansState",   ETerminator.End },
 			{ "GetAllAppsState",    ETerminator.End },
 			{ "SetVars",            ETerminator.Ack },
@@ -44,10 +44,10 @@ namespace Dirigent.Tests
 			{ "ReloadSharedConfig", ETerminator.Ack },
 			{ "StartScript",        ETerminator.Ack },
 			{ "KillScript",         ETerminator.Ack },
-			{ "GetScriptState",     ETerminator.Ack },
+			{ "GetScriptState",     ETerminator.SingleLine },
 			{ "WaitForScript",      ETerminator.End },
 			{ "ApplyPlan",          ETerminator.Ack },
-			{ "GetClientState",     ETerminator.Ack },
+			{ "GetClientState",     ETerminator.SingleLine },
 			{ "GetAllClientsState", ETerminator.End },
 		};
 

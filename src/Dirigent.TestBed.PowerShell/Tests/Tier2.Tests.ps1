@@ -258,6 +258,65 @@ Test-Case 'Dirigent.CLI.exe answers and exits 0, as it always has' {
     finally { Stop-DirigentWorld -World $world }
 }
 
+Test-Case 'a single getter succeeds at once instead of timing out' {
+    # The fourth response shape: GetPlanState, GetAppState, GetScriptState and GetClientState
+    # answer one line carrying the answer, with no ACK and no END after it. The exe used to wait
+    # for the ACK they never send, so it printed the right answer, sat out its five-second read
+    # timeout and then reported failure - exit code 4 for a query that had worked. Reported from
+    # a live site, whose runbook says to ignore the exit code of these.
+    #
+    # Nothing about the master's answer changed to fix it: the commands declare their shape and
+    # the client honours it. What a telnet client sees is what it always saw.
+    #
+    # WaitingWorld rather than LoggingWorld, which declares no plan at all - there has to be one
+    # for GetPlanState to have an answer.
+    $world = Start-DirigentWorld -Scenario WaitingWorld
+    try
+    {
+        foreach ( $probe in @(
+            @{ Command = 'GetPlanState never';    Expect = 'PLAN:never:*' },
+            @{ Command = 'GetAppState m1.camera'; Expect = 'APP:m1.camera:*' },
+            @{ Command = 'GetClientState m1';     Expect = 'CLIENT:m1:*' } ) )
+        {
+            $clock = [System.Diagnostics.Stopwatch]::StartNew()
+            $lines = Invoke-DirigentCliExe -World $world -Command $probe.Command
+            $code = $LASTEXITCODE
+            $clock.Stop()
+
+            Expect-Equal -Expected 0 -Actual $code `
+                -Because "'$( $probe.Command )' answered, so it succeeded: $( $lines -join ' | ' )"
+
+            Expect-Match -Lines $lines -Pattern $probe.Expect `
+                -Because "'$( $probe.Command )' printed the answer"
+
+            # the answer was always immediate; it is the exit that used to be five seconds late
+            Expect-True -Condition ( $clock.Elapsed.TotalSeconds -lt 4 ) `
+                -Because "'$( $probe.Command )' returned without waiting out a read timeout (took $( [int] $clock.ElapsedMilliseconds ) ms)"
+        }
+
+        # Asking about something that does not exist is still a failure, and still immediate: the
+        # master answers these with an empty line, which carries no state for a caller to read.
+        # So an unknown name and a real error are the same exit code, which is why a script reads
+        # the answer line rather than only the code.
+        foreach ( $missing in @( 'GetPlanState nosuchplan',
+                                 'GetAppState m1.nosuchapp',
+                                 "GetScriptState $( [Guid]::NewGuid().ToString() )" ) )
+        {
+            $clock = [System.Diagnostics.Stopwatch]::StartNew()
+            $lines = Invoke-DirigentCliExe -World $world -Command $missing
+            $code = $LASTEXITCODE
+            $clock.Stop()
+
+            Expect-Equal -Expected 4 -Actual $code `
+                -Because "'$missing' found nothing, which is not a success: $( $lines -join ' | ' )"
+
+            Expect-True -Condition ( $clock.Elapsed.TotalSeconds -lt 4 ) `
+                -Because "'$missing' failed at once (took $( [int] $clock.ElapsedMilliseconds ) ms)"
+        }
+    }
+    finally { Stop-DirigentWorld -World $world }
+}
+
 Test-Case '--version and --help are answered on stdout, and printed once' {
     # Every executable advertises --version two lines from the bottom of its own help screen,
     # and used to answer it with "Option 'version' is unknown" and exit code 2. The cause was

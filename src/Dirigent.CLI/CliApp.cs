@@ -107,8 +107,10 @@ namespace Dirigent
         {
             // What ends this command's answer, as the command itself declares it: ACK for almost
             // everything, END for the listings and for a command that acknowledges first and finishes
-            // later. Without asking, a waiting command would be over at its ACK - which says only
-            // that the master accepted it - and this would report success before the work had begun.
+            // later, and nothing at all for the single getters. Without asking, a waiting command
+            // would be over at its ACK - which says only that the master accepted it - and this would
+            // report success before the work had begun; and a getter's answer, complete on arrival,
+            // would be followed by a wait for a terminator that is never sent.
             var terminator = TerminatorOf( subcmd );
 
             // Waiting for such a command is unbounded on purpose: it takes as long as the work takes,
@@ -148,6 +150,12 @@ namespace Dirigent
                     return EAppExitCode.OK;
 
                 if( rest.StartsWith( "END" ) )
+                    return EAppExitCode.OK;
+
+                // The answer of a single getter is one line and is complete on arrival. Nothing
+                // follows it, so waiting on for a terminator only spends the read timeout and then
+                // reports a failure for an answer that was already correct and already printed.
+                if( terminator == ETerminator.SingleLine )
                     return EAppExitCode.OK;
 
                 // anything else is on the way to the terminator: a line of a listing, or the ACK of

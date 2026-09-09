@@ -233,6 +233,7 @@ namespace Dirigent.Commands
 		}
 	}
 
+	[CliResponse( Terminator = ETerminator.SingleLine )]
 	public class GetPlanState : DirigentControlCommand
 	{
 		public GetPlanState( Master ctrl, string requestorId )
@@ -250,6 +251,7 @@ namespace Dirigent.Commands
 		}
 	}
 
+	[CliResponse( Terminator = ETerminator.SingleLine )]
 	public class GetAppState : DirigentControlCommand
 	{
 		public GetAppState( Master ctrl, string requestorId )
@@ -537,6 +539,7 @@ namespace Dirigent.Commands
 		}
 	}
 
+	[CliResponse( Terminator = ETerminator.SingleLine )]
 	public class GetScriptState : DirigentControlCommand
 	{
 		public GetScriptState( Master ctrl, string requestorId )
@@ -748,6 +751,7 @@ namespace Dirigent.Commands
 		}
 	}
 
+	[CliResponse( Terminator = ETerminator.SingleLine )]
 	public class GetClientState : DirigentControlCommand
 	{
 		public GetClientState( Master ctrl, string requestorId )

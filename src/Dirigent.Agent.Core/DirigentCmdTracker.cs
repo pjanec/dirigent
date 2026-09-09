@@ -113,9 +113,15 @@ namespace Dirigent
 
 				if( _seen >= _expected.Count ) continue; // nothing more is owed
 
-				var isTerminator = _expected[_seen] == ETerminator.End
-									? body.StartsWith( "END", StringComparison.OrdinalIgnoreCase )
-									: body.StartsWith( "ACK", StringComparison.OrdinalIgnoreCase );
+				// A single getter's answer is the line itself - it carries no ACK and no END, so the
+				// first line that is ours settles it. Without this case a plan step running one of
+				// them would wait for a terminator that is never sent and never initialize.
+				var isTerminator = _expected[_seen] switch
+				{
+					ETerminator.End => body.StartsWith( "END", StringComparison.OrdinalIgnoreCase ),
+					ETerminator.SingleLine => true,
+					_ => body.StartsWith( "ACK", StringComparison.OrdinalIgnoreCase ),
+				};
 
 				// anything else is on the way to it: the ACK of a command that ends with END, or a
 				// line of a listing

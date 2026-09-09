@@ -6,8 +6,8 @@ namespace Dirigent
 	/// How the answer to a text command ends.
 	/// </summary>
 	/// <remarks>
-	/// Two of the three response shapes docs/CLI.md describes; the third - a subscription that keeps
-	/// sending - terminates nothing and is not a command a sender waits for.
+	/// The response shapes docs/CLI.md describes, except the subscription that keeps sending - that
+	/// terminates nothing and is not a command a sender waits for.
 	/// </remarks>
 	public enum ETerminator
 	{
@@ -21,6 +21,19 @@ namespace Dirigent
 		/// command that acknowledges first and finishes later.
 		/// </summary>
 		End,
+
+		/// <summary>
+		/// One line carrying the answer itself, and nothing after it - no ACK, no END.
+		/// What the single getters do: `PLAN:...`, `APP:...`, `SCRIPT:...`, `CLIENT:...`.
+		/// </summary>
+		/// <remarks>
+		/// Declared so that a client can stop when the answer has arrived. Without it a sender waits
+		/// for a terminator that is never coming, and `Dirigent.CLI.exe` did exactly that: it
+		/// printed the right answer, sat out its five-second read timeout and then reported a
+		/// failure. Nothing about the master's answer changes for this - it never sent a terminator
+		/// for these and still does not, so a telnet client sees what it always saw.
+		/// </remarks>
+		SingleLine,
 	}
 
 	/// <summary>
