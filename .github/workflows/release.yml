@@ -1,0 +1,160 @@
+#
+# Builds the Windows release archives from whatever commit you name and attaches them to a
+# GitHub release, so nothing has to be built or uploaded by hand.
+#
+# Nothing is published automatically. The release is created as a draft by default, because
+# every Dirigent release so far has carried a hand-written title and summary; the draft is
+# there for you to write those into and press publish.
+#
+# The version is not an input: it comes from version.txt in the commit being built, which is
+# the one source of it (increment-revno.ps1 bumps the file, Directory.Build.props reads it
+# into every assembly). That way the number on the archive, the number in the binaries and
+# the number in the tag cannot disagree.
+#
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit, tag or branch to build (blank = the ref this run was started from)"
+        required: false
+        default: ""
+      draft:
+        description: "Create the release as a draft, to write the notes before publishing"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark it as a pre-release"
+        type: boolean
+        default: false
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    permissions:
+      # Needed to create the release and upload the archives to it. Nothing else is written.
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          # gen-ver-stamp.ps1 records the commit and its date into the shipped
+          # VersionStamp.txt, so the history has to be there.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Read the version
+        id: v
+        run: |
+          $version = (Get-Content version.txt -Raw).Trim()
+          if( $version -notmatch '^\d+\.\d+\.\d+\.\d+$' ) {
+              throw "version.txt does not hold a four-part version number: '$version'"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version"    >> $env:GITHUB_OUTPUT
+          "Building $version"
+
+      - name: Refuse to reuse a released version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A release built from a commit whose version.txt was never bumped would otherwise
+          # quietly replace the assets of an existing release. Better to stop and say so.
+          gh release view "${{ steps.v.outputs.tag }}" 2>$null | Out-Null
+          if( $LASTEXITCODE -eq 0 ) {
+              throw "Release ${{ steps.v.outputs.tag }} already exists. Bump version.txt (increment-revno.ps1) and commit it."
+          }
+
+      # Tier 0 and tier 1 gate the release. Tier 2 runs as its own job below without gating
+      # it - it drives real Dirigent processes, and it is worth knowing whether it survives a
+      # hosted runner before that is allowed to stop a release.
+      - name: Unit tests (tier 0)
+        run: dotnet test src/Dirigent.CommonTests --nologo -c Release
+
+      - name: Integration tests (tier 1)
+        run: dotnet test src/Dirigent.IntegrationTests --nologo -c Release
+
+      # Windows PowerShell rather than the job default, because the release scripts are
+      # written and tested against 5.1 on a developer machine and the runner has both.
+      - name: Build and pack
+        shell: powershell
+        run: ./make_release.ps1 -SkipTests
+
+      - name: Checksums
+        run: |
+          $version = "${{ steps.v.outputs.version }}"
+          Get-FileHash "Dirigent-$version-win-x64.7z", "Dirigent-$version-win-x64-configs.7z" -Algorithm SHA256 |
+              ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } |
+              Set-Content "Dirigent-$version-win-x64.sha256" -Encoding ascii
+          Get-Content "Dirigent-$version-win-x64.sha256"
+
+      # Kept regardless of what happens afterwards, so a failure while creating the release
+      # does not mean building it all again.
+      - name: Keep the archives as a build artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dirigent-${{ steps.v.outputs.version }}-win-x64
+          path: |
+            Dirigent-*.7z
+            Dirigent-*.sha256
+            VersionStamp.txt
+          if-no-files-found: warn
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ steps.v.outputs.version }}"
+          $tag = "${{ steps.v.outputs.tag }}"
+
+          $ghArgs = @(
+              "release", "create", $tag,
+              "--target", "${{ github.sha }}",
+              "--title",  $tag,
+              "--notes",  "Windows x64 build of $version, made by the Release workflow from ${{ github.sha }}.`n`nThe binaries archive carries no configuration files, so it can be unpacked over an existing installation without touching local settings. The configs archive holds the application configuration files and the sample SharedConfig.xml / LocalConfig.xml, for a first install."
+          )
+          if( "${{ inputs.draft }}" -eq "true" )      { $ghArgs += "--draft" }
+          if( "${{ inputs.prerelease }}" -eq "true" ) { $ghArgs += "--prerelease" }
+          $ghArgs += @(
+              "Dirigent-$version-win-x64.7z",
+              "Dirigent-$version-win-x64-configs.7z",
+              "Dirigent-$version-win-x64.sha256"
+          )
+
+          gh @ghArgs
+          if( $LASTEXITCODE -ne 0 ) { throw "gh release create failed with exit code $LASTEXITCODE" }
+
+          "Created $tag" >> $env:GITHUB_STEP_SUMMARY
+
+  system-tests:
+    # Tier 2 starts the shipped executables as real processes. It passes locally; whether a
+    # hosted runner is a good enough place for it is the open question, so it reports but
+    # does not gate. Promote it into the job above once it has been green here a few times.
+    name: System tests (tier 2, informational)
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: System tests (tier 2)
+        run: dotnet test src/Dirigent.SystemTests --nologo -c Release

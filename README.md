@@ -67,12 +67,32 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 # Building from source
 
-Requires: net 6, powershell, Visual Studio 2022
+Requires: .NET 8 SDK, PowerShell, Visual Studio 2022
 
 #### Building a release
 
-1. Run the `new_release.bat`
-2. Find the built binaries in the release folder
+The version number lives in `version.txt`; `increment-revno.ps1` bumps it and every build
+reads it, so the number in the binaries, in the archive names and in the tag cannot disagree.
+
+1. Bump `version.txt` and commit it
+2. Run `new_release.bat` (or `make_release.ps1 -SkipTests` when the tests were already run
+   in this state)
+3. Find the assembled binaries in `release\win-x64\Release` and two archives next to the
+   solution:
+   - `Dirigent-<version>-win-x64.7z` — the binaries, carrying no `.config` and no `.xml`,
+     so it can be unpacked over an existing installation without touching local settings
+   - `Dirigent-<version>-win-x64-configs.7z` — the application configuration files plus a
+     sample `SharedConfig.xml` and `LocalConfig.xml`, for a first install
+
+The release runs the whole test suite first and stops on the first failing step. Anything
+that ends up in the release folder and is neither on the configuration list nor plain code
+fails the release rather than being filed into whichever archive its extension suggests.
+
+To have GitHub do it instead, run the **Release** workflow
+(`.github/workflows/release.yml`): it takes a commit, tag or branch, builds on a Windows
+runner, and attaches the archives and their checksums to a draft release for the notes to be
+written into. Linux is not built by either path — `build-linux.ps1` and
+`publish-linux-*.ps1` are kept but unverified.
 
 #### Development & debugging in Visual Studio
 
