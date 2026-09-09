@@ -400,6 +400,26 @@ If a script with such guid was already defined before (in SharedConfig or by a `
 
 The 'args' argument is passed as a string to the script code; the script can interpret it as a json or similar (Newtonsoft Json can be used).
 
+##### It says nothing about how the script went
+
+`StartScript` answers **`ACK` as soon as the script has been started**, which is the usual meaning
+of `ACK` here - delivered and processed - and not a claim that anything worked. A script that then
+fails, or that takes four minutes, or that was never able to start its work at all, has already been
+acknowledged. There is no second answer on this command.
+
+To act on the outcome, follow it with [`WaitForScript`](#WaitForScript) on the same guid:
+
+    StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}'
+    WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300
+
+That answers `ACK` when the wait has begun and then `END` when the script is really over, or
+`ERROR: <reason>` if it failed, timed out, or no such instance exists. Both commands may go on one
+line separated by `;`, which is how a `[dirigent.command]` plan step does it - see
+[Running a script as a step of a plan](ScriptsInPlans.md).
+
+To look rather than wait, [`GetScriptState`](#GetScriptState) reports the state once, at the moment
+it is asked.
+
 See [Singleton Scripts](Scripts.md#Singleton-scripts) for more details.
 
 ##### Example
@@ -485,6 +505,10 @@ Ignored if a script instance with such guid is not defined or is not running.
 Returns the status of given script.
 
   `GetScriptState <guid>`
+
+Answers once, with the state at the moment it is asked - it does not wait for anything. To wait for
+a script to finish instead of polling for it, use [`WaitForScript`](#WaitForScript); to start one,
+[`StartScript`](#StartScript), which acknowledges the start and says nothing about the outcome.
 
 See [Scripts](Scripts.md) for more details about available script states.
 
