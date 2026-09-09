@@ -6,9 +6,6 @@
     <OutputType>Exe</OutputType>
     <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
     <Nullable>enable</Nullable>
-    <Product>Dirigent</Product>
-    <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
-    <Authors>pjanec</Authors>
     <AssemblyName>Dirigent.Agent</AssemblyName>
 
     <IsWindows Condition="'$(TargetFramework)' == 'net8.0-windows'">true</IsWindows> 

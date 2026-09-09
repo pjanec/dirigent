@@ -3,9 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <Product>Dirigent</Product>
-    <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
-    <Authors>pjanec</Authors>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <AssemblyName>Dirigent.Agent.Starter</AssemblyName>
   </PropertyGroup>

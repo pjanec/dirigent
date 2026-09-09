@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Dirigent.TestApp</AssemblyName>
     <RootNamespace>Dirigent.TestApp</RootNamespace>
-    <Product>Dirigent</Product>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

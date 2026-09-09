@@ -3,9 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <Product>Dirigent</Product>
-    <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
-    <Authors>pjanec</Authors>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 

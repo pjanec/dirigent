@@ -1,0 +1,39 @@
+<Project>
+
+  <!--
+    Build metadata shared by every project in the repository.
+
+    The version has exactly one source: version.txt next to this file, bumped by
+    increment-revno.ps1. Reading it here means every build reports the truth through
+    the version option of the Dirigent tools - a developer build, a CI build and a release build all agree.
+    Until this file existed the version arrived in a RELEASE_VERSION environment variable
+    that only make_release.ps1 set, so anything not built by the release script called
+    itself 1.0.0.
+
+    RELEASE_VERSION still wins if it is set, so a one-off build can override the file
+    without editing it. If version.txt is missing the properties stay empty and the SDK
+    falls back to its own 1.0.0 default rather than failing the build.
+  -->
+  <PropertyGroup>
+    <_VersionFile>$(MSBuildThisFileDirectory)version.txt</_VersionFile>
+    <_VersionFileText Condition="Exists('$(_VersionFile)')">$([System.IO.File]::ReadAllText('$(_VersionFile)'))</_VersionFileText>
+    <_VersionFromFile>$(_VersionFileText.Trim())</_VersionFromFile>
+
+    <Version Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</Version>
+    <Version Condition="'$(Version)' == ''">$(_VersionFromFile)</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>Dirigent</Product>
+    <Authors>pjanec</Authors>
+
+    <!--
+      Do not produce localized resource assemblies for the dependencies that carry them
+      (Microsoft.CodeAnalysis brings thirteen languages). The publish script used to delete
+      the language folders afterwards from a hardcoded list; not building them is both
+      cheaper and one less list to keep in step with the dependency set.
+    -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+</Project>
