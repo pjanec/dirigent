@@ -2,7 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <OutputType>WinExe</OutputType>
+
+    <!--
+      WinExe on Windows so the GUI does not drag a console window along with it; a plain Exe
+      anywhere else, because WinExe is a Windows-only output type. The build scripts used to
+      rewrite this line in place before a Linux build and never put it back.
+    -->
+    <OutputType Condition="'$(TargetFramework)' == 'net8.0-windows'">WinExe</OutputType>
+    <OutputType Condition="'$(TargetFramework)' != 'net8.0-windows'">Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImportWindowsDesktopTargets>false</ImportWindowsDesktopTargets>
     <AssemblyName>Dirigent.ImGui</AssemblyName>
