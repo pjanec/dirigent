@@ -52,14 +52,14 @@ half: `FileTail` seeks to an offset and moves forward to a line boundary.
 
 ## `Clearable`: nothing is touched unless it says so
 
-A package worth collecting is rarely only logs. The JFTES packages hold the applications' logs
+A package worth collecting is rarely only logs. The the example site packages hold the applications' logs
 *and* their configuration files, and a single archive containing both is the point.
 
 Deleting a configuration file must be impossible - not "unlikely", not "only if the action names
 it". So the permission lives on the node, and it is off by default:
 
 ```xml
-<File   Id="log" Title="Log/IgManager" Path="C:\Bagira\JFTES\IG\Logs\IgManager"
+<File   Id="log" Title="Log/RenderHost" Path="C:\Apps\Site\Render\Logs\Manager"
         Filter="Newest" MaxFiles="10" Clearable="1"/>
 
 <File   Id="cfg.dds" Title="Config/cyclonedds.xml" Path="%APP_STARTUPDIR%\cyclonedds.xml"/>
@@ -83,7 +83,7 @@ be emptied may also have a line drawn under it, and a file that may not is alway
 | configuration file | `0` (default) | it is the run's input, not its output |
 | a file somebody may need whole | `0` | the default protects it |
 
-The cost is honest: every log node needs the attribute, and the JFTES config declares about thirty
+The cost is honest: every log node needs the attribute, and a real site's config declares about thirty
 of them. Declaring it in an `<AppTemplate>` covers every app using the template at once.
 
 ## The three operations

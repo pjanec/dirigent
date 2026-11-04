@@ -7,6 +7,7 @@
 - **Reload Shared Config.** Tries to reload the shared config containing the plan and app definitions.
 - **Reboot All.** Reboots all computers where Dirigent agent is running.
 - **Shutdown All.** Shuts down all computers where Dirigent agent is running.
+- **Wake Up.** Wakes a switched-off computer with Wake-on-LAN. Available in the Machines tab context menu (right click, Power, Wake Up) for any machine that is not connected, and as the `WakeUp` CLI command. The master sends the packets, using the MAC addresses the agents reported when they last connected, or the `MAC` given in the shared config.
 - **Terminate Agents.** Kill the dirigent agents on all the computers. To be used before reinstalling the dirigent app.
 
 

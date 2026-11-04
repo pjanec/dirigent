@@ -33,6 +33,7 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [StartScript](#StartScript)          | Starts a script on master. |
 | [StopPlan](#StopPlan)                | Stops starting next applications from the plan. Does not kill any app! |
 | [WaitForScript](#WaitForScript)      | Waits for a running script to finish and reports how it went. |
+| [WakeUp](#WakeUp)                    | Wakes a computer up with Wake-on-LAN, sent by the master. |
 | [Terminate](#Terminate)              | Terminates Dirigent agents on computers, optionally killing all the apps managed by the Dirigent. |
 
 
@@ -588,6 +589,20 @@ Reboots or shuts down all computers where the dirigent agent is running or just 
 
 	Shutdown mode=PowerOff
 	Shutdown mode=Reboot machineId=m1
+
+### WakeUp
+
+Wakes up a computer that is switched off, by sending Wake-on-LAN magic packets from the master.
+
+ `WakeUp <machineId>`
+
+The MAC address comes from the `MAC` attribute of the machine in the shared config if there is one (see [Shared config](SharedConfig.md#machine-definitions)). Otherwise it is one the machine's agent reported the last time it connected to this master. If neither is known, the command fails with `ERROR: No MAC address known for machine ...`.
+
+The command only sends the packets; it does not wait for the machine to come up. Whether the machine woke can be seen in `GetClientState <machineId>` once its agent has connected.
+
+##### Examples
+
+	WakeUp m1
 
 ### Terminate
 

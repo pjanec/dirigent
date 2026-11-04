@@ -681,8 +681,8 @@ namespace Dirigent.Scripts.BuiltIn
 		///
 		/// It is skipped when a folder of that name is already somewhere on the path, which happens
 		/// wherever a container is named after the application - a node titled or id'd like the app
-		/// (giving "log/cgfx/cgfx/app.log"), or an untitled &lt;Folder&gt; over the app's own directory
-		/// (giving "cgfx/logs/cgfx/app.log"). The whole path is checked, not just the enclosing folder,
+		/// (giving "log/viewer/viewer/app.log"), or an untitled &lt;Folder&gt; over the app's own directory
+		/// (giving "viewer/logs/viewer/app.log"). The whole path is checked, not just the enclosing folder,
 		/// because as the second example shows the repetition need not be adjacent.
 		/// </remarks>
 		static string AppFolderFor( VfsNodeDef node, string entryPrefix )

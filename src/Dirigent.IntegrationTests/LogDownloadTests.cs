@@ -134,7 +134,7 @@ namespace Dirigent.IntegrationTests
 				new Scripts.BuiltIn.DownloadZipped.TArgs()
 				{
 					VfsNode = resolved,
-					Comment = "Symphony froze during the 14:20 run.\nRestarted IgManager twice.",
+					Comment = "Symphony froze during the 14:20 run.\nRestarted RenderHost twice.",
 				},
 				timeout: Timeout );
 
@@ -143,7 +143,7 @@ namespace Dirigent.IntegrationTests
 
 			// what the operator said, as they said it
 			StringAssert.Contains( note, "Symphony froze during the 14:20 run." );
-			StringAssert.Contains( note, "Restarted IgManager twice." );
+			StringAssert.Contains( note, "Restarted RenderHost twice." );
 
 			// and the context that makes it useful
 			StringAssert.Contains( note, "Logs/All apps", "the package it came from" );

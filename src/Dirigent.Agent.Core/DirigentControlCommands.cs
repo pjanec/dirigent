@@ -381,6 +381,22 @@ namespace Dirigent.Commands
 		}
 	}
 
+	public class WakeUp : DirigentControlCommand
+	{
+		public WakeUp( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			if( args.Count == 0 )  throw new MissingArgumentException( "machineId", "machineId expected." );
+
+			ctrl.WakeUp( _requestorId, args[0] );
+			WriteResponse( "ACK" );
+		}
+	}
+
 	public class  Terminate : DirigentControlCommand
 	{
 		public Terminate( Master ctrl, string requestorId )

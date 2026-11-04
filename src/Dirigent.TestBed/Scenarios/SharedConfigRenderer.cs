@@ -44,6 +44,8 @@ namespace Dirigent.TestBed.Scenarios
 				new XAttribute( "Name", ctx.MachineId( machine.Name ) ),
 				new XAttribute( "IP", machine.Ip ) );
 
+			if( machine.Mac.Length > 0 ) element.SetAttributeValue( "MAC", machine.Mac );
+
 			foreach( var (name, path) in machine.Shares )
 			{
 				element.Add( new XElement( "Share",

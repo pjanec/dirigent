@@ -50,6 +50,7 @@ namespace Dirigent
             new( "SetVars",            typeof( Commands.SetVars ),            (ctrl, requestorId) => new Commands.SetVars(ctrl, requestorId) ),
             new( "KillAll",            typeof( Commands.KillAll ),            (ctrl, requestorId) => new Commands.KillAll(ctrl, requestorId) ),
             new( "Shutdown",           typeof( Commands.Shutdown ),           (ctrl, requestorId) => new Commands.Shutdown(ctrl, requestorId) ),
+            new( "WakeUp",             typeof( Commands.WakeUp ),             (ctrl, requestorId) => new Commands.WakeUp(ctrl, requestorId) ),
             new( "Terminate",          typeof( Commands.Terminate ),          (ctrl, requestorId) => new Commands.Terminate(ctrl, requestorId) ),
             new( "Reinstall",          typeof( Commands.Reinstall ),          (ctrl, requestorId) => new Commands.Reinstall(ctrl, requestorId) ),
             new( "ReloadSharedConfig", typeof( Commands.ReloadSharedConfig ), (ctrl, requestorId) => new Commands.ReloadSharedConfig(ctrl, requestorId) ),

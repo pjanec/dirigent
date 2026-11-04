@@ -68,6 +68,26 @@ The file defines
 </Shared>
 ```
 
+#### Machine definitions
+
+##### `<Machine/>` element
+
+Declaring machines is optional; an agent can connect without being declared. The element is the place for a machine's file shares and file nodes (see [Files](Files.md)) and for its addresses.
+
+| Attribute | Meaning |
+| --- | --- |
+| `Name` | The machine id, the same as the agent's. |
+| `IP` | Overrides the address the master determined from the agent's connection; leave empty normally. |
+| `MAC` | MAC address used for Wake-on-LAN, e.g. `AA-BB-CC-DD-EE-FF` (separators `-`, `:` or `.`, or none). Optional. |
+
+The `MAC` attribute is an **override**, not a requirement. Agents report their network adapters (MAC, IP address, subnet) to the master whenever they connect, and the master keeps them in `MachineMacs.json` in the agent status folder (`%LocalAppData%\Dirigent` unless `agentStatusFolder` says otherwise), so a machine that has connected to the master once can be woken up without any configuration. Set `MAC` only for a machine that has never connected, or that should be woken by another adapter than the one it reports. When it is set, it is the only MAC woken; the subnets the machine was last seen in are still addressed.
+
+```
+<Machine Name="m1" MAC="AA-BB-CC-DD-EE-FF" />
+```
+
+Waking is done from the GUI (Machines tab, right click, Power, Wake Up - offered for machines that are not connected) or with the [WakeUp](CLI.md#WakeUp) command. The master sends the packets, from every network interface it has.
+
 #### App definitions
 
 ##### `<App/>` element

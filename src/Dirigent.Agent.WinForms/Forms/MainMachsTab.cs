@@ -279,13 +279,17 @@ namespace Dirigent.Gui.WinForms
 						});
 						powerMenu.DropDownItems.Add( shutdownMenu );
 
-						var machDef = ReflStates.GetMachineDef( id );
-						if( machDef != null && !string.IsNullOrEmpty(machDef.MAC) )
+						// The master sends the magic packet, not this GUI: it knows the MACs the agents
+						// reported, and the GUI may sit on another network than the machines.
+						// Offered for any machine that is not connected - an offline predefined machine
+						// has no client state at all. Whether a MAC is known is the master's to say;
+						// if it is not, the master answers with an error.
+						if( clientState == null || !clientState.Connected )
 						{
 							var wakeUpMenu = new ToolStripMenuItem( "Wake Up" );
 							wakeUpMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 							{
-								Tools.SendWakeOnLanMagicPacket( machDef.MAC );
+								Ctrl.Send( new Net.WakeUpMessage( Ctrl.Name, id ) );
 							} );
 							powerMenu.DropDownItems.Add( wakeUpMenu );
 						}

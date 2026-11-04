@@ -392,7 +392,7 @@ logs *and* their configuration files, and one archive containing both is the poi
 permission lives on the node, and it is **off by default**:
 
 ```xml
-<File Id="log" Title="Log/IgManager" Path="D:\Logs\IgManager"
+<File Id="log" Title="Log/RenderHost" Path="D:\Logs\RenderHost"
       Filter="Newest" MaxFiles="10" Clearable="1"/>
 
 <File Id="cfg.dds" Title="Config/cyclonedds.xml" Path="%APP_STARTUPDIR%\cyclonedds.xml"/>
@@ -781,7 +781,7 @@ Notable properties:
 * That app subfolder is left out when a folder of the same name is already on the path, which is
   the case wherever a container is named after the app itself - a node titled or id'd like the app,
   or an untitled `<Folder>` over the app's own directory. Without it such archives read
-  `log/cgfx/cgfx/app.log`.
+  `log/viewer/viewer/app.log`.
 * Anything the collection could not include in full - a file over a `MaxTotalBytes` budget, a file
   truncated by `TailBytes` - is listed in `_incomplete.txt` at the root of the archive, so that an
   incomplete collection can be told from a complete one long after the fact.
@@ -832,7 +832,7 @@ Machines  : BackEnd [192.168.0.120, 172.21.112.1]
 Downloaded to: FrontEnd [192.168.0.150, 192.168.1.39]
 Dirigent  : 3.1.18.12
 
-Symphony froze during the 14:20 run, right after the BScene reload.
+Symphony froze during the 14:20 run, right after the Scene reload.
 ```
 
 One machine per line, in name order, each with the addresses **it reports about itself** - every

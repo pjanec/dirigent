@@ -73,6 +73,12 @@ namespace Dirigent.Net
 				_ident.LocalAddresses.AddRange( Tools.LocalIPv4Addresses );
 			}
 
+			// and the adapters behind them, for Wake-on-LAN
+			if( _ident.Nics.Count == 0 )
+			{
+				_ident.Nics.AddRange( Tools.LocalNics );
+			}
+
 			// as the first thing when connected, tell the master who we are 
 			_messageClient.Connected = () =>
 			{

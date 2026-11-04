@@ -126,6 +126,17 @@ namespace Dirigent.TestBed.Scenarios
 			return this;
 		}
 
+		/// <summary>
+		/// The MAC the config declares for a machine, which overrides whatever the master learned from the agent.
+		/// </summary>
+		public Scenario DeclaredMac( string machineName, string mac )
+		{
+			var machine = Spec.Machines.FirstOrDefault( m => m.Name == machineName )
+				?? throw new ArgumentException( $"machine '{machineName}' is not part of this scenario" );
+			machine.Mac = mac;
+			return this;
+		}
+
 		public Scenario Share( string machineName, string shareName, string path )
 		{
 			var machine = Spec.Machines.FirstOrDefault( m => m.Name == machineName )

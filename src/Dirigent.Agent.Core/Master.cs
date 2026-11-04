@@ -90,6 +90,7 @@ namespace Dirigent
 		private LocalScriptRegistry _localScripts;
 		private SingletonScriptRegistry _singlScripts;
 		private FileRegistry _files;
+		private MachineMacCache _macCache;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
 		private List<ActionDef> _killAllExtras = new List<ActionDef>();
@@ -145,7 +146,7 @@ namespace Dirigent
         // Shared initialization, kept from the refactor that introduced it
         [MemberNotNull(
             nameof(_localIpAddr), nameof(_allClientStates), nameof(_allAppStates), nameof(_allAppDefs), nameof(_plans),
-            nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_defaultAppDefs),
+            nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_macCache), nameof(_defaultAppDefs),
             nameof(_swClientRefresh), nameof(_tickers), nameof(_rootForRelativePaths), nameof(_webServerCTS),
             nameof(ScriptFactory), nameof(_syncOps), nameof(_syncIDirig), nameof(_machineId), nameof(_cliProc)
         )]
@@ -180,6 +181,9 @@ namespace Dirigent
 
             _machineId = ac.MachineId;
             if( string.IsNullOrEmpty( _machineId ) ) throw new Exception( $"MachineId not specified for Master!" );
+
+            // what agents report of their adapters, for Wake-on-LAN
+            _macCache = new MachineMacCache( ac.AgentStatusFolder );
 
             _files = new FileRegistry(
                 this,
@@ -338,6 +342,12 @@ namespace Dirigent
 					cs.LastChange = DateTime.UtcNow;
 					cs.IP = ipAddress;
 					_allClientStates.AddOrUpdate( m.Name, cs, ipAddress );
+
+					// remember its adapters, to be able to wake it up while it is off
+					if( m.IsAgent )
+					{
+						_macCache.Update( m.Name, m.Nics );
+					}
 
 					break;
 				}
@@ -505,6 +515,12 @@ namespace Dirigent
 				case ShutdownMessage m:
 				{
 					Shutdown( m.Sender, m.Args, m.MachineId );
+					break;
+				}
+
+				case WakeUpMessage m:
+				{
+					WakeUp( m.Sender, m.MachineId );
 					break;
 				}
 
@@ -1077,6 +1093,52 @@ namespace Dirigent
 		{
 			var msg = new Net.ShutdownMessage( requestorId, args, machineId );
 			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+		}
+
+		/// <summary>
+		/// Wakes a machine up with Wake-on-LAN, sent from here - the master's network is the one the
+		/// machines are on, whoever asked.
+		/// </summary>
+		/// <remarks>
+		/// A MAC given in SharedConfig overrides what agents reported: somebody wrote it there on
+		/// purpose, e.g. because the machine wakes by an adapter other than the one it connects with.
+		/// Otherwise every MAC the machine last reported is woken. The subnets it was last seen in
+		/// are aimed at in either case.
+		/// </remarks>
+		/// <exception cref="Exception">no MAC is known; the caller's error path reports it back to the requestor</exception>
+		public void WakeUp( string requestorId, string machineId )
+		{
+			var nics = _macCache.Get( machineId );
+
+			var macs = new List<string>();
+			var configured = GetMachineDef( machineId )?.MAC;
+			if( !string.IsNullOrWhiteSpace( configured ) )
+			{
+				// a typo in SharedConfig must reach whoever asked, not just a warning in the master's log
+				try { WakeOnLan.ParseMac( configured ); }
+				catch( ArgumentException ) { throw new Exception( $"SharedConfig gives machine '{machineId}' MAC '{configured}', which is not a MAC address" ); }
+
+				macs.Add( configured );
+			}
+			else
+			{
+				macs.AddRange( nics.Select( n => n.Mac ).Distinct() );
+			}
+
+			if( macs.Count == 0 )
+			{
+				throw new Exception( $"No MAC address known for machine '{machineId}'; it has never connected to this master and SharedConfig gives none" );
+			}
+
+			var plan = WakeOnLan.Plan( macs, nics, Tools.LocalIPv4Addresses );
+			var sent = WakeOnLan.Send( plan );
+
+			log.Info( $"WakeUp of '{machineId}' requested by '{requestorId}': sent {sent} of {plan.Count} magic packets for MAC {string.Join( ", ", macs )} to {string.Join( ", ", plan.Select( p => p.DestinationIp ).Distinct() )} from {string.Join( ", ", plan.Select( p => p.LocalIp ?? "(any)" ).Distinct() )}" );
+
+			if( sent == 0 )
+			{
+				throw new Exception( $"Wake-on-LAN of machine '{machineId}' failed: none of the {plan.Count} magic packets could be sent; see the master's log" );
+			}
 		}
 
 		public void Reinstall( string requestorId, ReinstallArgs args )

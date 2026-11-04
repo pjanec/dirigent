@@ -54,6 +54,7 @@ namespace Dirigent.Net
 	[MessagePack.Union( 140, typeof( RunActionMessage ) )]
 	[MessagePack.Union( 141, typeof( UserNotificationMessage ) )]
 	[MessagePack.Union( 142, typeof( KillAllStatus ) )]
+	[MessagePack.Union( 143, typeof( WakeUpMessage ) )]
 
 
 
@@ -606,6 +607,26 @@ namespace Dirigent.Net
 	}
 
 	/// <summary>
+	/// Someone asking the Master to wake a machine up with Wake-on-LAN. The Master sends the packet itself.
+	/// </summary>
+	public class WakeUpMessage : Message
+	{
+		public string MachineId = string.Empty;
+
+		public WakeUpMessage() {}
+		public WakeUpMessage( string requestorId, string machineId )
+		{
+			this.Sender = requestorId;
+			this.MachineId = machineId;
+		}
+
+		public override string ToString()
+		{
+			return $"WakeUp machine={MachineId}";
+		}
+	}
+
+	/// <summary>
 	/// Someone asking the Master to reinstall the Dirigent. Master resends to all.
 	/// </summary>
 	//[MessagePack.MessagePackObject]
@@ -680,6 +701,17 @@ namespace Dirigent.Net
 		/// </remarks>
 		//[MessagePack.Key( 3 )]
 		public List<string> LocalAddresses = new();
+
+		/// <summary>
+		/// The network adapters of the machine this client runs on: MAC, IPv4 address and subnet prefix.
+		/// Empty from a client too old to say, or from one that could not read them.
+		/// </summary>
+		/// <remarks>
+		/// The master remembers these of agents so that it can wake the machine up with Wake-on-LAN
+		/// while it is off - when nothing can be asked of it any more.
+		/// </remarks>
+		//[MessagePack.Key( 4 )]
+		public List<NicInfo> Nics = new();
 
 		public ClientIdent() {}
 

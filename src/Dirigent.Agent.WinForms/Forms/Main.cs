@@ -351,7 +351,7 @@ namespace Dirigent.Gui.WinForms
 			};
 
 			// Fixed width, NOT auto-sized. A status text such as
-			//   "Collecting from 1 machine(s) - 5GB of 5GB - BScene-3901_2026-05-13_14-12-24.log"
+			//   "Collecting from 1 machine(s) - 5GB of 5GB - Scene-3901_2026-05-13_14-12-24.log"
 			// is ~80 characters, and with the operation title in front the label grows past the
 			// width of the window. A StatusStrip is a single row, so an oversized item sends the
 			// whole slot - label, bar AND cancel button - into the ToolStrip's hidden overflow, and

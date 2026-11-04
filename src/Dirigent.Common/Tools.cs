@@ -70,6 +70,59 @@ namespace Dirigent
 			}
 		}
 
+		static List<NicInfo>? _localNics;
+
+		/// <summary>
+		/// The same addresses as <see cref="LocalIPv4Addresses"/>, each with the MAC and subnet prefix of
+		/// its adapter - what the master needs in order to wake this machine up later.
+		/// </summary>
+		/// <remarks>
+		/// The same filters (up, not loopback, IPv4, not link-local) plus a real MAC: virtual adapters
+		/// and tunnels with no 6-byte, non-zero hardware address cannot be woken and are left out.
+		/// One entry per (MAC, address) pair. Read once and remembered, like the addresses.
+		/// </remarks>
+		public static List<NicInfo> LocalNics
+		{
+			get
+			{
+				if( _localNics is not null ) return _localNics;
+
+				var found = new List<NicInfo>();
+
+				try
+				{
+					foreach( var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces() )
+					{
+						if( nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up ) continue;
+						if( nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback ) continue;
+
+						var macBytes = nic.GetPhysicalAddress().GetAddressBytes();
+						if( macBytes.Length != 6 || macBytes.All( b => b == 0 ) ) continue;
+						var mac = BitConverter.ToString( macBytes ); // AA-BB-CC-DD-EE-FF
+
+						foreach( var addr in nic.GetIPProperties().UnicastAddresses )
+						{
+							if( addr.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork ) continue;
+							if( System.Net.IPAddress.IsLoopback( addr.Address ) ) continue;
+
+							var text = addr.Address.ToString();
+							if( text.StartsWith( "169.254." ) ) continue;
+
+							var entry = new NicInfo( mac, text, addr.PrefixLength );
+							if( !found.Contains( entry ) ) found.Add( entry );
+						}
+					}
+				}
+				catch( Exception e )
+				{
+					log.Warn( $"Could not read the local network adapters: {e.Message}" );
+				}
+
+				_localNics = found;
+				return _localNics;
+			}
+		}
+
 		/// <summary>
 		/// Makes a string usable as a file name: the characters Windows refuses become underscores.
 		/// </summary>
@@ -855,40 +908,6 @@ namespace Dirigent
 			}
 			return s.Substring( 0, pos );
 
-		}
-
-		public static void SendWakeOnLanMagicPacket(string macAddress)
-		{
-			UdpClient udpClient = new UdpClient();
-    
-			// enable UDP broadcasting for UdpClient
-			udpClient.EnableBroadcast = true;
-
-			var dgram = new byte[1024];
-
-			// 6 magic bytes
-			for (int i = 0; i < 6; i++)
-			{
-				dgram[i] = 255;
-			}
-
-			// convert MAC-address to bytes
-			byte[] address_bytes = new byte[6];
-			for (int i = 0; i < 6; i++)
-			{
-				address_bytes[i] = byte.Parse(macAddress.Substring(3 * i, 2), NumberStyles.HexNumber);
-			}
-
-			// repeat MAC-address 16 times in the datagram
-			var macaddress_block = dgram.AsSpan(6, 16 * 6);
-			for (int i = 0; i < 16; i++)
-			{
-				address_bytes.CopyTo(macaddress_block.Slice(6 * i));
-			}
-
-			// send datagram using UDP and port 0
-			udpClient.Send(dgram, dgram.Length, new System.Net.IPEndPoint( System.Net.IPAddress.Broadcast, 7));
-			udpClient.Close();
 		}
 }
 

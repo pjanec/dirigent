@@ -32,6 +32,9 @@ namespace Dirigent.TestBed.Scenarios
 		public string Name = "";
 		public string Ip = "127.0.0.1";
 
+		/// <summary>The MAC the config declares for Wake-on-LAN; empty declares none.</summary>
+		public string Mac = "";
+
 		/// <summary>share name -> path; needed only by things that build UNC paths</summary>
 		public Dictionary<string, string> Shares = new();
 	}

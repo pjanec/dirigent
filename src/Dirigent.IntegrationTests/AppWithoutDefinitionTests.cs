@@ -14,9 +14,9 @@ namespace Dirigent.IntegrationTests
 	/// </summary>
 	/// <remarks>
 	/// Reported from a live system: right-clicking a row reading *"Not running (Offline for 5999 …)"*
-	/// threw a `NullReferenceException` out of the apps tab. The application was `Main_IOS.BScene`,
-	/// which the shared configuration did not define at all - the machine had `BSceneEditor` and
-	/// `SimIG`, and `BScene` was a leftover the master still held a state for.
+	/// threw a `NullReferenceException` out of the apps tab. The application was `m1.Scene`,
+	/// which the shared configuration did not define at all - the machine had `SceneEditor` and
+	/// `Render`, and `Scene` was a leftover the master still held a state for.
 	///
 	/// Which is a state the GUI has to cope with rather than prevent, because the apps grid is filled
 	/// from the app **states**, not from the definitions - so anything the master remembers gets a
@@ -43,12 +43,12 @@ namespace Dirigent.IntegrationTests
 			// exactly the shape of the report: two applications, one of which the configuration stops
 			// naming while the system runs
 			var before = Scenario.OneMachine()
-				.App( "m1.BSceneEditor", a => a.LongRunning() )
-				.App( "m1.BScene", a => a.LongRunning() );
+				.App( "m1.SceneEditor", a => a.LongRunning() )
+				.App( "m1.Scene", a => a.LongRunning() );
 
 			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = before } );
 
-			var ghost = bed.App( "m1", "BScene" );
+			var ghost = bed.App( "m1", "Scene" );
 
 			await bed.Operator.StartAppAsync( ghost );
 			await bed.WaitUntilAsync(
@@ -57,10 +57,10 @@ namespace Dirigent.IntegrationTests
 
 			// now it is gone from the configuration, the other one staying
 			await bed.ReloadSharedConfigAsync(
-				Scenario.OneMachine().App( "m1.BSceneEditor", a => a.LongRunning() ) );
+				Scenario.OneMachine().App( "m1.SceneEditor", a => a.LongRunning() ) );
 
 			await bed.WaitUntilAsync(
-				async () => ( await bed.Operator.GetAllAppsDefAsync() ).All( x => x.Key.AppId != "BScene" ),
+				async () => ( await bed.Operator.GetAllAppsDefAsync() ).All( x => x.Key.AppId != "Scene" ),
 				Timeout, "the definition goes away" );
 
 			// The reported combination, reproduced: the state outlives the definition. The state is
@@ -85,7 +85,7 @@ namespace Dirigent.IntegrationTests
 
 			// the other application is untouched, so this is not simply everything falling over
 			Assert.IsTrue(
-				( await bed.Operator.GetAllAppsDefAsync() ).Any( x => x.Key.AppId == "BSceneEditor" ),
+				( await bed.Operator.GetAllAppsDefAsync() ).Any( x => x.Key.AppId == "SceneEditor" ),
 				"the application that stayed in the config still has its definition" );
 		}
 

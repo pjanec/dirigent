@@ -39,6 +39,7 @@ namespace Dirigent.Tests
 			{ "SetVars",            ETerminator.Ack },
 			{ "KillAll",            ETerminator.Ack },
 			{ "Shutdown",           ETerminator.Ack },
+			{ "WakeUp",             ETerminator.Ack },
 			{ "Terminate",          ETerminator.Ack },
 			{ "Reinstall",          ETerminator.Ack },
 			{ "ReloadSharedConfig", ETerminator.Ack },

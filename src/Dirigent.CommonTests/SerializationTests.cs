@@ -221,7 +221,7 @@ namespace Dirigent.Tests
 			var args = new ScriptActionArgs()
 			{
 				Args = "someArg",
-				Comment = "Symphony froze during the 14:20 run.\nRestarted IgManager twice.",
+				Comment = "Symphony froze during the 14:20 run.\nRestarted RenderHost twice.",
 			};
 
 			var back = RoundTripJson( args );
@@ -305,6 +305,41 @@ namespace Dirigent.Tests
 			Assert.IsTrue( back.ForceUNC );
 			Assert.IsTrue( back.IncludeContent );
 			AssertSampleTree( back.VfsNode! );
+		}
+
+		[TestMethod()]
+		public void ClientIdentWithNicsTest()
+		{
+			// what an agent tells the master on connect; sent as the base type, as on the wire
+			var ident = new Net.ClientIdent( "m1", Net.EMsgRecipCateg.Agent );
+			ident.LocalAddresses.Add( "192.168.1.10" );
+			ident.Nics.Add( new NicInfo( "AA-BB-CC-DD-EE-01", "192.168.1.10", 24 ) );
+			ident.Nics.Add( new NicInfo( "AA-BB-CC-DD-EE-02", "10.0.0.10", 8 ) );
+
+			var back = (Net.ClientIdent) RoundTripMsgPack<Net.Message>( ident );
+
+			Assert.AreEqual( "m1", back.Name );
+			CollectionAssert.AreEqual( ident.Nics, back.Nics );
+			Assert.AreEqual( 24, back.Nics[0].PrefixLength );
+			CollectionAssert.AreEqual( ident.LocalAddresses, back.LocalAddresses );
+		}
+
+		[TestMethod()]
+		public void ClientIdentFromAnOldClientHasNoNicsTest()
+		{
+			var back = (Net.ClientIdent) RoundTripMsgPack<Net.Message>( new Net.ClientIdent( "m1", Net.EMsgRecipCateg.Agent ) );
+
+			Assert.IsNotNull( back.Nics );
+			Assert.AreEqual( 0, back.Nics.Count );
+		}
+
+		[TestMethod()]
+		public void WakeUpMessageTest()
+		{
+			var back = (Net.WakeUpMessage) RoundTripMsgPack<Net.Message>( new Net.WakeUpMessage( "gui_1", "m2" ) );
+
+			Assert.AreEqual( "gui_1", back.Sender );
+			Assert.AreEqual( "m2", back.MachineId );
 		}
 	}
 }

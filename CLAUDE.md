@@ -68,3 +68,37 @@ Also available: `trace_path` (paths between two nodes), `get_code_snippet`,
 - **Map, then territory.** Use the graph to decide where to look and to see relationships;
   use grep and Read to establish facts. A conclusion drawn from the graph alone is not
   evidence.
+
+## Sonnet delegation — one warm worker
+
+*Imported 2026-11-04 from another repository's `CLAUDE.md` (user rules of 2026-10-26, revised
+2026-10-29 and 2026-10-30).* Measured there: a fresh agent spent ~100k+ tokens re-reading before any
+work and 8–42 min per task — mostly cold builds and broad test runs, not code. Three parallel agents
+hit the 5-hour rate limit twice.
+
+### Who does what
+
+| | |
+|---|---|
+| **Sonnet: every well-specified build task, small ones too** — the brief can name the files, the seam to reuse and success conditions a test decides | mirroring a pattern, wiring, tests, measurements, a scoped fix |
+| **Opus: what needs judgment** — design and trade-offs, a defect whose cause is unknown, subtle semantics (wire, timing, reconnection), ambiguous work, reviews, merges | the test: if the brief would have to say *"figure out why"* or *"decide which"*, it is Opus's |
+| **No warm worker and a one-file fix?** Do it directly | a cold start costs more than the fix |
+
+### How the worker runs
+
+| | |
+|---|---|
+| **One standing worker at a time, kept warm and reused** — the next task goes to it with `SendMessage`, naming only the delta | a fresh agent only after a restart or when its context is too full |
+| **In the main checkout, no worktree** (warm `bin/obj`) | both sides commit only their own files, by path — never `git add -A` |
+| **One build at a time on the machine** — the worker builds test projects one after another; Opus does not start a build while the worker is building | parallel builds of the same projects fight over one compiler |
+| **After a killed worker: `git diff` its WIP for leftover mutations before anything else** | |
+
+### The brief and the review
+
+| | |
+|---|---|
+| **The brief hands over what Opus measured** — file:line, the seam, the test class to extend — and **checkable success conditions**; Opus writes any design first | never "make it work", never ask it to re-discover |
+| **Gates in the brief: the touched test classes + every class that exercises the changed seam (integration included)**, each new test red-proved by a compiling mutation; exact build/test commands | broad suites once, after the merge, by Opus in the background |
+| **Proof is proportionate to risk** — a cosmetic change red-proves one key test and gates only the touched test classes; the full mutation set and broad gates are for wire, timing and cross-machine changes | |
+| **Sonnet writes its own tests and works until they pass; Opus does not re-run them** — the review is: do the tests assert what matters, and is the code right (read the diff) | a test that misses what matters goes back to the worker with the missing case named |
+| **Verify every "cannot be done / does not exist / not reachable" claim before accepting it** — one grep for a precedent | |
