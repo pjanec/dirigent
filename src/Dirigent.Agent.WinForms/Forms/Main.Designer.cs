@@ -477,7 +477,7 @@
 			this.gridMachs.FilterStringChangedInvokeBeforeDatasourceUpdate = true;
 			this.gridMachs.Location = new System.Drawing.Point(3, 41);
 			this.gridMachs.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-			this.gridMachs.MultiSelect = false;
+			this.gridMachs.MultiSelect = true;
 			this.gridMachs.Name = "gridMachs";
 			this.gridMachs.ReadOnly = true;
 			this.gridMachs.RightToLeft = System.Windows.Forms.RightToLeft.No;

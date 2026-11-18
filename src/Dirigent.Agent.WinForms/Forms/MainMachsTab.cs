@@ -250,6 +250,21 @@ namespace Dirigent.Gui.WinForms
 
 				if( e.Button == MouseButtons.Right )
 				{
+					// Right-clicking a row outside the selection makes it the selection, like in Explorer;
+					// right-clicking inside keeps the selection, so the power items act on all of it.
+					if( !focusedGridRow.Selected )
+					{
+						_grid.ClearSelection();
+						focusedGridRow.Selected = true;
+					}
+
+					var selectedIds = _grid.SelectedRows.Cast<DataGridViewRow>()
+						.OrderBy( r => r.Index )
+						.Select( r => getClientIdFromMachsDataRow( WFT.GetDataRowFromGridRow( r ) ) )
+						.ToList();
+					bool single = selectedIds.Count == 1;
+					string machinesText = single ? $"machine {id}" : $"{selectedIds.Count} machines ({string.Join( ", ", selectedIds )})";
+
 					// build popup menu
 					var popup = new ContextMenuStrip( _form.Components );
 
@@ -260,10 +275,11 @@ namespace Dirigent.Gui.WinForms
 						var rebootMenu = new ToolStripMenuItem( "Reboot" );
 						rebootMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 						{
-							if( MessageBox.Show( $"Reboot machine {id}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+							if( MessageBox.Show( $"Reboot {machinesText}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 							{
 								var args = new ShutdownArgs() { Mode = EShutdownMode.Reboot };
-								Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+								foreach( var machId in selectedIds )
+									Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, machId ) );
 							}
 						});
 						powerMenu.DropDownItems.Add( rebootMenu );
@@ -271,33 +287,36 @@ namespace Dirigent.Gui.WinForms
 						var shutdownMenu = new ToolStripMenuItem( "Shut down" );
 						shutdownMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 						{
-							if( MessageBox.Show( $"Shut down machine {id}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
+							if( MessageBox.Show( $"Shut down {machinesText}?", "Dirigent", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning ) == DialogResult.OK )
 							{
 								var args = new ShutdownArgs() { Mode = EShutdownMode.PowerOff };
-								Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, id ) );
+								foreach( var machId in selectedIds )
+									Ctrl.Send( new Net.ShutdownMessage( Ctrl.Name, args, machId ) );
 							}
 						});
 						powerMenu.DropDownItems.Add( shutdownMenu );
 
 						// The master sends the magic packet, not this GUI: it knows the MACs the agents
 						// reported, and the GUI may sit on another network than the machines.
-						// Offered for any machine that is not connected - an offline predefined machine
-						// has no client state at all. Whether a MAC is known is the master's to say;
-						// if it is not, the master answers with an error.
-						if( clientState == null || !clientState.Connected )
+						// Offered when any selected machine is not connected, and sent to those only - an
+						// offline predefined machine has no client state at all. Whether a MAC is known is
+						// the master's to say; if it is not, the master answers with an error per machine.
+						var offlineIds = selectedIds.Where( machId => !(Ctrl.GetClientState( machId )?.Connected ?? false) ).ToList();
+						if( offlineIds.Count > 0 )
 						{
-							var wakeUpMenu = new ToolStripMenuItem( "Wake Up" );
+							var wakeUpMenu = new ToolStripMenuItem( single ? "Wake Up" : $"Wake Up ({offlineIds.Count} offline)" );
 							wakeUpMenu.Click += ( s, a ) => WFT.GuardedOp( () =>
 							{
-								Ctrl.Send( new Net.WakeUpMessage( Ctrl.Name, id ) );
+								foreach( var machId in offlineIds )
+									Ctrl.Send( new Net.WakeUpMessage( Ctrl.Name, machId ) );
 							} );
 							powerMenu.DropDownItems.Add( wakeUpMenu );
 						}
 					}
 
-					// File/Folder/Package menu items
+					// File/Folder/Package menu items - about one machine, so not offered for a multiple selection
 					{
-						if( isAgent )
+						if( isAgent && single )
 						{
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
@@ -315,9 +334,9 @@ namespace Dirigent.Gui.WinForms
 						}
 					}
 
-					// tools menu items
+					// tools menu items - about one machine too
 					{
-						if( isAgent )
+						if( isAgent && single )
 						{
 							var machDef = ReflStates.GetMachineDef( id );
 							if( machDef != null )
