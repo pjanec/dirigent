@@ -301,19 +301,19 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartShareBed();
 
-			var lines = await bed.SendCliCommandAsync( "GetNodes type=filepackage", Timeout );
+			var lines = await bed.SendCliCommandAsync( "GetFileDefs type=filepackage", Timeout );
 			Assert.AreEqual( 1, lines.Count );
-			StringAssert.StartsWith( lines[0], "NODES:" );
+			StringAssert.StartsWith( lines[0], "FILEDEFS:" );
 
-			var nodes = JsonSerializer.Deserialize<List<NodeInfo>>( lines[0].Substring( "NODES:".Length ) )!;
+			var nodes = JsonSerializer.Deserialize<List<FileDefInfo>>( lines[0].Substring( "FILEDEFS:".Length ) )!;
 			var pkg = nodes.Single();
 			Assert.AreEqual( "pkg", pkg.id );
 			Assert.AreEqual( "FilePackage", pkg.type );
 			Assert.AreEqual( "Pkg", pkg.title );
 			Assert.AreEqual( "Collect me", pkg.description );
 
-			var all = JsonSerializer.Deserialize<List<NodeInfo>>(
-				( await bed.SendCliCommandAsync( "GetNodes id=p*g", Timeout ) )[0].Substring( "NODES:".Length ) )!;
+			var all = JsonSerializer.Deserialize<List<FileDefInfo>>(
+				( await bed.SendCliCommandAsync( "GetFileDefs id=p*g", Timeout ) )[0].Substring( "FILEDEFS:".Length ) )!;
 			Assert.AreEqual( "pkg", all.Single().id, "wildcards as in ListVfsNodes" );
 		}
 	}

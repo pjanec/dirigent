@@ -37,18 +37,18 @@ namespace Dirigent.SystemTests
 			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
 			var root = $"http://127.0.0.1:{world.HttpPort}/api";
 
-			var app = http.GetAsync( $"{root}/appfiles/m1.camera" ).GetAwaiter().GetResult();
+			var app = http.GetAsync( $"{root}/appdefs/m1.camera/files" ).GetAwaiter().GetResult();
 			var appText = app.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.OK, app.StatusCode, appText );
-			StringAssert.Contains( appText, "\"nodes\"", appText );
+			StringAssert.Contains( appText, "\"fileDefs\"", appText );
 			StringAssert.Contains( appText, "recent.log", $"the seeded log is listed: {appText}" );
 
-			var node = http.GetAsync( $"{root}/nodefiles/log?machine=m1&app=camera" ).GetAwaiter().GetResult();
+			var node = http.GetAsync( $"{root}/filedefs/log/files?machine=m1&app=camera" ).GetAwaiter().GetResult();
 			var nodeText = node.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.OK, node.StatusCode, nodeText );
 			StringAssert.Contains( nodeText, "recent.log", nodeText );
 
-			var missing = http.GetAsync( $"{root}/appfiles/m1.nosuch" ).GetAwaiter().GetResult();
+			var missing = http.GetAsync( $"{root}/appdefs/m1.nosuch/files" ).GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.NotFound, missing.StatusCode );
 		}
 
@@ -76,7 +76,7 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, bad.StatusCode, badText );
 			Assert.AreEqual( 400, System.Text.Json.JsonDocument.Parse( badText ).RootElement.GetProperty( "code" ).GetInt32() );
 
-			var badFiles = http.GetAsync( $"{root}/appfiles/m1." ).GetAwaiter().GetResult();
+			var badFiles = http.GetAsync( $"{root}/appdefs/m1./files" ).GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, badFiles.StatusCode );
 
 			// polling a job that is not there - a tool that lost track of its job - must never ban the tool
@@ -96,13 +96,13 @@ namespace Dirigent.SystemTests
 			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 90 ) };
 			var root = $"http://127.0.0.1:{world.HttpPort}/api";
 
-			var nodes = http.GetAsync( $"{root}/nodes?type=FilePackage" ).GetAwaiter().GetResult();
+			var nodes = http.GetAsync( $"{root}/filedefs?type=FilePackage" ).GetAwaiter().GetResult();
 			var nodesText = nodes.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.OK, nodes.StatusCode, nodesText );
 			StringAssert.Contains( nodesText, "logs.all", nodesText );
 
 			var post = http.PostAsync( $"{root}/downloads",
-				new StringContent( "{\"node\":{\"id\":\"logs.all\"},\"comment\":\"system test\"}", Encoding.UTF8, "application/json" ) )
+				new StringContent( "{\"fileDef\":{\"id\":\"logs.all\"},\"comment\":\"system test\"}", Encoding.UTF8, "application/json" ) )
 				.GetAwaiter().GetResult();
 			var postText = post.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.Accepted, post.StatusCode, postText );

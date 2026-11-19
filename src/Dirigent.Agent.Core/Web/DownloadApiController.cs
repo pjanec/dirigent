@@ -14,7 +14,7 @@ namespace Dirigent.Web
 {
 	/// <summary>
 	/// The node listing and the download jobs. A diagnostic tool lists the nodes, previews the files
-	/// (GET /api/appfiles, /api/nodefiles), starts a job, polls it and fetches the archive.
+	/// (GET /api/appdefs/{id}/files, /api/filedefs/{id}/files), starts a job, polls it and fetches the archive.
 	/// </summary>
 	public class DownloadApiController : WebApiController
 	{
@@ -26,23 +26,23 @@ namespace Dirigent.Web
 		}
 
 		// the type is compared case-insensitively; the other filters take the wildcards of ListVfsNodes
-		[Route( HttpVerbs.Get, "/nodes" )]
-		public async Task GetNodes()
+		[Route( HttpVerbs.Get, "/filedefs" )]
+		public async Task GetFileDefs()
 		{
 			var q = HttpContext.GetRequestQueryData();
 
-			List<NodeInfo> nodes = new();
+			List<FileDefInfo> nodes = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				nodes = NodeListing.List( _master, q["type"], q["id"], q["machine"], q["app"] );
+				nodes = FileDefListing.List( _master, q["type"], q["id"], q["machine"], q["app"] );
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
 
-			await SendJson( NodeListing.ToJson( nodes ) );
+			await SendJson( FileDefListing.ToJson( nodes ) );
 		}
 
-		// body: {"node":{"id":"logs","machine":"m1","app":"a"}} or {"app":"m1.a@plan"}, optional "comment"
+		// body: {"fileDef":{"id":"logs","machine":"m1","app":"a"}} or {"app":"m1.a@plan"}, optional "comment"
 		[Route( HttpVerbs.Post, "/downloads" )]
 		public async Task StartDownload()
 		{

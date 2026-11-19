@@ -70,6 +70,17 @@ The file defines
 </Shared>
 ```
 
+##### `MinDirigentVersion`
+
+`<Shared MinDirigentVersion="3.1.19">` states the oldest Dirigent this file may be used with. A master
+older than that refuses to load it, with `This SharedConfig needs Dirigent 3.1.19 or newer; this is 3.1.18.7.`
+Versions are compared number by number (a missing number is 0); a value that is not dotted numbers is a load error
+naming it. A build without a release version (a development build, which reports 1.0.0.0) is not checked.
+
+Why: an older master does not fail on what it does not know. It would quietly ignore a `<NodeTemplate>` and
+collect whole folders where the config asked for the newest few files. Put the attribute in any file that
+uses a feature newer than the oldest master on the site.
+
 #### Machine definitions
 
 ##### `<Machine/>` element

@@ -5,7 +5,7 @@ using System.Linq;
 namespace Dirigent.Web
 {
 	/// <summary>A top-level VFS node as declared; nothing is looked up in any file system.</summary>
-	public class NodeInfo
+	public class FileDefInfo
 	{
 		public string id { get; set; } = string.Empty;
 		public string type { get; set; } = string.Empty;
@@ -17,15 +17,15 @@ namespace Dirigent.Web
 	}
 
 	/// <summary>
-	/// The listing behind GET /api/nodes and the GetNodes command: what is there to download.
+	/// The listing behind GET /api/filedefs and the GetFileDefs command: what is there to download.
 	/// </summary>
-	public static class NodeListing
+	public static class FileDefListing
 	{
 		/// <summary>
 		/// Master thread only. The id, machine and app filters take the wildcards of
 		/// <see cref="Scripts.BuiltIn.ListVfsNodes.Matches"/>; the type is compared case-insensitively.
 		/// </summary>
-		public static List<NodeInfo> List( Master master, string? type, string? id, string? machine, string? app )
+		public static List<FileDefInfo> List( Master master, string? type, string? id, string? machine, string? app )
 		{
 			var selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
 
@@ -34,7 +34,7 @@ namespace Dirigent.Web
 						&& ( string.IsNullOrEmpty( type )
 							|| string.Equals( AppFilesQuery.TypeName( node ), type, StringComparison.OrdinalIgnoreCase ) )
 					 orderby node.Id, node.MachineId, node.AppId
-					 select new NodeInfo()
+					 select new FileDefInfo()
 					 {
 						 id = node.Id,
 						 type = AppFilesQuery.TypeName( node ),
@@ -46,6 +46,6 @@ namespace Dirigent.Web
 					 } ).ToList();
 		}
 
-		public static string ToJson( List<NodeInfo> nodes ) => AppFilesResult.ToJson( nodes );
+		public static string ToJson( List<FileDefInfo> nodes ) => AppFilesResult.ToJson( nodes );
 	}
 }

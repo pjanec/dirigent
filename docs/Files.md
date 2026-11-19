@@ -213,10 +213,10 @@ the user must have entered them beforehand so that Windows can reuse the cached 
 
 ### Reading the files from a diagnostic tool
 
-Two REST endpoints (and the matching CLI commands `GetAppFiles` and `GetNodeFiles`) list the actual
+Two REST endpoints (and the matching CLI commands `GetAppFiles` and `GetFiles`) list the actual
 files of an application or of a package, each with its machine-local path and, where a share covers it, a
-UNC path: `GET /api/appfiles/m1.a[@plan]` and `GET /api/nodefiles/<id>?machine=&app=`. The files are
-listed, not served - the tool opens them through the UNC paths. See [Web API](HTTP.md#GET-apiappfilesm1a)
+UNC path: `GET /api/appdefs/m1.a[@plan]/files` and `GET /api/filedefs/<id>/files?machine=&app=`. The files are
+listed, not served - the tool opens them through the UNC paths. See [Web API](HTTP.md#GET-apiappdefsm1afiles)
 and [CLI](CLI.md#GetAppFiles).
 
 To collect rather than just look, a tool starts a download job (`POST /api/downloads`, or `DownloadPackage` /

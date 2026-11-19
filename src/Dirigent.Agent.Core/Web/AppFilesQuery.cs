@@ -19,7 +19,7 @@ namespace Dirigent.Web
 	}
 
 	/// <summary>One top-level VFS node of an application, resolved.</summary>
-	public class AppFileNodeInfo
+	public class FileDefEntry
 	{
 		public string id { get; set; } = string.Empty;
 		public string title { get; set; } = string.Empty;
@@ -43,7 +43,7 @@ namespace Dirigent.Web
 		public string? plan { get; set; }
 		/// <summary>"requested", "lastRun" or "none"</summary>
 		public string planSource { get; set; } = "none";
-		public List<AppFileNodeInfo> nodes { get; set; } = new();
+		public List<FileDefEntry> fileDefs { get; set; } = new();
 
 		static readonly JsonSerializerOptions _json = new()
 		{
@@ -153,27 +153,27 @@ namespace Dirigent.Web
 		/// </summary>
 		public async Task<AppFilesResult> ResolveAsync( bool includeContent )
 		{
-			var nodes = await Task.WhenAll( _nodes.Select( n => ResolveNodeAsync( n, includeContent ) ) );
+			var nodes = await Task.WhenAll( _nodes.Select( n => ResolveFileDefAsync( n, includeContent ) ) );
 
 			return new AppFilesResult()
 			{
 				app = _app,
 				plan = _plan,
 				planSource = _planSource,
-				nodes = nodes.ToList(),
+				fileDefs = nodes.ToList(),
 			};
 		}
 
-		Task<AppFileNodeInfo> ResolveNodeAsync( VfsNodeDef def, bool includeContent )
-			=> ResolveNodeEntryAsync( _master, def, includeContent );
+		Task<FileDefEntry> ResolveFileDefAsync( VfsNodeDef def, bool includeContent )
+			=> ResolveFileDefEntryAsync( _master, def, includeContent );
 
 		/// <summary>
 		/// Resolves one node and describes it: the one implementation of a node entry, shared by the
 		/// application query and the node query. A failure is reported in the entry, never thrown.
 		/// </summary>
-		public static async Task<AppFileNodeInfo> ResolveNodeEntryAsync( Master master, VfsNodeDef def, bool includeContent )
+		public static async Task<FileDefEntry> ResolveFileDefEntryAsync( Master master, VfsNodeDef def, bool includeContent )
 		{
-			var info = new AppFileNodeInfo()
+			var info = new FileDefEntry()
 			{
 				id = def.Id,
 				title = !string.IsNullOrEmpty( def.Title ) ? def.Title : def.Id,
@@ -271,12 +271,12 @@ namespace Dirigent.Web
 		}
 	}
 
-	public class NodeFilesResult
+	public class FileDefFilesResult
 	{
 		public string id { get; set; } = string.Empty;
 		public string? machine { get; set; }
 		public string? app { get; set; }
-		public List<AppFileNodeInfo> nodes { get; set; } = new();
+		public List<FileDefEntry> fileDefs { get; set; } = new();
 
 		/// <summary>The one-line JSON both the REST endpoint and the CLI command answer with.</summary>
 		public string ToJson() => AppFilesResult.ToJson( this );
@@ -287,12 +287,12 @@ namespace Dirigent.Web
 	/// address nodes. The whole selection is resolved as one reference, so the resolver batches it into
 	/// one round trip per machine and turns an unreachable member into a note on its container.
 	/// </summary>
-	public class NodeFilesQuery
+	public class FileDefFilesQuery
 	{
 		readonly Master _master;
 		readonly Scripts.BuiltIn.VfsNodeSelector _selector;
 
-		public NodeFilesQuery( Master master, string id, string? machine, string? app )
+		public FileDefFilesQuery( Master master, string id, string? machine, string? app )
 		{
 			_master = master;
 			_selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
@@ -300,19 +300,19 @@ namespace Dirigent.Web
 		}
 
 		/// <exception cref="AppFilesNotFoundException">nothing matches the selector</exception>
-		public async Task<NodeFilesResult> ResolveAsync( bool includeContent )
+		public async Task<FileDefFilesResult> ResolveAsync( bool includeContent )
 		{
-			var entry = await AppFilesQuery.ResolveNodeEntryAsync( _master, _selector.ToFileRef(), includeContent );
+			var entry = await AppFilesQuery.ResolveFileDefEntryAsync( _master, _selector.ToFileRef(), includeContent );
 
 			if( entry.resolvedToNothing )
 				throw new AppFilesNotFoundException( $"No node matches {_selector}." );
 
-			return new NodeFilesResult()
+			return new FileDefFilesResult()
 			{
 				id = _selector.Id!,
 				machine = string.IsNullOrEmpty( _selector.MachineId ) ? null : _selector.MachineId,
 				app = string.IsNullOrEmpty( _selector.AppId ) ? null : _selector.AppId,
-				nodes = new List<AppFileNodeInfo>() { entry },
+				fileDefs = new List<FileDefEntry>() { entry },
 			};
 		}
 	}

@@ -9,7 +9,7 @@ using Dirigent.Web;
 namespace Dirigent
 {
 	/// <summary>The node a download names, the way scripts address nodes.</summary>
-	public class DownloadNodeSelection
+	public class DownloadFileDefSelection
 	{
 		public string? id { get; set; }
 		public string? machine { get; set; }
@@ -19,7 +19,7 @@ namespace Dirigent
 	/// <summary>What was asked for: a node or package by id, or all the nodes of an application.</summary>
 	public class DownloadRequest
 	{
-		public DownloadNodeSelection? node { get; set; }
+		public DownloadFileDefSelection? fileDef { get; set; }
 
 		/// <summary>"m1.a" or "m1.a@plan"</summary>
 		public string? app { get; set; }
@@ -176,13 +176,13 @@ namespace Dirigent
 				Comment = request.comment,
 			};
 
-			if( request.node is not null && !string.IsNullOrEmpty( request.node.id ) )
+			if( request.fileDef is not null && !string.IsNullOrEmpty( request.fileDef.id ) )
 			{
 				var selector = new Scripts.BuiltIn.VfsNodeSelector()
 				{
-					Id = request.node.id,
-					MachineId = request.node.machine,
-					AppId = request.node.app,
+					Id = request.fileDef.id,
+					MachineId = request.fileDef.machine,
+					AppId = request.fileDef.app,
 				};
 
 				if( !master.GetAllVfsNodesDef().Any( n => Scripts.BuiltIn.ListVfsNodes.Matches( n, selector ) ) )

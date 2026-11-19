@@ -13,7 +13,7 @@ namespace Dirigent.IntegrationTests
 {
 	/// <summary>
 	/// `GetAppFiles` - the actual files of one application instance, with machine-local and UNC
-	/// paths. The same AppFilesQuery answers GET /api/appfiles/{id}; that road is smoked in the
+	/// paths. The same AppFilesQuery answers GET /api/appdefs/{id}/files; that road is smoked in the
 	/// system tests, these go through the CLI because that is the in-process way to reach it.
 	/// </summary>
 	/// <remarks>
@@ -77,11 +77,11 @@ namespace Dirigent.IntegrationTests
 			return bed;
 		}
 
-		static NodeFilesResult ParseNode( string line, string id )
+		static FileDefFilesResult ParseNode( string line, string id )
 		{
-			var prefix = $"NODEFILES:{id}:";
+			var prefix = $"FILES:{id}:";
 			StringAssert.StartsWith( line, prefix, $"the answer line: {line}" );
-			return JsonSerializer.Deserialize<NodeFilesResult>( line.Substring( prefix.Length ) )!;
+			return JsonSerializer.Deserialize<FileDefFilesResult>( line.Substring( prefix.Length ) )!;
 		}
 
 		static AppFilesResult Parse( string line, string idAsGiven )
@@ -108,14 +108,14 @@ namespace Dirigent.IntegrationTests
 
 			Assert.AreEqual( "planX", res.plan );
 			Assert.AreEqual( "requested", res.planSource );
-			Assert.AreEqual( 1, res.nodes.Count );
-			Assert.AreEqual( "plannode", res.nodes[0].id );
+			Assert.AreEqual( 1, res.fileDefs.Count );
+			Assert.AreEqual( "plannode", res.fileDefs[0].id );
 
 			// the same through the real socket, which is how the CLI exe and PowerShell get it
 			using var cli = new CliSession( bed.CliPort );
 			var viaSocket = cli.RequestList( "GetAppFiles m1.a@planX" );
 			Assert.AreEqual( 1, viaSocket.Count );
-			Assert.AreEqual( "plannode", Parse( viaSocket[0], "m1.a@planX" ).nodes[0].id );
+			Assert.AreEqual( "plannode", Parse( viaSocket[0], "m1.a@planX" ).fileDefs[0].id );
 		}
 
 		[TestMethod()]
@@ -126,7 +126,7 @@ namespace Dirigent.IntegrationTests
 			var res = await Ask( bed, "m1.a" );
 
 			Assert.AreEqual( "none", res.planSource );
-			var logs = res.nodes.Single( n => n.id == "logs" );
+			var logs = res.fileDefs.Single( n => n.id == "logs" );
 			Assert.IsNull( logs.error, logs.error );
 			Assert.AreEqual( "Folder", logs.type );
 
@@ -152,7 +152,7 @@ namespace Dirigent.IntegrationTests
 
 			var res = await Ask( bed, "m1.a", "content=0" );
 
-			var logs = res.nodes.Single( n => n.id == "logs" );
+			var logs = res.fileDefs.Single( n => n.id == "logs" );
 			Assert.AreEqual( bed.RenderContext.AppLogsDir( "m1", "a" ), logs.localPath );
 			Assert.AreEqual( 0, logs.files.Count, "no folder scan" );
 		}
@@ -164,7 +164,7 @@ namespace Dirigent.IntegrationTests
 
 			var before = await Ask( bed, "m1.a" );
 			Assert.AreEqual( "none", before.planSource );
-			CollectionAssert.AreEquivalent( new[] { "logs", "remote", "offline" }, before.nodes.Select( n => n.id ).ToList() );
+			CollectionAssert.AreEquivalent( new[] { "logs", "remote", "offline" }, before.fileDefs.Select( n => n.id ).ToList() );
 
 			await bed.Operator.StartPlanAsync( "planX" );
 			await bed.WaitUntilAsync(
@@ -179,8 +179,8 @@ namespace Dirigent.IntegrationTests
 
 			Assert.AreEqual( "lastRun", res.planSource );
 			Assert.AreEqual( "planX", res.plan );
-			CollectionAssert.AreEqual( new[] { "plannode" }, res.nodes.Select( n => n.id ).ToList() );
-			Assert.AreEqual( "PlanLogs/p.log", res.nodes[0].files.Single().path );
+			CollectionAssert.AreEqual( new[] { "plannode" }, res.fileDefs.Select( n => n.id ).ToList() );
+			Assert.AreEqual( "PlanLogs/p.log", res.fileDefs[0].files.Single().path );
 		}
 
 		[TestMethod()]
@@ -190,7 +190,7 @@ namespace Dirigent.IntegrationTests
 
 			var res = await Ask( bed, "m1.a" );
 
-			var remote = res.nodes.Single( n => n.id == "remote" ); // m2 declares no share
+			var remote = res.fileDefs.Single( n => n.id == "remote" ); // m2 declares no share
 			Assert.IsNull( remote.error, remote.error );
 			Assert.IsNotNull( remote.localPath );
 			Assert.IsNull( remote.uncPath );
@@ -208,11 +208,11 @@ namespace Dirigent.IntegrationTests
 
 			var res = await Ask( bed, "m1.a" );
 
-			var remote = res.nodes.Single( n => n.id == "offline" );
+			var remote = res.fileDefs.Single( n => n.id == "offline" );
 			StringAssert.Contains( remote.error, "ghost", "the unreachable machine's node says why" );
 			Assert.AreEqual( 0, remote.files.Count );
 
-			var logs = res.nodes.Single( n => n.id == "logs" );
+			var logs = res.fileDefs.Single( n => n.id == "logs" );
 			Assert.IsNull( logs.error );
 			Assert.AreEqual( 2, logs.files.Count, "the other node is answered regardless" );
 		}
@@ -235,15 +235,15 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartBed();
 
-			var lines = await bed.SendCliCommandAsync( "GetNodeFiles pkg", Timeout );
+			var lines = await bed.SendCliCommandAsync( "GetFiles pkg", Timeout );
 			Assert.AreEqual( 2, lines.Count, string.Join( " | ", lines ) );
 			Assert.AreEqual( "END", lines[1] );
 
 			var res = ParseNode( lines[0], "pkg" );
-			Assert.AreEqual( 1, res.nodes.Count, "one entry for the whole package" );
-			Assert.IsNull( res.nodes[0].error, res.nodes[0].error );
+			Assert.AreEqual( 1, res.fileDefs.Count, "one entry for the whole package" );
+			Assert.IsNull( res.fileDefs[0].error, res.fileDefs[0].error );
 
-			var files = res.nodes[0].files.OrderBy( f => f.machine ).ToList();
+			var files = res.fileDefs[0].files.OrderBy( f => f.machine ).ToList();
 			Assert.AreEqual( 2, files.Count );
 
 			Assert.AreEqual( "m1", files[0].machine );
@@ -260,10 +260,10 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartBed();
 
-			var lines = await bed.SendCliCommandAsync( "GetNodeFiles pkg", Timeout );
+			var lines = await bed.SendCliCommandAsync( "GetFiles pkg", Timeout );
 			var res = ParseNode( lines[0], "pkg" );
 
-			var node = res.nodes.Single();
+			var node = res.fileDefs.Single();
 			Assert.IsNull( node.error, node.error );
 			Assert.AreEqual( 2, node.files.Count, "the members that could be resolved are listed" );
 			Assert.IsTrue( node.notes.Any( n => n.Contains( "'M3'" ) ),
@@ -275,7 +275,7 @@ namespace Dirigent.IntegrationTests
 		{
 			using var bed = await StartBed();
 
-			var lines = await bed.SendCliCommandAsync( "GetNodeFiles nosuchnode", Timeout );
+			var lines = await bed.SendCliCommandAsync( "GetFiles nosuchnode", Timeout );
 			Assert.AreEqual( 1, lines.Count, string.Join( " | ", lines ) );
 			StringAssert.StartsWith( lines[0], "ERROR" );
 		}

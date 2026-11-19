@@ -105,7 +105,7 @@ namespace Dirigent.Web
 
 		// Gets the actual files of one app instance, with local and UNC paths.
 		// id is "m1.a" or "m1.a@plan1"; ?content=false skips scanning the folders.
-		[Route( HttpVerbs.Get, "/appfiles/{id}" )]
+		[Route( HttpVerbs.Get, "/appdefs/{id}/files" )]
 		public async Task GetAppFiles( string id )
 		{
 			var contentArg = HttpContext.GetRequestQueryData()["content"];
@@ -134,18 +134,18 @@ namespace Dirigent.Web
 
 		// Gets the files of any top-level VFS node (a file package, typically), addressed as scripts do.
 		// ?machine=m1&app=a narrow the selection; ?content=false skips scanning the folders.
-		[Route( HttpVerbs.Get, "/nodefiles/{id}" )]
-		public async Task GetNodeFiles( string id )
+		[Route( HttpVerbs.Get, "/filedefs/{id}/files" )]
+		public async Task GetFiles( string id )
 		{
 			var q = HttpContext.GetRequestQueryData();
 			var contentArg = q["content"];
 			var includeContent = !string.Equals( contentArg, "false", StringComparison.OrdinalIgnoreCase )
 								&& contentArg != "0";
 
-			NodeFilesResult result;
+			FileDefFilesResult result;
 			try
 			{
-				result = await new NodeFilesQuery( _master, id, q["machine"], q["app"] ).ResolveAsync( includeContent );
+				result = await new FileDefFilesQuery( _master, id, q["machine"], q["app"] ).ResolveAsync( includeContent );
 			}
 			catch( AppFilesNotFoundException e )
 			{

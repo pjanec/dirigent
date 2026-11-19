@@ -47,60 +47,60 @@ returns a list of the state of all plans as JSON `[{'name':'plan1', 'status':{'c
 
 returns a state of a single plan as JSON `{'name':'plan1', 'status':{'code':'InProgress'}}`
 
-### GET /api/appfiles/m1.a
+### GET /api/appdefs/m1.a/files
 
 returns the actual files of one application instance, each with the path on its own machine
 (`localPath`) and, where a file share covers it, a UNC path (`uncPath`) a diagnostic tool can read.
 `m1.a@plan1` addresses the application as defined in that plan.
 
-Which definition answers (the one whose `<File>`/`<Folder>` nodes are listed):
+Which definition answers (the one whose file definitions - `<File>`, `<Folder>`, ... - are listed):
 
 * `m1.a@plan1` - the definition in `plan1` (`planSource` is `requested`). Unknown plan, or an app not in it: 404.
 * `m1.a` - the plan the app last ran in, if it has one (`lastRun`); otherwise the default definition (`none`). Unknown app: 404.
 
-`?content=false` skips scanning the folders: only the nodes themselves are resolved and `files` stays empty.
+`?content=false` skips scanning the folders: only the file definitions themselves are resolved and `files` stays empty.
 
 ```json
 { "app": "m1.a", "plan": "plan1", "planSource": "requested",
-  "nodes": [ { "id": "logs", "title": "Logs", "type": "Folder", "machine": "m1",
+  "fileDefs": [ { "id": "logs", "title": "Logs", "type": "Folder", "machine": "m1",
                "localPath": "D:\\Logs", "uncPath": "\\\\10.0.0.5\\D\\Logs", "uncError": null,
                "error": null, "notes": [],
                "files": [ { "path": "Logs/sub/a.log", "machine": "m1",
                             "localPath": "D:\\Logs\\sub\\a.log", "uncPath": "\\\\10.0.0.5\\D\\Logs\\sub\\a.log" } ] } ] }
 ```
 
-Each top-level node of the app is resolved on its own, so a node that fails (its machine is not
-connected, the folder is missing) has `error` set and the other nodes are still answered. If no
-share of the machine covers a path, `uncPath` is `null` and `uncError` says why (once per node);
+Each top-level file definition of the app is resolved on its own, so one that fails (its machine is not
+connected, the folder is missing) has `error` set and the others are still answered. If no
+share of the machine covers a path, `uncPath` is `null` and `uncError` says why (once per file definition);
 `localPath` is still there. `notes` carries what the resolution had to leave out (size limits,
-members of a package that could not be looked up). A node with no machine (global) has only `uncPath`.
+members of a package that could not be looked up). A file definition with no machine (global) has only `uncPath`.
 
 The files are listed, not served: the tool reads them through the UNC path. The same answer is given by
 `POST /api/cli` with `GetAppFiles m1.a@plan1` (see [CLI](CLI.md#GetAppFiles)).
 
-### GET /api/nodefiles/pkg?machine=m1&app=a
+### GET /api/filedefs/pkg/files?machine=m1&app=a
 
-the same for any top-level VFS node - a file package, usually - addressed the way scripts address
-nodes: `pkg` is the node id (wildcards allowed), `machine` and `app` optionally narrow it, `content`
-is as above. A selector matching several nodes answers as one container of all of them. Nothing
+the same for any top-level file definition - a file package, usually - addressed the way scripts address
+them: `pkg` is the file definition id (wildcards allowed), `machine` and `app` optionally narrow it, `content`
+is as above. A selector matching several file definitions answers as one container of all of them. Nothing
 matching: 404. The whole selection is resolved in one go, so a package spanning many machines costs one
 round trip per machine, and a member that cannot be reached becomes a `note` while the other members'
 files are listed.
 
 ```json
-{ "id": "pkg", "machine": null, "app": null, "nodes": [ { "id": "pkg", "title": "Pkg", "type": "FileRef", "files": [ ... ] } ] }
+{ "id": "pkg", "machine": null, "app": null, "fileDefs": [ { "id": "pkg", "title": "Pkg", "type": "FileRef", "files": [ ... ] } ] }
 ```
 
-Each file carries its own `machine`. Also available as `POST /api/cli` with `GetNodeFiles pkg machine=m1`.
+Each file carries its own `machine`. Also available as `POST /api/cli` with `GetFiles pkg machine=m1`.
 
 Errors of every `/api` call are JSON, `{"error":"<message>","code":404}`, with the status code in the response too.
 
-### GET /api/nodes
+### GET /api/filedefs
 
-lists the top-level VFS nodes as declared in the shared config - what there is to collect. Nothing is
+lists the top-level file definitions (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`) as declared in the shared config - what there is to collect. Nothing is
 looked up in any file system. Optional filters: `type` (`File`, `Folder`, `VFolder`, `FilePackage`,
 `FileRef`; case-insensitive), `id`, `machine`, `app` (the wildcards of the `ListVfsNodes` script: `*`
-and `?`, empty means anything). Example: `GET /api/nodes?type=FilePackage&id=logs.*`
+and `?`, empty means anything). Example: `GET /api/filedefs?type=FilePackage&id=logs.*`
 
 ```json
 [ { "id": "logs.all", "type": "FilePackage", "title": "Logs/All apps", "description": "...",
@@ -109,18 +109,18 @@ and `?`, empty means anything). Example: `GET /api/nodes?type=FilePackage&id=log
 
 ### Download jobs
 
-A diagnostic tool collects files in five steps: **list** the nodes (`/api/nodes`), **preview** what a
-node or app stands for (`/api/nodefiles`, `/api/appfiles`), **collect** (`POST /api/downloads`),
+A diagnostic tool collects files in five steps: **list** the file definitions (`/api/filedefs`), **preview** what a
+file definition or app stands for (`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** (`POST /api/downloads`),
 **poll** the job, **fetch** the archive. The archives are built on the master's machine, in a folder
 of Dirigent's own (`--archiveFolder`, see [Local Config](LocalConfig.md#Download-archives)), one
 subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
 
 #### POST /api/downloads
 
-starts a collection. Body: `{"node":{"id":"logs.all","machine":"m1","app":"a"}}` (a node or package, addressed
-like `/api/nodefiles`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the nodes of the
-application, from the definition picked as for `/api/appfiles`), and an optional `"comment"` that goes
-into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown node, app or plan: 404.
+starts a collection. Body: `{"fileDef":{"id":"logs.all","machine":"m1","app":"a"}}` (a file definition or package, addressed
+like `/api/filedefs/{id}/files`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the file definitions of the
+application, from the definition picked as for `/api/appdefs/{id}/files`), and an optional `"comment"` that goes
+into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan: 404.
 Old jobs are cleaned up first.
 
 #### GET /api/downloads
@@ -132,7 +132,7 @@ lists the jobs on disk, newest first, each as below.
 ```json
 { "id": "...", "status": "Finished", "progress": 1.0, "text": null,
   "created": "2026-11-19T10:00:00Z", "finished": "2026-11-19T10:00:20Z", "machine": "master1",
-  "request": { "node": { "id": "logs.all" } },
+  "request": { "fileDef": { "id": "logs.all" } },
   "files": [ { "name": "All apps_261119_1000.zip", "size": 1234567,
                "url": "/api/downloads/<id>/files/All%20apps_261119_1000.zip",
                "localPath": "C:\\ProgramData\\Dirigent\\Archives\\<id>\\All%20apps_261119_1000.zip",
@@ -158,7 +158,7 @@ memory. `name` must be one of the job's `files`, otherwise 404; a job that is st
 stops the job if it is running and removes its folder (204); unknown job: 404. A running job's folder
 goes as soon as its script has stopped.
 
-The same through `POST /api/cli`: `GetNodes`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
+The same through `POST /api/cli`: `GetFileDefs`, `GetFiles`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
 `DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
 
 ### POST /api/cli

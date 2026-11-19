@@ -593,7 +593,7 @@ namespace Dirigent.Commands
 
 	/// <summary>
 	/// The actual files of one app instance, with local and UNC paths:
-	/// `GetAppFiles &lt;appId&gt;[@plan] [content=0]`. The same answer as GET /api/appfiles/{id}.
+	/// `GetAppFiles &lt;appId&gt;[@plan] [content=0]`. The same answer as GET /api/appdefs/{id}/files.
 	/// </summary>
 	/// <remarks>
 	/// The answer is `APPFILES:&lt;appIdAsGiven&gt;:&lt;json&gt;` followed by `END`. It arrives only when the
@@ -655,18 +655,18 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
-	/// The files of any top-level VFS node, addressed as scripts address nodes:
-	/// `GetNodeFiles &lt;id&gt; [machine=m1] [app=a] [content=0]`. Same answer as GET /api/nodefiles/{id}:
-	/// `NODEFILES:&lt;id&gt;:&lt;json&gt;` and then `END`, completed asynchronously like <see cref="GetAppFiles"/>.
+	/// The files of any top-level file definition, addressed as scripts address them:
+	/// `GetFiles &lt;id&gt; [machine=m1] [app=a] [content=0]`. Same answer as GET /api/filedefs/{id}/files:
+	/// `FILES:&lt;id&gt;:&lt;json&gt;` and then `END`, completed asynchronously like <see cref="GetAppFiles"/>.
 	/// </summary>
 	[CliResponse( Terminator = ETerminator.End )]
-	public class GetNodeFiles : DirigentControlCommand
+	public class GetFiles : DirigentControlCommand
 	{
 		string _id = string.Empty;
-		System.Threading.Tasks.Task<Web.NodeFilesResult>? _task;
+		System.Threading.Tasks.Task<Web.FileDefFilesResult>? _task;
 		bool _finished;
 
-		public GetNodeFiles( Master ctrl, string requestorId )
+		public GetFiles( Master ctrl, string requestorId )
 			: base( ctrl, requestorId )
 		{
 		}
@@ -687,7 +687,7 @@ namespace Dirigent.Commands
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
 
-			var query = new Web.NodeFilesQuery( ctrl, _id, machine, app );
+			var query = new Web.FileDefFilesQuery( ctrl, _id, machine, app );
 			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync( includeContent ) );
 		}
 
@@ -700,19 +700,19 @@ namespace Dirigent.Commands
 			if( _task.IsFaulted )
 				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
 
-			WriteResponse( $"NODEFILES:{_id}:{_task.Result.ToJson()}" );
+			WriteResponse( $"FILES:{_id}:{_task.Result.ToJson()}" );
 			WriteResponse( "END" );
 		}
 	}
 
 	/// <summary>
-	/// The top-level VFS nodes as declared: `GetNodes [type=] [id=] [machine=] [app=]`. Same as
-	/// GET /api/nodes. Answers `NODES:&lt;json&gt;`.
+	/// The top-level file definitions as declared: `GetFileDefs [type=] [id=] [machine=] [app=]`. Same as
+	/// GET /api/filedefs. Answers `FILEDEFS:&lt;json&gt;`.
 	/// </summary>
 	[CliResponse( Terminator = ETerminator.SingleLine )]
-	public class GetNodes : DirigentControlCommand
+	public class GetFileDefs : DirigentControlCommand
 	{
-		public GetNodes( Master ctrl, string requestorId )
+		public GetFileDefs( Master ctrl, string requestorId )
 			: base( ctrl, requestorId )
 		{
 		}
@@ -725,7 +725,7 @@ namespace Dirigent.Commands
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
 
-			WriteResponse( "NODES:" + Web.NodeListing.ToJson( Web.NodeListing.List( ctrl, type, id, machine, app ) ) );
+			WriteResponse( "FILEDEFS:" + Web.FileDefListing.ToJson( Web.FileDefListing.List( ctrl, type, id, machine, app ) ) );
 		}
 	}
 
@@ -796,7 +796,7 @@ namespace Dirigent.Commands
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
 
-			return new DownloadRequest() { node = new DownloadNodeSelection() { id = args[0], machine = machine, app = app } };
+			return new DownloadRequest() { fileDef = new DownloadFileDefSelection() { id = args[0], machine = machine, app = app } };
 		}
 	}
 

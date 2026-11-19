@@ -35,6 +35,8 @@ namespace Dirigent
 #pragma warning restore CS8601 // Possible null reference assignment.
 			if ( _root is null ) throw new Exception("SharedConfig missing the root element");
 
+			CheckMinVersion( _root );
+
 			// before anything is read: from here on the file nodes are plain, templates are history
 			NodeTemplates.Apply( _root );
 
@@ -48,6 +50,71 @@ namespace Dirigent
 			_cfg.VfsNodes = _fdReg.VfsNodes;
 			_cfg.SingleInstScripts = LoadSingleInstScripts(_root);
 			_cfg.MainMenuItems = LoadMainMenuItems(_root);
+		}
+
+		/// <summary>
+		/// The version of the running Dirigent, compared with a config's MinDirigentVersion. Settable so
+		/// that a test can be an older or a newer program. A build that was not stamped with a release
+		/// version (1.0.0.0, what a development build reports) is not checked at all.
+		/// </summary>
+		public static string CurrentVersion { get; set; } = DetectCurrentVersion();
+
+		static string DetectCurrentVersion()
+		{
+			var asm = typeof( SharedConfigReader ).Assembly;
+			var info = asm.GetCustomAttributes( typeof( System.Reflection.AssemblyInformationalVersionAttribute ), false )
+							.OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+							.FirstOrDefault()?.InformationalVersion;
+
+			var text = info ?? asm.GetName().Version?.ToString() ?? "";
+
+			var meta = text.IndexOfAny( new[] { '+', '-' } ); // "3.1.19.4+commit"
+			return meta >= 0 ? text.Substring( 0, meta ) : text;
+		}
+
+		/// <summary>Dotted numbers, missing segments being 0; null if it is not that.</summary>
+		static int[]? ParseVersion( string? text )
+		{
+			if( string.IsNullOrWhiteSpace( text ) ) return null;
+
+			var parts = text.Trim().Split( '.' );
+			var numbers = new int[parts.Length];
+			for( int i = 0; i < parts.Length; i++ )
+				if( !int.TryParse( parts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out numbers[i] ) )
+					return null;
+
+			return numbers;
+		}
+
+		static int CompareVersions( int[] a, int[] b )
+		{
+			for( int i = 0; i < Math.Max( a.Length, b.Length ); i++ )
+			{
+				var d = ( i < a.Length ? a[i] : 0 ).CompareTo( i < b.Length ? b[i] : 0 );
+				if( d != 0 ) return d;
+			}
+			return 0;
+		}
+
+		/// <summary>
+		/// Refuses a config that needs a newer Dirigent than this one. An older program would not fail
+		/// on what it does not know - it would ignore a NodeTemplate and collect whole folders.
+		/// </summary>
+		static void CheckMinVersion( XElement root )
+		{
+			var wanted = root.Attribute( "MinDirigentVersion" )?.Value;
+			if( wanted is null ) return;
+
+			var min = ParseVersion( wanted )
+				?? throw new ConfigurationErrorException( $"Invalid MinDirigentVersion '{wanted}' in <Shared>: dotted numbers like 3.1.19 expected." );
+
+			var current = ParseVersion( CurrentVersion );
+
+			// an unstamped development build says 1.0.0.0 and could not be told from an ancient release
+			if( current is null || CompareVersions( current, new[] { 1, 0, 0, 0 } ) == 0 ) return;
+
+			if( CompareVersions( current, min ) < 0 )
+				throw new ConfigurationErrorException( $"This SharedConfig needs Dirigent {wanted.Trim()} or newer; this is {CurrentVersion}." );
 		}
 
 		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg, string? machineId, string? appId, IReadOnlyList<string>? templateChain = null )
@@ -267,8 +334,8 @@ namespace Dirigent
 
 			foreach ( var vfsNode in LoadVfsNodes( e, machineId, appId ) )
 			{
-				fdReg.Add( vfsNode );
-				a.VfsNodes.Add( vfsNode );
+				// the registry may know the same node already, from another read of this app
+				a.VfsNodes.Add( fdReg.Add( vfsNode ) );
 			}
 
 
@@ -966,11 +1033,7 @@ namespace Dirigent
 				if ( string.IsNullOrEmpty(id) )
 					throw new ConfigurationErrorException( $"Missing machine name in {p} #{index}");
 
-				var vfsNodes = LoadVfsNodes( p, id, null );
-				foreach( var vfsNode in vfsNodes )
-				{
-					fdReg.Add( vfsNode );
-				}
+				var vfsNodes = LoadVfsNodes( p, id, null ).Select( n => fdReg.Add( n ) ).ToList();
 				
 				_cfg.Machines.Add(
 					new MachineDef()

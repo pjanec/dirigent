@@ -17,11 +17,11 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetAppState](#GetAppState)          | returns the status of an app. |
 | [DeleteDownload](#DeleteDownload)    | Stops a download job if it runs and removes it. |
 | [DownloadApp](#DownloadApp)          | Collects all the files of an application into a download job. |
-| [DownloadPackage](#DownloadPackage)  | Collects a node or file package into a download job. |
+| [DownloadPackage](#DownloadPackage)  | Collects a file definition or file package into a download job. |
 | [GetDownload](#GetDownload)          | Returns the state of a download job, in json single line format. |
-| [GetNodes](#GetNodes)                | Lists the VFS nodes declared in the shared config, in json single line format. |
+| [GetFileDefs](#GetFileDefs)          | Lists the file definitions declared in the shared config, in json single line format. |
 | [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
-| [GetNodeFiles](#GetNodeFiles)        | The same for a VFS node or file package addressed by id. |
+| [GetFiles](#GetFiles)                | Lists the files of a file definition or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
 | [GetPlanState](#GetPlanState)        | Returns the status of a plan. |
 | [GetScriptState](#GetScriptState)    | Returns the status code, status text and associated data of a script, in json single line format. |
@@ -517,7 +517,7 @@ Lists the actual files of one application instance.
 `<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app
 last ran in is used, else the default definition. `content=0` skips scanning folders. The
 files are listed, not transferred. The answer is the one of
-[`GET /api/appfiles/{id}`](HTTP.md#GET-apiappfilesm1a) - see there for the JSON.
+[`GET /api/appdefs/{id}/files`](HTTP.md#GET-apiappdefsm1afiles) - see there for the JSON.
 
 It answers when the machines owning the files have answered, which may take a moment, and then ends
 with `END`. An unknown app or plan gives a single `ERROR` line.
@@ -532,45 +532,45 @@ with `END`. An unknown app or plan gives a single `ERROR` line.
 
   Request:   `GetAppFiles m1.a@plan1`
 
-  Response:  `APPFILES:m1.a@plan1:{"app":"m1.a","plan":"plan1","planSource":"requested","nodes":[...]}`
+  Response:  `APPFILES:m1.a@plan1:{"app":"m1.a","plan":"plan1","planSource":"requested","fileDefs":[...]}`
 
-### GetNodeFiles
+### GetFiles
 
-Lists the files of a VFS node or file package, addressed like a script does.
+Lists the files of a file definition or file package, addressed like a script does.
 
-  `GetNodeFiles <id> [machine=m1] [app=a] [content=0]`
+  `GetFiles <fileDefId> [machine=m1] [app=a] [content=0]`
 
-`<id>` is the node id (wildcards allowed); `machine` and `app` narrow the selection. Answer as
-[`GET /api/nodefiles/{id}`](HTTP.md#GET-apinodefilespkgmachinem1appa), completed asynchronously like
+`<fileDefId>` is the file definition id (wildcards allowed); `machine` and `app` narrow the selection. Answer as
+[`GET /api/filedefs/{id}/files`](HTTP.md#GET-apifiledefspkgfilesmachinem1appa), completed asynchronously like
 [`GetAppFiles`](#GetAppFiles). A package member that cannot be reached is reported in `notes` and the others are listed.
 
 ##### Response text
 
-  `NODEFILES:<id>:<json on one line>`
+  `FILES:<fileDefId>:<json on one line>`
 
   `END`
 
-### GetNodes
+### GetFileDefs
 
-Lists the top-level VFS nodes as declared - the CLI twin of [`GET /api/nodes`](HTTP.md#GET-apinodes).
+Lists the top-level file definitions as declared - the CLI twin of [`GET /api/filedefs`](HTTP.md#GET-apifiledefs).
 
-  `GetNodes [type=FilePackage] [id=logs.*] [machine=m1] [app=a]`
+  `GetFileDefs [type=FilePackage] [id=logs.*] [machine=m1] [app=a]`
 
-Answers once: `NODES:<json array>`.
+Answers once: `FILEDEFS:<json array>`.
 
 ### DownloadPackage
 
-Collects a node or file package into a download job on the master - see
+Collects a file definition or file package into a download job on the master - see
 [Download jobs](HTTP.md#Download-jobs).
 
   `DownloadPackage <id> [machine=m1] [app=a] [comment="why"] [wait=1]`
 
 Answers `DOWNLOAD:<jobId>:<job json>` and then `END`. Without `wait=1` the answer comes at once, with the job
-`Running`; with `wait=1` it comes when the job has ended. An unknown node gives a single `ERROR` line.
+`Running`; with `wait=1` it comes when the job has ended. An unknown file definition gives a single `ERROR` line.
 
 ### DownloadApp
 
-The same for all the nodes of an application, `m1.a` or `m1.a@plan1`, picked as for
+The same for all the file definitions of an application, `m1.a` or `m1.a@plan1`, picked as for
 [`GetAppFiles`](#GetAppFiles).
 
   `DownloadApp <appId>[@plan] [comment="why"] [wait=1]`

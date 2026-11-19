@@ -41,7 +41,13 @@ namespace Dirigent
 		// all VfsNodes found when traversing SharedDefs
 		public Dictionary<Guid, VfsNodeDef> VfsNodes { get; private set; } = new Dictionary<Guid, VfsNodeDef>();
 		
-		public Dictionary<string, TMachine> Machines { get; private set; } = new Dictionary<string, TMachine>();
+		/// <summary>
+		/// The machines and their shares. Replaced as a whole by <see cref="SetMachines"/>, never changed
+		/// in place, so that a reader on another thread - the web server answering about UNC paths while a
+		/// config reload runs - sees the old table or the new one and never one half filled.
+		/// </summary>
+		public Dictionary<string, TMachine> Machines { get => _machines; private set => _machines = value; }
+		volatile Dictionary<string, TMachine> _machines = new Dictionary<string, TMachine>();
 
 		private string _localMachineId = string.Empty;
 
@@ -77,13 +83,14 @@ namespace Dirigent
 
 		public void Clear()
 		{
-			Machines.Clear();
+			Machines = new Dictionary<string, TMachine>();
 			VfsNodes.Clear();
 		}
 
 		public void SetMachines( IEnumerable<MachineDef> machines )
 		{
-			Machines.Clear();
+			// built on the side and put in place in one assignment - see Machines
+			var table = new Dictionary<string, TMachine>();
 			foreach( var mdef in machines )
 			{
 				var m = new TMachine();
@@ -99,16 +106,20 @@ namespace Dirigent
 					m.Shares[s.Name] = s.Path;
 				}
 
-				Machines[mdef.Id] = m;
+				table[mdef.Id] = m;
 			}
+
+			Machines = table;
 		}
 
-		public string GetMachineIP( string machineId )
+		public string GetMachineIP( string machineId ) => GetMachineIP( Machines, machineId );
+
+		string GetMachineIP( Dictionary<string, TMachine> machines, string machineId )
 		{
 			string? ip = null;
 
 			// find machine
-			if( Machines.TryGetValue( machineId, out var m ) )
+			if( machines.TryGetValue( machineId, out var m ) )
 				ip = m.IP;
 				
 				// find machine IP
@@ -129,6 +140,8 @@ namespace Dirigent
 				m = new TMachine(); 
 			}
 
+			// A write from whichever thread asks first. Benign: it is one reference assignment of a
+			// string, and every thread that gets here for this machine computes the very same value.
 			if( string.IsNullOrEmpty(m.IP) )
 			{
 				m.IP = ip;
@@ -155,10 +168,13 @@ namespace Dirigent
 				return path;
 
 			// find machine
-			if ( !Machines.TryGetValue( machineId, out var m ) )
+			// one look at the table for the whole call: a reload may replace it meanwhile
+			var machines = Machines;
+
+			if ( !machines.TryGetValue( machineId, out var m ) )
 				throw new Exception($"Machine {machineId} not found for {whatFor}");
 
-			var IP = GetMachineIP( machineId );
+			var IP = GetMachineIP( machines, machineId );
 
 			string? bestName = null;
 			string? bestRoot = null;

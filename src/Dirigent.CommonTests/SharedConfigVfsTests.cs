@@ -460,5 +460,116 @@ namespace Dirigent.Tests
 			Assert.IsTrue( cfg.VfsNodes.Count > 0, "No VFS nodes loaded from the example config" );
 			Assert.IsTrue( cfg.Machines.Count > 0, "No machines loaded from the example config" );
 		}
+
+		[TestMethod()]
+		public void AnAppListedInSeveralPlansRegistersItsNodesOnceTest()
+		{
+			// an app is read once as a default and once per plan; the nodes it brings must not multiply
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log' Path='D:\logs' Mask='*.log' Filter='Newest' MaxFiles='10'/>
+						<Folder Id='dumps' Title='Dumps' Path='D:\dumps' Mask='*.dmp'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.camera' Template='base'/>
+					<Plan Name='p1'><App AppIdTuple='m1.camera' Template='base'/></Plan>
+					<Plan Name='p2'><App AppIdTuple='m1.camera' Template='base'/></Plan>
+				</Shared>" );
+
+			Assert.AreEqual( 1, cfg.VfsNodes.Count( n => n.Id == "log" ), "each node once" );
+			Assert.AreEqual( 1, cfg.VfsNodes.Count( n => n.Id == "dumps" ) );
+
+			var p1 = cfg.Plans.Single( p => p.Name == "p1" ).AppDefs.Single();
+			var p2 = cfg.Plans.Single( p => p.Name == "p2" ).AppDefs.Single();
+
+			foreach( var id in new[] { "log", "dumps" } )
+			{
+				var node = FindNode( cfg, id );
+				Assert.AreSame( node, p1.VfsNodes.Single( n => n.Id == id ), $"plan p1 refers to the registered {id}" );
+				Assert.AreSame( node, p2.VfsNodes.Single( n => n.Id == id ), "and so does p2" );
+			}
+		}
+
+		[TestMethod()]
+		public void APlanSpecificDefinitionOfANodeStaysSeparateTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log' Path='D:\logs' Mask='*.log' Filter='Newest' MaxFiles='10'/>
+						<Folder Id='dumps' Title='Dumps' Path='D:\dumps' Mask='*.dmp'/>
+					</AppTemplate>
+					<AppTemplate Name='more' Template='base'>
+						<File Id='log' Title='Log' Path='D:\logs' Mask='*.log' Filter='Newest' MaxFiles='99'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.camera' Template='base'/>
+					<Plan Name='p1'><App AppIdTuple='m1.camera' Template='more'/></Plan>
+				</Shared>" );
+
+			var logs = cfg.VfsNodes.Where( n => n.Id == "log" ).ToList();
+			Assert.AreEqual( 2, logs.Count, "the plan's own definition is another node" );
+			Assert.IsTrue( logs.Any( n => n.Xml!.Contains( "MaxFiles=\"10\"" ) ) );
+			Assert.IsTrue( logs.Any( n => n.Xml!.Contains( "MaxFiles=\"99\"" ) ) );
+			Assert.AreEqual( 1, cfg.VfsNodes.Count( n => n.Id == "dumps" ), "while the identical folder is shared" );
+		}
+
+		[TestMethod()]
+		public void TwoDifferentExplicitGuidsAreNeverMergedTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<Folder Id='a' Guid='11111111-1111-1111-1111-111111111111' Path='D:\x'/>
+						<Folder Id='a' Guid='22222222-2222-2222-2222-222222222222' Path='D:\x'/>
+					</Machine>
+				</Shared>" );
+
+			Assert.AreEqual( 2, cfg.VfsNodes.Count( n => n.Id == "a" ) );
+		}
+
+		static void WithRunningVersion( string version, Action act )
+		{
+			var before = SharedConfigReader.CurrentVersion;
+			SharedConfigReader.CurrentVersion = version;
+			try { act(); }
+			finally { SharedConfigReader.CurrentVersion = before; }
+		}
+
+		[TestMethod()]
+		public void MinDirigentVersionRefusesAnOlderProgramTest()
+		{
+			WithRunningVersion( "3.1.18.7", () =>
+			{
+				var e = Assert.ThrowsException<ConfigurationErrorException>( () => Parse( "<Shared MinDirigentVersion='3.1.19'/>" ) );
+				Assert.AreEqual( "This SharedConfig needs Dirigent 3.1.19 or newer; this is 3.1.18.7.", e.Message );
+			} );
+		}
+
+		[TestMethod()]
+		public void MinDirigentVersionAcceptsTheSameOrANewerProgramTest()
+		{
+			foreach( var running in new[] { "3.1.19", "3.1.19.0", "3.1.19.4", "3.2", "4.0.0.1" } )
+				WithRunningVersion( running, () => Parse( "<Shared MinDirigentVersion='3.1.19'/>" ) );
+
+			// missing segments count as 0, in the requirement too
+			WithRunningVersion( "3.1.19.4", () => Parse( "<Shared MinDirigentVersion='3.1.19.4.0'/>" ) );
+			WithRunningVersion( "3.1.19", () => Assert.ThrowsException<ConfigurationErrorException>( () => Parse( "<Shared MinDirigentVersion='3.1.19.1'/>" ) ) );
+		}
+
+		[TestMethod()]
+		public void AMalformedMinDirigentVersionIsALoadErrorTest()
+		{
+			WithRunningVersion( "3.1.19.4", () =>
+			{
+				var e = Assert.ThrowsException<ConfigurationErrorException>( () => Parse( "<Shared MinDirigentVersion='three'/>" ) );
+				StringAssert.Contains( e.Message, "'three'" );
+			} );
+		}
+
+		[TestMethod()]
+		public void AnUnstampedDevelopmentBuildIsNotHeldToMinDirigentVersionTest()
+		{
+			WithRunningVersion( "1.0.0.0", () => Parse( "<Shared MinDirigentVersion='3.1.19'/>" ) );
+		}
 	}
 }
