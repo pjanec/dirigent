@@ -27,6 +27,10 @@ namespace Dirigent
 		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
 			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
 
+		/// <summary>How this agent would launch the app: the very code the launcher starts it from.</summary>
+		public AppLaunchSpec? ResolveAppLaunchSpec( AppDef appDef )
+			=> new AppLaunchSpec( appDef, _sharedContext.ExpansionVars, null, _sharedContext.Client.MasterIP, _sharedContext.RootForRelativePaths );
+
 		public bool WantsQuit { get; set; }
 		public string Name => _clientIdent.Name;
 

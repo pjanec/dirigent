@@ -72,6 +72,8 @@ examples below are real answers, shortened where they are long.
 | --- | --- | --- | --- |
 | GET | [`/api/appdefs`](#GET-apiappdefs) | All application definitions | |
 | GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
+| GET | [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation) | Where the binary and working folder of an application are, as its agent resolves them | [`GetAppLocation`](CLI.md#GetAppLocation) |
+| GET | [`/api/applocations`](#GET-apiapplocations) | The same for all applications (`?machine=`) | [`GetAppLocations`](CLI.md#GetAppLocations) |
 | GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsm1afiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
 | GET | [`/api/appstates`](#GET-apiappstates) | State of all applications | [`GetAllAppsState`](CLI.md#GetAllAppsState) |
 | GET | [`/api/appstates/{id}`](#GET-apiappstatesid) | State of one application (also `/api/appstate/{id}`) | [`GetAppState`](CLI.md#GetAppState) |
@@ -108,15 +110,70 @@ definition - see [An application Dirigent knows about but the config does not de
 All application definitions: the standalone applications and the ones in the default definition, not the plans' copies.
 
 ```json
-[{"id": "m1.camera","groups": ""},{"id": "m1.tracker","groups": ""},{"id": "m2.recorder","groups": ""}]
+[{"id": "m1.camera","groups": "","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"},
+ {"id": "m2.recorder","groups": "","machine": "m2","exeFullPath": "[cmd.command]","startupDir": "","cmdLineArgs": "echo hi"}]
 ```
 
-`groups` is the `Groups` attribute of the application, `;`-separated.
+`groups` is the `Groups` attribute of the application, `;`-separated. `exeFullPath`, `startupDir` and `cmdLineArgs` are
+**exactly as the config declares them**: variables like `%APP_ID%` are not expanded and a relative path stays relative. What they
+become on the machine, and whether the file is there, is answered by [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation).
+The meaning of `ExeFullPath`, `StartupDir` and the reserved names like `[cmd]` is in [the `<App/>` element](SharedConfig.md#App-element).
 
 ### GET /api/appdefs/{id}
 
-One definition, as above: `{"id": "m1.camera","groups": ""}`. A `@plan` suffix is accepted and ignored here. Unknown
-application: 404.
+One definition, as above: `{"id": "m1.camera","groups": "","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"}`.
+A `@plan` suffix is accepted and ignored here. Unknown application: 404.
+
+### GET /api/appdefs/{id}/location
+
+Where the application's binary and working folder are **on its machine, as the agent of that machine resolves them** - the answer to
+"where is this program, really". `{id}` is `m1.a` or `m1.a@plan1`; the definition is picked as for the
+[file previews](#GET-apiappdefsm1afiles): the requested plan's, else the plan the application last ran in, else the default one
+(`planSource` says which).
+
+The master asks the agent that owns the application - one call per machine - and the agent answers using **the very code the launcher
+starts the process from**: the same variables (environment, the app's own variables, `%APP_ID%`, `%MACHINE_ID%`, `%APP_BINDIR%`,
+`%APP_STARTUPDIR%`, the global variables), the same treatment of reserved names and the same rooting of relative paths at the folder of
+the shared config. A relative path is therefore reported as the launcher would make it absolute.
+
+```json
+{"app": "m1.camera","plan": null,"planSource": "none","machine": "m1","kind": "process",
+ "exe": {"declared": "bin/%TOOLS%/camera.exe","localPath": "D:/root/bin/v1/camera.exe",
+         "uncPath": "//10.0.0.5/D/root/bin/v1/camera.exe","uncError": null,
+         "exists": true,"size": 1048576,"modified": "2026-11-19T09:58:03Z","fileVersion": "2.4.1.0"},
+ "startupDir": {"declared": "work/%APP_ID%","localPath": "D:/root/work/camera","uncPath": "//10.0.0.5/D/root/work/camera",
+                "uncError": null,"exists": true},
+ "cmdLineArgs": {"declared": "--id %APP_ID%","expanded": "--id camera"},
+ "error": null}
+```
+
+(Paths are shown with `/` here; the real answer carries Windows paths with escaped backslashes, as the other examples do.)
+
+* `kind` is `process` for a plain program, the reserved name without brackets for `[cmd]`, `[cmd.file]`, `[cmd.command]`, `[powershell]`,
+  `[powershell.file]`, `[powershell.command]` (their `exe.localPath` is the resolved shell), and `dirigentCommand` for `[dirigent.command]`,
+  which runs no program: it has no `exe` or `startupDir` paths, only the expanded `cmdLineArgs`.
+* `cmdLineArgs.expanded` is the command line **exactly as the process would get it**, including the prefixes added for the reserved names
+  (`/c ` for `[cmd.command]`).
+* `exists`, `size`, `modified` (UTC) and `fileVersion` (the file version resource; `null` if the file has none) are read on the machine.
+  `uncPath` is the path through the machine's `<Share>` and `null` with the reason in `uncError` when no share covers it
+  ([UNC paths and file shares](Files.md#UNC-paths-and-file-shares)).
+* A program named without any folder (`cmd.exe`) is looked for where the launcher looks - under the folder of the shared config - and, only if it
+  is not there, in the agent's `PATH` (with the `PATHEXT` extensions). If it is found there `exe.foundOnPath` is `true`: it exists, but the
+  launcher itself would not find it that way. If it is found nowhere `exe.localPath` is the name as written and `exists` is `false`.
+* A machine that is not connected, or does not answer, gives `error` on its applications only; the `declared` values are still there.
+
+**Limits.** The variables are those the agent knows in advance. Variables given at `StartApp` time (`StartApp m1.a VAR=value`) are not known until
+the application is started, so a path that uses one is reported without it. The result is a statement about the files **now**: the file may be replaced
+a second later.
+
+Unknown application or plan: 404; a malformed id: 400. This is a call that asks the agent, so it takes a moment; see
+[Conventions](#Conventions). (CLI: [`GetAppLocation`](CLI.md#GetAppLocation).)
+
+### GET /api/applocations
+
+The same for every application, or those of one machine with `?machine=m1`: an array of the entries above, ordered by machine and application.
+Each application is described from the definition [the same way](#GET-apiappdefsidlocation): the plan it last ran in, else the default.
+All the machines are asked at once. (CLI: [`GetAppLocations`](CLI.md#GetAppLocations).)
 
 ### GET /api/appstates
 

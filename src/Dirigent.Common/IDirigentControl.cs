@@ -157,6 +157,12 @@ namespace Dirigent
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
 
+		/// <summary>
+		/// How the given app would be launched by the agent of THIS machine: its variables, program,
+		/// command line and working folder. Only an agent knows - null anywhere else.
+		/// </summary>
+		AppLaunchSpec? ResolveAppLaunchSpec( AppDef appDef ) { return null; }
+
 	}
 
 
@@ -256,5 +262,6 @@ namespace Dirigent
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
+		Task<AppLaunchSpec?> ResolveAppLaunchSpecAsync( AppDef appDef );
 	}
 }

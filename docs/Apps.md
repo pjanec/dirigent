@@ -35,6 +35,14 @@ Status is encoded in several flags
 | Plan Applied | The application has already been processed as part of StartPlan operation. The plan will not attempt to launch the application again. This happens for example if the application was killed by a direct KillApp request. |
 | Restarting   | Dirigent is going to restart the app. This happens after crash (if the app is configured to be automatically restarted) or after manual RestartApp request. |
 
+## Where an application's program is
+
+`ExeFullPath` and `StartupDir` in the config are written once for every machine, with variables and relative paths, so what they come
+to on a particular machine is not obvious. Ask the machine's agent: [`GetAppLocation`](CLI.md#GetAppLocation) or, over HTTP,
+[`GET /api/appdefs/{id}/location`](HTTP.md#GET-apiappdefsidlocation) answers with the resolved program, working folder and command line,
+whether the program is there, its size and version, and its UNC path. The answer comes from **the same code the launcher starts the process
+from**, so it is what a launch would use - except for variables given only at `StartApp` time, which are not known in advance.
+
 ## Identifying an application
 
 The application instance is uniquely addressed by the name of the computer it is running on and by the name chosen for particular instance of an application. These two are separated by a dot, having format `machineId.applicationInstanceId`.

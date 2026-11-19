@@ -49,6 +49,9 @@ namespace Dirigent
 
 		SharedContext _sharedContext;
 
+		/// <summary>How this app launches - see <see cref="AppLaunchSpec"/>.</summary>
+		AppLaunchSpec _spec;
+
 
 		#if Windows
 		//PerformanceCounter? _perfCPU;
@@ -69,22 +72,10 @@ namespace Dirigent
 			this._planName = appDef.PlanName;
 			this._masterIP = _sharedContext.Client.MasterIP;
 
-			_publishedVars = extraVars is null ? new() : new( extraVars );   // we modify the _publishedVars dictionary later => copy necessary!
-
-			// set environment variables here so we can use them when expanding process path/args/cwd
-			// KEEP IN SYNC WITH FileRegistry.cs!
-			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_PLAN", _planName );
-			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_MACHINEID", _appDef.Id.MachineId );
-			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_APPID", _appDef.Id.AppId );
-			Tools.AddOrUpdateVar( _publishedVars, "DIRIGENT_MASTER_IP", _masterIP );
-
-			this._expansionVars = BuildVars( appDef, _sharedContext.ExpansionVars, _publishedVars );
-
-			Tools.AddOrUpdateVar( _expansionVars, "MACHINE_ID", _appDef.Id.MachineId );
-			// note: we are missing MACHINE_IP here - which one of our network interfaces to use? Not clear. Makes sense only for remote machines.
-			Tools.AddOrUpdateVar( _expansionVars, "APP_ID", _appDef.Id.AppId );
-			Tools.AddOrUpdateVar( _expansionVars, "APP_BINDIR", Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet ));
-			Tools.AddOrUpdateVar( _expansionVars, "APP_STARTUPDIR", Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ));
+			// the variables, the program, the command line and the working folder come from AppLaunchSpec
+			_spec = new AppLaunchSpec( appDef, _sharedContext.ExpansionVars, extraVars, _masterIP, _relativePathsRoot );
+			_publishedVars = _spec.PublishedVars;
+			_expansionVars = _spec.ExpansionVars;
 
 			//_cmdRepo = new CommandRepository( ctrl );
 			//DirigentCommandRegistrator.Register( _cmdRepo );
@@ -136,34 +127,14 @@ namespace Dirigent
 		}
 
 
-		Dictionary<string, string> BuildVars( AppDef appDef, Dictionary<string, string> internalVars, Dictionary<string,string> extraVars )
-		{
-			// start with externally defined (global) internal vars
-			var res = new Dictionary<string, string>( internalVars );
-
-			// add the local variables from appdef
-			foreach( var kv in appDef.LocalVarsToSet )
-			{
-				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
-			}
-
-			// process explicitly specified variables
-			foreach( var kv in extraVars )
-			{
-				Tools.AddOrUpdateVar( res, kv.Key, kv.Value );
-			}
-
-			return res;
-		}
-
 		string ExpandVars( String str )
 		{
-			return Tools.ExpandEnvAndInternalVars( str, _expansionVars );
+			return _spec.ExpandVars( str );
 		}
 
 		string BuildAbsolutePath( string anyPath )
 		{
-			return PathUtils.BuildAbsolutePath( anyPath, _relativePathsRoot );
+			return _spec.BuildAbsolutePath( anyPath );
 		}
 
 		public bool AdoptAlreadyRunningByName()
@@ -243,88 +214,7 @@ namespace Dirigent
 			}
 		}
 
-		string GetCmdExePath()
-		{
-			return Environment.GetEnvironmentVariable( "ComSpec" ) ?? string.Empty;
-		}
-
-		string GetPowershellExePath()
-		{
-			return Environment.ExpandEnvironmentVariables( @"%windir%\system32\WindowsPowerShell\v1.0\powershell.exe" ) ?? string.Empty;
-		}
-
-		enum EExeType
-		{
-			Executable,   // normal executable startable via Process.Start
-			DirigentCmd   // dirigent command(s) in text form
-		}
-
-		struct ParsedExe
-		{
-			public EExeType ExeType;
-			public string Path;
-			public string CmdLine;
-		}
-
-		ParsedExe ParseExe()
-		{
-			ParsedExe pe = new ParsedExe();
-
-			// resolve reserved exe names
-			switch( _appDef.ExeFullPath.ToLower() )
-			{
-				// just cmd shell
-				case "[cmd]":
-					pe.ExeType = EExeType.Executable;
-					pe.Path = GetCmdExePath();
-					pe.CmdLine = ExpandVars( _appDef.CmdLineArgs );
-					break;
-
-				case "[cmd.file]":
-				case "[cmd.command]":
-					pe.ExeType = EExeType.Executable;
-					pe.Path = GetCmdExePath();
-					pe.CmdLine = "/c " + ExpandVars( _appDef.CmdLineArgs );
-					break;
-
-				// just powershell with any command line
-				case "[powershell]":
-					pe.ExeType = EExeType.Executable;
-					pe.Path = GetPowershellExePath();
-					pe.CmdLine = ExpandVars( _appDef.CmdLineArgs );
-					break;
-
-				// powershell script file specified in appDef.CmdLineArgs;
-				case "[powershell.file]":
-					pe.ExeType = EExeType.Executable;
-					pe.Path = GetPowershellExePath();
-					pe.CmdLine = "-executionpolicy bypass -file " + ExpandVars( _appDef.CmdLineArgs );
-					break;
-
-				// powershell command specified in CmdLineArgs
-				case "[powershell.command]":
-					pe.ExeType = EExeType.Executable;
-					pe.Path = GetPowershellExePath();
-					pe.CmdLine = "-executionpolicy bypass -command \"" + ExpandVars( _appDef.CmdLineArgs ) + "\"";
-					break;
-
-
-				// dirigent.AgentCmd command line
-				case ReservedExeNames.DirigentCommand:
-					pe.ExeType = EExeType.DirigentCmd;
-					pe.Path = string.Empty;
-					pe.CmdLine = ExpandVars( _appDef.CmdLineArgs );
-					break;
-
-				default:
-					pe.ExeType = EExeType.Executable;
-					pe.Path = ExpandVars( _appDef.ExeFullPath );
-					pe.CmdLine = ExpandVars( _appDef.CmdLineArgs );
-					break;
-			}
-
-			return pe;
-		}
+		ParsedExe ParseExe() => _spec.ParseExe();
 
 
 
@@ -370,15 +260,15 @@ namespace Dirigent
 
 			// start the process
 			var psi = new ProcessStartInfo_();
-			psi.FileName = BuildAbsolutePath( pe.Path );
+			psi.FileName = _spec.GetFileName( pe );
 			if( !String.IsNullOrEmpty( pe.CmdLine ) )
 			{
 				psi.Arguments = pe.CmdLine;
 			}
-			if( _appDef.StartupDir != null )
+			var workingDirectory = _spec.GetWorkingDirectory();
+			if( workingDirectory != null )
 			{
-				var dir = ExpandVars( _appDef.StartupDir );
-				psi.WorkingDirectory = BuildAbsolutePath( dir );
+				psi.WorkingDirectory = workingDirectory;
 			}
 
 			psi.WindowStyle = _appDef.WindowStyle switch

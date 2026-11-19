@@ -49,6 +49,18 @@ namespace Dirigent.Web
         //public string CmdLineArgs { get; set; } = string.Empty;
 		public string groups { get; set; } = string.Empty;
 
+		/// <summary>The machine the application runs on.</summary>
+		public string machine { get; set; } = string.Empty;
+
+		/// <summary>The program, exactly as the config declares it (variables not expanded).</summary>
+		public string exeFullPath { get; set; } = string.Empty;
+
+		/// <summary>The working folder, as declared.</summary>
+		public string startupDir { get; set; } = string.Empty;
+
+		/// <summary>The command line arguments, as declared.</summary>
+		public string cmdLineArgs { get; set; } = string.Empty;
+
 		public AppDef()
 		{
 		}
@@ -57,6 +69,10 @@ namespace Dirigent.Web
 		{
 			id = x.Id.ToString();
 			groups = x.Groups;
+			machine = x.Id.MachineId;
+			exeFullPath = x.ExeFullPath;
+			startupDir = x.StartupDir;
+			cmdLineArgs = x.CmdLineArgs;
 		}
     }
 
@@ -102,6 +118,40 @@ namespace Dirigent.Web
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
 			return res;
+		}
+
+		// Where the binary and the working folder of an app are, as its agent resolves them.
+		// id is "m1.a" or "m1.a@plan1", the definition picked as for the files.
+		[Route( HttpVerbs.Get, "/appdefs/{id}/location" )]
+		public async Task GetAppLocation( string id )
+		{
+			AppLocationQuery? query = null;
+			var op = _master.AddSynchronousOp( () => { query = AppLocationQuery.Prepare( _master, id ); } );
+			await op.WaitAsync();
+
+			if( op.Exception is AppFilesNotFoundException )
+				throw HttpException.NotFound( op.Exception.Message );
+			if( op.Exception is ArgumentSyntaxErrorException )
+				throw HttpException.BadRequest( op.Exception.Message );
+			if( op.Exception != null ) throw op.Exception;
+
+			var entry = ( await query!.ResolveAsync() ).Single();
+			await HttpContext.SendStringAsync( entry.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+		}
+
+		// The same for all the apps, or those of one machine (?machine=m1).
+		[Route( HttpVerbs.Get, "/applocations" )]
+		public async Task GetAppLocations()
+		{
+			var machine = HttpContext.GetRequestQueryData()["machine"];
+
+			AppLocationQuery? query = null;
+			var op = _master.AddSynchronousOp( () => { query = AppLocationQuery.PrepareAll( _master, machine ); } );
+			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
+
+			var entries = await query!.ResolveAsync();
+			await HttpContext.SendStringAsync( AppFilesResult.ToJson( entries ), "application/json", System.Text.Encoding.UTF8 );
 		}
 
 		// Gets the actual files of one app instance, with local and UNC paths.

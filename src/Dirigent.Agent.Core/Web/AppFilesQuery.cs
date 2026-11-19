@@ -102,8 +102,15 @@ namespace Dirigent.Web
 		/// <summary>The top-level VFS nodes of the picked definition.</summary>
 		public IReadOnlyList<VfsNodeDef> Nodes => _nodes;
 
-		AppFilesQuery( Master master, string app, string? plan, string planSource, List<VfsNodeDef> nodes )
+		/// <summary>The definition picked: the requested plan's, the last-run plan's or the default one.</summary>
+		public Dirigent.AppDef Def { get; }
+
+		/// <summary>"requested", "lastRun" or "none".</summary>
+		public string PlanSource => _planSource;
+
+		AppFilesQuery( Master master, string app, string? plan, string planSource, List<VfsNodeDef> nodes, Dirigent.AppDef def )
 		{
+			Def = def;
 			_master = master;
 			_app = app;
 			_plan = plan;
@@ -157,7 +164,7 @@ namespace Dirigent.Web
 				}
 			}
 
-			return new AppFilesQuery( master, appId.ToString(), plan, source, def.VfsNodes.ToList() );
+			return new AppFilesQuery( master, appId.ToString(), plan, source, def.VfsNodes.ToList(), def );
 		}
 
 		/// <summary>

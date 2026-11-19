@@ -22,6 +22,8 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [DownloadPackage](#DownloadPackage)  | Collects a file definition or file package into a download job. |
 | [GetDownload](#GetDownload)          | Returns the state of a download job, in json single line format. |
 | [GetFileDefs](#GetFileDefs)          | Lists the file definitions declared in the shared config, in json single line format. |
+| [GetAppLocation](#GetAppLocation)    | Where the binary and working folder of an app are, as its agent resolves them, in json single line format. |
+| [GetAppLocations](#GetAppLocations)  | The same for all apps or those of one machine. |
 | [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
 | [GetFiles](#GetFiles)                | Lists the files of a file definition or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
@@ -509,6 +511,35 @@ Ignored if a script instance with such guid is not defined or is not running.
     KillScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
 
 
+
+### GetAppLocation
+
+Where the binary and the working folder of one application are, as the agent of its machine resolves them - with the code the launcher uses.
+
+  `GetAppLocation <appId>[@plan]`
+
+`<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app last ran in is used, else the default
+definition. It answers when the agent has answered and then ends with `END`. An unknown app or plan gives a single `ERROR` line; an app of a
+machine that is not connected gives the entry with `error` set. The JSON is that of
+[`GET /api/appdefs/{id}/location`](HTTP.md#GET-apiappdefsidlocation) - see there for the fields and the limits.
+
+##### Response text
+
+  `APPLOCATION:<appIdAsGiven>:<json on one line>`
+
+  `END`
+
+### GetAppLocations
+
+The same for all applications.
+
+  `GetAppLocations [machine=m1]`
+
+##### Response text
+
+  `APPLOCATIONS:<json array on one line>`
+
+  `END`
 
 ### GetAppFiles
 

@@ -59,6 +59,8 @@ namespace Dirigent
             new( "GetScriptState",     typeof( Commands.GetScriptState ),     (ctrl, requestorId) => new Commands.GetScriptState(ctrl, requestorId) ),
             new( "WaitForScript",      typeof( Commands.WaitForScript ),      (ctrl, requestorId) => new Commands.WaitForScript(ctrl, requestorId) ),
             new( "GetAppFiles",        typeof( Commands.GetAppFiles ),        (ctrl, requestorId) => new Commands.GetAppFiles(ctrl, requestorId) ),
+            new( "GetAppLocation", typeof( Commands.GetAppLocation ), (ctrl, requestorId) => new Commands.GetAppLocation(ctrl, requestorId) ),
+            new( "GetAppLocations", typeof( Commands.GetAppLocations ), (ctrl, requestorId) => new Commands.GetAppLocations(ctrl, requestorId) ),
             new( "GetFiles",       typeof( Commands.GetFiles ),       (ctrl, requestorId) => new Commands.GetFiles(ctrl, requestorId) ),
             new( "GetFileDefs", typeof( Commands.GetFileDefs ), (ctrl, requestorId) => new Commands.GetFileDefs(ctrl, requestorId) ),
             new( "DownloadPackage", typeof( Commands.DownloadPackage ), (ctrl, requestorId) => new Commands.DownloadPackage(ctrl, requestorId) ),

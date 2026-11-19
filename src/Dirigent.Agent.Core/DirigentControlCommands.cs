@@ -847,6 +847,88 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
+	/// Where the binary and working folder of one app are, as its agent resolves them:
+	/// `GetAppLocation &lt;appId&gt;[@plan]`. Same answer as GET /api/appdefs/{id}/location,
+	/// `APPLOCATION:&lt;appIdAsGiven&gt;:&lt;json&gt;` and then `END`, completed asynchronously like <see cref="GetAppFiles"/>.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetAppLocation : DirigentControlCommand
+	{
+		string _id = string.Empty;
+		System.Threading.Tasks.Task<List<Web.AppLocationEntry>>? _task;
+		bool _finished;
+
+		public GetAppLocation( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			_id = args[0];
+
+			var query = Web.AppLocationQuery.Prepare( ctrl, _id ); // master thread: picks the definition
+			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync() );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( $"APPLOCATION:{_id}:{_task.Result.Single().ToJson()}" );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
+	/// The same for all apps or those of one machine: `GetAppLocations [machine=m1]`.
+	/// `APPLOCATIONS:&lt;json array&gt;` and then `END`.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetAppLocations : DirigentControlCommand
+	{
+		System.Threading.Tasks.Task<List<Web.AppLocationEntry>>? _task;
+		bool _finished;
+
+		public GetAppLocations( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			var options = Tools.ParseKeyValList( args );
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+
+			var query = Web.AppLocationQuery.PrepareAll( ctrl, machine );
+			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync() );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( "APPLOCATIONS:" + Web.AppFilesResult.ToJson( _task.Result ) );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
 	/// Waits for a script to end and says how it went. `WaitForScript &lt;guid&gt; [timeout=&lt;seconds&gt;]`
 	/// </summary>
 	/// <remarks>

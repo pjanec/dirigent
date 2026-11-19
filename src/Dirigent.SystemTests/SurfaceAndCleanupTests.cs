@@ -30,6 +30,40 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void AppDefinitionsSayWhereTheBinaryIsDeclaredAndTheAgentsSayWhereItIs()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			// declared: additive fields on the definition
+			var def = http.GetAsync( $"{root}/appdefs/m1.camera" ).GetAwaiter().GetResult();
+			var defText = def.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, def.StatusCode, defText );
+			var d = System.Text.Json.JsonDocument.Parse( defText ).RootElement;
+			Assert.AreEqual( "m1.camera", d.GetProperty( "id" ).GetString() );
+			Assert.AreEqual( "m1", d.GetProperty( "machine" ).GetString() );
+			Assert.IsTrue( d.GetProperty( "exeFullPath" ).GetString()!.Length > 0, defText );
+			Assert.IsTrue( d.TryGetProperty( "startupDir", out _ ) && d.TryGetProperty( "cmdLineArgs", out _ ), defText );
+
+			// resolved: asked of the agent
+			var all = http.GetAsync( $"{root}/applocations" ).GetAwaiter().GetResult();
+			var allText = all.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, all.StatusCode, allText );
+			var list = System.Text.Json.JsonDocument.Parse( allText ).RootElement;
+			Assert.AreEqual( 3, list.GetArrayLength(), allText );
+
+			var one = http.GetAsync( $"{root}/appdefs/m1.camera/location" ).GetAwaiter().GetResult();
+			var oneText = one.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, one.StatusCode, oneText );
+			var loc = System.Text.Json.JsonDocument.Parse( oneText ).RootElement;
+			Assert.IsTrue( loc.GetProperty( "exe" ).GetProperty( "exists" ).GetBoolean(), oneText );
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.GetAsync( $"{root}/appdefs/m1.nosuch/location" ).GetAwaiter().GetResult().StatusCode );
+		}
+
+		[TestMethod()]
 		public void StateEndpointsAnswerToThePluralAndTheOlderSingularName()
 		{
 			using var world = SystemWorld.Start( "WaitingWorld", withHttp: true ); // has the plan "never"
