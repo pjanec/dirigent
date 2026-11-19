@@ -64,6 +64,49 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void TheManualIsServedAndAMarkIsAnsweredWithAReportOverHttp()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 90 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			// /api/help redirects to the page, so that its relative links reach the other pages
+			var help = http.GetAsync( $"{root}/help" ).GetAwaiter().GetResult();
+			var helpText = help.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, help.StatusCode );
+			Assert.AreEqual( "text/markdown", help.Content.Headers.ContentType?.MediaType );
+			Assert.AreEqual( "utf-8", help.Content.Headers.ContentType?.CharSet );
+			StringAssert.Contains( helpText, "GET /api/filedefs", "the reference of the API" );
+			StringAssert.EndsWith( help.RequestMessage!.RequestUri!.AbsolutePath, "/api/help/HTTP.md" );
+
+			var files = http.GetAsync( $"{root}/help/files.md" ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, files.StatusCode, "case does not matter" );
+			StringAssert.Contains( files.Content.ReadAsStringAsync().GetAwaiter().GetResult(), "file definition" );
+
+			foreach( var name in new[] { "nosuch.md", "..%2Fversion.txt", "Note-3.1.19-Followup-SharedConfig-and-FileAPI.md" } )
+			{
+				var gone = http.GetAsync( $"{root}/help/{name}" ).GetAwaiter().GetResult();
+				Assert.AreEqual( System.Net.HttpStatusCode.NotFound, gone.StatusCode, name );
+				Assert.AreEqual( "application/json", gone.Content.Headers.ContentType?.MediaType, name );
+			}
+
+			// a mark: the report names what was skipped, and says why nothing was done
+			var mark = http.PostAsync( $"{root}/filedefs/logs.all/mark", new StringContent( "" ) ).GetAwaiter().GetResult();
+			var markText = mark.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, mark.StatusCode, markText );
+			var report = System.Text.Json.JsonDocument.Parse( markText ).RootElement;
+			Assert.AreEqual( "mark", report.GetProperty( "operation" ).GetString() );
+			Assert.IsTrue( report.GetProperty( "machines" ).GetArrayLength() > 0, markText );
+			StringAssert.Contains( report.GetProperty( "message" ).GetString(), "Clearable", "the logs of this world are not Clearable" );
+
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.PostAsync( $"{root}/filedefs/nosuch/mark", new StringContent( "" ) ).GetAwaiter().GetResult().StatusCode );
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.PostAsync( $"{root}/appdefs/m1.nosuch/clear", new StringContent( "" ) ).GetAwaiter().GetResult().StatusCode );
+		}
+
+		[TestMethod()]
 		public void StateEndpointsAnswerToThePluralAndTheOlderSingularName()
 		{
 			using var world = SystemWorld.Start( "WaitingWorld", withHttp: true ); // has the plan "never"

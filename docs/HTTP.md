@@ -1,5 +1,7 @@
 # Web API
 
+*This page is served by every master at `GET /api/help`.*
+
 The master runs a small web server that makes Dirigent's state and its file features available over
 HTTP. It serves three things:
 
@@ -74,7 +76,8 @@ examples below are real answers, shortened where they are long.
 | GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
 | GET | [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation) | Where the binary and working folder of an application are, as its agent resolves them | [`GetAppLocation`](CLI.md#GetAppLocation) |
 | GET | [`/api/applocations`](#GET-apiapplocations) | The same for all applications (`?machine=`) | [`GetAppLocations`](CLI.md#GetAppLocations) |
-| GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsm1afiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
+| GET | [`/api/help`](#GET-apihelp), [`/api/help/{doc}`](#GET-apihelpdoc) | This documentation, from the running master | |
+| GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
 | GET | [`/api/appstates`](#GET-apiappstates) | State of all applications | [`GetAllAppsState`](CLI.md#GetAllAppsState) |
 | GET | [`/api/appstates/{id}`](#GET-apiappstatesid) | State of one application (also `/api/appstate/{id}`) | [`GetAppState`](CLI.md#GetAppState) |
 | GET | [`/api/plandefs`](#GET-apiplandefs) | All plan definitions | |
@@ -89,7 +92,9 @@ examples below are real answers, shortened where they are long.
 | GET | [`/api/clients/{id}`](#GET-apiclientsid) | One client | [`GetClientState`](CLI.md#GetClientState) |
 | GET | [`/api/filedefs`](#GET-apifiledefs) | List the file definitions | [`GetFileDefs`](CLI.md#GetFileDefs) |
 | GET | [`/api/filedefs/{id}`](#GET-apifiledefsid) | The file definitions with an id | |
-| GET | [`/api/filedefs/{id}/files`](#GET-apifiledefspkgfilesmachinem1appa) | The actual files of file definitions | [`GetFiles`](CLI.md#GetFiles) |
+| GET | [`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp) | The actual files of file definitions | [`GetFiles`](CLI.md#GetFiles) |
+| POST | [`/api/filedefs/{id}/mark`](#POST-apifiledefsidmark), [`/clear`](#POST-apifiledefsidclear), [`/unmark`](#POST-apifiledefsidunmark) | Draw a line under the clearable files of file definitions, empty them, or take the line away | [`MarkFiles`](CLI.md#MarkFiles), [`ClearFiles`](CLI.md#ClearFiles), [`UnmarkFiles`](CLI.md#UnmarkFiles) |
+| POST | [`/api/appdefs/{id}/mark`](#POST-apiappdefsidmark), [`/clear`](#POST-apiappdefsidclear), [`/unmark`](#POST-apiappdefsidunmark) | The same for the files of one application | [`MarkAppFiles`](CLI.md#MarkAppFiles), [`ClearAppFiles`](CLI.md#ClearAppFiles), [`UnmarkAppFiles`](CLI.md#UnmarkAppFiles) |
 | POST | [`/api/downloads`](#POST-apidownloads) | Start a collection into a zip | [`DownloadPackage`](CLI.md#DownloadPackage), [`DownloadApp`](CLI.md#DownloadApp) |
 | GET | [`/api/downloads`](#GET-apidownloads) | List the download jobs | |
 | GET | [`/api/downloads/{id}`](#GET-apidownloadsidwaitn) | State of a job (`?wait=N`) | [`GetDownload`](CLI.md#GetDownload) |
@@ -128,7 +133,7 @@ A `@plan` suffix is accepted and ignored here. Unknown application: 404.
 
 Where the application's binary and working folder are **on its machine, as the agent of that machine resolves them** - the answer to
 "where is this program, really". `{id}` is `m1.a` or `m1.a@plan1`; the definition is picked as for the
-[file previews](#GET-apiappdefsm1afiles): the requested plan's, else the plan the application last ran in, else the default one
+[file previews](#GET-apiappdefsidfiles): the requested plan's, else the plan the application last ran in, else the default one
 (`planSource` says which).
 
 The master asks the agent that owns the application - one call per machine - and the agent answers using **the very code the launcher
@@ -197,10 +202,14 @@ One state, as above: `{"id": "m1.camera","state": {"code": "Running","flags": "S
 With `m1.camera@plan1` the state is judged against that plan, which is what turns `Not running` into `Planned` while
 the plan is still starting its applications - see [Plan status](Plans.md#Plan-status).
 
-The older name `/api/appstate/{id}` is also accepted. Unknown application, or one that has no state or no definition: 404.
+The older name [`/api/appstate/{id}`](#GET-apiappstateid) is also accepted. Unknown application, or one that has no state or no definition: 404.
 
 `GET /api/appdefs/{id}/files` previews the actual files of one application instance; it belongs with the file calls and is
-described under [Files and downloads](#GET-apiappdefsm1afiles).
+described under [Files and downloads](#GET-apiappdefsidfiles).
+
+#### GET /api/appstate/{id}
+
+The older name of [`/api/appstates/{id}`](#GET-apiappstatesid); the same answer, still accepted.
 
 ## Plans
 
@@ -230,8 +239,12 @@ while it is killing - all explained in [Plan status](Plans.md#Plan-status). (CLI
 
 ### GET /api/planstates/{id}
 
-One plan state, as above. (CLI: [`GetPlanState`](CLI.md#GetPlanState).) The older name `/api/planstate/{id}` is also accepted.
+One plan state, as above. (CLI: [`GetPlanState`](CLI.md#GetPlanState).) The older name [`/api/planstate/{id}`](#GET-apiplanstateid) is also accepted.
 Unknown plan: 404.
+
+#### GET /api/planstate/{id}
+
+The older name of [`/api/planstates/{id}`](#GET-apiplanstatesid); the same answer, still accepted.
 
 ## Scripts
 
@@ -263,8 +276,12 @@ Note that `code` is the script's **status text** - whatever the script says it i
 
 ### GET /api/scriptstates/{id}
 
-One script state, as above. The older name `/api/scriptstate/{id}` is also accepted. An id that is not a guid: 400;
+One script state, as above. The older name [`/api/scriptstate/{id}`](#GET-apiscriptstateid) is also accepted. An id that is not a guid: 400;
 unknown script: 404. See also [Singleton scripts](Scripts.md#Singleton-scripts).
+
+#### GET /api/scriptstate/{id}
+
+The older name of [`/api/scriptstates/{id}`](#GET-apiscriptstatesid); the same answer, still accepted.
 
 ## Clients
 
@@ -297,7 +314,7 @@ The flow of a diagnostic tool: **list** the file definitions (`/api/filedefs`), 
 (`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** them (`POST /api/downloads`), **poll** the job,
 **fetch** the archive - or read the files in place through their UNC paths.
 
-### GET /api/appdefs/m1.a/files
+### GET /api/appdefs/{id}/files
 
 returns the actual files of one application instance, each with the path on its own machine
 (`localPath`) and, where a file share covers it, a UNC path (`uncPath`) a diagnostic tool can read.
@@ -331,7 +348,7 @@ members of a package that could not be looked up). A file definition with no mac
 The files are listed, not served: the tool reads them through the UNC path. The same answer is given by
 `POST /api/cli` with `GetAppFiles m1.a@plan1` (see [CLI](CLI.md#GetAppFiles)).
 
-### GET /api/filedefs/pkg/files?machine=m1&app=a
+### GET /api/filedefs/{id}/files?machine=&app=
 
 the same for the top-level file definitions with this id - a file package, usually - addressed the way scripts address
 them: `pkg` is the file definition id (wildcards allowed), `machine` and `app` optionally narrow it, `content`
@@ -419,6 +436,55 @@ goes as soon as its script has stopped.
 The same through `POST /api/cli`: `GetFileDefs`, `GetFiles`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
 `DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
 
+## Marking the files of a test run
+
+Draw a line under the log files before a test run (**mark**), or empty them (**clear**), and take the line away (**unmark**), so that the next download holds the
+run and not the whole afternoon - the mechanism, and why a mark rather than a delete, is in [Marking and clearing](MarkAndClear.md). Only definitions that say
+`Clearable="1"` are ever touched; the rest are reported as skipped. Each call runs the same scripts the GUI's menu does (`BuiltIns/MarkFiles.cs`,
+`ClearFiles.cs`, `UnmarkFiles.cs`), waits for the machines, and answers with what happened to which file:
+
+```json
+{ "operation": "mark", "selection": "run.pkg",
+  "machines": [ { "machine": "m1",
+                  "marked": [ "C:\\apps\\camera\\logs\\app.log" ], "cleared": [], "unmarked": [],
+                  "skippedNotClearable": [ "C:\\apps\\camera\\app.cfg" ], "missing": [], "failed": [] } ],
+  "errors": [], "message": null }
+```
+
+`cleared` are the files emptied, `marked` those a line was drawn under - which is also what a **clear** does to a file somebody holds open - and `failed` are
+`{"path","error"}` pairs. `message` explains the one case worth explaining: nothing in the selection is `Clearable`. A selection that matches nothing is a 404.
+`?waitSeconds=N` bounds the wait (60 by default, 300 at most); a script that is still running then is `504` with a JSON body naming its script id, which goes on
+and can be followed at [`/api/scriptstates/{id}`](#GET-apiscriptstatesid). A script that fails - say, no machine holding the files is online - is `502`
+with the reason. A file definition that has a mark is shown in the [previews](#GET-apiappdefsidfiles) as `markedAt` (UTC) and `markedAtBytes`.
+
+### POST /api/filedefs/{id}/mark
+
+Draws a line under the clearable files of the file definitions matching `{id}` (wildcards allowed: `*` is everything clearable) - destroying nothing, which is
+the one for a production site. `?machine=` and `?app=` narrow the selection as for [`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp).
+(CLI: [`MarkFiles`](CLI.md#MarkFiles).)
+
+### POST /api/filedefs/{id}/clear
+
+Empties what can be emptied and marks the rest - a log somebody is writing to cannot be emptied, so the line is drawn under it, which keeps the promise that
+the next download holds only what comes after. (CLI: [`ClearFiles`](CLI.md#ClearFiles).)
+
+### POST /api/filedefs/{id}/unmark
+
+Takes the lines away, so the next download holds the whole files again. Works on files that have since stopped being `Clearable`. (CLI: [`UnmarkFiles`](CLI.md#UnmarkFiles).)
+
+### POST /api/appdefs/{id}/mark
+
+The same for all the file definitions of one application, `m1.a` or `m1.a@plan1` (the definition picked as for the [previews](#GET-apiappdefsidfiles)),
+as one selection - the way [`DownloadApp`](CLI.md#DownloadApp) takes them. (CLI: [`MarkAppFiles`](CLI.md#MarkAppFiles).)
+
+### POST /api/appdefs/{id}/clear
+
+As above, clearing. (CLI: [`ClearAppFiles`](CLI.md#ClearAppFiles).)
+
+### POST /api/appdefs/{id}/unmark
+
+As above, unmarking. (CLI: [`UnmarkAppFiles`](CLI.md#UnmarkAppFiles).)
+
 ## CLI
 
 ### POST /api/cli
@@ -445,6 +511,19 @@ POST /api/cli          body: GetAllPlansState
 A command that fails answers `200` with a line starting `ERROR:` inside the string; see [CLI](CLI.md) for what every command answers
 and how its answer ends. Whatever the CLI offers - starting and killing apps and plans, running scripts, `SetVars`, `Shutdown`,
 `WakeUp`, `ReloadSharedConfig` - this endpoint offers too, which is why [the warning about access](#Web-API) matters.
+
+## Help
+
+### GET /api/help
+
+The documentation of the master you are talking to: redirects (302) to [`/api/help/HTTP.md`](#GET-apihelpdoc), this page. Every master carries the pages
+of its own version, so the answer always matches the program - there is nothing to download.
+
+### GET /api/help/{doc}
+
+One page of the documentation as Markdown (`text/markdown; charset=utf-8`): `HTTP.md`, `Files.md`, `CLI.md`, `SharedConfig.md`, `MarkAndClear.md`, ... The name is
+the file name, case does not matter; anything else - an unknown page, a name with a path in it - is a 404 with the usual JSON body. The links between the pages
+are relative (`Files.md#file-templates`), and since the pages are served side by side under `/api/help/`, they work in a browser or a Markdown viewer as they are.
 
 ## WebSocket
 

@@ -36,6 +36,13 @@
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="5.0.2" />
   </ItemGroup>  
 
+  <!-- the documentation travels inside the assembly, so that every master serves it: GET /api/help. The design
+       notes and proposals are not part of it. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\*.md" Exclude="..\..\docs\Note-*.md;..\..\docs\Proposal-*.md"
+                      LogicalName="docs/%(Filename)%(Extension)" Link="docs\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Dirigent.CLI.Core\Dirigent.CLI.Core.csproj" />
     <ProjectReference Include="..\Dirigent.Common\Dirigent.Common.csproj" />

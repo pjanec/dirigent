@@ -23,6 +23,12 @@ namespace Dirigent.Web
 		/// <summary>Last write time, UTC.</summary>
 		public DateTime? modified { get; set; }
 
+		/// <summary>When a line was drawn under the file by Mark or Clear (UTC); null if none.</summary>
+		public DateTime? markedAt { get; set; }
+
+		/// <summary>The length of the file when it was marked - where a download from the mark starts.</summary>
+		public long? markedAtBytes { get; set; }
+
 		/// <summary>
 		/// Set when the file definition limits a download to the end of the file (<c>TailBytes</c>) and
 		/// the file is bigger: how many bytes at most a download will hold.
@@ -282,6 +288,8 @@ namespace Dirigent.Web
 					uncPath = TryUnc( master, n, out _ ),
 					size = n.Size,
 					modified = n.Modified,
+					markedAt = n.MarkedAt,
+					markedAtBytes = n.MarkedAtBytes,
 					truncatedTo = n.TailBytes > 0 && n.Size > n.TailBytes ? n.TailBytes : null,
 				} );
 				return;
@@ -320,6 +328,9 @@ namespace Dirigent.Web
 		readonly Master _master;
 		readonly Scripts.BuiltIn.VfsNodeSelector _selector;
 		readonly List<VfsNodeDef> _defs;
+
+		/// <summary>The definitions the selector matched.</summary>
+		public IReadOnlyList<VfsNodeDef> Defs => _defs;
 
 		FileDefFilesQuery( Master master, Scripts.BuiltIn.VfsNodeSelector selector, List<VfsNodeDef> defs )
 		{

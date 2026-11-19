@@ -75,6 +75,27 @@ namespace Dirigent.Scripts.BuiltIn
 			/// <summary>What happened per file, for whoever wants to know which ones.</summary>
 			public List<string> Details = new();
 
+			// The same, as lists of paths - what a REST caller or the CLI reports. Additive: the counts above
+			// and Details are what they always were.
+
+			/// <summary>Files emptied (or deleted).</summary>
+			public List<string> ClearedPaths = new();
+
+			/// <summary>Files a line was drawn under.</summary>
+			public List<string> MarkedPaths = new();
+
+			/// <summary>Files whose mark was dropped.</summary>
+			public List<string> UnmarkedPaths = new();
+
+			/// <summary>Files left alone because they are not Clearable.</summary>
+			public List<string> SkippedPaths = new();
+
+			/// <summary>Files that were not there.</summary>
+			public List<string> AbsentPaths = new();
+
+			/// <summary>Files that could not be touched, with the reason.</summary>
+			public List<TFailedFile> FailedFiles = new();
+
 			public List<SerializedException> Exceptions = new();
 
 			/// <summary>The counts as one line, for a report naming several machines.</summary>
@@ -89,6 +110,13 @@ namespace Dirigent.Scripts.BuiltIn
 				if( Failed > 0 ) parts.Add( $"{Failed} failed" );
 				return parts.Count > 0 ? string.Join( ", ", parts ) : "nothing to do";
 			}
+		}
+
+		/// <summary>A file that should have been touched and could not be.</summary>
+		public class TFailedFile
+		{
+			public string Path = string.Empty;
+			public string Error = string.Empty;
 		}
 
 		TArgs? _args;
@@ -143,6 +171,7 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					_result.Failed++;
 					_result.Details.Add( $"{node.Path}: {e.Message}" );
+					_result.FailedFiles.Add( new TFailedFile() { Path = node.Path ?? string.Empty, Error = Tools.JustFirstLine( e.Message ) } );
 					_result.Exceptions.Add( new SerializedException( e ) );
 				}
 			}
@@ -159,6 +188,7 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				_result.Failed++;
 				_result.Details.Add( $"Node '{node.Id}' resolved to no path." );
+				_result.FailedFiles.Add( new TFailedFile() { Path = node.Id, Error = "resolved to no path" } );
 				return;
 			}
 
@@ -171,6 +201,7 @@ namespace Dirigent.Scripts.BuiltIn
 				if( _marks!.Unmark( path! ) )
 				{
 					_result.Unmarked++;
+					_result.UnmarkedPaths.Add( path! );
 					_result.Details.Add( $"Unmarked {path}" );
 				}
 				return;
@@ -181,6 +212,7 @@ namespace Dirigent.Scripts.BuiltIn
 			if( !node.Clearable )
 			{
 				_result.Skipped++;
+				_result.SkippedPaths.Add( path! );
 				_result.Details.Add( $"Not clearable, left alone: {path}" );
 				return;
 			}
@@ -198,6 +230,7 @@ namespace Dirigent.Scripts.BuiltIn
 					_result.Details.Add( $"Not there: {path}" );
 
 				_result.Absent++;
+				_result.AbsentPaths.Add( path! );
 				return;
 			}
 
@@ -268,6 +301,7 @@ namespace Dirigent.Scripts.BuiltIn
 			_marks!.Unmark( path );
 
 			_result.Cleared++;
+			_result.ClearedPaths.Add( path );
 			_result.Details.Add( deleted ? $"Deleted {path}" : $"Emptied {path}" );
 		}
 
@@ -277,11 +311,13 @@ namespace Dirigent.Scripts.BuiltIn
 			if( mark is null )
 			{
 				_result.Failed++;
+				_result.FailedFiles.Add( new TFailedFile() { Path = path, Error = "could not be marked" } );
 				_result.Details.Add( $"Could not mark {path}" );
 				return;
 			}
 
 			_result.Marked++;
+			_result.MarkedPaths.Add( path );
 			_result.Details.Add( $"{what} at {mark.Offset} bytes: {path}" );
 		}
 	}

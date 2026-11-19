@@ -105,6 +105,12 @@ namespace Dirigent
 		/// <summary>Last write time (UTC) of the file, found together with <see cref="Size"/>.</summary>
 		public DateTime? Modified;
 
+		/// <summary>When a line was drawn under the file (UTC), if one was - see the file marks.</summary>
+		public DateTime? MarkedAt;
+
+		/// <summary>Where the line is: the length of the file when it was marked.</summary>
+		public long? MarkedAtBytes;
+
 
 		public override string ToString()
 		{

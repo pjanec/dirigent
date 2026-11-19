@@ -929,6 +929,155 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
+	/// The common part of the commands drawing a line under files, or taking it away. They start the existing
+	/// MarkFiles / ClearFiles / UnmarkFiles script, wait for it - `timeout=&lt;seconds&gt;`, 60 by default, 300 at
+	/// most - and answer `MARKED:&lt;json&gt;` (`CLEARED:`, `UNMARKED:`) and `END`: the same report as the REST calls.
+	/// </summary>
+	public abstract class MarkOperationCommand : DirigentControlCommand
+	{
+		Web.MarkOperation? _operation;
+		DateTime _deadline;
+		double _timeoutSec;
+		bool _finished;
+
+		protected MarkOperationCommand( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		protected abstract Web.MarkOperation.EKind Kind { get; }
+
+		/// <summary>The part of the answer before the colon: MARKED, CLEARED or UNMARKED.</summary>
+		string Prefix => Kind switch
+		{
+			Web.MarkOperation.EKind.Mark => "MARKED",
+			Web.MarkOperation.EKind.Clear => "CLEARED",
+			_ => "UNMARKED",
+		};
+
+		/// <summary>Picks the files and starts the script. Master thread.</summary>
+		protected abstract Web.MarkOperation Start( Dictionary<string, string> options );
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "an id expected." );
+
+			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+
+			_timeoutSec = Web.MarkApiController.DefaultWaitSeconds;
+			if( Tools.TryGetValueIgnoreKeyCase( options, "timeout", out var timeoutStr ) )
+			{
+				if( !double.TryParse( timeoutStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _timeoutSec ) || _timeoutSec <= 0 )
+					throw new ArgumentSyntaxErrorException( "timeout", timeoutStr, "seconds expected" );
+			}
+			_timeoutSec = Math.Min( _timeoutSec, Web.MarkApiController.MaxWaitSeconds );
+
+			try
+			{
+				_operation = Start( options );
+			}
+			catch( Web.AppFilesNotFoundException e )
+			{
+				throw new Exception( e.Message );
+			}
+
+			_deadline = DateTime.UtcNow.AddSeconds( _timeoutSec );
+		}
+
+		public override void Tick()
+		{
+			if( _operation is null || _finished ) return;
+
+			var state = _operation.State( ctrl );
+
+			if( state is null || state.IsAlive )
+			{
+				if( DateTime.UtcNow < _deadline ) return;
+
+				_finished = true;
+				throw new Exception( $"The {Web.MarkOperation.Word( Kind )} has not finished in {_timeoutSec:0} s; it keeps running as script {_operation.ScriptId}." );
+			}
+
+			_finished = true;
+			var report = _operation.ReportOf( state );
+			WriteResponse( $"{Prefix}:{report.ToJson()}" );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>The file definitions behind `&lt;fileDefId&gt; [machine=] [app=]`.</summary>
+	public abstract class MarkFileDefsCommand : MarkOperationCommand
+	{
+		protected MarkFileDefsCommand( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		protected override Web.MarkOperation Start( Dictionary<string, string> options )
+		{
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
+			return Web.MarkOperation.StartForFileDefs( ctrl, Kind, args[0], machine, app );
+		}
+	}
+
+	/// <summary>`MarkFiles &lt;fileDefId&gt; [machine=] [app=] [timeout=&lt;s&gt;]` - draws a line under the files; destroys nothing.</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class MarkFiles : MarkFileDefsCommand
+	{
+		public MarkFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Mark;
+	}
+
+	/// <summary>`ClearFiles &lt;fileDefId&gt; [machine=] [app=] [timeout=&lt;s&gt;]` - empties what can be emptied, marks the rest.</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class ClearFiles : MarkFileDefsCommand
+	{
+		public ClearFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Clear;
+	}
+
+	/// <summary>`UnmarkFiles &lt;fileDefId&gt; [machine=] [app=] [timeout=&lt;s&gt;]` - forgets the marks.</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class UnmarkFiles : MarkFileDefsCommand
+	{
+		public UnmarkFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Unmark;
+	}
+
+	/// <summary>The files of the application behind `&lt;appId&gt;[@plan]`.</summary>
+	public abstract class MarkAppFilesCommand : MarkOperationCommand
+	{
+		protected MarkAppFilesCommand( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		protected override Web.MarkOperation Start( Dictionary<string, string> options )
+			=> Web.MarkOperation.StartForApp( ctrl, Kind, args[0] );
+	}
+
+	/// <summary>`MarkAppFiles &lt;appId&gt;[@plan] [timeout=&lt;s&gt;]`</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class MarkAppFiles : MarkAppFilesCommand
+	{
+		public MarkAppFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Mark;
+	}
+
+	/// <summary>`ClearAppFiles &lt;appId&gt;[@plan] [timeout=&lt;s&gt;]`</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class ClearAppFiles : MarkAppFilesCommand
+	{
+		public ClearAppFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Clear;
+	}
+
+	/// <summary>`UnmarkAppFiles &lt;appId&gt;[@plan] [timeout=&lt;s&gt;]`</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class UnmarkAppFiles : MarkAppFilesCommand
+	{
+		public UnmarkAppFiles( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+		protected override Web.MarkOperation.EKind Kind => Web.MarkOperation.EKind.Unmark;
+	}
+
+	/// <summary>
 	/// Waits for a script to end and says how it went. `WaitForScript &lt;guid&gt; [timeout=&lt;seconds&gt;]`
 	/// </summary>
 	/// <remarks>

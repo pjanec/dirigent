@@ -82,6 +82,7 @@ namespace Dirigent
 
 		readonly string _filePath;
 		readonly object _lock = new();
+		DateTime _loadedWriteUtc;
 
 		Dictionary<string, Mark> _marks = new( StringComparer.OrdinalIgnoreCase );
 
@@ -105,6 +106,28 @@ namespace Dirigent
 			}
 
 			return Path.Combine( folder, $"file_marks_{machineId}.json" );
+		}
+
+		/// <summary>
+		/// Reads the store again if the file was written since it was read. For whoever only looks at the marks
+		/// of an agent - the master, showing them in a preview - and so has to follow what the agent writes.
+		/// </summary>
+		public void ReloadIfChanged()
+		{
+			try
+			{
+				var write = File.Exists( _filePath ) ? File.GetLastWriteTimeUtc( _filePath ) : default;
+				if( write != _loadedWriteUtc )
+				{
+					lock( _lock ) _marks = new( StringComparer.OrdinalIgnoreCase );
+					Load();
+					_loadedWriteUtc = write;
+				}
+			}
+			catch( Exception e )
+			{
+				log.Debug( $"Could not follow the file marks in '{_filePath}': {e.Message}" );
+			}
 		}
 
 		/// <summary>The mark of a file, or null if nobody has drawn a line under it.</summary>
@@ -211,6 +234,7 @@ namespace Dirigent
 			{
 				if( !File.Exists( _filePath ) ) return;
 
+				_loadedWriteUtc = File.GetLastWriteTimeUtc( _filePath );
 				var content = Tools.Deserialize<Content>( File.ReadAllText( _filePath ) );
 				if( content?.Marks is null ) return;
 

@@ -47,6 +47,21 @@ namespace Dirigent.Scripts.BuiltIn
 
 			/// <summary>What went wrong. Empty on a clean run.</summary>
 			public List<string> Errors = new();
+
+			/// <summary>Which files, per machine - the counts above, told file by file.</summary>
+			public List<TMachineReport> PerMachine = new();
+		}
+
+		/// <summary>What one machine did, file by file.</summary>
+		public class TMachineReport
+		{
+			public string Machine = string.Empty;
+			public List<string> Marked = new();
+			public List<string> Cleared = new();
+			public List<string> Unmarked = new();
+			public List<string> SkippedNotClearable = new();
+			public List<string> Missing = new();
+			public List<MarkFilesSlave.TFailedFile> Failed = new();
 		}
 
 		class SlaveTask
@@ -304,6 +319,17 @@ namespace Dirigent.Scripts.BuiltIn
 					result.Errors.Add( $"{st.MachineName}: no answer." );
 					continue;
 				}
+
+				result.PerMachine.Add( new TMachineReport()
+				{
+					Machine = st.MachineName,
+					Marked = r.MarkedPaths,
+					Cleared = r.ClearedPaths,
+					Unmarked = r.UnmarkedPaths,
+					SkippedNotClearable = r.SkippedPaths,
+					Missing = r.AbsentPaths,
+					Failed = r.FailedFiles,
+				} );
 
 				result.Cleared += r.Cleared;
 				result.Marked += r.Marked;

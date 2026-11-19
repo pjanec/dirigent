@@ -219,6 +219,21 @@ namespace Dirigent
 
             _files.MasterIP = ac.MasterIP;
 
+            // the master resolves what is on its own machine (and, in a test bed, everything); the marks of those files
+            // are kept by the agents, which write them out - so the master reads what they wrote
+            var markReaders = new Dictionary<string, FileMarkStore>();
+            var agentStatusFolder = ac.AgentStatusFolder;
+            _files.MarkStores = machine =>
+            {
+                lock( markReaders )
+                {
+                    if( !markReaders.TryGetValue( machine, out var store ) )
+                        markReaders[machine] = store = new FileMarkStore( machine, agentStatusFolder );
+                    store.ReloadIfChanged();
+                    return store;
+                }
+            };
+
             _swClientRefresh = new Stopwatch();
             _swClientRefresh.Restart();
 

@@ -100,6 +100,8 @@ namespace Dirigent.Web
                     .WithController( () => new PlanApiController( master ) )
                     .WithController( () => new AppApiController( master ) )
                     .WithController( () => new DownloadApiController( master ) )
+                    .WithController( () => new HelpApiController() )
+                    .WithController( () => new MarkApiController( master ) )
                     .WithController( () => new ScriptApiController( master ) )
                     .WithController( () => new CmdApiController( master ) )
                     .WithController( () => new ClientApiController( master ) )

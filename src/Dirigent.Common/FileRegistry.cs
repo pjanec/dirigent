@@ -35,6 +35,12 @@ namespace Dirigent
 		/// </summary>
 		public Dictionary<string, string> GlobalExpansionVars { get; set; } = new();
 
+		/// <summary>
+		/// The marks of a machine's files, if this registry can see them: the agent hands out its own store for its
+		/// own machine, the master reads the stores the agents keep. Null means no marks are shown.
+		/// </summary>
+		public Func<string, FileMarkStore?>? MarkStores { get; set; }
+
 		/// <summary>The address of the Dirigent master, for <c>%DIRIGENT_MASTER_IP%</c> as the launcher knows it.</summary>
 		public string MasterIP { get; set; } = string.Empty;
 
@@ -784,7 +790,25 @@ namespace Dirigent
 		/// Records the size and last write time of the file a resolved node stands for, where this
 		/// machine can see it. A file it cannot see - or cannot read - just goes without.
 		/// </summary>
-		static void FillFileFacts( VfsNodeDef node )
+		/// <summary>A line drawn under the file by Mark or Clear, if this registry can see the marks of its machine.</summary>
+		void FillMark( VfsNodeDef node )
+		{
+			try
+			{
+				if( string.IsNullOrEmpty( node.MachineId ) || string.IsNullOrEmpty( node.Path ) ) return;
+
+				var mark = MarkStores?.Invoke( node.MachineId )?.Get( node.Path );
+				if( mark is null ) return;
+
+				node.MarkedAt = mark.MarkedAt.ToUniversalTime();
+				node.MarkedAtBytes = mark.Offset;
+			}
+			catch( Exception )
+			{
+			}
+		}
+
+		void FillFileFacts( VfsNodeDef node )
 		{
 			try
 			{
@@ -792,6 +816,8 @@ namespace Dirigent
 				if( !info.Exists ) return;
 				node.Size = info.Length;
 				node.Modified = info.LastWriteTimeUtc;
+
+				FillMark( node );
 			}
 			catch( Exception )
 			{
@@ -1012,20 +1038,20 @@ namespace Dirigent
 			{
 				var parent = GetOrCreateSubFolder( rootNode, System.IO.Path.GetDirectoryName( relPath ), folderDef );
 
-				parent.Children.Add(
-					new FileDef
-					{
-						Path = info.FullName,
-						MachineId = folderDef.MachineId,
-						AppId = folderDef.AppId,
-						IsContainer = false,
-						Title = info.Name,
-						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
-						Clearable = folderDef.Clearable, // and so does the permission
-						Size = info.Length,
-						Modified = info.LastWriteTimeUtc,
-					}
-				);
+				var leaf = new FileDef
+				{
+					Path = info.FullName,
+					MachineId = folderDef.MachineId,
+					AppId = folderDef.AppId,
+					IsContainer = false,
+					Title = info.Name,
+					TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
+					Clearable = folderDef.Clearable, // and so does the permission
+					Size = info.Length,
+					Modified = info.LastWriteTimeUtc,
+				};
+				FillMark( leaf );
+				parent.Children.Add( leaf );
 			}
 
 			return rootNode;

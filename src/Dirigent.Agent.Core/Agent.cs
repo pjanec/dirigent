@@ -106,6 +106,9 @@ namespace Dirigent
 			_reflStates.FileReg.GlobalExpansionVars = _sharedContext.ExpansionVars;
 			_reflStates.FileReg.MasterIP = _client.MasterIP;
 
+			// the marks of this machine's files are shown in the previews of them
+			_reflStates.FileReg.MarkStores = m => m == machineId ? _fileMarks : null;
+
 			_tickers = new TickableCollection();
 
 			//_procInfoReg = new ProcessInfoRegistry();

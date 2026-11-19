@@ -184,6 +184,10 @@ cases the bytes cannot (a file shorter than its mark has nothing to compare).
 
 ## The user interface
 
+> A tool without the GUI does the same over HTTP and the CLI: [`POST /api/filedefs/{id}/mark`, `/clear`, `/unmark`](HTTP.md#POST-apifiledefsidmark) and the
+> same under `/api/appdefs/{id}/`, or [`MarkFiles`, `ClearFiles`, `UnmarkFiles`](CLI.md#MarkFiles) and `MarkAppFiles` ... on the command line. They wait for the machines and
+> answer with what happened to which file, and the file previews show the mark of a file (`markedAt`, `markedAtBytes`).
+
 Nothing new was needed for the menus; the actions ride the paths the download already used.
 
 * **A file definition's context menu** - the actions declared on the package, so Clear / Mark / Unmark appear
@@ -211,6 +215,9 @@ flowchart TD
 ```
 
 ## Marking from a plan
+
+(A plan step is one way to run the command line; the same commands - `MarkFiles`, `ClearFiles` and the others - are in [CLI](CLI.md#MarkFiles), where they wait for the machines
+themselves, and the HTTP twins are described in [Web API](HTTP.md#POST-apifiledefsidmark).)
 
 The two clicks are for somebody sitting at the GUI. A `System Start` plan can draw the line by
 itself, so that every start of the system is a run boundary and nobody has to remember:

@@ -17,6 +17,12 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetAllClientsState](#GetAllClientsState) | Gathers the status of all clients/machines known to the Dirigent. |
 | [GetAllPlansState](#GetAllPlansState)| Gathers the status of all plans known to the Dirigent.       |
 | [GetAppState](#GetAppState)          | returns the status of an app. |
+| [ClearAppFiles](#ClearAppFiles)      | Empties what can be emptied of an app's clearable files, marks the rest; waits and reports. |
+| [ClearFiles](#ClearFiles)            | The same for file definitions by id. |
+| [MarkAppFiles](#MarkAppFiles)        | Draws a line under an app's clearable files, so that the next download holds only the run; waits and reports. |
+| [MarkFiles](#MarkFiles)              | The same for file definitions by id. |
+| [UnmarkAppFiles](#UnmarkAppFiles)    | Takes the lines away from an app's files. |
+| [UnmarkFiles](#UnmarkFiles)          | The same for file definitions by id. |
 | [DeleteDownload](#DeleteDownload)    | Stops a download job if it runs and removes it. |
 | [DownloadApp](#DownloadApp)          | Collects all the files of an application into a download job. |
 | [DownloadPackage](#DownloadPackage)  | Collects a file definition or file package into a download job. |
@@ -550,7 +556,7 @@ Lists the actual files of one application instance.
 `<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app
 last ran in is used, else the default definition. `content=0` skips scanning folders. The
 files are listed, not transferred. The answer is the one of
-[`GET /api/appdefs/{id}/files`](HTTP.md#GET-apiappdefsm1afiles) - see there for the JSON.
+[`GET /api/appdefs/{id}/files`](HTTP.md#GET-apiappdefsidfiles) - see there for the JSON.
 
 It answers when the machines owning the files have answered, which may take a moment, and then ends
 with `END`. An unknown app or plan gives a single `ERROR` line.
@@ -574,7 +580,7 @@ Lists the files of a file definition or file package, addressed like a script do
   `GetFiles <fileDefId> [machine=m1] [app=a] [content=0]`
 
 `<fileDefId>` is the file definition id (wildcards allowed); `machine` and `app` narrow the selection. Answer as
-[`GET /api/filedefs/{id}/files`](HTTP.md#GET-apifiledefspkgfilesmachinem1appa), completed asynchronously like
+[`GET /api/filedefs/{id}/files`](HTTP.md#GET-apifiledefsidfilesmachineapp), completed asynchronously like
 [`GetAppFiles`](#GetAppFiles). Each matching definition is resolved as itself and has one entry in `fileDefs` (a wildcard matching two gives two); a package
 member that cannot be reached is reported in `notes` and the others are listed. Every file carries `size`, `modified` and, for
 a `TailBytes` definition smaller than the file, `truncatedTo`. Nothing matching: a single `ERROR` line.
@@ -592,6 +598,61 @@ Lists the top-level file definitions as declared - the CLI twin of [`GET /api/fi
   `GetFileDefs [type=FilePackage] [id=logs.*] [machine=m1] [app=a]`
 
 Answers once: `FILEDEFS:<json array>`.
+
+### MarkFiles
+
+Draws a line under the **clearable** files of the file definitions with the given id, destroying nothing, so that the next download holds only what is written
+from now on - see [Marking and clearing](MarkAndClear.md). The CLI twin of [`POST /api/filedefs/{id}/mark`](HTTP.md#POST-apifiledefsidmark), which
+describes the report.
+
+  `MarkFiles <fileDefId> [machine=m1] [app=a] [timeout=<seconds>]`
+
+`<fileDefId>` may be a wildcard - `*` is everything clearable. The command runs the very script the GUI's *Mark* menu item runs, **waits** for the machines
+(`timeout` 60 seconds by default, 300 at most) and ends with `END`. A selection that matches nothing gives a single `ERROR` line; so does a timeout,
+naming the script id, which keeps running.
+
+##### Response text
+
+  `MARKED:<report json on one line>`
+
+  `END`
+
+### ClearFiles
+
+Empties what can be emptied and marks the rest; the files that are not `Clearable` are left alone and reported.
+
+  `ClearFiles <fileDefId> [machine=m1] [app=a] [timeout=<seconds>]`
+
+Answers `CLEARED:<report json>` and `END`. See [`POST /api/filedefs/{id}/clear`](HTTP.md#POST-apifiledefsidclear).
+
+### UnmarkFiles
+
+Takes the lines away, so that the next download holds the whole files again.
+
+  `UnmarkFiles <fileDefId> [machine=m1] [app=a] [timeout=<seconds>]`
+
+Answers `UNMARKED:<report json>` and `END`. See [`POST /api/filedefs/{id}/unmark`](HTTP.md#POST-apifiledefsidunmark).
+
+### MarkAppFiles
+
+The same for all the file definitions of one application, as one selection.
+
+  `MarkAppFiles <appId>[@plan] [timeout=<seconds>]`
+
+`<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app last ran in is used, else the default definition (as for
+[`GetAppFiles`](#GetAppFiles)). Answers `MARKED:<report json>` and `END`; see [`POST /api/appdefs/{id}/mark`](HTTP.md#POST-apiappdefsidmark).
+
+### ClearAppFiles
+
+  `ClearAppFiles <appId>[@plan] [timeout=<seconds>]`
+
+Answers `CLEARED:<report json>` and `END`.
+
+### UnmarkAppFiles
+
+  `UnmarkAppFiles <appId>[@plan] [timeout=<seconds>]`
+
+Answers `UNMARKED:<report json>` and `END`.
 
 ### DownloadPackage
 

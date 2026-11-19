@@ -78,7 +78,7 @@ Each of them is explained in the [reference](#xml-reference); the walkthrough be
 
 The example is a small site: machines `m1` and `m2`, each running a Dirigent agent, and the applications `viewer` and `mt`.
 Every step is a complete piece of configuration that loads; later steps build on earlier ones and repeat what they need. The *Result* paragraphs say what the
-[REST API](HTTP.md#GET-apifiledefspkgfilesmachinem1appa) (`GET /api/filedefs/{id}/files`) - or, in the GUI, the Files tab and the menu of the machine or app -
+[REST API](HTTP.md#GET-apifiledefsidfilesmachineapp) (`GET /api/filedefs/{id}/files`) - or, in the GUI, the Files tab and the menu of the machine or app -
 would show.
 
 ### Step 1 - a machine-wide log: a `<Folder>` on a `<Machine>`
@@ -445,7 +445,7 @@ the user must have entered them beforehand so that Windows can reuse the cached 
 Two REST endpoints (and the matching CLI commands `GetAppFiles` and `GetFiles`) list the actual
 files of an application or of a package, each with its machine-local path and, where a share covers it, a
 UNC path: `GET /api/appdefs/m1.a[@plan]/files` and `GET /api/filedefs/<id>/files?machine=&app=`. The files are
-listed, not served - the tool opens them through the UNC paths. See the [Web API reference](HTTP.md), in particular [the file previews](HTTP.md#GET-apiappdefsm1afiles)
+listed, not served - the tool opens them through the UNC paths. See the [Web API reference](HTTP.md), in particular [the file previews](HTTP.md#GET-apiappdefsidfiles)
 and [CLI](CLI.md#GetAppFiles).
 
 To collect rather than just look, a tool starts a download job (`POST /api/downloads`, or `DownloadPackage` /
