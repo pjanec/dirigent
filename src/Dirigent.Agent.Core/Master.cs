@@ -74,6 +74,9 @@ namespace Dirigent
 		public string MakeUNC( string path, string? machineId, string whatFor )
 			=> _files.MakeUNC( path, machineId, whatFor );
 
+		/// <summary>The download jobs of REST and the CLI.</summary>
+		public DownloadJobs DownloadJobs => _downloadJobs;
+
 		public bool WantsQuit { get; set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 
@@ -98,6 +101,7 @@ namespace Dirigent
 		private SingletonScriptRegistry _singlScripts;
 		private FileRegistry _files;
 		private MachineMacCache _macCache;
+		private DownloadJobs _downloadJobs;
 		private List<MachineDef> _machineDefs = new List<MachineDef>();
 		private List<AssocMenuItemDef> _menuItemDefs = new List<AssocMenuItemDef>();
 		private List<ActionDef> _killAllExtras = new List<ActionDef>();
@@ -153,7 +157,7 @@ namespace Dirigent
         // Shared initialization, kept from the refactor that introduced it
         [MemberNotNull(
             nameof(_localIpAddr), nameof(_allClientStates), nameof(_allAppStates), nameof(_allAppDefs), nameof(_plans),
-            nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_macCache), nameof(_defaultAppDefs),
+            nameof(_reflScripts), nameof(_localScripts), nameof(_singlScripts), nameof(_files), nameof(_macCache), nameof(_downloadJobs), nameof(_defaultAppDefs),
             nameof(_swClientRefresh), nameof(_tickers), nameof(_rootForRelativePaths), nameof(_webServerCTS),
             nameof(ScriptFactory), nameof(_syncOps), nameof(_syncIDirig), nameof(_machineId), nameof(_cliProc)
         )]
@@ -191,6 +195,12 @@ namespace Dirigent
 
             // what agents report of their adapters, for Wake-on-LAN
             _macCache = new MachineMacCache( ac.AgentStatusFolder );
+
+            // the collections requested over REST and the CLI, and the folder they are built in
+            _downloadJobs = new DownloadJobs( DownloadJobs.FolderFrom( ac ), ac.ArchiveRetentionHours, ac.ArchiveMaxBytes,
+                                              ac.ServeArchives != "0", this );
+            try { _downloadJobs.Cleanup(); }
+            catch( Exception e ) { log.Warn( $"Could not clean up the download archives: {e.Message}" ); }
 
             _files = new FileRegistry(
                 this,
@@ -237,6 +247,7 @@ namespace Dirigent
 			_tickers.Tick();
 
 			_singlScripts.Tick();
+			_downloadJobs.Tick();
 			_localScripts.Tick();
 			_reflScripts.Tick();
 

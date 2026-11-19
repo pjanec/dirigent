@@ -61,6 +61,18 @@ namespace Dirigent
 		[Option( "agentStatusFolder", Required = false, Default = "", HelpText = "folder for the agent status file used for post-crash recovery. Default is %LocalAppData%\\Dirigent." )]
 		public string AgentStatusFolder { get; set; } = string.Empty;
 
+		[Option( "archiveFolder", Required = false, Default = "", HelpText = "master only: folder where download jobs of the REST API/CLI keep their archives. Default is <agentStatusFolder>\\Archives. Put it under a file share if packages span several machines." )]
+		public string ArchiveFolder { get; set; } = string.Empty;
+
+		[Option( "archiveRetentionHours", Required = false, Default = -1, HelpText = "master only: hours a finished download job is kept before it is deleted. Default 24." )]
+		public int ArchiveRetentionHours { get; set; } = -1;
+
+		[Option( "archiveMaxBytes", Required = false, Default = 0L, HelpText = "master only: total size of the download job archives above which the oldest finished ones are deleted. 0 = no limit (default)." )]
+		public long ArchiveMaxBytes { get; set; }
+
+		[Option( "serveArchives", Required = false, Default = "", HelpText = "master only: whether the web server may hand out the archives of the download jobs [0|1]. Default 1." )]
+		public string ServeArchives { get; set; } = string.Empty;
+
 		[Option( "downloadFolder", Required = false, Default = "", HelpText = "folder where downloaded file packages are placed. Default is the download folder of the user the agent runs as." )]
 		public string DownloadFolder { get; set; } = string.Empty;
 
@@ -136,6 +148,18 @@ namespace Dirigent
 
 		/// <summary>Where downloaded file packages are placed. Empty = the user's download folder</summary>
 		public string DownloadFolder = "";
+
+		/// <summary>Master: where download jobs keep their archives. Empty = &lt;AgentStatusFolder&gt;\Archives</summary>
+		public string ArchiveFolder = "";
+
+		/// <summary>Master: hours a finished download job is kept.</summary>
+		public int ArchiveRetentionHours = 24;
+
+		/// <summary>Master: total size of the job archives above which the oldest finished are deleted. 0 = no cap.</summary>
+		public long ArchiveMaxBytes = 0;
+
+		/// <summary>Master: may the web server hand out the archives of the download jobs.</summary>
+		public string ServeArchives = "1"; // "0" or "1"
 
 		public string IsMaster = "0"; // "1"=run the master process automatically
 		public int TickPeriod = 500; // msec
@@ -276,6 +300,10 @@ namespace Dirigent
 				if( options.RootForRelativePaths != "" ) RootForRelativePaths = options.RootForRelativePaths;
 				if( options.AgentStatusFolder != "" ) AgentStatusFolder = options.AgentStatusFolder;
 				if( options.DownloadFolder != "" ) DownloadFolder = options.DownloadFolder;
+				if( options.ArchiveFolder != "" ) ArchiveFolder = options.ArchiveFolder;
+				if( options.ArchiveRetentionHours >= 0 ) ArchiveRetentionHours = options.ArchiveRetentionHours;
+				if( options.ArchiveMaxBytes != 0 ) ArchiveMaxBytes = options.ArchiveMaxBytes;
+				if( options.ServeArchives != "" ) ServeArchives = options.ServeArchives;
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
 				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
 				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;

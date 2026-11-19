@@ -49,6 +49,11 @@ namespace Dirigent.Tests
 			{ "WaitForScript",      ETerminator.End },
 			{ "GetAppFiles",        ETerminator.End },
 			{ "GetNodeFiles",       ETerminator.End },
+			{ "GetNodes", ETerminator.SingleLine },
+			{ "DownloadPackage", ETerminator.End },
+			{ "DownloadApp", ETerminator.End },
+			{ "GetDownload", ETerminator.SingleLine },
+			{ "DeleteDownload", ETerminator.Ack },
 			{ "ApplyPlan",          ETerminator.Ack },
 			{ "GetClientState",     ETerminator.SingleLine },
 			{ "GetAllClientsState", ETerminator.End },
@@ -112,7 +117,7 @@ namespace Dirigent.Tests
 					deferring.Add( name );
 			}
 
-			CollectionAssert.AreEquivalent( new List<string>() { "GetAppFiles", "GetNodeFiles", "WaitForScript" }, deferring,
+			CollectionAssert.AreEquivalent( new List<string>() { "GetAppFiles", "GetNodeFiles", "DownloadPackage", "DownloadApp", "WaitForScript" }, deferring,
 				"a command that reports itself unfinished keeps its request alive across ticks - "
 				+ "intended for the commands that wait on something only" );
 		}

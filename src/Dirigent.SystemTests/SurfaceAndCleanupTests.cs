@@ -51,6 +51,92 @@ namespace Dirigent.SystemTests
 			var missing = http.GetAsync( $"{root}/appfiles/m1.nosuch" ).GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.NotFound, missing.StatusCode );
 		}
+
+		[TestMethod()]
+		public void ApiErrorsAreJsonAndNotFoundsDoNotGetAnIpBanned()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			// a body a tool can parse, with the real reason in it
+			var missing = http.GetAsync( $"{root}/downloads/{Guid.NewGuid()}" ).GetAwaiter().GetResult();
+			var text = missing.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound, missing.StatusCode, text );
+			Assert.AreEqual( "application/json", missing.Content.Headers.ContentType?.MediaType, text );
+			var json = System.Text.Json.JsonDocument.Parse( text ).RootElement;
+			Assert.AreEqual( 404, json.GetProperty( "code" ).GetInt32() );
+			StringAssert.Contains( json.GetProperty( "error" ).GetString(), "No download" );
+
+			// a malformed app id is the caller's mistake: 400, not 500
+			var bad = http.PostAsync( $"{root}/downloads",
+				new StringContent( "{\"app\":\"m1.\"}", Encoding.UTF8, "application/json" ) ).GetAwaiter().GetResult();
+			var badText = bad.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, bad.StatusCode, badText );
+			Assert.AreEqual( 400, System.Text.Json.JsonDocument.Parse( badText ).RootElement.GetProperty( "code" ).GetInt32() );
+
+			var badFiles = http.GetAsync( $"{root}/appfiles/m1." ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, badFiles.StatusCode );
+
+			// polling a job that is not there - a tool that lost track of its job - must never ban the tool
+			for( int i = 0; i < 30; i++ )
+			{
+				var r = http.GetAsync( $"{root}/downloads/{Guid.NewGuid()}" ).GetAwaiter().GetResult();
+				Assert.AreEqual( System.Net.HttpStatusCode.NotFound, r.StatusCode, $"request {i}" );
+				Thread.Sleep( 30 ); // under the requests-per-second limit, which is another rule
+			}
+		}
+
+		[TestMethod()]
+		public void APackageIsCollectedAndFetchedOverHttp()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 90 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			var nodes = http.GetAsync( $"{root}/nodes?type=FilePackage" ).GetAwaiter().GetResult();
+			var nodesText = nodes.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, nodes.StatusCode, nodesText );
+			StringAssert.Contains( nodesText, "logs.all", nodesText );
+
+			var post = http.PostAsync( $"{root}/downloads",
+				new StringContent( "{\"node\":{\"id\":\"logs.all\"},\"comment\":\"system test\"}", Encoding.UTF8, "application/json" ) )
+				.GetAwaiter().GetResult();
+			var postText = post.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Accepted, post.StatusCode, postText );
+
+			var id = System.Text.Json.JsonDocument.Parse( postText ).RootElement.GetProperty( "id" ).GetString();
+
+			var status = http.GetAsync( $"{root}/downloads/{id}?wait=60" ).GetAwaiter().GetResult();
+			var statusText = status.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, status.StatusCode, statusText );
+
+			var job = System.Text.Json.JsonDocument.Parse( statusText ).RootElement;
+			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), statusText );
+
+			var url = job.GetProperty( "files" )[0].GetProperty( "url" ).GetString();
+			var file = http.GetAsync( $"http://127.0.0.1:{world.HttpPort}{url}" ).GetAwaiter().GetResult();
+			var bytes = file.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, file.StatusCode );
+			Assert.AreEqual( "application/zip", file.Content.Headers.ContentType?.MediaType );
+			Assert.IsTrue( bytes.Length > 0, "the archive came with its bytes" );
+			Assert.AreEqual( (byte) 'P', bytes[0], "a zip" );
+
+			// the title "Logs/All apps" gives a name with a space; it travelled as %20 in the url,
+			// and the download header carries it in both the plain and the RFC 5987 form
+			var fileName = job.GetProperty( "files" )[0].GetProperty( "name" ).GetString()!;
+			StringAssert.StartsWith( fileName, "All apps_" );
+			Assert.IsTrue( url!.Contains( "%20" ), url );
+			var disposition = string.Join( " ", file.Content.Headers.ContentDisposition?.ToString() ?? "" );
+			StringAssert.Contains( disposition, "filename*=UTF-8''All%20apps_", disposition );
+
+			var gone = http.DeleteAsync( $"{root}/downloads/{id}" ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.NoContent, gone.StatusCode );
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.GetAsync( $"{root}/downloads/{id}" ).GetAwaiter().GetResult().StatusCode );
+		}
 	}
 
 	/// <summary>

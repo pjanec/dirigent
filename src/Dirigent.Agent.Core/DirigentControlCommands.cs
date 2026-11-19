@@ -706,6 +706,147 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
+	/// The top-level VFS nodes as declared: `GetNodes [type=] [id=] [machine=] [app=]`. Same as
+	/// GET /api/nodes. Answers `NODES:&lt;json&gt;`.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.SingleLine )]
+	public class GetNodes : DirigentControlCommand
+	{
+		public GetNodes( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override void Execute()
+		{
+			var options = Tools.ParseKeyValList( args );
+			Tools.TryGetValueIgnoreKeyCase( options, "type", out var type );
+			Tools.TryGetValueIgnoreKeyCase( options, "id", out var id );
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
+
+			WriteResponse( "NODES:" + Web.NodeListing.ToJson( Web.NodeListing.List( ctrl, type, id, machine, app ) ) );
+		}
+	}
+
+	/// <summary>
+	/// Starts a download job and answers `DOWNLOAD:&lt;jobId&gt;:&lt;json&gt;`, then `END`. With `wait=1` the answer
+	/// comes when the job has ended. The common part of DownloadPackage and DownloadApp.
+	/// </summary>
+	public abstract class StartDownloadCommand : DirigentControlCommand
+	{
+		Guid _job;
+		bool _wait;
+		bool _finished;
+
+		protected StartDownloadCommand( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		/// <summary>Reads the arguments into a request.</summary>
+		protected abstract DownloadRequest MakeRequest( Dictionary<string, string> options );
+
+		public override void Execute()
+		{
+			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+			var request = MakeRequest( options );
+
+			if( Tools.TryGetValueIgnoreKeyCase( options, "comment", out var comment ) ) request.comment = comment;
+			_wait = Tools.TryGetValueIgnoreKeyCase( options, "wait", out var wait ) && wait != "0";
+
+			try
+			{
+				_job = ctrl.DownloadJobs.Start( request );
+			}
+			catch( Web.AppFilesNotFoundException e )
+			{
+				throw new Exception( e.Message );
+			}
+
+			if( !_wait ) Answer();
+		}
+
+		public override void Tick()
+		{
+			if( !_finished && !ctrl.DownloadJobs.IsJobRunning( _job ) ) Answer();
+		}
+
+		void Answer()
+		{
+			_finished = true;
+			var view = ctrl.DownloadJobs.Get( _job );
+			WriteResponse( $"DOWNLOAD:{_job}:{view?.ToJson()}" );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>`DownloadPackage &lt;id&gt; [machine=] [app=] [comment=] [wait=1]` - collects a node or package into a job.</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class DownloadPackage : StartDownloadCommand
+	{
+		public DownloadPackage( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		protected override DownloadRequest MakeRequest( Dictionary<string, string> options )
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "VFS node id expected." );
+
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
+
+			return new DownloadRequest() { node = new DownloadNodeSelection() { id = args[0], machine = machine, app = app } };
+		}
+	}
+
+	/// <summary>`DownloadApp &lt;appId&gt;[@plan] [comment=] [wait=1]` - collects all the files of an application into a job.</summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class DownloadApp : StartDownloadCommand
+	{
+		public DownloadApp( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		protected override DownloadRequest MakeRequest( Dictionary<string, string> options )
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			return new DownloadRequest() { app = args[0] };
+		}
+	}
+
+	/// <summary>`GetDownload &lt;jobId&gt;` - the state of a job, as `DOWNLOAD:&lt;jobId&gt;:&lt;json&gt;`.</summary>
+	[CliResponse( Terminator = ETerminator.SingleLine )]
+	public class GetDownload : DirigentControlCommand
+	{
+		public GetDownload( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "download job id expected." );
+			if( !Guid.TryParse( args[0], out var id ) ) throw new ArgumentException( "download job id must be a guid" );
+
+			var view = ctrl.DownloadJobs.Get( id ) ?? throw new Exception( $"No download {id}." );
+			WriteResponse( $"DOWNLOAD:{id}:{view.ToJson()}" );
+		}
+	}
+
+	/// <summary>`DeleteDownload &lt;jobId&gt;` - stops the job if it runs and removes it.</summary>
+	public class DeleteDownload : DirigentControlCommand
+	{
+		public DeleteDownload( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "download job id expected." );
+			if( !Guid.TryParse( args[0], out var id ) ) throw new ArgumentException( "download job id must be a guid" );
+
+			try { ctrl.DownloadJobs.Delete( id ); }
+			catch( DownloadJobException e ) { throw new Exception( e.Message ); }
+
+			WriteResponse( "ACK" );
+		}
+	}
+
+	/// <summary>
 	/// Waits for a script to end and says how it went. `WaitForScript &lt;guid&gt; [timeout=&lt;seconds&gt;]`
 	/// </summary>
 	/// <remarks>

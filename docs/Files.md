@@ -219,6 +219,11 @@ UNC path: `GET /api/appfiles/m1.a[@plan]` and `GET /api/nodefiles/<id>?machine=&
 listed, not served - the tool opens them through the UNC paths. See [Web API](HTTP.md#GET-apiappfilesm1a)
 and [CLI](CLI.md#GetAppFiles).
 
+To collect rather than just look, a tool starts a download job (`POST /api/downloads`, or `DownloadPackage` /
+`DownloadApp`), polls it and fetches the archive; see [Download jobs](HTTP.md#Download-jobs). The archives are built on the
+master's machine in `--archiveFolder`, which should be under a file share - see
+[Local Config](LocalConfig.md#Download-archives).
+
 ## XML reference
 
 ### Attributes common to all node types

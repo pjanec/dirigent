@@ -144,3 +144,26 @@ Example
   </DefaultFilePackageActions>
 ```
 
+
+### Download archives
+
+The master keeps the collections requested through the [download jobs](HTTP.md#Download-jobs) of the web API
+and the CLI in a folder of its own. These are **application options** of the master (command line), like
+`--agentStatusFolder`, not elements of this file:
+
+| Option | Default | |
+| --- | --- | --- |
+| `--archiveFolder` | `<agentStatusFolder>\Archives` (`%LocalAppData%\Dirigent\Archives`) | One subfolder per job, named by the job's guid, holding `job.json` and the archive. |
+| `--archiveRetentionHours` | 24 | Finished, failed, cancelled and orphaned jobs older than this are deleted. |
+| `--archiveMaxBytes` | 0 (no cap) | When the jobs together are larger, the oldest finished ones are deleted until they fit. |
+| `--serveArchives` | 1 | `0`: the web server answers 403 for the archive files; listing, status and the UNC path still work. |
+
+**Put `ArchiveFolder` under a file share** (declared for the master's machine in SharedConfig) when a
+package spans several machines: the other machines upload their parts through the UNC path, and a
+diagnostic tool reads the finished archive through it (`uncPath` in the job's answer). Without a share
+the machines other than the master's cannot deliver and the job's `errors` say so.
+
+Cleanup runs when the master starts, before each new job and hourly. **It touches only what is
+Dirigent's own:** subfolders of `ArchiveFolder` whose name is a guid *and* that contain a `job.json`.
+Anything else in the folder is left alone, and so is a job that is running now. A folder that
+cannot be deleted (a file in use) is skipped and tried again on the next pass.

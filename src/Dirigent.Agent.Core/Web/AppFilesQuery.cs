@@ -80,6 +80,15 @@ namespace Dirigent.Web
 		readonly string _planSource;
 		readonly List<VfsNodeDef> _nodes;
 
+		/// <summary>The application as "machine.app".</summary>
+		public string AppIdText => _app;
+
+		/// <summary>The plan the definition was taken from; null for the default definition.</summary>
+		public string? Plan => _plan;
+
+		/// <summary>The top-level VFS nodes of the picked definition.</summary>
+		public IReadOnlyList<VfsNodeDef> Nodes => _nodes;
+
 		AppFilesQuery( Master master, string app, string? plan, string planSource, List<VfsNodeDef> nodes )
 		{
 			_master = master;
@@ -204,15 +213,7 @@ namespace Dirigent.Web
 
 		static string? NullIfEmpty( string? s ) => string.IsNullOrEmpty( s ) ? null : s;
 
-		static string TypeName( VfsNodeDef def ) => def switch
-		{
-			FileDef => "File",
-			FolderDef => "Folder",
-			VFolderDef => "VFolder",
-			FilePackageDef => "FilePackage",
-			FileRef => "FileRef",
-			_ => def.GetType().Name,
-		};
+		public static string TypeName( VfsNodeDef def ) => Scripts.BuiltIn.ListVfsNodes.TypeName( def );
 
 		/// <summary>The path on the machine owning the node; none for a global node, whose path is UNC already.</summary>
 		static string? LocalPath( VfsNodeDef n )

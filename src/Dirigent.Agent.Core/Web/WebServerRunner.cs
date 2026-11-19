@@ -51,6 +51,26 @@ namespace Dirigent.Web
             }
         }
 
+        /// <summary>Every error of the API is a small JSON document, not EmbedIO's HTML page.</summary>
+        static Task JsonHttpError( IHttpContext context, IHttpException exception )
+        {
+            var code = exception.StatusCode;
+            var message = string.IsNullOrEmpty( exception.Message )
+                            ? ( (System.Net.HttpStatusCode) code ).ToString()
+                            : exception.Message;
+            return SendJsonError( context, code, message );
+        }
+
+        static Task JsonUnhandledError( IHttpContext context, Exception exception )
+            => SendJsonError( context, 500, Tools.JustFirstLine( exception.Message ) );
+
+        static Task SendJsonError( IHttpContext context, int code, string message )
+        {
+            context.Response.StatusCode = code;
+            var json = System.Text.Json.JsonSerializer.Serialize( new { error = message, code } );
+            return context.SendStringAsync( json, "application/json", System.Text.Encoding.UTF8 );
+        }
+
         // Create and configure our web server.
         private static WebServer CreateWebServer( string url, string htmlRootPath, Master master )
         {
@@ -58,9 +78,13 @@ namespace Dirigent.Web
             var server = new WebServer(o => o
                     .WithUrlPrefix(url)
                     .WithMode(HttpListenerMode.EmbedIO))
+                // Only the request rate bans. There used to be a rule banning an address after a few
+                // "HTTP exception 404" log lines, but that criterion matches log text and cannot be limited to
+                // the static files: a tool polling a download that has been cleaned up, or asking for an
+                // app that is not there, got itself banned (403 for ten minutes) by answers that are
+                // perfectly normal for an API.
                 .WithIPBanning(o => o
-                    .WithMaxRequestsPerSecond()
-                    .WithRegexRules("HTTP exception 404"))
+                    .WithMaxRequestsPerSecond())
                 .WithLocalSessionManager()
                 //.WithCors(
                 //    "http://unosquare.github.io,http://run.plnkr.co", // Origins, separated by comma without last slash
@@ -75,9 +99,12 @@ namespace Dirigent.Web
                 .WithWebApi("/api", m => m
                     .WithController( () => new PlanApiController( master ) )
                     .WithController( () => new AppApiController( master ) )
+                    .WithController( () => new DownloadApiController( master ) )
                     .WithController( () => new ScriptApiController( master ) )
                     .WithController( () => new CmdApiController( master ) )
                     .WithController( () => new ClientApiController( master ) )
+                    .HandleHttpException( JsonHttpError )
+                    .HandleUnhandledException( JsonUnhandledError )
                 )
 
                 .WithModule(new WebSocketDirigentModule("/websock"))

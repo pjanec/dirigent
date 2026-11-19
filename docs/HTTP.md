@@ -93,6 +93,74 @@ files are listed.
 
 Each file carries its own `machine`. Also available as `POST /api/cli` with `GetNodeFiles pkg machine=m1`.
 
+Errors of every `/api` call are JSON, `{"error":"<message>","code":404}`, with the status code in the response too.
+
+### GET /api/nodes
+
+lists the top-level VFS nodes as declared in the shared config - what there is to collect. Nothing is
+looked up in any file system. Optional filters: `type` (`File`, `Folder`, `VFolder`, `FilePackage`,
+`FileRef`; case-insensitive), `id`, `machine`, `app` (the wildcards of the `ListVfsNodes` script: `*`
+and `?`, empty means anything). Example: `GET /api/nodes?type=FilePackage&id=logs.*`
+
+```json
+[ { "id": "logs.all", "type": "FilePackage", "title": "Logs/All apps", "description": "...",
+    "groups": "", "machine": null, "app": null } ]
+```
+
+### Download jobs
+
+A diagnostic tool collects files in five steps: **list** the nodes (`/api/nodes`), **preview** what a
+node or app stands for (`/api/nodefiles`, `/api/appfiles`), **collect** (`POST /api/downloads`),
+**poll** the job, **fetch** the archive. The archives are built on the master's machine, in a folder
+of Dirigent's own (`--archiveFolder`, see [Local Config](LocalConfig.md#Download-archives)), one
+subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
+
+#### POST /api/downloads
+
+starts a collection. Body: `{"node":{"id":"logs.all","machine":"m1","app":"a"}}` (a node or package, addressed
+like `/api/nodefiles`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the nodes of the
+application, from the definition picked as for `/api/appfiles`), and an optional `"comment"` that goes
+into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown node, app or plan: 404.
+Old jobs are cleaned up first.
+
+#### GET /api/downloads
+
+lists the jobs on disk, newest first, each as below.
+
+#### GET /api/downloads/{id}?wait=N
+
+```json
+{ "id": "...", "status": "Finished", "progress": 1.0, "text": null,
+  "created": "2026-11-19T10:00:00Z", "finished": "2026-11-19T10:00:20Z", "machine": "master1",
+  "request": { "node": { "id": "logs.all" } },
+  "files": [ { "name": "All apps_261119_1000.zip", "size": 1234567,
+               "url": "/api/downloads/<id>/files/All%20apps_261119_1000.zip",
+               "localPath": "C:\\ProgramData\\Dirigent\\Archives\\<id>\\All%20apps_261119_1000.zip",
+               "uncPath": "\\\\10.0.0.5\\C\\ProgramData\\Dirigent\\Archives\\<id>\\All%20apps_261119_1000.zip",
+               "uncError": null } ],
+  "errors": [], "notCollected": [] }
+```
+
+`status` is `Running`, `Finished`, `Failed`, `Cancelled`, or `Orphaned` (the job was running when the master
+went away; nothing is left to finish it). While running, `progress` (0..1, or `null` when unknown) and `text`
+come from the live script. `?wait=N` holds the answer until the job has ended, at most N seconds
+(max 120). After a master restart the job is still answered from its `job.json`. `uncPath` is `null`
+with the reason in `uncError` when no file share covers the archive folder.
+
+#### GET /api/downloads/{id}/files/{name}
+
+streams the archive (`application/zip`, `Content-Disposition: attachment` with an ASCII `filename` and the exact `filename*=UTF-8''...`) without loading it into
+memory. `name` must be one of the job's `files`, otherwise 404; a job that is still running: 409;
+`--serveArchives 0`: 403 (listing, status and `uncPath` still work, so a tool can read the archive through the share instead).
+
+#### DELETE /api/downloads/{id}
+
+stops the job if it is running and removes its folder (204); unknown job: 404. A running job's folder
+goes as soon as its script has stopped.
+
+The same through `POST /api/cli`: `GetNodes`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
+`DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
+
 ### POST /api/cli
 
 Executes a cli command sent as POST data; for example `StartApp m1.a`

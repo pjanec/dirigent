@@ -122,9 +122,9 @@ namespace Dirigent.Web
 			await op.WaitAsync();
 
 			if( op.Exception is AppFilesNotFoundException )
-				throw HttpException.NotFound();
+				throw HttpException.NotFound( op.Exception.Message );
 			if( op.Exception is ArgumentSyntaxErrorException )
-				throw HttpException.BadRequest();
+				throw HttpException.BadRequest( op.Exception.Message );
 			if( op.Exception != null ) throw op.Exception;
 
 			var result = await query!.ResolveAsync( includeContent );
@@ -147,9 +147,9 @@ namespace Dirigent.Web
 			{
 				result = await new NodeFilesQuery( _master, id, q["machine"], q["app"] ).ResolveAsync( includeContent );
 			}
-			catch( AppFilesNotFoundException )
+			catch( AppFilesNotFoundException e )
 			{
-				throw HttpException.NotFound();
+				throw HttpException.NotFound( e.Message );
 			}
 
 			await HttpContext.SendStringAsync( result.ToJson(), "application/json", System.Text.Encoding.UTF8 );

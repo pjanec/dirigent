@@ -15,6 +15,11 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetAllClientsState](#GetAllClientsState) | Gathers the status of all clients/machines known to the Dirigent. |
 | [GetAllPlansState](#GetAllPlansState)| Gathers the status of all plans known to the Dirigent.       |
 | [GetAppState](#GetAppState)          | returns the status of an app. |
+| [DeleteDownload](#DeleteDownload)    | Stops a download job if it runs and removes it. |
+| [DownloadApp](#DownloadApp)          | Collects all the files of an application into a download job. |
+| [DownloadPackage](#DownloadPackage)  | Collects a node or file package into a download job. |
+| [GetDownload](#GetDownload)          | Returns the state of a download job, in json single line format. |
+| [GetNodes](#GetNodes)                | Lists the VFS nodes declared in the shared config, in json single line format. |
 | [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
 | [GetNodeFiles](#GetNodeFiles)        | The same for a VFS node or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
@@ -544,6 +549,43 @@ Lists the files of a VFS node or file package, addressed like a script does.
   `NODEFILES:<id>:<json on one line>`
 
   `END`
+
+### GetNodes
+
+Lists the top-level VFS nodes as declared - the CLI twin of [`GET /api/nodes`](HTTP.md#GET-apinodes).
+
+  `GetNodes [type=FilePackage] [id=logs.*] [machine=m1] [app=a]`
+
+Answers once: `NODES:<json array>`.
+
+### DownloadPackage
+
+Collects a node or file package into a download job on the master - see
+[Download jobs](HTTP.md#Download-jobs).
+
+  `DownloadPackage <id> [machine=m1] [app=a] [comment="why"] [wait=1]`
+
+Answers `DOWNLOAD:<jobId>:<job json>` and then `END`. Without `wait=1` the answer comes at once, with the job
+`Running`; with `wait=1` it comes when the job has ended. An unknown node gives a single `ERROR` line.
+
+### DownloadApp
+
+The same for all the nodes of an application, `m1.a` or `m1.a@plan1`, picked as for
+[`GetAppFiles`](#GetAppFiles).
+
+  `DownloadApp <appId>[@plan] [comment="why"] [wait=1]`
+
+### GetDownload
+
+  `GetDownload <jobId>`
+
+Answers once: `DOWNLOAD:<jobId>:<job json>`; unknown job: `ERROR`.
+
+### DeleteDownload
+
+  `DeleteDownload <jobId>`
+
+Stops the job if it is running and removes it. Answers `ACK`; unknown job: `ERROR`.
 
 ### GetScriptState
 

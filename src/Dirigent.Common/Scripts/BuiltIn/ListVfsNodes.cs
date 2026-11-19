@@ -43,6 +43,9 @@ namespace Dirigent.Scripts.BuiltIn
 			public string? AppId;
 			public string? Title;
 
+			/// <summary>What the node is, in the words of whoever wrote the config.</summary>
+			public string? Description;
+
 			/// <summary>The path as declared, variables and masks not yet expanded.</summary>
 			public string? Path;
 
@@ -68,7 +71,7 @@ namespace Dirigent.Scripts.BuiltIn
 			return Tools.Serialize( new TResult() { Nodes = nodes.ToList() } );
 		}
 
-		static bool Matches( VfsNodeDef node, VfsNodeSelector? filter )
+		public static bool Matches( VfsNodeDef node, VfsNodeSelector? filter )
 		{
 			if( filter is null ) return true;
 
@@ -81,7 +84,7 @@ namespace Dirigent.Scripts.BuiltIn
 		/// Same rules the resolver uses when following a reference: an empty pattern matches
 		/// anything, and "*" matches a missing value too.
 		/// </summary>
-		static bool IsMatch( string? pattern, string? value )
+		public static bool IsMatch( string? pattern, string? value )
 		{
 			if( string.IsNullOrEmpty( pattern ) ) return true;
 			if( value is null ) return pattern == "*";
@@ -96,10 +99,11 @@ namespace Dirigent.Scripts.BuiltIn
 			MachineId = node.MachineId,
 			AppId = node.AppId,
 			Title = node.Title,
+			Description = node.Description,
 			Path = node.Path,
 		};
 
-		static string TypeName( VfsNodeDef node ) => node switch
+		public static string TypeName( VfsNodeDef node ) => node switch
 		{
 			FileRef => "FileRef",
 			FileDef => "File",

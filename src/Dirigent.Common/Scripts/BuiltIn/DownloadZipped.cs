@@ -38,6 +38,13 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			public string? ToMachine;
 
+			/// <summary>
+			/// Absolute local path, on the target machine, of the folder the archive and its staging
+			/// folder go to, instead of the %DOWNLOADS% folder. Set by the download jobs of the master,
+			/// which keep each job in a folder of their own.
+			/// </summary>
+			public string? ToFolder;
+
 
 		};
 
@@ -221,8 +228,9 @@ namespace Dirigent.Scripts.BuiltIn
 					throw new Exception( $"Cannot download to '{requestorMachine}': no agent of that machine is connected." );
 
 				// local path on the requestor's machine; where the files really end up
+				var downloadsPath = string.IsNullOrEmpty( args.ToFolder ) ? "%DOWNLOADS%" : args.ToFolder!;
 				var vfsLocalDownloadFolder = await Dirig.ResolveAsync(
-					new FolderDef() { Path = "%DOWNLOADS%", MachineId = requestorMachine }, false, false );
+					new FolderDef() { Path = downloadsPath, MachineId = requestorMachine }, false, false );
 				if (vfsLocalDownloadFolder is null) throw new Exception( $"Could not find the download folder of {requestorMachine}." );
 				var downloadsFolder = vfsLocalDownloadFolder.Path!;
 
@@ -234,7 +242,7 @@ namespace Dirigent.Scripts.BuiltIn
 				try
 				{
 					var vfsResolvedDownloadFolder = await Dirig.ResolveAsync(
-						new FolderDef() { Path = "%DOWNLOADS%", MachineId = requestorMachine }, true, false );
+						new FolderDef() { Path = downloadsPath, MachineId = requestorMachine }, true, false );
 					uncDownloadsFolder = vfsResolvedDownloadFolder?.Path;
 				}
 				catch( Exception e )

@@ -61,6 +61,9 @@ namespace Dirigent.TestBed
 
 		public int MasterPort { get; }
 
+		/// <summary>The master itself, for tests of what is not reachable over a protocol (its download jobs, say).</summary>
+		public Master Master => _master;
+
 		/// <summary>The master's text-command port, for tests driving the real CLI surface.</summary>
 		public int CliPort { get; }
 		public Operator Operator { get; }
