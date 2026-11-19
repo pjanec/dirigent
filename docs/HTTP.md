@@ -1,9 +1,14 @@
 # Web API
 
-Dirigent is running a simple web server on default port **8877**, making Dirigent's features
-available also via the HTTP protocol. The port is set with `--httpPort`, master only.
+The master runs a small web server that makes Dirigent's state and its file features available over
+HTTP. It serves three things:
 
-Two things about that option are worth knowing:
+* the **REST API** under `/api` - this document;
+* a **WebSocket** endpoint at `/websock`, and
+* a **static web page** at `/` (a small web GUI, see [Static files](#Static-files)).
+
+The port is **8877** by default and is set with the master's `--httpPort`. Two things about that option are
+worth knowing:
 
 * **`--httpPort 0` does not switch the web server off.** Zero means "not specified", so the
   default 8877 applies. Pass **`-1`** to run without a web server - which also matters when two
@@ -11,41 +16,229 @@ Two things about that option are worth knowing:
 * No URL reservation or elevation is needed. The server listens on its own socket rather than
   through the Windows HTTP stack.
 
+> **There is no authentication and no encryption.** Anyone who can reach the port can read everything below
+> and, through [`POST /api/cli`](#POST-apicli), control Dirigent: start and kill applications, run scripts,
+> shut machines down. Run it on a trusted LAN only, never expose it to an untrusted network, and put it behind
+> a firewall rule or switch it off (`--httpPort -1`) where the API is not needed.
+
+## Conventions
+
+**Format.** Requests and answers are JSON (`application/json`), field names `lowerCamel`. The only exception is
+the archive download, which is `application/zip`, and the static page. Strings are double-quoted JSON; the
+examples below are real answers, shortened where they are long.
+
+**Ids.**
+
+| Id | Form | Example |
+| --- | --- | --- |
+| Application | `machineId.appId`; `machineId.appId@plan` addresses the application as defined in that plan | `m1.camera`, `m1.camera@plan1` - see [Identifying an application](Apps.md#identifying-an-application) |
+| Plan | the plan name | `plan1` |
+| Script | a guid | `2d5b3159-83c6-48d4-9c52-0ce1af92cbb2` |
+| Client (machine) | the client id, usually the machine id | `m1` |
+| File definition | the `Id` of a top-level `<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>` or `<FileRef>` of the shared config; filters `machine` and `app` narrow it. The id and both filters take wildcards: `*` and `?`, empty means anything - see [Files](Files.md#Association-app-machine-or-global) | `logs.all`, `log?machine=m1&app=camera` |
+| Download job | a guid, handed out by `POST /api/downloads` | |
+
+**Errors.** Every failed `/api` call answers with a JSON body and the matching HTTP status:
+
+```json
+{"error":"No download 7c0d6d0c-0b4a-4a6e-8d6e-0d3a2b3c4d5e.","code":404}
+```
+
+| Status | Means |
+| --- | --- |
+| 400 | The request is malformed: an id that cannot be parsed (`m1.`, a script id that is no guid), an unreadable body. |
+| 403 | Serving archives is switched off (`--serveArchives 0`), or the caller's address has been temporarily banned for sending too many requests (see [Limits](#Limits)). |
+| 404 | The application, plan, script, client, file definition or download does not exist - or, for a file definition, nothing matches the filters. |
+| 409 | The download job is still running; its archive is not there yet. |
+| 500 | An unexpected failure; the message is in `error`. |
+
+**How long a call takes.** Three kinds:
+
+* **State and definitions** (`appdefs`, `appstates`, `plandefs`, `planstates`, `scriptdefs`, `scriptstates`,
+  `clients`, `filedefs`, `filedefs/{id}`, `downloads` listing) are answered at once from what the master already
+  knows. Nothing is looked up on any machine.
+* **File previews** (`…/files`) resolve the file definitions on the agents that own the files, which means a
+  look at the file systems of those machines. That takes anything from milliseconds to many seconds, and a machine
+  that is off or slow only affects its own entries - see [Files, “When something is not there”](Files.md#When-something-is-not-there).
+* **Download jobs** (`POST /api/downloads`) start a collection that runs for as long as it takes. The call returns
+  at once with a job id; you poll the job, optionally with `?wait=N` (seconds to hold the answer, at most 120).
+
+**Mutating calls.** The only calls that change anything are `POST /api/cli` (anything the [CLI](CLI.md) can do),
+`POST /api/downloads` and `DELETE /api/downloads/{id}`. Everything else is `GET`.
+
+## Overview
+
+| Method | Route | Purpose | CLI twin |
+| --- | --- | --- | --- |
+| GET | [`/api/appdefs`](#GET-apiappdefs) | All application definitions | |
+| GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
+| GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsm1afiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
+| GET | [`/api/appstates`](#GET-apiappstates) | State of all applications | [`GetAllAppsState`](CLI.md#GetAllAppsState) |
+| GET | [`/api/appstates/{id}`](#GET-apiappstatesid) | State of one application (also `/api/appstate/{id}`) | [`GetAppState`](CLI.md#GetAppState) |
+| GET | [`/api/plandefs`](#GET-apiplandefs) | All plan definitions | |
+| GET | [`/api/plandefs/{id}`](#GET-apiplandefsid) | One plan definition | |
+| GET | [`/api/planstates`](#GET-apiplanstates) | State of all plans | [`GetAllPlansState`](CLI.md#GetAllPlansState) |
+| GET | [`/api/planstates/{id}`](#GET-apiplanstatesid) | State of one plan (also `/api/planstate/{id}`) | [`GetPlanState`](CLI.md#GetPlanState) |
+| GET | [`/api/scriptdefs`](#GET-apiscriptdefs) | All script definitions | |
+| GET | [`/api/scriptdefs/{id}`](#GET-apiscriptdefsid) | One script definition | |
+| GET | [`/api/scriptstates`](#GET-apiscriptstates) | State of all known scripts | |
+| GET | [`/api/scriptstates/{id}`](#GET-apiscriptstatesid) | State of one script (also `/api/scriptstate/{id}`) | [`GetScriptState`](CLI.md#GetScriptState) |
+| GET | [`/api/clients`](#GET-apiclients) | All clients (machines) | [`GetAllClientsState`](CLI.md#GetAllClientsState) |
+| GET | [`/api/clients/{id}`](#GET-apiclientsid) | One client | [`GetClientState`](CLI.md#GetClientState) |
+| GET | [`/api/filedefs`](#GET-apifiledefs) | List the file definitions | [`GetFileDefs`](CLI.md#GetFileDefs) |
+| GET | [`/api/filedefs/{id}`](#GET-apifiledefsid) | The file definitions with an id | |
+| GET | [`/api/filedefs/{id}/files`](#GET-apifiledefspkgfilesmachinem1appa) | The actual files of file definitions | [`GetFiles`](CLI.md#GetFiles) |
+| POST | [`/api/downloads`](#POST-apidownloads) | Start a collection into a zip | [`DownloadPackage`](CLI.md#DownloadPackage), [`DownloadApp`](CLI.md#DownloadApp) |
+| GET | [`/api/downloads`](#GET-apidownloads) | List the download jobs | |
+| GET | [`/api/downloads/{id}`](#GET-apidownloadsidwaitn) | State of a job (`?wait=N`) | [`GetDownload`](CLI.md#GetDownload) |
+| GET | [`/api/downloads/{id}/archives/{name}`](#GET-apidownloadsidarchivesname) | Stream a finished archive | |
+| DELETE | [`/api/downloads/{id}`](#DELETE-apidownloadsid) | Stop and remove a job | [`DeleteDownload`](CLI.md#DeleteDownload) |
+| POST | [`/api/cli`](#POST-apicli) | Run any CLI command | all of [CLI](CLI.md) |
+| WS | [`/websock`](#WebSocket) | WebSocket endpoint | |
+| GET | [`/`](#Static-files) | Static web page | |
+
+## Applications
+
+An application has a **definition** (what it is, from the shared config) and a **state** (what it is doing).
+Definitions are read from the shared config; states are reported by the agents. A state can outlive its
+definition - see [An application Dirigent knows about but the config does not define](Apps.md#An-application-Dirigent-knows-about-but-the-config-does-not-define).
+
 ### GET /api/appdefs
 
-returns a list of all appdefs as JSON `[{'id':'m1.a'}, ...]`
+All application definitions: the standalone applications and the ones in the default definition, not the plans' copies.
 
-### GET /api/appdefs/m1.a
+```json
+[{"id": "m1.camera","groups": ""},{"id": "m1.tracker","groups": ""},{"id": "m2.recorder","groups": ""}]
+```
 
-returns a list of a specific appdefs as JSON `{'id':'m1.a'}`
+`groups` is the `Groups` attribute of the application, `;`-separated.
+
+### GET /api/appdefs/{id}
+
+One definition, as above: `{"id": "m1.camera","groups": ""}`. A `@plan` suffix is accepted and ignored here. Unknown
+application: 404.
 
 ### GET /api/appstates
 
-returns a list of the state of all apps as JSON `[{'id':'m1.a', 'status':{'code':'Running', 'flags':'SIP'}}, ...]`
+The state of every application that has both a state and a definition, in the order the master keeps them.
+(CLI: [`GetAllAppsState`](CLI.md#GetAllAppsState).)
 
-### GET /api/appstates/m1.a
+```json
+[{"id": "m1.camera","state": {"code": "Running","flags": "SRI"}},
+ {"id": "m1.tracker","state": {"code": "Not running","flags": ""}}]
+```
 
-returns a list of the state of given app as JSON `{'id':'m1.a', 'status':{'code':'Running', 'flags':'SIP'}}`
+`code` is the text the GUI shows - `Not running`, `Planned`, `Initializing`, `Running`, `Dying`,
+`Restarting (2 remaining)`, `Killed`, `Terminated (<exit code>)`, `Failed to start` - and carries a suffix like
+` (Offline for 12 sec)` when the machine has not reported lately. `flags` is a string of single letters, in this order:
+`S` started, `F` start failed, `R` running, `K` killed, `I` initialized, `P` plan applied, `D` dying,
+`X` restarting. What each means is in [Application status](Apps.md#Application-status).
 
-### GET /api/clients
+### GET /api/appstates/{id}
 
-returns a list of all machines  `[{"id": "m1","state": {"connected": true,"ip": "127.0.0.1","lastChange": "2026-05-06T13:30:15.5558945Z"}}, ...]`
+One state, as above: `{"id": "m1.camera","state": {"code": "Running","flags": "SRI"}}`. (CLI: [`GetAppState`](CLI.md#GetAppState).)
+With `m1.camera@plan1` the state is judged against that plan, which is what turns `Not running` into `Planned` while
+the plan is still starting its applications - see [Plan status](Plans.md#Plan-status).
+
+The older name `/api/appstate/{id}` is also accepted. Unknown application, or one that has no state or no definition: 404.
+
+`GET /api/appdefs/{id}/files` previews the actual files of one application instance; it belongs with the file calls and is
+described under [Files and downloads](#GET-apiappdefsm1afiles).
+
+## Plans
+
+A plan launches a set of applications in dependency order; see [Plans](Plans.md) and
+[Launch plan](SharedConfig.md#Launch-plan) in the shared config.
 
 ### GET /api/plandefs
 
-returns a list of all plandefs as JSON `[{'name':'plan1', 'appDefs':[...]}, {'name':'plan2', 'appDefs':[...]}]`
+```json
+[{"id": "plan1","appDefs": [{"id": "m1.a","groups": ""},{"id": "m2.b","groups": ""}],"groups": "Test1"}]
+```
 
-### GET /api/plandefs/plan1
+`appDefs` are the plan's own copies of its applications; `groups` is the plan's `Groups` attribute.
 
-returns plandef of a single given plan as JSON `{'name':'plan1', 'appDefs':[...]}`
+### GET /api/plandefs/{id}
+
+One plan definition, as above. Unknown plan: 404.
 
 ### GET /api/planstates
 
-returns a list of the state of all plans as JSON `[{'name':'plan1', 'status':{'code':'InProgress'}}, {'name':'plan2', status={'code':'None'}}]`
+```json
+[{"id": "plan1","state": {"code": "InProgress","flags": "R"}}]
+```
 
-### GET /api/planstates/plan1
+`code` is one of `None`, `InProgress`, `Success`, `Failure`, `Killing`; `flags` has `R` while the plan is running and `K`
+while it is killing - all explained in [Plan status](Plans.md#Plan-status). (CLI: [`GetAllPlansState`](CLI.md#GetAllPlansState).)
 
-returns a state of a single plan as JSON `{'name':'plan1', 'status':{'code':'InProgress'}}`
+### GET /api/planstates/{id}
+
+One plan state, as above. (CLI: [`GetPlanState`](CLI.md#GetPlanState).) The older name `/api/planstate/{id}` is also accepted.
+Unknown plan: 404.
+
+## Scripts
+
+See [Scripts](Scripts.md). Script ids are guids.
+
+### GET /api/scriptdefs
+
+The scripts declared in the shared config (`<Script>`) and the ones added at run time.
+
+```json
+[{"id": "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2","groups": "Maintenance"}]
+```
+
+### GET /api/scriptdefs/{id}
+
+One script definition, as above. An id that is not a guid: 400. Unknown script: 404.
+
+### GET /api/scriptstates
+
+The scripts the master knows the state of.
+
+```json
+[{"id": "2d5b3159-83c6-48d4-9c52-0ce1af92cbb2","state": {"code": "Collecting from 2 machine(s)..."}}]
+```
+
+Note that `code` is the script's **status text** - whatever the script says it is doing - not its status. The status
+(`Running`, `Finished`, `Failed`, ...) and the progress are described in [Script status](Scripts.md#Script-status); use the CLI's
+[`GetScriptState`](CLI.md#GetScriptState) for the full state including data and progress.
+
+### GET /api/scriptstates/{id}
+
+One script state, as above. The older name `/api/scriptstate/{id}` is also accepted. An id that is not a guid: 400;
+unknown script: 404. See also [Singleton scripts](Scripts.md#Singleton-scripts).
+
+## Clients
+
+A client is anything connected to the master: an agent on a machine or a GUI.
+
+### GET /api/clients
+
+```json
+[{"id": "m1","state": {"connected": true,"ip": "10.0.0.5","lastChange": "2026-11-19T12:04:27.1829062Z"}},
+ {"id": "m2","state": {"connected": false,"ip": "10.0.0.6","lastChange": "2026-11-19T11:58:02.5010000Z"}}]
+```
+
+`lastChange` (UTC, ISO 8601) is when `connected` last changed. `ip` is the address the connection came from, last known.
+(CLI: [`GetAllClientsState`](CLI.md#GetAllClientsState).)
+
+### GET /api/clients/{id}
+
+One client, as above. (CLI: [`GetClientState`](CLI.md#GetClientState).) Unknown client: 404.
+
+## Files and downloads
+
+How files, folders and packages are declared, resolved and limited is explained in [Files](Files.md): the
+[node types](Files.md#Node-types), [how they belong to an app, machine or nothing](Files.md#Association-app-machine-or-global),
+[how they are resolved](Files.md#Resolution), [`TailBytes`](Files.md#Files-too-big-to-collect-whole) for very big logs, and
+[UNC paths and file shares](Files.md#UNC-paths-and-file-shares) - the `uncPath` in the answers below exists only where the
+machine's `<Share>` covers the file ([machine definitions](SharedConfig.md#Machine-definitions)). Collecting logs from several
+machines is walked through in [Log file collection](LogFileCollection.md). A file the operator has marked for a test run is collected only from the mark on - see [Marking and clearing](MarkAndClear.md).
+
+The flow of a diagnostic tool: **list** the file definitions (`/api/filedefs`), **preview** the files of one
+(`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** them (`POST /api/downloads`), **poll** the job,
+**fetch** the archive - or read the files in place through their UNC paths.
 
 ### GET /api/appdefs/m1.a/files
 
@@ -96,8 +289,6 @@ that cannot be reached becomes a `note` while the other members' files are liste
 ```
 
 Each file carries its own `machine`. Also available as `POST /api/cli` with `GetFiles pkg machine=m1`.
-
-Errors of every `/api` call are JSON, `{"error":"<message>","code":404}`, with the status code in the response too.
 
 ### GET /api/filedefs
 
@@ -171,7 +362,57 @@ goes as soon as its script has stopped.
 The same through `POST /api/cli`: `GetFileDefs`, `GetFiles`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
 `DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
 
+## CLI
+
 ### POST /api/cli
 
-Executes a cli command sent as POST data; for example `StartApp m1.a`
-Returns same response as from the CLI command (see CLI command reference), for example `ACK`
+Runs [CLI](CLI.md) commands. The body is **one line of plain text**: one command, or several separated by `;`, in the
+syntax of the CLI - for example `StartApp m1.a` or `StartPlan plan1 ; WaitForScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2`. Only the
+first line of the body is read.
+
+The call returns when the command has finished - for the commands that wait (`WaitForScript`, `GetAppFiles`, `DownloadPackage wait=1`,
+...) that may be a long time, so give the HTTP client a generous timeout. The answer is the response the CLI would print, as **one JSON
+string**: the lines of the response joined with newlines.
+
+```
+POST /api/cli          body: GetAppState m1.camera
+200                    "APP:m1.camera:SRI:0:0.56:0:0:0::75268\n"
+
+POST /api/cli          body: StartApp m1.camera
+200                    "ACK\n"
+
+POST /api/cli          body: GetAllPlansState
+200                    "PLAN:plan1:InProgress\nEND\n"
+```
+
+A command that fails answers `200` with a line starting `ERROR:` inside the string; see [CLI](CLI.md) for what every command answers
+and how its answer ends. Whatever the CLI offers - starting and killing apps and plans, running scripts, `SetVars`, `Shutdown`,
+`WakeUp`, `ReloadSharedConfig` - this endpoint offers too, which is why [the warning about access](#Web-API) matters.
+
+## WebSocket
+
+### WebSocket /websock
+
+The server accepts WebSocket connections at `ws://<master>:8877/websock` (module `WebSocketDirigentModule`). It is meant
+to push state notifications of apps and plans to a browser, with messages of the form
+`{"type":"planState","data":{"id":"plan1","state":{"code":"InProgress","flags":"R"}}}`. **At present it pushes nothing**:
+the connection is accepted and kept, messages sent to it are ignored, and the periodic push is not switched on. The page in
+`wstest.html` of the static folder is a test client for it. Poll the REST calls above for state.
+
+## Static files
+
+### GET /
+
+Everything that is not under `/api` or `/websock` is served from the `html` folder next to the master's executable:
+`index.html`, `favicon.ico`, `manifest.json`, `robots.txt`, `wstest.html` and the `static` folder with the scripts and styles of
+the web page (a small React application). Files are cached in memory. A path that does not exist is a 404 with
+EmbedIO's standard HTML page - the JSON error body is for `/api` only.
+
+## Limits
+
+* **Request rate.** The web server bans an address for a while (answering `403`) when it sends more than about 50 requests
+  per second. A tool that polls should wait between requests - `?wait=N` on a download job exists for that reason. Answers of
+  `404` and other errors do **not** count towards a ban; only the rate does.
+* **Concurrency.** State and definition calls are handled one after another on the master's own thread, so they are quick but
+  not parallel; file previews and downloads run on other threads and do not block them.
+* **Archives are streamed**, never held in memory, so their size is limited by the disk only, not by the server.

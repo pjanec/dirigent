@@ -101,10 +101,13 @@ namespace Dirigent.Web
 				res = new PlanDef( pd );
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
 		// Gets one concrete plans state.
+		[Route( HttpVerbs.Get, "/planstates/{id}" )]
+		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/planstate/{id}" )]
 		public async Task<PlanState> GetPlanState( string id )
 		{
@@ -119,6 +122,7 @@ namespace Dirigent.Web
 				res = new PlanState( id, ps );
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
@@ -132,6 +136,7 @@ namespace Dirigent.Web
 				res = (from kv in _master.GetAllPlansState() select new PlanState( kv.Key, kv.Value )).ToList();
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 

@@ -6,6 +6,8 @@ The commands can come from different sources:
   2. Command line client app called [Dirigent.CLI](#dirigentcli-console-command-line-utility)
   3. Over [TCP connection](#cli-control-over-tcp-line-based-connection) from a remote control app.
 
+The same commands can also be sent over HTTP with [`POST /api/cli`](HTTP.md#POST-apicli); the master's whole REST interface is described in the [Web API](HTTP.md) reference.
+
 Commands are received by Dirigent master agent. The master then asks dirigent agent app to perform necessary operations on the machines affected by the command.
 
 | Command                              | Description                                                  |

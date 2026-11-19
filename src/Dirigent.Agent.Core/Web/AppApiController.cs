@@ -100,6 +100,7 @@ namespace Dirigent.Web
 				res = new AppDef( ad );
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
@@ -173,6 +174,8 @@ namespace Dirigent.Web
 		}
 
 		// Gets one concrete app state.
+		[Route( HttpVerbs.Get, "/appstates/{id}" )]
+		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/appstate/{id}" )]
 		public async Task<AppState> GetAppState( string id )
 		{
@@ -193,7 +196,8 @@ namespace Dirigent.Web
 			List<AppState> res = new List<AppState>();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				res = (from kv in _master.GetAllAppsState() select GetAppStateInternal( kv.Key.ToString() )).ToList();
+				// a state outlives its definition (see docs/Apps.md); such an app is not listed rather than failing the whole list
+				res = (from kv in _master.GetAllAppsState() where _master.GetAppDef( kv.Key ) is not null select GetAppStateInternal( kv.Key.ToString() )).ToList();
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;

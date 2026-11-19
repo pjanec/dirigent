@@ -30,6 +30,48 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void StateEndpointsAnswerToThePluralAndTheOlderSingularName()
+		{
+			using var world = SystemWorld.Start( "WaitingWorld", withHttp: true ); // has the plan "never"
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 20 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			string Get( string url, System.Net.HttpStatusCode expected )
+			{
+				var r = http.GetAsync( $"{root}/{url}" ).GetAwaiter().GetResult();
+				var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Assert.AreEqual( expected, r.StatusCode, $"{url}: {text}" );
+				return text;
+			}
+
+			var ok = System.Net.HttpStatusCode.OK;
+
+			// the app: both names, the same answer
+			var plural = Get( "appstates/m1.camera", ok );
+			Assert.AreEqual( plural, Get( "appstate/m1.camera", ok ) );
+			StringAssert.Contains( plural, "\"state\"" );
+
+			// the plan, likewise
+			var planPlural = Get( "planstates/never", ok );
+			Assert.AreEqual( planPlural, Get( "planstate/never", ok ) );
+			StringAssert.Contains( planPlural, "\"state\"" );
+			Get( "plandefs/never", ok );
+
+			// the unknown ones are 404 under either name, and a script id that is no guid is the caller's mistake
+			var notFound = System.Net.HttpStatusCode.NotFound;
+			Get( "appstates/m1.nosuch", notFound );
+			Get( "appstate/m1.nosuch", notFound );
+			Get( "planstates/nosuchplan", notFound );
+			Get( "planstate/nosuchplan", notFound );
+			Get( "plandefs/nosuchplan", notFound );
+			Get( "scriptstates/not-a-guid", System.Net.HttpStatusCode.BadRequest );
+			Get( "scriptstate/not-a-guid", System.Net.HttpStatusCode.BadRequest );
+			Get( $"scriptstates/{Guid.NewGuid()}", notFound );
+			Get( $"scriptstate/{Guid.NewGuid()}", notFound );
+		}
+
+		[TestMethod()]
 		public void TheFilesOfAnAppAndOfANodeAreListedOverHttp()
 		{
 			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );

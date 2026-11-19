@@ -90,7 +90,7 @@ namespace Dirigent.Web
 			ScriptDef res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				var pd = _master.GetScriptDef( Guid.Parse(id) );
+				var pd = _master.GetScriptDef( ( Guid.TryParse( id, out var guid ) ? guid : throw HttpException.BadRequest( $"'{id}' is not a script guid." ) ) );
 
 				if( pd is null )
 					throw HttpException.NotFound();
@@ -98,17 +98,20 @@ namespace Dirigent.Web
 				res = new ScriptDef( pd );
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
 		// Gets one concrete script state.
+		[Route( HttpVerbs.Get, "/scriptstates/{id}" )]
+		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/scriptstate/{id}" )]
 		public async Task<ScriptState> GetScriptState( string id )
 		{
 			ScriptState res = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				var ps = _master.GetScriptState( Guid.Parse(id) );
+				var ps = _master.GetScriptState( ( Guid.TryParse( id, out var guid ) ? guid : throw HttpException.BadRequest( $"'{id}' is not a script guid." ) ) );
 
 				if( ps is null )
 					throw HttpException.NotFound();
@@ -116,6 +119,7 @@ namespace Dirigent.Web
 				res = new ScriptState( id, ps );
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
@@ -129,6 +133,7 @@ namespace Dirigent.Web
 				res = (from kv in _master.GetAllScriptsState() select new ScriptState( kv.Key.ToString(), kv.Value )).ToList();
 			} );
 			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
 			return res;
 		}
 
