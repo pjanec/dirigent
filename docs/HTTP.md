@@ -80,7 +80,7 @@ For a tool - or an AI agent - that has to find out what the site is before it do
 | [`GET /api/appdefs`](#GET-apiappdefs), [`/api/applocations`](#GET-apiapplocations) | the applications, and where their binaries and working folders are | [`/api/appstates`](#GET-apiappstates) for what they are doing now |
 | [`GET /api/plandefs`](#GET-apiplandefs) | the launch plans and the applications in them | [`/api/planstates`](#GET-apiplanstates) |
 | [`GET /api/filedefs`](#GET-apifiledefs) | what files there is to look at, collect or mark; `?type=FilePackage&group=component` for what to offer | [`POST /api/files/query`](#POST-apifilesquery) to see the files |
-| [`GET /api/scriptdefs`](#GET-apiscriptdefs) | the scripts the configuration defines | [`POST /api/scripts/{id}/start`](#POST-apiscriptsidstart) to run one |
+| [`GET /api/scriptdefs`](#GET-apiscriptdefs) | the scripts the configuration defines | [`POST /api/scriptdefs/{id}/start`](#POST-apiscriptdefsidstart) to run one |
 
 Then act. The control calls are in [Controlling the system](#Controlling-the-system); how plans, applications and scripts behave is in [Plans](Plans.md), [Apps](Apps.md) and [Scripts](Scripts.md),
 and power and Wake-on-LAN in [Management](Mgmt.md).
@@ -143,7 +143,7 @@ no MAC known (it never connected and SharedConfig gives none): 409 with the reas
 | POST | [`/api/killall`](#POST-apikillall) | Kill everything, stop all plans | [`KillAll`](CLI.md#KillAll) |
 | POST | [`/api/sharedconfig/reload`](#POST-apisharedconfigreload) | Read the shared config again | [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig) |
 | POST | [`/api/vars`](#POST-apivars) | Set variables on the agents | [`SetVars`](CLI.md#SetVars) |
-| POST | [`/api/scripts/{id}/start`](#POST-apiscriptsidstart), [`/api/scripts`](#POST-apiscripts), [`/api/scripts/{id}/kill`](#POST-apiscriptsidkill) | Start a defined script, start any script by name, stop a script | [`StartScript`](CLI.md#StartScript), [`KillScript`](CLI.md#KillScript) |
+| POST | [`/api/scriptdefs/{id}/start`](#POST-apiscriptdefsidstart) (or [`/api/scripts/{id}/start`](#POST-apiscriptsidstart)), [`/api/scripts`](#POST-apiscripts), [`/api/scripts/{id}/kill`](#POST-apiscriptsidkill) | Start a defined script, start any script by name, stop a script | [`StartScript`](CLI.md#StartScript), [`KillScript`](CLI.md#KillScript) |
 | GET | [`/api/appdefs`](#GET-apiappdefs) | All application definitions | |
 | GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
 | GET | [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation) | Where the binary and working folder of an application are, as its agent resolves them | [`GetAppLocation`](CLI.md#GetAppLocation) |
@@ -707,14 +707,19 @@ Kills every application on every machine and stops every plan - [`KillAll`](CLI.
 
 ### POST /api/sharedconfig/reload
 
-Reads the shared config again - [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig). **Like the CLI, it kills the applications first** unless the body says `{"killApps":false}`; `{"file":"..."}` names another file. The call
+Reads the shared config again - [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig). **Like the CLI, it kills the applications first** - a reload that did not would leave processes started under the old definitions running that the new config no longer knows (orphaned processes nobody manages) - so pass `{"killApps":false}` only when you know the running applications are unaffected; `{"file":"..."}` names another file. The call
 returns when the reload is done (a few seconds): `200 {"message","path","loadedAt"}`. A file that is not there or not valid XML: 400, and a config that is not valid (an id that matches nothing, a `MinDirigentVersion` newer than this master) is 400 with the reason; the running configuration is kept.
 
 ### POST /api/vars
 
 Sets variables on the agents - [`SetVars`](CLI.md#SetVars). Body `{"vars":{"NAME":"value"}}`, which must not be empty. `202`.
 
+### POST /api/scriptdefs/{id}/start
+
 ### POST /api/scripts/{id}/start
+
+**One operation under two names**: `POST /api/scriptdefs/{id}/start` reads like the start of a plan or an application (`/api/plandefs/{id}/start`), `POST /api/scripts/{id}/start` pairs with `POST /api/scripts/{id}/kill`. Same handler, same body, `?waitSeconds=` and errors.
+
 
 Starts a script the configuration defines - what the GUI does for a defined script. `{id}` is the guid of the `<Script>` definition, which is also the id the script runs under: **start and kill share the resource** (`POST /api/scripts/{id}/start`, `POST /api/scripts/{id}/kill`), and the state is at [`/api/scriptstates/{id}`](#GET-apiscriptstatesid). A script started by name with `POST /api/scripts` has the `id` that call answered with, and is stopped the same way. See [Scripts](Scripts.md). Optional body `{"args": ...}`: JSON, or a string, handed to the script as its arguments; without it the arguments of the definition are used. `202 {"id"}`;
 with `?waitSeconds=N` the answer is the script's end state, `{"id","state":{"code"},"status":"Finished","text","progress","data"}`, where `data` is what the script returned (parsed when it is JSON) or, for a failed script, the error. An `{id}` that is no `<Script>` definition: 404 `no script definition {id}; start a script by name with POST /api/scripts`;

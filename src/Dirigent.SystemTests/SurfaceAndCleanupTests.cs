@@ -221,6 +221,14 @@ namespace Dirigent.SystemTests
 			Call( HttpMethod.Post, $"scripts/{Guid.NewGuid()}/kill", System.Net.HttpStatusCode.NotFound );
 			Call( HttpMethod.Post, $"scripts/{scriptId}/kill", accepted );
 			Call( HttpMethod.Post, $"scripts/{Guid.NewGuid()}/start", System.Net.HttpStatusCode.NotFound );
+			// a script the configuration defines: started by either name of the same operation
+			foreach( var form in new[] { "scriptdefs", "scripts" } )
+			{
+				var defined = Call( HttpMethod.Post, $"{form}/{Dirigent.TestBed.Scenarios.Scenario.ControlScriptId}/start?waitSeconds=30", ok );
+				Assert.AreEqual( "Finished", defined.GetProperty( "status" ).GetString(), $"{form}: {defined}" );
+			}
+			var nodef = Call( HttpMethod.Post, $"scriptdefs/{Guid.NewGuid()}/start", System.Net.HttpStatusCode.NotFound );
+			StringAssert.Contains( nodef.GetProperty( "error" ).GetString(), "POST /api/scripts" );
 
 			// variables, and Kill All
 			Call( HttpMethod.Post, "vars", accepted, "{\"vars\":{\"SITE\":\"test\"}}" );

@@ -68,7 +68,11 @@ namespace Dirigent.TestBed.Scenarios
 
 		/// <summary>Two machines with an idler each and a plan "all" holding both - what the control calls are tried on.</summary>
 		public static Scenario ControlWorld()
-			=> TwoMachinesWithIdlers().PlanWithEverything( "all" );
+			=> TwoMachinesWithIdlers().PlanWithEverything( "all" )
+				.RawXml( "<Script Id='" + ControlScriptId + "' Name='BuiltIns/ListVfsNodes.cs' Args='{}'/>" );
+
+		/// <summary>The guid of the script ControlWorld defines.</summary>
+		public const string ControlScriptId = "7B3C1E90-1111-2222-3333-444455556677";
 
 		/// <summary>
 		/// The logging world plus a plan naming a machine no agent will ever serve.

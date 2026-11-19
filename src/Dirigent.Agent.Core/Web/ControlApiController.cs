@@ -313,6 +313,8 @@ namespace Dirigent.Web
 		static Guid ParseGuid( string text, string what )
 			=> Guid.TryParse( text, out var g ) ? g : throw HttpException.BadRequest( $"'{text}' is not a {what} guid." );
 
+		// the same operation under two names: scriptdefs/{id}/start is of a piece with plandefs and appdefs, scripts/{id}/start pairs with scripts/{id}/kill
+		[Route( HttpVerbs.Post, "/scriptdefs/{id}/start" )]
 		[Route( HttpVerbs.Post, "/scripts/{id}/start" )]
 		public async Task StartScriptDef( string id )
 		{
