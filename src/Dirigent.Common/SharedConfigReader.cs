@@ -35,6 +35,9 @@ namespace Dirigent
 #pragma warning restore CS8601 // Possible null reference assignment.
 			if ( _root is null ) throw new Exception("SharedConfig missing the root element");
 
+			// before anything is read: from here on the file nodes are plain, templates are history
+			NodeTemplates.Apply( _root );
+
 			LoadAppDefaults();
 			LoadPlans();
 			CheckDependencies();
@@ -47,7 +50,7 @@ namespace Dirigent
 			_cfg.MainMenuItems = LoadMainMenuItems(_root);
 		}
 
-		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg, string? machineId, string? appId )
+		public static AppDef ReadAppElement( XElement e, XElement root, FileDefReg fdReg, string? machineId, string? appId, IReadOnlyList<string>? templateChain = null )
 		{
 			AppDef a;
 
@@ -63,6 +66,16 @@ namespace Dirigent
 			var templateName = X.getStringAttr( e, "Template" );
 			if( !string.IsNullOrEmpty(templateName) )
 			{
+				// a template naming itself, directly or through others, would recurse until the stack is gone
+				var chain = ( templateChain ?? new List<string>() ).ToList();
+				var at = chain.IndexOf( templateName );
+				if( at >= 0 )
+				{
+					var cycleMsg = "AppTemplate cycle: " + string.Join( " -> ", chain.Skip( at ).Append( templateName ) );
+					log.Error( cycleMsg );
+					throw new ConfigurationErrorException( cycleMsg );
+				}
+
 				XElement? te = ( from t in root.Elements( "AppTemplate" )
 								where t.Attribute( "Name" )?.Value == templateName
 								select t ).FirstOrDefault();
@@ -77,7 +90,7 @@ namespace Dirigent
 				}
 				else
 				{
-					a = ReadAppElement( te, root, fdReg, machineId, appId );
+					a = ReadAppElement( te, root, fdReg, machineId, appId, chain.Append( templateName ).ToList() );
 				}
 			}
 			else
@@ -344,6 +357,16 @@ namespace Dirigent
 			}
 		}
 
+		static string ExpandTitleIds( string? title, string? machineId, string? appId )
+		{
+			if( string.IsNullOrEmpty( title ) ) return title ?? string.Empty;
+			if( !string.IsNullOrEmpty( machineId ) && machineId != "*" )
+				title = Regex.Replace( title, "%MACHINE_ID%", machineId.Replace( "$", "$$" ), RegexOptions.IgnoreCase );
+			if( !string.IsNullOrEmpty( appId ) && appId != "*" )
+				title = Regex.Replace( title, "%APP_ID%", appId.Replace( "$", "$$" ), RegexOptions.IgnoreCase );
+			return title;
+		}
+
 		static void FillAssocItem( ref AssocMenuItemDef a, XElement e, string? machineId=null, string? appId=null )
 		{
 			a.MachineId = machineId;
@@ -396,6 +419,11 @@ namespace Dirigent
 			if( x.Icon != null ) a.Icon = x.Icon;
 			if( x.Groups != null ) a.Groups = x.Groups;
 			if( x.Description != null ) a.Description = x.Description;
+
+			// With the final ids known, the title may name them: a node in an AppTemplate is read once per
+			// app, so Title="Log/%APP_ID%" gives every app its own menu entry. Only these two tokens, and
+			// only when the id is a concrete one ("*" is a wildcard of a FileRef, not a name).
+			a.Title = ExpandTitleIds( a.Title, a.MachineId, a.AppId );
 
 			// add/replace actions
 			foreach( var item in x.Actions )

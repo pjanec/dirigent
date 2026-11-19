@@ -41,7 +41,8 @@ Contents:
   * [`<FilePackage>`](#filepackage)
   * [`<FileRef>`](#fileref)
   * [File masks](#file-masks)
-  * [Path variables](#path-variables)
+  * [Variables in `Path`, `Mask` and `Title`](#variables-in-path-mask-and-title)
+  * [Node templates](#node-templates)
   * [Actions on nodes](#actions-on-nodes)
 * [Looking the files up](#looking-the-files-up)
 * [Built-in actions](#built-in-actions)
@@ -646,11 +647,11 @@ Examples:
 | `**/crash-??.dmp`         | e.g. `a/b/crash-01.dmp`                                               |
 | `logs/**`                 | everything under `logs`                                               |
 
-### Path variables
+### Variables in `Path`, `Mask` and `Title`
 
-`Path` is expanded on the machine that owns the node, using that machine's agent environment, so
-ordinary environment variables (`%TEMP%`, `%USERPROFILE%`, `%ProgramData%`, ...) work as
-expected. In addition:
+`Path` and `Mask` are expanded **at use, on the machine that owns the node**, using that machine's
+agent environment, so ordinary environment variables (`%TEMP%`, `%USERPROFILE%`, `%ProgramData%`,
+...) work as expected. In addition:
 
 | Association | Variable                              | Value                                                            |
 | ----------- | ------------------------------------- | ---------------------------------------------------------------- |
@@ -660,7 +661,83 @@ expected. In addition:
 | app-bound   | `APP_ID`, `DIRIGENT_APPID`            | App name without the machine part.                               |
 |             | `APP_BINDIR`                          | Folder holding the app's executable (from `ExeFullPath`).        |
 |             | `APP_STARTUPDIR`                      | The app's startup folder (from `StartupDir`).                    |
-|             | *(the app's own `<Env>` variables)*   | Everything the app would get in its environment when launched.   |
+|             | *(the app's own `<Env>` variables)*   | The variables of its `<Env><Set>` elements. (`<Local>` variables are not available here.) |
+
+The same variables work in `Mask` - on `<Folder>` and on `<File Filter="Newest">` - under the same
+conditions as in `Path`: the node must belong to a machine, and the expansion happens only on that
+machine. The `MACHINE_*` variables and the app's own are available only to a node whose machine is the
+one doing the expansion (the agent of the machine owning the node); anywhere else the mask is left
+as written. A variable that is not defined expands to nothing, as in `Path`.
+
+`Title` is different: it is expanded **once, when the config is loaded**, and only the two tokens
+`%MACHINE_ID%` and `%APP_ID%` (any letter case), with the ids the node has by then - which for a node
+in an `<AppTemplate>` are those of each app using the template. Nothing else in a title is touched;
+a token whose id is not known (a global node, or a `<FileRef>` with `MachineId="*"`) stays as
+written. The same applies to the `Title` of `<Tool>` and `<Script>` actions and of menu items bound to a
+machine or an app.
+
+This is what lets one template serve every app whose log file is named after the app:
+
+```xml
+<AppTemplate Name="apps.viewer" StartupDir="C:\Apps\Viewer\Release\" ... >
+    <File Id="log" Title="Log/%APP_ID%" Path="C:\Apps\Viewer\logs" Mask="%APP_ID%*.log"
+          Filter="Newest" MaxFiles="3"/>
+</AppTemplate>
+<AppTemplate Name="apps.Viewer_SE" Template="apps.viewer" ExeFullPath="C:\Apps\Viewer\Release\SE.exe"/>
+```
+
+The app `m1.Viewer_SE` gets a node titled `Log/Viewer_SE` collecting `Viewer_SE*.log` from the folder. An app
+whose log is named differently overrides the mask on its own `<File>`.
+
+### Node templates
+
+Nodes of one kind tend to repeat the same attributes - on a site that collects logs, `Filter`,
+`MaxFiles`, `MaxSeconds`, `TailBytes` and `Clearable` on every log node. A top-level
+`<NodeTemplate>` carries them once.
+
+```xml
+<Shared>
+    <NodeTemplate Name="log" Filter="Newest" MaxFiles="3" MaxSeconds="604800"
+                  TailBytes="10485760" Clearable="1"/>
+
+    <Machine Name="m1" IP="192.168.0.10">
+        <Share Name="C" Path="C:\"/>
+        <File Template="log" Id="log.se"  Title="Log/SE"  Path="C:\Apps\Viewer\logs" Mask="SE*.log"/>
+        <File Template="log" Id="log.bdc" Title="Log/BDC" Path="C:\Apps\Viewer\logs" Mask="BDC*.log"
+              MaxFiles="2"/>
+    </Machine>
+</Shared>
+```
+
+Both nodes are *newest 3 files from the last week, tail 10 MB, clearable* - except that the second
+keeps only 2 files, because a node's own attribute beats the template's.
+
+* **Where it applies.** `Template="name"` may be written on `<File>`, `<Folder>`, `<VFolder>`,
+  `<FilePackage>` and `<FileRef>`, wherever they are: at the top level, in a `<Machine>`, an `<App>`,
+  an `<AppTemplate>`, inside other nodes, in menus. In an `<AppTemplate>` the template's attributes
+  are merged first, and the node is then read once per app as usual.
+* **The merge.** The template's attributes are defaults; the node's own attributes win. The
+  `Template` attribute itself disappears. Nothing about the node is guessed: what is not on the node
+  or the template keeps its usual default.
+* **Child elements.** `<Tool>` and `<Script>` actions (and nested nodes) inside the template are
+  copied into every node using it, **in front of** the node's own children. A node's own action
+  with the same `Id` as one of the template's therefore replaces it; one with a new `Id` is added.
+* **Chaining.** A `<NodeTemplate>` may itself carry `Template="base"`. The derived template's
+  attributes beat the base's, and the children are concatenated base first.
+* **Not a node.** A `<NodeTemplate>` is not a file node and is never listed or referenced.
+  Template names are their own namespace: they do not clash with `<AppTemplate>` names.
+
+Mistakes are load errors (the master refuses the config, a reload keeps the previous one):
+
+| Message says | Cause |
+| --- | --- |
+| `NodeTemplate 'x' not found` | a node or template names a template that does not exist |
+| `NodeTemplate cycle: a -> b -> a` | templates that lead back to themselves, through `Template=` or through nodes inside their children |
+| `NodeTemplate without a Name` | a `<NodeTemplate>` has no `Name` |
+| `Duplicate NodeTemplate 'x'` | two templates with the same `Name` |
+| `NodeTemplate 'x' must not have a Guid` | every node made from the template would get the same `Guid` |
+
+A config with no `<NodeTemplate>` and no `Template=` on a file node is read exactly as before.
 
 ### Actions on nodes
 
@@ -1077,6 +1154,10 @@ id - a single declaration in the template yields one properly bound node per app
 
 Every one of those apps now has *Recent logs* in its context menu, resolved against its own
 startup folder on its own machine.
+
+When many nodes repeat the same attributes, write them once in a
+[`<NodeTemplate>`](#node-templates); and `Title="Log/%APP_ID%"` / `Mask="%APP_ID%*.log"` give each
+app its own entry from this one declaration (see [Variables](#variables-in-path-mask-and-title)).
 
 ### Bundles built from those nodes
 

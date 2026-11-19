@@ -312,6 +312,11 @@
     		CmdLineArgs = "/k &quot;set&amp;&amp;pause&quot;"
     />
 
+    <!-- Attributes shared by the nodes that carry the template; a node's own attribute wins, so
+         MaxSeconds="86400" on a node would override the week below. See docs/Files.md, "Node templates". -->
+    <NodeTemplate Name="log.collected" Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
+                  Clearable="1" TailBytes="1048576"/>
+
     <Machine Name="m1" IP="127.0.0.1">
         <Share Name="C" Path="C:\"/>
         <Share Name="D$" Path="d:\"/>
@@ -343,9 +348,7 @@
              TailBytes caps what is collected from any one file at its last N bytes. A logger that
              never rotates produces tens of gigabytes, which cannot be transferred at all, and the end
              of it is what an investigation needs. -->
-        <Folder Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs"
-                Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
-                Clearable="1" TailBytes="1048576">
+        <Folder Template="log.collected" Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs">
           <Tool Title="Open in Explorer" Name="WinExplorer"/>
         </Folder>
 
@@ -370,9 +373,7 @@
         <!-- the same Id as on m1, so one wildcard reference collects both machines.
              A <Share> covering these paths is what lets the other machines fetch them - and the
              machine the download goes to needs one covering its own download folder. -->
-        <Folder Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs"
-                Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
-                Clearable="1" TailBytes="1048576"/>
+        <Folder Template="log.collected" Id="applog" Title="Logs/Application logs" Path="%TEMP%\DirigentDemoLogs"/>
      </Machine>
 
    	<App

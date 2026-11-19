@@ -68,6 +68,10 @@ it". So the permission lives on the node, and it is off by default:
 `Clearable="0"` (the default) means the file is never cleared and never marked, whatever any
 action, package or argument says. `cfg.dds` above cannot be destroyed by any click.
 
+When every log node carries `Clearable="1"` and the same limits, put them in a `<NodeTemplate>` and
+write `Template="..."` on the nodes - see [Node templates](Files.md#node-templates). Nodes
+without the template keep the safe default.
+
 **It gates marking as well as clearing, and that is deliberate.** Marking looks harmless, but
 marking a configuration file would mean the next collection takes only the bytes appended since -
 usually none - so the file would silently arrive empty. A flag that permitted marking but not

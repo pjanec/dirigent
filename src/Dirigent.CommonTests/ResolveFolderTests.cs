@@ -33,6 +33,13 @@ namespace Dirigent.Tests
 
 			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
 				=> throw new NotImplementedException();
+
+			// the one app the mask tests refer to; what the registry asks for to build the variables
+			public AppDef? GetAppDef( AppIdTuple id )
+				=> id.AppId == "camera"
+					? new AppDef() { Id = id, ExeFullPath = @"C:\apps\camera\camera.exe", StartupDir = @"C:\apps\camera",
+									 EnvVarsToSet = new Dictionary<string, string>() { { "CAM_KIND", "front" } } }
+					: null;
 		}
 
 		string _root = string.Empty;
@@ -269,6 +276,48 @@ namespace Dirigent.Tests
 
 			// the app association is kept on the files too
 			Assert.IsTrue( resolved.Children.All( x => x.AppId == "camera" ) );
+		}
+
+		[TestMethod()]
+		public void NewestMaskExpandsVariablesTest()
+		{
+			// the mask is expanded like the path: the app variables, the app's own <Set> vars, the OS environment
+			MakeFile( "camera_1.log", 3 );
+			MakeFile( "camera_2.log", 1 );
+			MakeFile( "tracker_9.log", 0 );
+			MakeFile( "front.log", 0 );
+			MakeFile( "rear.log", 0 );
+			Environment.SetEnvironmentVariable( "DIRIGENT_TEST_MASK_EXT", "log" );
+
+			var byAppId = Resolve( new FileDef()
+			{
+				Id = "log", Title = "Recent logs", MachineId = _machineId, AppId = "camera", Path = _root,
+				Filter = "Newest", Xml = @"<File Mask=""%APP_ID%_*.log"" MaxFiles=""5""/>",
+			} );
+			CollectionAssert.AreEqual( new List<string>() { "camera_2.log", "camera_1.log" },
+				byAppId.Children.Select( x => Path.GetFileName( x.Path! ) ).ToList() );
+
+			var byEnv = Resolve( new FileDef()
+			{
+				Id = "log", MachineId = _machineId, AppId = "camera", Path = _root,
+				Filter = "Newest", Xml = @"<File Mask=""%CAM_KIND%.%DIRIGENT_TEST_MASK_EXT%"" MaxFiles=""1""/>",
+			} );
+			Assert.AreEqual( Path.Combine( _root, "front.log" ), byEnv.Path );
+		}
+
+		[TestMethod()]
+		public void FolderMaskExpandsVariablesTest()
+		{
+			MakeFile( "camera_1.log", 1 );
+			MakeFile( "camera_2.log", 1 );
+			MakeFile( "tracker_9.log", 1 );
+
+			var resolved = Resolve( new FolderDef()
+			{
+				Id = "logs", MachineId = _machineId, AppId = "camera", Path = _root, Mask = "%APP_ID%_*.log",
+			} );
+
+			CollectionAssert.AreEquivalent( new List<string>() { "camera_1.log", "camera_2.log" }, FlattenFiles( resolved ) );
 		}
 
 		[TestMethod()]

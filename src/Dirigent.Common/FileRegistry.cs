@@ -255,47 +255,7 @@ namespace Dirigent
 			// expand variables in local context
 			if( isLocal )
 			{
-				var vars = new Dictionary<string, string>();
-
-				// the download folder of this machine; configurable so that it need not be the
-				// real user folder (a test run must not litter it)
-				vars["DOWNLOADS"] = string.IsNullOrEmpty( _downloadFolder )
-										? Tools.GetDownloadFolderPath()
-										: _downloadFolder;
-
-				// for app-bound files, expand also local vars and define var for app working dir etc.
-				if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
-				{
-					// KEEP IN SYNC WITH Launcher.cs
-					vars["MACHINE_ID"] = _localMachineId;
-					vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
-
-					// The IP is only known once the machine definitions have arrived, and asking
-					// for it throws when they have not. Resolving a path that does not mention the
-					// IP at all must not fail for that reason, so only look it up when it is used.
-					if( MentionsMachineIP( path ) )
-					{
-						var machineIP = GetMachineIP( _localMachineId );
-						vars["MACHINE_IP"] = machineIP;
-						vars["DIRIGENT_MACHINE_IP"] = machineIP;
-					}
-				
-					if( !string.IsNullOrEmpty( fdef.AppId ) )
-					{
-						var appDef = _ctrl.GetAppDef( new AppIdTuple( fdef.MachineId, fdef.AppId ) );
-						if( appDef is not null )
-						{
-							foreach( var (k,v) in appDef.EnvVarsToSet )
-								vars[k] = v;
-
-							// add some app-special vars
-							vars["DIRIGENT_APPID"] = appDef.Id.AppId;
-							vars["APP_ID"] = appDef.Id.AppId;
-							vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
-							vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
-						}
-					}
-				}
+				var vars = BuildLocalVars( fdef, path );
 
 				path = Tools.ExpandEnvAndInternalVars( path, vars );
 
@@ -317,6 +277,71 @@ namespace Dirigent
 			var machineId = isLocal ? _localMachineId : fdef.MachineId;
 
 			return MakeUNC( path, machineId, $"FileDef {fdef}" );
+		}
+
+		/// <summary>
+		/// The variables a node's Path and Mask may use, for a node living on this machine (the caller has
+		/// checked that). One list for both, so that they can never drift apart.
+		/// </summary>
+		/// <param name="fdef">the node</param>
+		/// <param name="mentioning">the texts about to be expanded; the machine IP is looked up only if one of them uses it</param>
+		Dictionary<string, string> BuildLocalVars( VfsNodeDef fdef, params string?[] mentioning )
+		{
+			var vars = new Dictionary<string, string>();
+
+			// the download folder of this machine; configurable so that it need not be the
+			// real user folder (a test run must not litter it)
+			vars["DOWNLOADS"] = string.IsNullOrEmpty( _downloadFolder )
+									? Tools.GetDownloadFolderPath()
+									: _downloadFolder;
+
+			// for app-bound files, expand also local vars and define var for app working dir etc.
+			if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
+			{
+				// KEEP IN SYNC WITH Launcher.cs
+				vars["MACHINE_ID"] = _localMachineId;
+				vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
+
+				// The IP is only known once the machine definitions have arrived, and asking
+				// for it throws when they have not. Resolving a path that does not mention the
+				// IP at all must not fail for that reason, so only look it up when it is used.
+				if( mentioning.Any( s => s is not null && MentionsMachineIP( s ) ) )
+				{
+					var machineIP = GetMachineIP( _localMachineId );
+					vars["MACHINE_IP"] = machineIP;
+					vars["DIRIGENT_MACHINE_IP"] = machineIP;
+				}
+
+				if( !string.IsNullOrEmpty( fdef.AppId ) )
+				{
+					var appDef = _ctrl.GetAppDef( new AppIdTuple( fdef.MachineId, fdef.AppId ) );
+					if( appDef is not null )
+					{
+						foreach( var (k,v) in appDef.EnvVarsToSet )
+							vars[k] = v;
+
+						// add some app-special vars
+						vars["DIRIGENT_APPID"] = appDef.Id.AppId;
+						vars["APP_ID"] = appDef.Id.AppId;
+						vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
+						vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
+					}
+				}
+			}
+
+			return vars;
+		}
+
+		/// <summary>
+		/// Expands the variables in a node's Mask, under the same conditions as in its Path: only on the
+		/// machine that owns the node. Anywhere else the mask stays as written.
+		/// </summary>
+		string? ExpandMask( VfsNodeDef fdef, string? mask )
+		{
+			if( string.IsNullOrEmpty( mask ) || string.IsNullOrEmpty( fdef.MachineId ) || !IsLocalMachine( fdef.MachineId ) )
+				return mask;
+
+			return Tools.ExpandEnvAndInternalVars( mask, BuildLocalVars( fdef, mask ) );
 		}
 
 		/// <summary>
@@ -747,7 +772,7 @@ namespace Dirigent
 				if (string.IsNullOrEmpty( fileDef.Xml )) throw new Exception( $"FileDef.Xml is empty. {fileDef.Xml}" );
 				var xml = XElement.Parse( fileDef.Xml );
 
-				string mask = X.getStringAttr( xml, "Mask", "*.*" );
+				string mask = ExpandMask( fileDef, X.getStringAttr( xml, "Mask", "*.*" ) ) ?? "*.*";
 				int maxFiles = X.getIntAttr( xml, "MaxFiles", 1 ); // by default a single file only
 				if (maxFiles < 1) maxFiles = 1;
 				double maxSeconds = X.getDoubleAttr( xml, "MaxSeconds", double.MaxValue ); // by default whatever age
@@ -898,7 +923,7 @@ namespace Dirigent
 			{
 				scan = FileScan.FindMatchingFiles(
 					rootNode.Path,
-					folderDef.Mask,
+					ExpandMask( folderDef, folderDef.Mask ),
 					folderDef.MaxSeconds,
 					folderDef.MaxFiles,
 					folderDef.MaxTotalBytes,

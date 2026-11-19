@@ -201,6 +201,250 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void NodeTemplateDefaultsAndOverridesTest()
+		{
+			// the template's attributes are defaults; a node's own attribute wins; the Template attribute is gone
+			// from what the rest of the system sees, and the template itself is not a node
+			var cfg = Parse( @"
+				<Shared>
+					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3' MaxSeconds='604800' TailBytes='1000' Clearable='1'/>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<File Template='log' Id='plain' Path='D:\Logs' Mask='a*.log'/>
+						<File Template='log' Id='over' Path='D:\Logs' Mask='b*.log' MaxFiles='2' TailBytes='5'/>
+						<Folder Template='log' Id='folder' Path='D:\Logs' Mask='*.log'/>
+					</Machine>
+				</Shared>" );
+
+			var plain = FindNode( cfg, "plain" );
+			Assert.AreEqual( "Newest", plain.Filter );
+			Assert.AreEqual( 1000L, plain.TailBytes );
+			Assert.IsTrue( plain.Clearable );
+			StringAssert.Contains( plain.Xml!, "MaxFiles=\"3\"" );
+			StringAssert.Contains( plain.Xml!, "MaxSeconds=\"604800\"" );
+			StringAssert.Contains( plain.Xml!, "Mask=\"a*.log\"" );
+			Assert.IsFalse( plain.Xml!.Contains( "Template" ), "the Template attribute is consumed" );
+
+			var over = FindNode( cfg, "over" );
+			StringAssert.Contains( over.Xml!, "MaxFiles=\"2\"" );
+			StringAssert.Contains( over.Xml!, "MaxSeconds=\"604800\"" );
+			Assert.AreEqual( 5L, over.TailBytes );
+
+			// any node kind takes a template
+			Assert.AreEqual( "Newest", FindNode( cfg, "folder" ).Filter );
+			Assert.AreEqual( 3, ( (FolderDef) FindNode( cfg, "folder" ) ).MaxFiles );
+
+			Assert.AreEqual( 3, cfg.VfsNodes.Count, "NodeTemplate must not become a node" );
+		}
+
+		[TestMethod()]
+		public void NodeTemplateChainingTest()
+		{
+			// the derived template wins over its base; the node wins over both
+			var cfg = Parse( @"
+				<Shared>
+					<NodeTemplate Name='base' Filter='Newest' MaxFiles='3' TailBytes='100' Clearable='1'/>
+					<NodeTemplate Name='derived' Template='base' MaxFiles='7' TailBytes='200'/>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<File Template='derived' Id='a' Path='D:\Logs' Mask='*.log'/>
+						<File Template='derived' Id='b' Path='D:\Logs' Mask='*.log' TailBytes='300'/>
+					</Machine>
+				</Shared>" );
+
+			var a = FindNode( cfg, "a" );
+			Assert.AreEqual( "Newest", a.Filter, "inherited from the base" );
+			Assert.IsTrue( a.Clearable, "inherited from the base" );
+			StringAssert.Contains( a.Xml!, "MaxFiles=\"7\"" );
+			Assert.AreEqual( 200L, a.TailBytes );
+			Assert.AreEqual( 300L, FindNode( cfg, "b" ).TailBytes );
+		}
+
+		[TestMethod()]
+		public void NodeTemplateChildActionsTest()
+		{
+			// children of the template come first, so a node's own action with the same Id replaces the template's
+			var cfg = Parse( @"
+				<Shared>
+					<NodeTemplate Name='base'>
+						<Script Id='dl' Name='Base.cs'/>
+					</NodeTemplate>
+					<NodeTemplate Name='derived' Template='base'>
+						<Script Id='extra' Name='Extra.cs'/>
+					</NodeTemplate>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<File Template='derived' Id='plain' Path='D:\a.log'/>
+						<File Template='derived' Id='own' Path='D:\b.log'>
+							<Script Id='dl' Name='Own.cs'/>
+						</File>
+					</Machine>
+				</Shared>" );
+
+			var plain = FindNode( cfg, "plain" );
+			CollectionAssert.AreEqual( new[] { "dl", "extra" }, plain.Actions.Select( x => x.Id ).ToArray() );
+			Assert.AreEqual( "Base.cs", ( (ScriptActionDef) plain.Actions[0] ).Name );
+
+			var own = FindNode( cfg, "own" );
+			CollectionAssert.AreEqual( new[] { "dl", "extra" }, own.Actions.Select( x => x.Id ).ToArray() );
+			Assert.AreEqual( "Own.cs", ( (ScriptActionDef) own.Actions[0] ).Name, "the node's own action wins" );
+		}
+
+		[TestMethod()]
+		public void NodeTemplateInsideAppTemplateAndContainersTest()
+		{
+			// a template used in an AppTemplate gives per-app nodes, and %APP_ID%/%MACHINE_ID% in a title are
+			// expanded with the ids of the app that node belongs to
+			var cfg = Parse( @"
+				<Shared>
+					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3' Clearable='1'/>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Template='log' Id='log' Title='Log/%APP_ID% on %machine_id%' Path='D:\logs' Mask='%APP_ID%*.log'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.camera' Template='base'/>
+					<App AppIdTuple='m2.tracker' Template='base'/>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<FilePackage Id='pack' Title='Pack'>
+							<File Template='log' Id='nested' Path='D:\n' Mask='*.log'/>
+						</FilePackage>
+					</Machine>
+				</Shared>" );
+
+			var logs = cfg.VfsNodes.Where( x => x.Id == "log" ).ToList();
+			Assert.AreEqual( 2, logs.Count );
+			CollectionAssert.AreEquivalent(
+				new[] { "Log/camera on m1", "Log/tracker on m2" },
+				logs.Select( x => x.Title ).ToArray() );
+			foreach( var n in logs )
+			{
+				Assert.AreEqual( "Newest", n.Filter );
+				Assert.IsTrue( n.Clearable );
+				StringAssert.Contains( n.Xml!, "Mask=\"%APP_ID%*.log\"", "the mask is expanded later, on the owning machine" );
+			}
+
+			var nested = FindNode( cfg, "pack" ).Children.Single();
+			Assert.AreEqual( "Newest", nested.Filter );
+		}
+
+		[TestMethod()]
+		public void TemplatedNodeDeepInsideATemplateIsExpandedTest()
+		{
+			// a package template holding a folder holding a templated file: the file is two levels below
+			// the copied-in child, and must not keep a bare Template= that nothing resolves
+			var cfg = Parse( @"
+				<Shared>
+					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3'/>
+					<NodeTemplate Name='bundle'>
+						<VFolder Id='inner' Title='Inner'>
+							<File Template='log' Id='deep' Path='D:\deep' Mask='*.log'/>
+						</VFolder>
+					</NodeTemplate>
+					<Machine Name='m1' IP='127.0.0.1'>
+						<FilePackage Template='bundle' Id='pack' Title='Pack'/>
+					</Machine>
+				</Shared>" );
+
+			var deep = FindNode( cfg, "pack" ).Children.Single().Children.Single();
+			Assert.AreEqual( "deep", deep.Id );
+			Assert.AreEqual( "Newest", deep.Filter );
+			StringAssert.Contains( deep.Xml!, "MaxFiles=\"3\"" );
+			Assert.IsFalse( deep.Xml!.Contains( "Template=" ), "the template reference must be resolved, not left behind" );
+		}
+
+		[TestMethod()]
+		public void TitleIdsAreLeftAloneWhenUnknownTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<File Id='global' Title='Log/%APP_ID%/%MACHINE_ID%/%OTHER%' Path='\\srv\share\a.log'/>
+					<FileRef Id='wild' Title='All %APP_ID%' MachineId='*' AppId='*'/>
+				</Shared>" );
+
+			Assert.AreEqual( "Log/%APP_ID%/%MACHINE_ID%/%OTHER%", FindNode( cfg, "global" ).Title );
+			Assert.AreEqual( "All %APP_ID%", FindNode( cfg, "wild" ).Title );
+		}
+
+		static void AssertConfigError( string xml, string expectedInMessage )
+		{
+			var ex = Assert.ThrowsException<ConfigurationErrorException>( () => Parse( xml ) );
+			StringAssert.Contains( ex.Message, expectedInMessage );
+		}
+
+		[TestMethod()]
+		public void NodeTemplateLoadErrorsTest()
+		{
+			AssertConfigError( @"<Shared><File Template='nope' Id='x' Path='\\s\h\a'/></Shared>", "'nope' not found" );
+
+			AssertConfigError( @"<Shared>
+				<NodeTemplate Name='a' Template='nope'/>
+				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "'nope' not found" );
+
+			AssertConfigError( @"<Shared>
+				<NodeTemplate Name='a' Template='b'/><NodeTemplate Name='b' Template='a'/>
+				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "a -> b -> a" );
+
+			AssertConfigError( @"<Shared>
+				<NodeTemplate Name='a' Template='a'/>
+				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "a -> a" );
+
+			AssertConfigError( @"<Shared><NodeTemplate MaxFiles='3'/></Shared>", "without a Name" );
+
+			AssertConfigError( @"<Shared><NodeTemplate Name='a'/><NodeTemplate Name='a'/></Shared>", "Duplicate" );
+
+			AssertConfigError( @"<Shared><NodeTemplate Name='a' Guid='6f9619ff-8b86-d011-b42d-00c04fc964ff'/></Shared>", "Guid" );
+
+			// a template whose own child nodes use the template again would never end
+			AssertConfigError( @"<Shared>
+				<NodeTemplate Name='a'><File Template='a' Id='in' Path='\\s\h\a'/></NodeTemplate>
+				<FilePackage Template='a' Id='x'/></Shared>", "a -> a" );
+		}
+
+		[TestMethod()]
+		public void AppTemplateCycleIsALoadErrorTest()
+		{
+			// used to recurse until the process died
+			AssertConfigError( @"<Shared>
+				<AppTemplate Name='a' Template='b'/><AppTemplate Name='b' Template='a'/>
+				<App AppIdTuple='m1.x' Template='a' ExeFullPath='c:\x.exe'/></Shared>", "a -> b -> a" );
+
+			AssertConfigError( @"<Shared>
+				<AppTemplate Name='a' Template='a'/>
+				<App AppIdTuple='m1.x' Template='a' ExeFullPath='c:\x.exe'/></Shared>", "a -> a" );
+		}
+
+		[TestMethod()]
+		public void DocumentedNodeTemplateExamplesTest()
+		{
+			// the two examples of docs/Files.md ("Node templates", "Variables in Path, Mask and Title"),
+			// as written there
+			var cfg = Parse( @"
+<Shared>
+    <NodeTemplate Name=""log"" Filter=""Newest"" MaxFiles=""3"" MaxSeconds=""604800""
+                  TailBytes=""10485760"" Clearable=""1""/>
+
+    <Machine Name=""m1"" IP=""192.168.0.10"">
+        <Share Name=""C"" Path=""C:\""/>
+        <File Template=""log"" Id=""log.se""  Title=""Log/SE""  Path=""C:\Apps\Viewer\logs"" Mask=""SE*.log""/>
+        <File Template=""log"" Id=""log.bdc"" Title=""Log/BDC"" Path=""C:\Apps\Viewer\logs"" Mask=""BDC*.log""
+              MaxFiles=""2""/>
+    </Machine>
+
+    <AppTemplate Name=""apps.viewer"" StartupDir=""C:\Apps\Viewer\Release\"" ExeFullPath=""C:\x.exe"">
+        <File Id=""log"" Title=""Log/%APP_ID%"" Path=""C:\Apps\Viewer\logs"" Mask=""%APP_ID%*.log""
+              Filter=""Newest"" MaxFiles=""3""/>
+    </AppTemplate>
+    <AppTemplate Name=""apps.Viewer_SE"" Template=""apps.viewer"" ExeFullPath=""C:\Apps\Viewer\Release\SE.exe""/>
+    <App AppIdTuple=""m1.Viewer_SE"" Template=""apps.Viewer_SE""/>
+</Shared>" );
+
+			var se = FindNode( cfg, "log.se" );
+			StringAssert.Contains( se.Xml!, "MaxFiles=\"3\"" );
+			Assert.AreEqual( 10485760L, se.TailBytes );
+			StringAssert.Contains( FindNode( cfg, "log.bdc" ).Xml!, "MaxFiles=\"2\"" );
+
+			var appLog = FindNode( cfg, "log" );
+			Assert.AreEqual( "Log/Viewer_SE", appLog.Title );
+			Assert.AreEqual( "m1", appLog.MachineId );
+		}
+
+		[TestMethod()]
 		public void ShippedExampleConfigParsesTest()
 		{
 			// guards against the example config drifting away from what the reader accepts

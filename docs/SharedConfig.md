@@ -46,6 +46,8 @@ The file defines
 * Standalone apps
 * Plans and apps inside them
 * Scripts
+* `<AppTemplate>` elements - default settings for apps, named by the `Template` attribute of an app (or of another template)
+* `<NodeTemplate>` elements - default attributes for file nodes (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`), named by their `Template` attribute; see [Node templates](Files.md#node-templates)
 
 ```
 <Shared>
@@ -150,7 +152,7 @@ Attributes:
 
 - `WindowStyle` - "normal" (default), "minimized", "maximized", "hidden"
 
-- `Template` - where to load default settings from; the name of a AppTemplate section in the same XML file
+- `Template` - where to load default settings from; the name of a AppTemplate section in the same XML file. Templates may chain (an `<AppTemplate>` with its own `Template`); a template that leads back to itself (`a -> b -> a`) is a load error.
 
 - `KillTree 0|1` - whether to kill not just the single process but also all its child processes. Child processes are killed only in case of a hard kill if previous "softer" attempts (if any, see KillSeq) fail.
 
