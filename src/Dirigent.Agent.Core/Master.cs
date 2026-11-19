@@ -39,6 +39,36 @@ namespace Dirigent
 
 		/// <summary>The machine the master runs on; always known, unlike the client name.</summary>
 		public string MachineId => _machineId;
+
+		// ---- what describes this master to a tool: GET /api/status ----
+
+		/// <summary>When this master started (UTC).</summary>
+		public DateTime StartedAt { get; } = DateTime.UtcNow;
+
+		/// <summary>The port of the web server; 0 or less when there is none.</summary>
+		public int HttpPort { get; private set; }
+
+		/// <summary>The local config file, if one was named; empty otherwise.</summary>
+		public string LocalConfigFile { get; private set; } = string.Empty;
+
+		/// <summary>The shared config file in use.</summary>
+		public string SharedConfigFile => _sharedConfigFileName;
+
+		/// <summary>When the shared config was last read (UTC).</summary>
+		public DateTime SharedConfigLoadedAt { get; private set; }
+
+		/// <summary>The MinDirigentVersion the shared config states; empty if it states none.</summary>
+		public string MinDirigentVersion { get; private set; } = string.Empty;
+
+		/// <summary>True while a Kill All is still killing.</summary>
+		public bool KillAllInProgress => _killAllInProgress;
+
+		/// <summary>The address the master is reached at, as configured.</summary>
+		public string LocalIp => _localIpAddr;
+
+		/// <summary>The MACs the machine's agent last reported, for Wake-on-LAN.</summary>
+		public List<string> GetLearnedMacs( string machineId )
+			=> _macCache.Get( machineId ).Select( n => n.Mac ).Where( m => !string.IsNullOrEmpty( m ) ).Distinct().ToList();
 		
 		/// <summary>
 		/// Send to all subcribed. Does not change the sender.
@@ -166,6 +196,8 @@ namespace Dirigent
             _debug = Tools.BoolFromString( ac.Debug );
 
             _localIpAddr = ac.LocalIP;
+			HttpPort = ac.HttpPort;
+			LocalConfigFile = ac.LocalCfgFileName ?? string.Empty;
             _port = ac.MasterPort;
 
             _rootForRelativePaths = rootForRelativePaths;
@@ -831,6 +863,8 @@ namespace Dirigent
 				sharedConfig = new SharedConfigReader( textReader ).Config;
 			}
 			_sharedConfigFileName = fileName;
+			SharedConfigLoadedAt = DateTime.UtcNow;
+			MinDirigentVersion = sharedConfig.MinDirigentVersion;
 			return sharedConfig;
 		}
 
@@ -1183,6 +1217,20 @@ namespace Dirigent
 			{
 				throw new Exception( $"Wake-on-LAN of machine '{machineId}' failed: none of the {plan.Count} magic packets could be sent; see the master's log" );
 			}
+		}
+
+		/// <summary>
+		/// Starts a script by name on a client (an agent) rather than on the master, the way a GUI does; the master forwards the request.
+		/// </summary>
+		/// <exception cref="Exception">the client is not connected</exception>
+		public void StartScriptOn( string requestorId, string machineId, Guid id, string scriptName, string? args, string title )
+		{
+			var state = GetClientState( machineId );
+			if( state is null || !state.Connected )
+				throw new Exception( $"Machine {machineId} is not connected." );
+
+			var msg = new Net.StartScriptMessage( requestorId, id, scriptName, null, args, title, machineId );
+			_server.SendToSingle( msg, machineId );
 		}
 
 		public void Reinstall( string requestorId, ReinstallArgs args )

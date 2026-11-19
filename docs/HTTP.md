@@ -66,13 +66,84 @@ examples below are real answers, shortened where they are long.
   at once with a job id; you poll the job, optionally with `?wait=N` (seconds to hold the answer, at most 120).
 
 **Mutating calls.** The calls that change anything are `POST /api/cli` (anything the [CLI](CLI.md) can do),
-`POST /api/downloads`, `DELETE /api/downloads/{id}`, and the marking calls (`POST /api/marks` and the `.../mark|clear|unmark` routes).
+`POST /api/downloads`, `DELETE /api/downloads/{id}`, the marking calls (`POST /api/marks` and the `.../mark|clear|unmark` routes), and the [control calls](#Controlling-the-system) (plans, applications, machines' power, Kill All, the shared config, variables, scripts).
 `POST /api/files/query` is a `POST` only because it takes a body: it is a **read-only** preview and changes nothing. Everything else is `GET`.
+
+## Describing the site
+
+For a tool - or an AI agent - that has to find out what the site is before it does anything, this is the order of questions. Each answer says what to ask next.
+
+| Ask | What it tells | Then |
+| --- | --- | --- |
+| [`GET /api/status`](#GET-apistatus) | which Dirigent this is, which shared config it runs, how many machines, applications, plans, scripts and file definitions it defines, who is connected, whether a Kill All is going | |
+| [`GET /api/machinedefs`](#GET-apimachinedefs) | every machine: its address, whether it is online, its shares, its MAC addresses, which applications and file definitions belong to it. **The machines are the key to everything else** - applications, files and power all hang on a machine id | [`/api/machinedefs/{id}`](#GET-apimachinedefsid) for one |
+| [`GET /api/appdefs`](#GET-apiappdefs), [`/api/applocations`](#GET-apiapplocations) | the applications, and where their binaries and working folders are | [`/api/appstates`](#GET-apiappstates) for what they are doing now |
+| [`GET /api/plandefs`](#GET-apiplandefs) | the launch plans and the applications in them | [`/api/planstates`](#GET-apiplanstates) |
+| [`GET /api/filedefs`](#GET-apifiledefs) | what files there is to look at, collect or mark; `?type=FilePackage&group=component` for what to offer | [`POST /api/files/query`](#POST-apifilesquery) to see the files |
+| [`GET /api/scriptdefs`](#GET-apiscriptdefs) | the scripts the configuration defines | [`POST /api/scripts/{id}/start`](#POST-apiscriptsidstart) to run one |
+
+Then act. The control calls are in [Controlling the system](#Controlling-the-system); how plans, applications and scripts behave is in [Plans](Plans.md), [Apps](Apps.md) and [Scripts](Scripts.md),
+and power and Wake-on-LAN in [Management](Mgmt.md).
+
+### GET /api/status
+
+What this master is and what it runs:
+
+```json
+{ "version": "Dirigent.Agent 3.1.19.18", "masterMachineId": "master1", "masterIp": "10.0.0.5", "httpPort": 8877,
+  "startedAt": "2026-11-19T08:00:00Z",
+  "sharedConfig": { "path": "C:\\Dirigent\\SharedConfig.xml", "loadedAt": "2026-11-19T08:00:01Z", "minDirigentVersion": "3.1.19",
+                    "machines": 12, "apps": 40, "plans": 6, "scripts": 3, "fileDefs": 85 },
+  "localConfigPath": null, "archiveFolder": "C:\\ProgramData\\Dirigent\\Archives", "killAllInProgress": false,
+  "connectedClients": [ "master1", "m1", "m2" ] }
+```
+
+`version` is what `--version` prints. `minDirigentVersion` and `localConfigPath` are `null` when there is none. `connectedClients` are the agents and GUIs connected now.
+
+### GET /api/machinedefs
+
+The machines of the shared config, each as described below.
+
+### GET /api/machinedefs/{id}
+
+```json
+{ "id": "m1", "ip": "10.0.0.11", "connected": true, "actualIp": "10.0.0.11", "lastChange": "2026-11-19T08:00:05Z",
+  "mac": null, "macLearned": [ "AA-BB-CC-DD-EE-FF" ],
+  "shares": [ { "name": "C", "path": "C:\\" } ],
+  "fileDefs": [ "dirigent.log" ], "apps": [ "m1.camera", "m1.tracker" ] }
+```
+
+`ip` and `mac` are what SharedConfig gives (`null` when it gives none); `actualIp` is the address the agent connected from (`null` if it never has) and `macLearned` the adapters it
+reported - what a wake-up uses unless `mac` is given. `connected` and `lastChange` say whether the agent is online now and since when. `shares` are the machine's `<Share>`s, which
+make the `uncPath`s of the file previews possible. `fileDefs` are the ids of the file definitions that belong to the machine itself (a machine log), `apps` the applications defined for it.
+Unknown machine: 404.
+
+### POST /api/machinedefs/{id}/shutdown
+
+Tells the machine's agent to power the computer off. `202 {"message"}`. Unknown machine: 404; a machine that is not connected: 409 (there is nobody to tell). (CLI: `Shutdown machineId=m1`.)
+
+### POST /api/machinedefs/{id}/reboot
+
+As above, restarting the computer. (CLI: `Shutdown machineId=m1 mode=Reboot`.)
+
+### POST /api/machinedefs/{id}/wakeup
+
+Wakes a switched-off machine with Wake-on-LAN, sent from the master. `202`: the packets were sent - the machine takes a while to come up, watch `connected`. A machine that is already connected: 409 `already online`;
+no MAC known (it never connected and SharedConfig gives none): 409 with the reason. (CLI: [`WakeUp`](CLI.md#WakeUp); see [Management](Mgmt.md).)
 
 ## Overview
 
 | Method | Route | Purpose | CLI twin |
 | --- | --- | --- | --- |
+| GET | [`/api/status`](#GET-apistatus) | What this master is and runs | |
+| GET | [`/api/machinedefs`](#GET-apimachinedefs), [`/api/machinedefs/{id}`](#GET-apimachinedefsid) | The machines: address, online, shares, MACs, their applications and file definitions | [`GetAllClientsState`](CLI.md#GetAllClientsState) |
+| POST | [`/api/machinedefs/{id}/shutdown`](#POST-apimachinedefsidshutdown), [`/reboot`](#POST-apimachinedefsidreboot), [`/wakeup`](#POST-apimachinedefsidwakeup) | Power a machine off, restart it, or wake it | [`Shutdown`](CLI.md#Shutdown), [`WakeUp`](CLI.md#WakeUp) |
+| POST | [`/api/plandefs/{id}/start`](#POST-apiplandefsidstart), [`/stop`](#POST-apiplandefsidstop), [`/kill`](#POST-apiplandefsidkill), [`/restart`](#POST-apiplandefsidrestart) | Control a plan (`?waitSeconds=`) | [`StartPlan`](CLI.md#StartPlan) ... |
+| POST | [`/api/appdefs/{id}/start`](#POST-apiappdefsidstart), [`/kill`](#POST-apiappdefsidkill), [`/restart`](#POST-apiappdefsidrestart) | Control an application (`?waitSeconds=`) | [`StartApp`](CLI.md#StartApp) ... |
+| POST | [`/api/killall`](#POST-apikillall) | Kill everything, stop all plans | [`KillAll`](CLI.md#KillAll) |
+| POST | [`/api/sharedconfig/reload`](#POST-apisharedconfigreload) | Read the shared config again | [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig) |
+| POST | [`/api/vars`](#POST-apivars) | Set variables on the agents | [`SetVars`](CLI.md#SetVars) |
+| POST | [`/api/scripts/{id}/start`](#POST-apiscriptsidstart), [`/api/scripts`](#POST-apiscripts), [`/api/scripts/{id}/kill`](#POST-apiscriptsidkill) | Start a defined script, start any script by name, stop a script | [`StartScript`](CLI.md#StartScript), [`KillScript`](CLI.md#KillScript) |
 | GET | [`/api/appdefs`](#GET-apiappdefs) | All application definitions | |
 | GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
 | GET | [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation) | Where the binary and working folder of an application are, as its agent resolves them | [`GetAppLocation`](CLI.md#GetAppLocation) |
@@ -579,6 +650,85 @@ As above, clearing. (CLI: [`ClearAppFiles`](CLI.md#ClearAppFiles).)
 ### POST /api/appdefs/{id}/unmark
 
 As above, unmarking. (CLI: [`UnmarkAppFiles`](CLI.md#UnmarkAppFiles).)
+
+## Controlling the system
+
+JSON in, JSON out, and a status code that says what happened. Each call is a thin wrapper over what the matching [CLI](CLI.md) command calls, so what the master refuses it refuses here, with its own words:
+
+* **404** - the plan, application, machine, script or file definition is not known;
+* **400** - the body is not valid JSON, a variable name is not usable, a number of seconds is not a number;
+* **409** - the master declined: the operation is impossible in the state things are in (a machine that is not connected, an instance already running, ...). The message is the master's;
+* **504** - a `?waitSeconds=` ran out before the state was reached; whatever was started is still going on;
+* otherwise the error is the JSON `{"error": "...", "code": 500}` of every `/api` error.
+
+Nothing answers 200 for something that did not happen. Calls that only *ask* the system to do something - the work happens later, on the machines - answer `202`; calls given `?waitSeconds=N` (at most 300) wait for the
+state and answer `200` with it, or `504`. Variables travel as `{"vars":{"NAME":"value"}}`, the same as the optional second argument of `StartPlan` and `StartApp` (names without `=` or `::`).
+
+```
+POST /api/plandefs/system/start?waitSeconds=120    {"vars":{"SITE":"lab2"}}   -> 200 {"id":"system","state":{"code":"Success","flags":"R"}}
+POST /api/appdefs/m1.camera/kill?waitSeconds=30                              -> 200 {"id":"m1.camera","state":{"code":"NotRunning"...}}
+POST /api/scripts?waitSeconds=30   {"name":"BuiltIns/ListVfsNodes.cs","args":{}} -> 200 {"id":"...","status":"Finished","data":{...}}
+```
+
+### POST /api/plandefs/{id}/start
+
+Starts the plan - the [`StartPlan`](CLI.md#StartPlan) of the CLI. Optional body `{"vars":{...}}`. Answers the plan state ([`/api/planstates/{id}`](#GET-apiplanstatesid)): `202` at once; with `?waitSeconds=N`, `200` when the plan's
+status is *Success* or *Failure* (read `state.code` - a *Failure* is the plan's own verdict, see [Plan status](Plans.md#Plan-status)), `504` if it is still *In Progress*. A plan that [marks files](Plans.md#marking-or-clearing-files-when-a-plan-starts) is *In Progress* meanwhile. Unknown plan: 404.
+
+### POST /api/plandefs/{id}/stop
+
+Stops the plan launching further applications; what already runs keeps running. `202` with the plan state.
+
+### POST /api/plandefs/{id}/kill
+
+Kills the plan's applications. `202` with the plan state; with `?waitSeconds=N`, `200` when the plan is no longer killing.
+
+### POST /api/plandefs/{id}/restart
+
+Kills the plan's applications and starts it again. Optional `{"vars":{...}}`; `?waitSeconds=N` waits for the new *Success* or *Failure* as for start.
+
+### POST /api/appdefs/{id}/start
+
+Starts the application, `m1.a` or `m1.a@plan1` (the definition of that plan, as the CLI's `StartApp`). Optional `{"vars":{...}}`. Answers the application state ([`/api/appstates/{id}`](#GET-apiappstatesid)): `202`, or with `?waitSeconds=N`
+`200` once it is running and initialized, `504` if not. Unknown application or plan: 404.
+
+### POST /api/appdefs/{id}/kill
+
+Kills the application. `202`; with `?waitSeconds=N`, `200` once it is no longer running.
+
+### POST /api/appdefs/{id}/restart
+
+Restarts the application, optional `{"vars":{...}}`; `?waitSeconds=N` waits for the new instance to be running and initialized.
+
+### POST /api/killall
+
+Kills every application on every machine and stops every plan - [`KillAll`](CLI.md#KillAll) and its [extra actions](SharedConfig.md#KillAll-definitions). Optional body `{"machine":"m1"}` limits it to one machine. `202`. A plan that is
+[marking files](Plans.md#marking-or-clearing-files-when-a-plan-starts) is stopped but its marking is left to finish; a second Kill All while the first is going cuts it. Unknown machine: 404.
+
+### POST /api/sharedconfig/reload
+
+Reads the shared config again - [`ReloadSharedConfig`](CLI.md#ReloadSharedConfig). **Like the CLI, it kills the applications first** unless the body says `{"killApps":false}`; `{"file":"..."}` names another file. The call
+returns when the reload is done (a few seconds): `200 {"message","path","loadedAt"}`. A file that is not there or not valid XML: 400, and a config that is not valid (an id that matches nothing, a `MinDirigentVersion` newer than this master) is 400 with the reason; the running configuration is kept.
+
+### POST /api/vars
+
+Sets variables on the agents - [`SetVars`](CLI.md#SetVars). Body `{"vars":{"NAME":"value"}}`, which must not be empty. `202`.
+
+### POST /api/scripts/{id}/start
+
+Starts a script the configuration defines - what the GUI does for a defined script. `{id}` is the guid of the `<Script>` definition, which is also the id the script runs under: **start and kill share the resource** (`POST /api/scripts/{id}/start`, `POST /api/scripts/{id}/kill`), and the state is at [`/api/scriptstates/{id}`](#GET-apiscriptstatesid). A script started by name with `POST /api/scripts` has the `id` that call answered with, and is stopped the same way. See [Scripts](Scripts.md). Optional body `{"args": ...}`: JSON, or a string, handed to the script as its arguments; without it the arguments of the definition are used. `202 {"id"}`;
+with `?waitSeconds=N` the answer is the script's end state, `{"id","state":{"code"},"status":"Finished","text","progress","data"}`, where `data` is what the script returned (parsed when it is JSON) or, for a failed script, the error. An `{id}` that is no `<Script>` definition: 404 `no script definition {id}; start a script by name with POST /api/scripts`;
+a script that is already running: 409.
+
+### POST /api/scripts
+
+Starts any script by name - [`StartScript`](CLI.md#StartScript) of the CLI. Body `{"name":"BuiltIns/ListVfsNodes.cs","args":{...},"machine":null,"id":"<guid>","title":"..."}`: `name` is needed; `machine` is `null` to run on the master or a
+machine id to run on that machine's agent (not connected: 409); `id` is the instance id (a new one when not given). `202 {"id"}`, or with `?waitSeconds=N` the end state as above. The state of a script that is still running is at
+[`/api/scriptstates/{id}`](#GET-apiscriptstatesid).
+
+### POST /api/scripts/{id}/kill
+
+Stops a running script - any instance, a config-defined script under its own guid or one started with `POST /api/scripts`. `202`. Unknown script: 404. (CLI: [`KillScript`](CLI.md#KillScript).)
 
 ## CLI
 

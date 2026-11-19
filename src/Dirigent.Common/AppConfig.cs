@@ -214,7 +214,7 @@ namespace Dirigent
 		}
 
 		/// <summary>The program and its version, as the parser's banner used to say it.</summary>
-		static string VersionText()
+		public static string VersionText()
 		{
 			var asm = System.Reflection.Assembly.GetEntryAssembly();
 

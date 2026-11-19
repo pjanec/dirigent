@@ -164,6 +164,72 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void TheSiteIsDescribedAndControlledOverHttp()
+		{
+			using var world = SystemWorld.Start( "ControlWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 120 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			System.Text.Json.JsonElement Call( HttpMethod method, string url, System.Net.HttpStatusCode expected, string? body = null )
+			{
+				var req = new HttpRequestMessage( method, $"{root}/{url}" );
+				if( body is not null ) req.Content = new StringContent( body, System.Text.Encoding.UTF8, "application/json" );
+				var r = http.SendAsync( req ).GetAwaiter().GetResult();
+				var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Assert.AreEqual( expected, r.StatusCode, $"{method} {url}: {text}" );
+				return text.Length == 0 ? default : System.Text.Json.JsonDocument.Parse( text ).RootElement.Clone();
+			}
+			var ok = System.Net.HttpStatusCode.OK;
+			var accepted = System.Net.HttpStatusCode.Accepted;
+
+			// the master and its machines
+			var status = Call( HttpMethod.Get, "status", ok );
+			Assert.IsFalse( string.IsNullOrEmpty( status.GetProperty( "version" ).GetString() ) );
+			Assert.AreEqual( 2, status.GetProperty( "sharedConfig" ).GetProperty( "machines" ).GetInt32() );
+			Assert.AreEqual( world.HttpPort, status.GetProperty( "httpPort" ).GetInt32() );
+
+			var machines = Call( HttpMethod.Get, "machinedefs", ok );
+			Assert.AreEqual( 2, machines.GetArrayLength() );
+			var m1 = Call( HttpMethod.Get, "machinedefs/m1", ok );
+			Assert.IsTrue( m1.GetProperty( "connected" ).GetBoolean() );
+			Assert.AreEqual( "m1.idler", m1.GetProperty( "apps" )[0].GetString() );
+			Call( HttpMethod.Get, "machinedefs/nosuch", System.Net.HttpStatusCode.NotFound );
+			Call( HttpMethod.Post, "machinedefs/nosuch/wakeup", System.Net.HttpStatusCode.NotFound );
+			Call( HttpMethod.Post, "machinedefs/m1/wakeup", System.Net.HttpStatusCode.Conflict ); // already online
+
+			// a plan, started and waited for
+			var plan = Call( HttpMethod.Post, "plandefs/all/start?waitSeconds=60", ok, "{}" );
+			Assert.AreEqual( "Success", plan.GetProperty( "state" ).GetProperty( "code" ).GetString(), plan.ToString() );
+			Call( HttpMethod.Post, "plandefs/nosuch/start", System.Net.HttpStatusCode.NotFound );
+			Call( HttpMethod.Post, "plandefs/all/start", System.Net.HttpStatusCode.BadRequest, "{ not json" );
+			Call( HttpMethod.Post, "plandefs/all/start?waitSeconds=abc", System.Net.HttpStatusCode.BadRequest );
+
+			// an application killed, and waited for
+			var killed = Call( HttpMethod.Post, "appdefs/m1.idler/kill?waitSeconds=30", ok );
+			Assert.IsFalse( killed.GetProperty( "state" ).GetProperty( "flags" ).GetString()!.Contains( 'R' ), killed.ToString() );
+			Call( HttpMethod.Post, "appdefs/m1.nosuch/kill", System.Net.HttpStatusCode.NotFound );
+
+			// a script started by name and waited for: the answer holds what it returned
+			var script = Call( HttpMethod.Post, "scripts?waitSeconds=30", ok, "{\"name\":\"BuiltIns/ListVfsNodes.cs\",\"args\":{}}" );
+			Assert.AreEqual( "Finished", script.GetProperty( "status" ).GetString(), script.ToString() );
+			Assert.IsTrue( script.TryGetProperty( "data", out _ ) );
+			Call( HttpMethod.Post, "scripts", System.Net.HttpStatusCode.BadRequest, "{}" );
+
+			var started = Call( HttpMethod.Post, "scripts", accepted, "{\"name\":\"BuiltIns/ListVfsNodes.cs\"}" );
+			var scriptId = started.GetProperty( "id" ).GetString();
+			Call( HttpMethod.Post, $"scripts/{Guid.NewGuid()}/kill", System.Net.HttpStatusCode.NotFound );
+			Call( HttpMethod.Post, $"scripts/{scriptId}/kill", accepted );
+			Call( HttpMethod.Post, $"scripts/{Guid.NewGuid()}/start", System.Net.HttpStatusCode.NotFound );
+
+			// variables, and Kill All
+			Call( HttpMethod.Post, "vars", accepted, "{\"vars\":{\"SITE\":\"test\"}}" );
+			Call( HttpMethod.Post, "vars", System.Net.HttpStatusCode.BadRequest, "{}" );
+			Call( HttpMethod.Post, "killall", System.Net.HttpStatusCode.NotFound, "{\"machine\":\"nosuch\"}" );
+			Call( HttpMethod.Post, "killall", accepted );
+		}
+
+		[TestMethod()]
 		public void StateEndpointsAnswerToThePluralAndTheOlderSingularName()
 		{
 			using var world = SystemWorld.Start( "WaitingWorld", withHttp: true ); // has the plan "never"

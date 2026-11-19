@@ -36,6 +36,7 @@ namespace Dirigent
 			if ( _root is null ) throw new Exception("SharedConfig missing the root element");
 
 			CheckMinVersion( _root );
+			_cfg.MinDirigentVersion = _root.Attribute( "MinDirigentVersion" )?.Value?.Trim() ?? string.Empty;
 
 			// before anything is read: from here on the file nodes are plain, templates are history
 			// machine templates first: the nodes they bring into a machine may use file templates, and the

@@ -66,6 +66,10 @@ namespace Dirigent.TestBed.Scenarios
 			return scenario;
 		}
 
+		/// <summary>Two machines with an idler each and a plan "all" holding both - what the control calls are tried on.</summary>
+		public static Scenario ControlWorld()
+			=> TwoMachinesWithIdlers().PlanWithEverything( "all" );
+
 		/// <summary>
 		/// The logging world plus a plan naming a machine no agent will ever serve.
 		/// </summary>
@@ -91,6 +95,7 @@ namespace Dirigent.TestBed.Scenarios
 			{ "LoggingApps", LoggingApps },
 			{ "LoggingWorld", LoggingWorld },
 			{ "WaitingWorld", WaitingWorld },
+			{ "ControlWorld", ControlWorld },
 		};
 
 		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>

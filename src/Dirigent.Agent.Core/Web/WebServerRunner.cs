@@ -105,6 +105,8 @@ namespace Dirigent.Web
                     .WithController( () => new ScriptApiController( master ) )
                     .WithController( () => new CmdApiController( master ) )
                     .WithController( () => new ClientApiController( master ) )
+                    .WithController( () => new MachineApiController( master ) )
+                    .WithController( () => new ControlApiController( master ) )
                     .HandleHttpException( JsonHttpError )
                     .HandleUnhandledException( JsonUnhandledError )
                 )
