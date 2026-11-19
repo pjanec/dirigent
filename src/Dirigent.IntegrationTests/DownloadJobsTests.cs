@@ -51,7 +51,9 @@ namespace Dirigent.IntegrationTests
 					+ "<Folder Id='plannode' Title='PlanLogs' Path='{temp}\\planfiles' Mask='*.log'/></App></Plan>" )
 				.RawXml(
 					"<FilePackage Id='pkg' Title='Pkg' Description='Collect me'>"
-					+ "<Folder Id='pk1' Title='M1' MachineId='{m1}' Path='{temp}\\planfiles' Mask='*.log'/></FilePackage>" );
+					+ "<Folder Id='pk1' Title='M1' MachineId='{m1}' Path='{temp}\\planfiles' Mask='*.log'/></FilePackage>" )
+				.RawXml( "<File Id='single' Title='Single' MachineId='{m1}' Path='{temp}\\single\\one.txt'/>" )
+				.RawXml( "<File Id='tailed' Title='Tailed' MachineId='{m1}' Path='{temp}\\single\\big.txt' TailBytes='10'/>" );
 
 		static async Task<TestBed.TestBed> StartShareBed()
 		{
@@ -128,6 +130,53 @@ namespace Dirigent.IntegrationTests
 
 			var rel = job.files[0].localPath.Substring( SystemDriveRoot.Length );
 			Assert.AreEqual( @"\\127.0.0.1\C\" + rel, job.files[0].uncPath, "through the share of the master's machine" );
+		}
+
+		[TestMethod()]
+		public async Task ASingleFileDefinitionIsCollectedAsThatFileAlone()
+		{
+			using var bed = await StartShareBed();
+
+			var dir = Path.Combine( bed.TempRoot, "single" );
+			Directory.CreateDirectory( dir );
+			var content = "exactly this content\r\nsecond line\r\n";
+			File.WriteAllText( Path.Combine( dir, "one.txt" ), content );
+			File.WriteAllText( Path.Combine( dir, "other.txt" ), "must not come along" );
+			var big = string.Concat( Enumerable.Range( 0, 10 ).Select( i => $"L{i}\n" ) ); // 30 bytes; the last 10 start mid-line, so the tail begins at the next line
+			File.WriteAllText( Path.Combine( dir, "big.txt" ), big );
+
+			// a File with nothing else said: the whole file
+			var job = await Run( bed, "DownloadPackage single wait=1" );
+			Assert.AreEqual( "Finished", job.status, string.Join( "; ", job.errors ) );
+
+			using( var zip = System.IO.Compression.ZipFile.OpenRead( job.files.Single().localPath ) )
+			{
+				var files = zip.Entries.Where( e => !e.FullName.EndsWith( "/" ) && !e.Name.StartsWith( "_" ) ).ToList();
+				Assert.AreEqual( 1, files.Count, string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
+				Assert.AreEqual( "one.txt", files[0].Name );
+
+				using var reader = new StreamReader( files[0].Open() );
+				Assert.AreEqual( content, reader.ReadToEnd() );
+			}
+
+			// the same with TailBytes smaller than the file: the end of it
+			var tailJob = await Run( bed, "DownloadPackage tailed wait=1" );
+			Assert.AreEqual( "Finished", tailJob.status, string.Join( "; ", tailJob.errors ) );
+
+			using( var zip = System.IO.Compression.ZipFile.OpenRead( tailJob.files.Single().localPath ) )
+			{
+				var files = zip.Entries.Where( e => !e.FullName.EndsWith( "/" ) && !e.Name.StartsWith( "_" ) ).ToList();
+				Assert.AreEqual( 1, files.Count, string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
+				Assert.AreEqual( "big.last10B.txt", files[0].Name, "a tail is named as one" );
+
+				using var ms = new MemoryStream();
+				using( var s = files[0].Open() ) s.CopyTo( ms );
+				var text = System.Text.Encoding.UTF8.GetString( ms.ToArray() );
+				// a partial file starts with a header saying so (by design), then the tail from the first
+				// line boundary within the last 10 bytes
+				Assert.IsTrue( text.EndsWith( "L7\nL8\nL9\n" ), $"it ends with the tail of the file, got: {text}" );
+				Assert.IsFalse( text.Contains( "L6" ) || text.Contains( "L0" ), $"and holds nothing before the tail, got: {text}" );
+			}
 		}
 
 		[TestMethod()]
