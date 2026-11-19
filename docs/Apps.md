@@ -98,6 +98,7 @@ Dirigent agent defines the following special variables for an app started from t
  * `DIRIGENT_PLAN` = the plan in whose context the app was started. Current plan name for apps launched without a plan via `LauchApp` command. Empty if no current plan.
  * `DIRIGENT_SHAREDCONFDIR` = full directory path to the SharedConfig.xml file
  * `DIRIGENT_MASTER_IP` = IP address of a Dirigent Master as defined in agent's configuration.
+ * `APP_STARTUPDIR_NAME` = the last folder name of the app's `StartupDir` (`..\RenderHost-3801` gives `RenderHost-3801`). Available in `ExeFullPath`, `StartupDir`, `CmdLineArgs`, in the paths and masks of the app's files and - worked out from `StartupDir` as written - in their titles. The full list, and where each variable can be used, is in [Variables in Path, Mask and Title](Files.md#Variables-in-Path-Mask-and-Title).
 
 
 This provides a way to tell the processes started by the dirigent agent what station/machine (in terms of the dirigent machine naming) they are running at. This might come in handy if same process is started on many machines, it needs to know where it was started but you can not rely on the computer name.

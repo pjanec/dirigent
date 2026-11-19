@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Dirigent;
 using System;
 using System.Collections.Generic;
@@ -47,6 +47,15 @@ namespace Dirigent.Tests
 
 			Assert.AreEqual( @"C:\root\tools\sub\app.exe", spec.GetFileName( pe ) );
 			Assert.AreEqual( @"C:\root\work\m1", spec.GetWorkingDirectory() );
+		}
+
+		[TestMethod()]
+		public void TheNameOfTheStartupFolderIsAVariableTest()
+		{
+			Assert.AreEqual( "RenderHost-3801", Spec( App( "x.exe", "", @"..\RenderHost-3801" ) ).ExpansionVars["APP_STARTUPDIR_NAME"] );
+			Assert.AreEqual( "RenderHost-3801", Spec( App( "x.exe", "", @"D:\apps\RenderHost-3801\" ) ).ExpansionVars["APP_STARTUPDIR_NAME"], "trailing separators are ignored" );
+			Assert.AreEqual( "[]", Spec( App( "x.exe", "", "" ) ).ExpandVars( "[%APP_STARTUPDIR_NAME%]" ), "no startup folder, no name" );
+			Assert.AreEqual( "--on RenderHost-3801", Spec( App( "x.exe", "--on %APP_STARTUPDIR_NAME%", @"..\RenderHost-3801" ) ).ParseExe().CmdLine, "the launcher has it too" );
 		}
 
 		[TestMethod()]

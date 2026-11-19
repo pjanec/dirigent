@@ -571,5 +571,99 @@ namespace Dirigent.Tests
 		{
 			WithRunningVersion( "1.0.0.0", () => Parse( "<Shared MinDirigentVersion='3.1.19'/>" ) );
 		}
+
+		[TestMethod()]
+		public void TheTitleTakesTheWorkingFolderNameAndTheLocalVariablesOfTheAppTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log/%APP_STARTUPDIR_NAME%' Path='C:\IG\Logs\%APP_STARTUPDIR_NAME%' Mask='*.log'/>
+						<File Id='cfg' Title='Cfg/%KIND%/%APP_ID%' Path='C:\IG\cfg.xml'/>
+						<File Id='odd' Title='Odd/%APP_STARTUPDIR_NAME%/%NOSUCH%' Path='C:\IG\odd.xml'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.igm1' Template='base' StartupDir='..\RenderHost-3801'><Env><Local Variable='KIND' Value='main'/></Env></App>
+					<App AppIdTuple='m1.igm2' Template='base' StartupDir='..\RenderHost-3802\'/>
+					<App AppIdTuple='m1.igm3' Template='base' StartupDir='%SOMEWHERE%\Unknown'/>
+				</Shared>" );
+
+			string TitleOf( string id, string app ) => cfg.VfsNodes.Single( n => n.Id == id && n.AppId == app ).Title;
+
+			Assert.AreEqual( "Log/RenderHost-3801", TitleOf( "log", "igm1" ) );
+			Assert.AreEqual( "Log/RenderHost-3802", TitleOf( "log", "igm2" ), "trailing separators are ignored" );
+			Assert.AreEqual( "Cfg/main/igm1", TitleOf( "cfg", "igm1" ), "a <Local> variable of the app" );
+			Assert.AreEqual( "Cfg/%KIND%/igm2", TitleOf( "cfg", "igm2" ), "an app without it leaves the token" );
+			Assert.AreEqual( "Log/%APP_STARTUPDIR_NAME%", TitleOf( "log", "igm3" ), "a working folder that needs the environment is not guessed" );
+			Assert.AreEqual( "Odd/RenderHost-3801/%NOSUCH%", TitleOf( "odd", "igm1" ), "unknown tokens stay as they are" );
+
+			// the path is not touched at load time - the agent expands it, per app
+			Assert.AreEqual( @"C:\IG\Logs\%APP_STARTUPDIR_NAME%", cfg.VfsNodes.Single( n => n.Id == "log" && n.AppId == "igm1" ).Path );
+		}
+
+		static List<VfsNodeDef> NodesOf( SharedConfig cfg, string app )
+			=> cfg.AppDefaults.Single( a => a.Id.ToString() == app ).VfsNodes;
+
+		[TestMethod()]
+		public void ADerivedTemplateNodeWithTheSameIdAndTitleReplacesTheInheritedOneTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log' Path='D:\logs' Mask='*.log' Filter='Newest' MaxFiles='5'/>
+						<File Id='cfg' Title='Cfg' Path='D:\cfg.xml'/>
+					</AppTemplate>
+					<AppTemplate Name='derived' Template='base'>
+						<File Id='log' Title='Log' Path='D:\logs' Mask='*.log' Filter='Newest' MaxFiles='50'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.a' Template='derived'/>
+				</Shared>" );
+
+			var nodes = NodesOf( cfg, "m1.a" );
+			CollectionAssert.AreEqual( new[] { "log", "cfg" }, nodes.Select( n => n.Id ).ToList(), "replaced in place, not appended" );
+			StringAssert.Contains( nodes[0].Xml, "MaxFiles=\"50\"" );
+
+			// and the registry knows the one node only
+			Assert.AreEqual( 1, cfg.VfsNodes.Count( n => n.Id == "log" ) );
+			Assert.AreSame( nodes[0], cfg.VfsNodes.Single( n => n.Id == "log" ) );
+		}
+
+		[TestMethod()]
+		public void TheAppItselfReplacesAnInheritedNodeToo()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log' Path='D:\logs' MaxFiles='5'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.a' Template='base'><File Id='log' Title='Log' Path='D:\logs' MaxFiles='7'/></App>
+					<App AppIdTuple='m1.b' Template='base'/>
+				</Shared>" );
+
+			var a = NodesOf( cfg, "m1.a" ).Single();
+			StringAssert.Contains( a.Xml, "MaxFiles=\"7\"" );
+			StringAssert.Contains( NodesOf( cfg, "m1.b" ).Single().Xml, "MaxFiles=\"5\"", "another app keeps the inherited one" );
+		}
+
+		[TestMethod()]
+		public void ADifferentTitleOrNoIdAddsInsteadOfReplacingTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
+						<File Id='log' Title='Log' Path='D:\logs' MaxFiles='5'/>
+					</AppTemplate>
+					<AppTemplate Name='otherTitle' Template='base'>
+						<File Id='log' Title='Other title' Path='D:\logs' MaxFiles='50'/>
+					</AppTemplate>
+					<AppTemplate Name='noId' Template='base'>
+						<File Title='Log' Path='D:\logs' MaxFiles='60'/>
+					</AppTemplate>
+					<App AppIdTuple='m1.a' Template='otherTitle'/>
+					<App AppIdTuple='m1.b' Template='noId'/>
+				</Shared>" );
+
+			Assert.AreEqual( 2, NodesOf( cfg, "m1.a" ).Count, "another title: both kept" );
+			Assert.AreEqual( 2, NodesOf( cfg, "m1.b" ).Count, "no Id: both kept" );
+		}
 	}
 }

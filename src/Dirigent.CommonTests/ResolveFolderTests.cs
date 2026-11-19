@@ -39,6 +39,11 @@ namespace Dirigent.Tests
 				=> id.AppId == "camera"
 					? new AppDef() { Id = id, ExeFullPath = @"C:\apps\camera\camera.exe", StartupDir = @"C:\apps\camera",
 									 EnvVarsToSet = new Dictionary<string, string>() { { "CAM_KIND", "front" } } }
+				: id.AppId == "igm"
+					// an app with <Local> variables, a <Set> one of the same name, a plan and a working folder with a name
+					? new AppDef() { Id = id, ExeFullPath = @"C:\apps\igm\igm.exe", StartupDir = @"..\RenderHost-3801", PlanName = "p1",
+									 LocalVarsToSet = new Dictionary<string, string>() { { "LOCALV", "lv" }, { "CLASH", "fromlocal" } },
+									 EnvVarsToSet = new Dictionary<string, string>() { { "CLASH", "fromset" } } }
 					: null;
 		}
 
@@ -72,6 +77,10 @@ namespace Dirigent.Tests
 			File.SetLastWriteTimeUtc( fullPath, DateTime.UtcNow.AddDays( -ageDays ) );
 		}
 
+		/// <summary>The path a File node of the app (or of the machine) resolves to.</summary>
+		string PathOf( string path, string? appId = "igm" )
+			=> Resolve( new FileDef() { Id = "f", Title = "F", MachineId = _machineId, AppId = appId, Path = path } ).Path!;
+
 		VfsNodeDef Resolve( VfsNodeDef def )
 		{
 			var resolved = _reg.ResolveAsync( null!, def, false, true, null ).GetAwaiter().GetResult();
@@ -91,6 +100,59 @@ namespace Dirigent.Tests
 					res.Add( $"{prefix}{child.Title}" );
 			}
 			return res;
+		}
+
+
+		[TestMethod()]
+		public void APathSeesTheLocalVariablesOfItsAppTest()
+		{
+			// the launcher's own set: what the app's command line could use, a path can use
+			_reg.MasterIP = "10.9.8.7";
+
+			Assert.AreEqual( @"D:\x\lv\f", PathOf( @"D:\x\%LOCALV%\f" ) );
+			Assert.AreEqual( @"D:\x\p1\10.9.8.7", PathOf( @"D:\x\%DIRIGENT_PLAN%\%DIRIGENT_MASTER_IP%" ) );
+			Assert.AreEqual( @"D:\x\igm", PathOf( @"D:\x\%APP_ID%" ) );
+		}
+
+		[TestMethod()]
+		public void TheNameOfTheWorkingFolderIsAVariableTest()
+		{
+			Assert.AreEqual( @"C:\IG\Logs\RenderHost-3801", PathOf( @"C:\IG\Logs\%APP_STARTUPDIR_NAME%" ) );
+		}
+
+		[TestMethod()]
+		public void ASetVariableWinsOverALocalOneOfTheSameNameTest()
+		{
+			// <Set> goes to the process environment and always won in a path; that has not changed
+			Assert.AreEqual( @"D:\x\fromset", PathOf( @"D:\x\%CLASH%" ) );
+		}
+
+		[TestMethod()]
+		public void TheGlobalVariablesAreForNodesOfAMachineToo()
+		{
+			_reg.GlobalExpansionVars = new Dictionary<string, string>() { { "GLOBALV", "gv" } };
+
+			Assert.AreEqual( @"D:\x\gv", PathOf( @"D:\x\%GLOBALV%", appId: null ), "a node of the machine" );
+			Assert.AreEqual( @"D:\x\gv", PathOf( @"D:\x\%GLOBALV%" ), "a node of an app" );
+		}
+
+		[TestMethod()]
+		public void TheFileOnlyVariablesAreStillThereTest()
+		{
+			var downloads = Path.Combine( _root, "dl" );
+			var reg = new FileRegistry( new DirigStub(), _machineId, _root, ( machineId ) => "127.0.0.1", downloads );
+			reg.SetMachines( new List<MachineDef>() { new MachineDef() { Id = _machineId, IP = "192.168.7.7" } } );
+
+			var node = new FileDef() { Id = "f", Title = "F", MachineId = _machineId, AppId = "igm", Path = @"%DOWNLOADS%\%MACHINE_ID%\%MACHINE_IP%" };
+			var resolved = reg.ResolveAsync( null!, node, false, true, null ).GetAwaiter().GetResult();
+
+			Assert.AreEqual( Path.Combine( downloads, "m1", "192.168.7.7" ), resolved!.Path );
+		}
+
+		[TestMethod()]
+		public void AnUnknownVariableIsStillRemovedTest()
+		{
+			Assert.AreEqual( @"D:\x\\f", PathOf( @"D:\x\%NO_SUCH_VARIABLE%\f" ), "the empty value leaves the separators" );
 		}
 
 		[TestMethod()]

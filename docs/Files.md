@@ -662,32 +662,44 @@ Examples:
 
 ### Variables in `Path`, `Mask` and `Title`
 
-`Path` and `Mask` are expanded **at use, on the machine that owns the node**, using that machine's
-agent environment, so ordinary environment variables (`%TEMP%`, `%USERPROFILE%`, `%ProgramData%`,
-...) work as expected. In addition:
+One list of variables serves the launch of an app, the `Path` and `Mask` of its files and, in part, the `Title`.
+The file paths start from **the very set the launcher expands `ExeFullPath`, `StartupDir` and `CmdLineArgs` with**
+(computed by the same code, `AppLaunchSpec`) and add what only a file has.
 
-| Association | Variable                              | Value                                                            |
-| ----------- | ------------------------------------- | ---------------------------------------------------------------- |
-| any         | `MACHINE_ID`, `DIRIGENT_MACHINE_ID`   | Name of the machine owning the node.                             |
-|             | `MACHINE_IP`, `DIRIGENT_MACHINE_IP`   | IP address of that machine.                                      |
-|             | `DOWNLOADS`                           | The download folder of the user the agent runs as, on that machine. |
-| app-bound   | `APP_ID`, `DIRIGENT_APPID`            | App name without the machine part.                               |
-|             | `APP_BINDIR`                          | Folder holding the app's executable (from `ExeFullPath`).        |
-|             | `APP_STARTUPDIR`                      | The app's startup folder (from `StartupDir`).                    |
-|             | *(the app's own `<Env>` variables)*   | The variables of its `<Env><Set>` elements. (`<Local>` variables are not available here.) |
+| Variable | Value | Launch | `Path` / `Mask` | `Title` (at load) |
+| --- | --- | :-: | :-: | :-: |
+| environment variables (`%TEMP%`, `%ProgramData%`, ...) | the environment of the agent on the owning machine | yes | yes | no |
+| global variables (`SetVars` and the agent's own) | as set on that agent | yes | yes (also for a node of a machine, not of an app) | no |
+| `MACHINE_ID` | machine of the app / of the node | yes | yes | yes |
+| `DIRIGENT_MACHINE_ID` | machine of the node | no | yes | no |
+| `MACHINE_IP`, `DIRIGENT_MACHINE_IP` | IP address of the machine, looked up only if used | no | yes | no |
+| `DOWNLOADS` | download folder of the agent's user | no | yes | no |
+| `APP_ID` | app name without the machine part | yes | app-bound nodes | yes |
+| `DIRIGENT_APPID`, `DIRIGENT_MACHINEID`, `DIRIGENT_PLAN`, `DIRIGENT_MASTER_IP` | app, machine, plan of the app, address of the master | yes | app-bound nodes | no |
+| `APP_BINDIR` | folder of the executable (from `ExeFullPath`) | yes | app-bound nodes | no |
+| `APP_STARTUPDIR` | the startup folder (from `StartupDir`) | yes | app-bound nodes | no |
+| `APP_STARTUPDIR_NAME` | the **last folder name** of `StartupDir`, trailing separators ignored: `..\RenderHost-3801` gives `RenderHost-3801` | yes | app-bound nodes | yes, if `StartupDir` needs only the `<Local>` variables |
+| the app's `<Local>` variables | the `<Env><Local>` elements of the app | yes | app-bound nodes | yes |
+| the app's `<Set>` variables | the `<Env><Set>` elements; also go to the environment of the process | yes | app-bound nodes | no |
+
+**Precedence.** For a file path a `<Set>` variable wins over a `<Local>` or other launcher variable of the same name (it
+always did), except for the four that say which app this is - `APP_ID`, `DIRIGENT_APPID`, `APP_BINDIR`, `APP_STARTUPDIR` -
+which a `<Set>` can not replace. Variables only given at `StartApp` time are not known to a file path. A variable that is
+not defined expands to nothing, as before.
 
 The same variables work in `Mask` - on `<Folder>` and on `<File Filter="Newest">` - under the same
 conditions as in `Path`: the node must belong to a machine, and the expansion happens only on that
-machine. The `MACHINE_*` variables and the app's own are available only to a node whose machine is the
+machine. The machine variables and the app's own are available only to a node whose machine is the
 one doing the expansion (the agent of the machine owning the node); anywhere else the mask is left
-as written. A variable that is not defined expands to nothing, as in `Path`.
+as written.
 
-`Title` is different: it is expanded **once, when the config is loaded**, and only the two tokens
-`%MACHINE_ID%` and `%APP_ID%` (any letter case), with the ids the node has by then - which for a node
-in an `<AppTemplate>` are those of each app using the template. Nothing else in a title is touched;
-a token whose id is not known (a global node, or a `<FileRef>` with `MachineId="*"`) stays as
-written. The same applies to the `Title` of `<Tool>` and `<Script>` actions and of menu items bound to a
-machine or an app.
+`Title` is different: it is expanded **once, when the config is loaded**. It takes `%MACHINE_ID%` and `%APP_ID%`
+(any letter case), with the ids the node has by then - which for a node in an `<AppTemplate>` are those of each app
+using the template - and, for a node of an app, the app's `<Local>` variables and `%APP_STARTUPDIR_NAME%`. The last one
+is worked out from the `StartupDir` **as written**, with the `<Local>` variables put in; if it still needs the
+environment (`%SOMEWHERE%\...`) it is not guessed and the token stays literal. A token that is unknown, or whose id is not
+known (a global node, or a `<FileRef>` with `MachineId="*"`), stays as written. The same applies to the `Title` of
+`<Tool>` and `<Script>` actions and of menu items bound to a machine or an app (those take the two ids only).
 
 This is what lets one template serve every app whose log file is named after the app:
 
@@ -701,6 +713,13 @@ This is what lets one template serve every app whose log file is named after the
 
 The app `m1.Viewer_SE` gets a node titled `Log/Viewer_SE` collecting `Viewer_SE*.log` from the folder. An app
 whose log is named differently overrides the mask on its own `<File>`.
+
+Apps that share a template but run from folders of their own name can say so the same way: with
+`StartupDir="..\RenderHost-3801"` and `<File Id="log" Title="Log/%APP_STARTUPDIR_NAME%" Path="C:\IG\Logs\%APP_STARTUPDIR_NAME%" Mask="*.log"/>`
+in the template the app gets the title `Log/RenderHost-3801` and collects `C:\IG\Logs\RenderHost-3801`.
+
+A node of a derived template, or of the `<App>` itself, whose `Id` **and** `Title` are the same as an inherited node's
+*replaces* it - see [Templates](SharedConfig.md#AppTemplate-replacing-inherited-nodes).
 
 ### Node templates
 

@@ -344,6 +344,14 @@ Notes:
   
   `KillApp` or `KillPlan` requests deactivate any pending restart operation.
 
+##### AppTemplate: replacing inherited nodes
+
+An app, or a derived `<AppTemplate>`, inherits the `<File>`, `<Folder>`, ... nodes of its template. A node it declares with the same
+`Id` **and** the same `Title` (after the title's variables are put in - see [Variables](Files.md#Variables-in-Path-Mask-and-Title))
+**replaces** the inherited one, at its place in the list, instead of being added as a second node. A node with another title, or
+without an `Id`, is added as before. This lets a template say "a log node" once and one app say "but for me it is 50 files".
+(Before 3.1.19 such a node was added as a second one, and the menu showed two.)
+
 #### Standalone app definitions
 
 Applications can be defined either as part of a plan (see below) or as a "standalone" `<App/>` elements outside of a plan.

@@ -157,7 +157,9 @@ namespace Dirigent
 				}
 				else
 				{
-					a = ReadAppElement( te, root, fdReg, machineId, appId, chain.Append( templateName ).ToList() );
+					// the nodes of a template are only a starting point - a derived template or the app may replace
+					// some - so they are registered once the app has its final list, not here
+					a = ReadAppElement( te, root, new FileDefReg(), machineId, appId, chain.Append( templateName ).ToList() );
 				}
 			}
 			else
@@ -332,10 +334,36 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
+			// A node of this element with the same Id and Title as an inherited one (from a template) replaces
+			// it, in the inherited node's place; one without an Id, or with another Title, is added. Only the
+			// inherited nodes can be replaced, not the ones this element declares itself.
+			var inheritedCount = a.VfsNodes.Count;
 			foreach ( var vfsNode in LoadVfsNodes( e, machineId, appId ) )
 			{
-				// the registry may know the same node already, from another read of this app
-				a.VfsNodes.Add( fdReg.Add( vfsNode ) );
+				var replaces = -1;
+				if( vfsNode.Id != vfsNode.Guid.ToString() ) // an Id was written
+				{
+					var title = ExpandAppTitleVars( vfsNode.Title, a );
+					replaces = a.VfsNodes.Take( inheritedCount ).ToList()
+								.FindIndex( n => n.Id == vfsNode.Id && ExpandAppTitleVars( n.Title, a ) == title );
+				}
+
+				if( replaces >= 0 )
+					a.VfsNodes[replaces] = vfsNode;
+				else
+					a.VfsNodes.Add( vfsNode );
+			}
+
+			// The element that is not a template has the final list: titles take the app's own variables now,
+			// and the registry - which may know the same node already, from another read of this app - is
+			// told about exactly the nodes the app has.
+			if( templateChain is null )
+			{
+				for( int i = 0; i < a.VfsNodes.Count; i++ )
+				{
+					ExpandTitlesOfNode( a.VfsNodes[i], a );
+					a.VfsNodes[i] = fdReg.Add( a.VfsNodes[i] );
+				}
 			}
 
 
@@ -422,6 +450,44 @@ namespace Dirigent
 				catch { continue; } // not our business here; the factory will complain when it runs
 				yield return ( element.Name.LocalName, element.Value.Trim() );
 			}
+		}
+
+		/// <summary>
+		/// What an app's own configuration can say about a title when the config is loaded: its
+		/// <c>&lt;Local&gt;</c> variables, and <c>%APP_STARTUPDIR_NAME%</c> - the last folder of its StartupDir as written
+		/// - provided that StartupDir needs nothing more than those variables. A token that cannot be
+		/// worked out stays literal.
+		/// </summary>
+		static string ExpandAppTitleVars( string? title, AppDef app )
+		{
+			if( string.IsNullOrEmpty( title ) || title.IndexOf( '%' ) < 0 ) return title ?? string.Empty;
+
+			string WithLocals( string text )
+			{
+				foreach( var (name, value) in app.LocalVarsToSet )
+					text = Regex.Replace( text, "%" + Regex.Escape( name ) + "%", value.Replace( "$", "$$" ), RegexOptions.IgnoreCase );
+				return text;
+			}
+
+			title = WithLocals( title );
+
+			if( title.IndexOf( "%APP_STARTUPDIR_NAME%", StringComparison.OrdinalIgnoreCase ) >= 0 )
+			{
+				var startupDir = WithLocals( app.StartupDir ?? string.Empty );
+				if( startupDir.IndexOf( '%' ) < 0 )
+				{
+					title = Regex.Replace( title, "%APP_STARTUPDIR_NAME%", AppLaunchSpec.LastSegment( startupDir ).Replace( "$", "$$" ), RegexOptions.IgnoreCase );
+				}
+			}
+
+			return title;
+		}
+
+		static void ExpandTitlesOfNode( VfsNodeDef node, AppDef app )
+		{
+			node.Title = ExpandAppTitleVars( node.Title, app );
+			foreach( var child in node.Children )
+				ExpandTitlesOfNode( child, app );
 		}
 
 		static string ExpandTitleIds( string? title, string? machineId, string? appId )

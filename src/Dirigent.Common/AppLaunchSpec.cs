@@ -58,7 +58,7 @@ namespace Dirigent
 			PublishedVars = extraVars is null ? new() : new( extraVars );   // we modify the PublishedVars dictionary later => copy necessary!
 
 			// set environment variables here so we can use them when expanding process path/args/cwd
-			// KEEP IN SYNC WITH FileRegistry.cs!
+			// the variables of the file paths start from this very set - see FileRegistry.BuildLocalVars
 			Tools.AddOrUpdateVar( PublishedVars, "DIRIGENT_PLAN", planName );
 			Tools.AddOrUpdateVar( PublishedVars, "DIRIGENT_MACHINEID", appDef.Id.MachineId );
 			Tools.AddOrUpdateVar( PublishedVars, "DIRIGENT_APPID", appDef.Id.AppId );
@@ -71,6 +71,17 @@ namespace Dirigent
 			Tools.AddOrUpdateVar( ExpansionVars, "APP_ID", appDef.Id.AppId );
 			Tools.AddOrUpdateVar( ExpansionVars, "APP_BINDIR", Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName( appDef.ExeFullPath )!, appDef.EnvVarsToSet ) );
 			Tools.AddOrUpdateVar( ExpansionVars, "APP_STARTUPDIR", Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ) );
+			Tools.AddOrUpdateVar( ExpansionVars, "APP_STARTUPDIR_NAME", LastSegment( Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet ) ) );
+		}
+
+		/// <summary>
+		/// The last folder name of a path, trailing separators ignored; empty for an empty path. What a
+		/// working folder like <c>..\RenderHost-3801</c> is called.
+		/// </summary>
+		public static string LastSegment( string path )
+		{
+			var trimmed = path.TrimEnd( '\\', '/' );
+			return trimmed.Length == 0 ? string.Empty : Path.GetFileName( trimmed );
 		}
 
 		static Dictionary<string, string> BuildVars( AppDef appDef, Dictionary<string, string> internalVars, Dictionary<string, string> extraVars )

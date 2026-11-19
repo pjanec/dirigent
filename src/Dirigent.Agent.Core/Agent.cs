@@ -102,6 +102,10 @@ namespace Dirigent
 				machineId
 			);
 
+			// the file paths expand with the variables the launcher does
+			_reflStates.FileReg.GlobalExpansionVars = _sharedContext.ExpansionVars;
+			_reflStates.FileReg.MasterIP = _client.MasterIP;
+
 			_tickers = new TickableCollection();
 
 			//_procInfoReg = new ProcessInfoRegistry();

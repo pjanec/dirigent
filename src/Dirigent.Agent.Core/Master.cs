@@ -217,6 +217,8 @@ namespace Dirigent
                 ac.DownloadFolder
             );
 
+            _files.MasterIP = ac.MasterIP;
+
             _swClientRefresh = new Stopwatch();
             _swClientRefresh.Restart();
 

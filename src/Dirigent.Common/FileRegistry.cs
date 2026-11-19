@@ -29,6 +29,15 @@ namespace Dirigent
 
 		string? _downloadFolder;
 
+		/// <summary>
+		/// The variables every path of this machine may use whatever the app (SharedContext.ExpansionVars of
+		/// the agent); empty where there is none, as on the master.
+		/// </summary>
+		public Dictionary<string, string> GlobalExpansionVars { get; set; } = new();
+
+		/// <summary>The address of the Dirigent master, for <c>%DIRIGENT_MASTER_IP%</c> as the launcher knows it.</summary>
+		public string MasterIP { get; set; } = string.Empty;
+
 		public class TMachine
 		{
 			public string Id = string.Empty;
@@ -299,11 +308,28 @@ namespace Dirigent
 		/// The variables a node's Path and Mask may use, for a node living on this machine (the caller has
 		/// checked that). One list for both, so that they can never drift apart.
 		/// </summary>
+		/// <remarks>
+		/// For a node of an application the set starts from the launcher's own - <see cref="AppLaunchSpec"/>,
+		/// built for the app as the registry knows it - so that a path sees what the app's command line
+		/// sees: its <c>&lt;Local&gt;</c> variables, <c>%DIRIGENT_PLAN%</c>, <c>%APP_STARTUPDIR_NAME%</c> and the rest.
+		/// Then come the extras only a file has: the download folder, the machine id and address, and
+		/// the app's <c>&lt;Set&gt;</c> variables, which win over the launcher's on a clash. A node of a machine
+		/// rather than of an app starts from the global variables alone.
+		/// </remarks>
 		/// <param name="fdef">the node</param>
 		/// <param name="mentioning">the texts about to be expanded; the machine IP is looked up only if one of them uses it</param>
 		Dictionary<string, string> BuildLocalVars( VfsNodeDef fdef, params string?[] mentioning )
 		{
-			var vars = new Dictionary<string, string>();
+			var isLocal = fdef.MachineId == _localMachineId; // are we the agent for this machine?
+
+			AppDef? appDef = null;
+			if( isLocal && !string.IsNullOrEmpty( fdef.AppId ) )
+				appDef = _ctrl.GetAppDef( new AppIdTuple( fdef.MachineId, fdef.AppId ) );
+
+			// what the launcher would expand with, or the global variables where there is no app
+			var vars = appDef is not null
+					? new Dictionary<string, string>( new AppLaunchSpec( appDef, GlobalExpansionVars, null, MasterIP, _rootForRelativePaths ).ExpansionVars )
+					: ( isLocal ? new Dictionary<string, string>( GlobalExpansionVars ) : new Dictionary<string, string>() );
 
 			// the download folder of this machine; configurable so that it need not be the
 			// real user folder (a test run must not litter it)
@@ -311,10 +337,8 @@ namespace Dirigent
 									? Tools.GetDownloadFolderPath()
 									: _downloadFolder;
 
-			// for app-bound files, expand also local vars and define var for app working dir etc.
-			if( fdef.MachineId == _localMachineId ) // are we the agent for this machine?
+			if( isLocal )
 			{
-				// KEEP IN SYNC WITH Launcher.cs
 				vars["MACHINE_ID"] = _localMachineId;
 				vars["DIRIGENT_MACHINE_ID"] = _localMachineId;
 
@@ -328,20 +352,17 @@ namespace Dirigent
 					vars["DIRIGENT_MACHINE_IP"] = machineIP;
 				}
 
-				if( !string.IsNullOrEmpty( fdef.AppId ) )
+				if( appDef is not null )
 				{
-					var appDef = _ctrl.GetAppDef( new AppIdTuple( fdef.MachineId, fdef.AppId ) );
-					if( appDef is not null )
-					{
-						foreach( var (k,v) in appDef.EnvVarsToSet )
-							vars[k] = v;
+					// the app's own variables win over the launcher's...
+					foreach( var (k, v) in appDef.EnvVarsToSet )
+						vars[k] = v;
 
-						// add some app-special vars
-						vars["DIRIGENT_APPID"] = appDef.Id.AppId;
-						vars["APP_ID"] = appDef.Id.AppId;
-						vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName(appDef.ExeFullPath)!, appDef.EnvVarsToSet );
-						vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
-					}
+					// ...except for the ones that say which app this is, which they never could replace
+					vars["DIRIGENT_APPID"] = appDef.Id.AppId;
+					vars["APP_ID"] = appDef.Id.AppId;
+					vars["APP_BINDIR"] = Tools.ExpandEnvAndInternalVars( Path.GetDirectoryName( appDef.ExeFullPath )!, appDef.EnvVarsToSet );
+					vars["APP_STARTUPDIR"] = Tools.ExpandEnvAndInternalVars( appDef.StartupDir, appDef.EnvVarsToSet );
 				}
 			}
 
