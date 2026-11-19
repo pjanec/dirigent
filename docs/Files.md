@@ -633,6 +633,31 @@ Results:
 * several matches - resolves to a virtual folder named after the reference's `Title` (or `Id`),
   containing all the matches.
 
+### Ids: one per definition, kinds by prefix
+
+An `Id` names one file definition **within its app or machine**. The same `Id` on different apps or machines is the normal case (`log` on
+every app, `applog` on every machine), but two definitions with one `Id` in the same app or machine - on one level of its templates, or
+in the same record - are a load error, and a definition in a derived template, in the `<App>` or in the `<Machine>` with an inherited
+`Id` *replaces* the inherited one (see [AppTemplate](SharedConfig.md#AppTemplate-replacing-inherited-nodes) and
+[MachineTemplate](SharedConfig.md#MachineTemplate-element)).
+
+What an app has more than one of, it names with **a kind prefix** - `log.viewer`, `log.mt.ios`, `cfg.main` - and a package selects the kind with
+a wildcard in a `<FileRef>`:
+
+```xml
+<FilePackage Id="logs.all" Title="Logs/All">
+    <FileRef Id="log.*" MachineId="*" AppId="*"/>     <!-- log.viewer, log.mt.ios, ... -->
+</FilePackage>
+```
+
+`*` matches any run of characters and `?` any one, without regard to letter case (a Win32 name match). `log.*` therefore matches
+`log.viewer` and `log.mt.ios` but **not** `logs.x` and not `log` itself (there is no dot after it); to take both write two references, or give the
+single one the id `log.main`. See [`<FileRef>`](#fileref) for the rest of the matching rules.
+
+Keep the kinds apart, because a wildcard takes everything of its kind: `AppId="*"` matches machine-level definitions too (they have no
+app), so `<FileRef Id="log.*" MachineId="m1" AppId="*"/>` also collects a machine log named `log.dirigent`. Give files of another nature
+their own first segment - `dirigent.log`, `dds.log` - and a package that wants them names that kind as well.
+
 ### File masks
 
 The `Mask` attribute of `<Folder>` and of `<File Filter="Newest">` is a glob-style pattern:

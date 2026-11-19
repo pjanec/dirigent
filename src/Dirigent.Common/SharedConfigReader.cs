@@ -42,6 +42,7 @@ namespace Dirigent
 			// machines are put together only once those are expanded, because a node's Id may come from one
 			var machineTemplates = MachineTemplates.Apply( _root );
 			NodeTemplates.Apply( _root );
+			MachineTemplates.CheckDuplicateIds( _root, machineTemplates );
 			machineTemplates.Merge();
 
 			LoadAppDefaults();
@@ -339,28 +340,20 @@ namespace Dirigent
 			}
 
 			// A node of this element with the same Id as an inherited one (from a template) replaces it, in the
-			// inherited node's place - the same rule as for a machine's, see MachineTemplates. Only if several
-			// inherited nodes share that Id must the Title be the same as well; one without an Id is always
-			// added. Only the inherited nodes can be replaced, not the ones this element declares itself.
+			// inherited node's place - whatever else differs, the same rule as for a machine's, see
+			// MachineTemplates. A new Id, or none, is added. Two nodes of this element with one Id are an error.
 			var inheritedCount = a.VfsNodes.Count;
-			foreach ( var vfsNode in LoadVfsNodes( e, machineId, appId ) )
+			var ownNodes = LoadVfsNodes( e, machineId, appId );
+			MachineTemplates.CheckLevel(
+				ownNodes.Select( n => new XElement( "File", new XAttribute( "Id", n.Id == n.Guid.ToString() ? "" : n.Id ) ) ),
+				$"{e.Name.LocalName} '{e.Attribute( "Name" )?.Value ?? e.Attribute( "AppIdTuple" )?.Value}'" );
+
+			foreach ( var vfsNode in ownNodes )
 			{
 				var replaces = -1;
 				if( vfsNode.Id != vfsNode.Guid.ToString() ) // an Id was written
 				{
-					var sameId = Enumerable.Range( 0, inheritedCount ).Where( i => a.VfsNodes[i].Id == vfsNode.Id ).ToList();
-
-					if( sameId.Count == 1 )
-					{
-						replaces = sameId[0];
-					}
-					else
-					if( sameId.Count > 1 )
-					{
-						var title = ExpandAppTitleVars( vfsNode.Title, a );
-						var sameTitle = sameId.Where( i => ExpandAppTitleVars( a.VfsNodes[i].Title, a ) == title ).ToList();
-						if( sameTitle.Count > 0 ) replaces = sameTitle[0];
-					}
+					replaces = Enumerable.Range( 0, inheritedCount ).FirstOrDefault( i => a.VfsNodes[i].Id == vfsNode.Id, -1 );
 				}
 
 				if( replaces >= 0 )

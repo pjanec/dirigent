@@ -518,10 +518,8 @@ namespace Dirigent.Tests
 		{
 			var cfg = Parse( @"
 				<Shared>
-					<Machine Name='m1' IP='127.0.0.1'>
-						<Folder Id='a' Guid='11111111-1111-1111-1111-111111111111' Path='D:\x'/>
-						<Folder Id='a' Guid='22222222-2222-2222-2222-222222222222' Path='D:\x'/>
-					</Machine>
+					<Folder Id='a' Guid='11111111-1111-1111-1111-111111111111' Path='D:\x'/>
+					<Folder Id='a' Guid='22222222-2222-2222-2222-222222222222' Path='D:\x'/>
 				</Shared>" );
 
 			Assert.AreEqual( 2, cfg.VfsNodes.Count( n => n.Id == "a" ) );
@@ -645,40 +643,70 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void AUniqueInheritedIdIsReplacedWhateverTheTitleAndNoIdAddsTest()
+		public void TheSameIdReplacesWhateverTheTitleAndANewIdOrNoIdAddsTest()
 		{
 			var cfg = Parse( @"
 				<Shared>
 					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
 						<File Id='log' Title='Log' Path='D:\logs' MaxFiles='5'/>
+						<File Id='cfg' Title='Cfg' Path='D:\cfg'/>
 					</AppTemplate>
-					<AppTemplate Name='otherTitle' Template='base'>
+					<AppTemplate Name='renamed' Template='base'>
 						<File Id='log' Title='Other title' Path='D:\logs' MaxFiles='50'/>
 					</AppTemplate>
+					<AppTemplate Name='newId' Template='base'>
+						<File Id='log.more' Title='Log' Path='D:\more' MaxFiles='60'/>
+					</AppTemplate>
 					<AppTemplate Name='noId' Template='base'>
-						<File Title='Log' Path='D:\logs' MaxFiles='60'/>
+						<File Title='Log' Path='D:\noid'/>
 					</AppTemplate>
-					<AppTemplate Name='twoLogs'>
-						<File Id='log' Title='One' Path='D:\1'/>
-						<File Id='log' Title='Two' Path='D:\2'/>
-					</AppTemplate>
-					<AppTemplate Name='twoLogsDerived' Template='twoLogs'>
-						<File Id='log' Title='Two' Path='D:\two'/>
-						<File Id='log' Title='Three' Path='D:\3'/>
-					</AppTemplate>
-					<App AppIdTuple='m1.a' Template='otherTitle'/>
-					<App AppIdTuple='m1.b' Template='noId'/>
-					<App AppIdTuple='m1.c' Template='twoLogsDerived' ExeFullPath='c:\x.exe'/>
+					<App AppIdTuple='m1.a' Template='renamed'/>
+					<App AppIdTuple='m1.b' Template='newId'/>
+					<App AppIdTuple='m1.c' Template='noId'/>
 				</Shared>" );
 
 			var a = NodesOf( cfg, "m1.a" );
-			Assert.AreEqual( 1, a.Count, "a unique Id: replaced although the title differs" );
-			Assert.AreEqual( "Other title", a[0].Title );
+			CollectionAssert.AreEqual( new[] { "log", "cfg" }, a.Select( n => n.Id ).ToList(), "replaced in place" );
+			Assert.AreEqual( "Other title", a[0].Title, "whatever the title" );
+			StringAssert.Contains( a[0].Xml, "MaxFiles=\"50\"" );
 
-			Assert.AreEqual( 2, NodesOf( cfg, "m1.b" ).Count, "no Id: both kept" );
+			CollectionAssert.AreEqual( new[] { "log", "cfg", "log.more" }, NodesOf( cfg, "m1.b" ).Select( n => n.Id ).ToList(), "a new Id is added" );
+			Assert.AreEqual( 3, NodesOf( cfg, "m1.c" ).Count, "no Id: added" );
+		}
 
-			// several inherited nodes of one Id: the title tells which is meant, and none equal adds
-			CollectionAssert.AreEqual( new[] { @"D:\1", @"D:\two", @"D:\3" }, NodesOf( cfg, "m1.c" ).Select( n => n.Path! ).ToArray() );
+		[TestMethod()]
+		public void TwoDefinitionsOfOneIdOnOneLevelAreALoadErrorTest()
+		{
+			string Fail( string xml ) => Assert.ThrowsException<ConfigurationErrorException>( () => Parse( xml ) ).Message;
+
+			StringAssert.Contains(
+				Fail( @"<Shared><AppTemplate Name='apps.IOS' ExeFullPath='x.exe'><File Id='log' Path='C:\1'/><File Id='log' Path='C:\2'/></AppTemplate>
+						<App AppIdTuple='m1.a' Template='apps.IOS'/></Shared>" ),
+				"Duplicate file definition Id 'log' in AppTemplate 'apps.IOS'" );
+
+			StringAssert.Contains(
+				Fail( @"<Shared><App AppIdTuple='m1.a' ExeFullPath='x.exe'><File Id='log' Path='C:\1'/><Folder Id='log' Path='C:\2'/></App></Shared>" ),
+				"Duplicate file definition Id 'log' in App 'm1.a'" );
+
+			StringAssert.Contains(
+				Fail( @"<Shared><MachineTemplate Name='m.base'><File Id='log' Path='C:\1'/><File Id='log' Path='C:\2'/></MachineTemplate>
+						<Machine Name='a' IP='1.1.1.1'/></Shared>" ),
+				"Duplicate file definition Id 'log' in MachineTemplate 'm.base'" );
+
+			StringAssert.Contains(
+				Fail( @"<Shared><Machine Name='a' IP='1.1.1.1'><File Id='log' Path='C:\1'/><File Id='log' Path='C:\2'/></Machine></Shared>" ),
+				"Duplicate file definition Id 'log' in Machine 'a'" );
+
+			// also when the machine uses a template, and when the second one comes out of a node template
+			StringAssert.Contains(
+				Fail( @"<Shared><NodeTemplate Name='n' Id='log'/><MachineTemplate Name='m.base'/>
+						<Machine Name='a' IP='1.1.1.1' Template='m.base'><File Id='log' Path='C:\1'/><File Template='n' Path='C:\2'/></Machine></Shared>" ),
+				"Duplicate file definition Id 'log' in Machine 'a'" );
+
+			// the same Id in a template and in the machine, or on two machines, is not a duplicate
+			Parse( @"<Shared><MachineTemplate Name='m.base'><File Id='log' Path='C:\1'/></MachineTemplate>
+					<Machine Name='a' IP='1.1.1.1' Template='m.base'><File Id='log' Path='C:\2'/></Machine>
+					<Machine Name='b' IP='1.1.1.2' Template='m.base'/></Shared>" );
 		}
 
 		// ---- machine templates --------------------------------------------------------------------
@@ -827,30 +855,17 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void SeveralNodesOfTheSameInheritedIdAreToldApartByTitleTest()
+		public void AKindPrefixWildcardMatchesTheKindOnlyTest()
 		{
-			var cfg = Parse( @"
-				<Shared>
-					<MachineTemplate Name='m.base'>
-						<File Id='log' Title='One' Path='C:\1.log'/>
-						<File Id='log' Title='Two' Path='C:\2.log'/>
-					</MachineTemplate>
-					<Machine Name='a' IP='1.1.1.1' Template='m.base'>
-						<File Id='log' Title='Two' Path='C:\two.log'/>
-					</Machine>
-					<Machine Name='b' IP='1.1.1.2' Template='m.base'>
-						<File Id='log' Title='Three' Path='C:\3.log'/>
-					</Machine>
-					<Machine Name='c' IP='1.1.1.3' Template='m.base'>
-						<File Title='One' Path='C:\noid.log'/>
-					</Machine>
-				</Shared>" );
+			// what docs/Files.md says of FileRef Id="log.*"
+			bool Matches( string pattern, string id ) => System.IO.Enumeration.FileSystemName.MatchesSimpleExpression( pattern, id );
 
-			string[] Paths( string m ) => cfg.Machines.Single( x => x.Id == m ).VfsNodes.Select( n => n.Path! ).ToArray();
-
-			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\two.log" }, Paths( "a" ), "the one with the same title was replaced" );
-			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\2.log", @"C:\3.log" }, Paths( "b" ), "no title matches: added" );
-			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\2.log", @"C:\noid.log" }, Paths( "c" ), "no Id: never replaces" );
+			Assert.IsTrue( Matches( "log.*", "log.viewer" ) );
+			Assert.IsTrue( Matches( "log.*", "log.mt.ios" ) );
+			Assert.IsTrue( Matches( "log.*", "LOG.Viewer" ), "letter case does not matter" );
+			Assert.IsFalse( Matches( "log.*", "logs.x" ) );
+			Assert.IsFalse( Matches( "log.*", "log" ) );
+			Assert.IsTrue( Matches( "log.?iewer", "log.viewer" ) );
 		}
 	}
 }

@@ -18,7 +18,8 @@ namespace Dirigent
 	/// machine, so that NodeTemplates can expand the nodes there.</item>
 	/// <item>Merge then re-composes each machine's children from the layers they came in: every template
 	/// of the chain, the mixins left to right, the machine itself. A later layer's Share with the same
-	/// Name, and its node with the same Id, replace the earlier one in its place.</item>
+	/// Name, and its node with the same Id (the title and the rest may differ), replace the earlier one in its
+	/// place. Ids are unique within a level - see <see cref="CheckDuplicateIds"/> - so there is at most one.</item>
 	/// </list>
 	/// A config with no Template on a Machine is not touched at all, so what such a machine declares is
 	/// read exactly as before.
@@ -37,9 +38,20 @@ namespace Dirigent
 
 			internal void Add( XElement machine, List<List<XElement>> layers ) => _machines.Add( ( machine, layers ) );
 
+			internal bool Contains( XElement machine ) => _machines.Any( m => ReferenceEquals( m.Machine, machine ) );
+
+			/// <summary>The machine's own children are the last layer; their Ids must be unique among themselves.</summary>
+			internal void CheckOwnLevels()
+			{
+				foreach( var (machine, layers) in _machines )
+					CheckLevel( layers[^1], $"Machine '{machine.Attribute( "Name" )?.Value}'" );
+			}
+
 			/// <summary>Puts the children of every templated machine together, replacing as the layers say.</summary>
 			public void Merge()
 			{
+				CheckOwnLevels();
+
 				foreach( var (machine, layers) in _machines )
 				{
 					var merged = new List<XElement>();
@@ -72,22 +84,9 @@ namespace Dirigent
 					var id = child.Attribute( "Id" )?.Value;
 					if( !string.IsNullOrEmpty( id ) )
 					{
-						var same = Enumerable.Range( 0, earlier )
-								.Where( i => NodeElementNames.Contains( merged[i].Name.LocalName ) && merged[i].Attribute( "Id" )?.Value == id )
-								.ToList();
-
-						if( same.Count == 1 )
-						{
-							at = same[0];
-						}
-						else
-						if( same.Count > 1 )
-						{
-							// several inherited nodes share the Id: only the one with the same title is meant
-							var title = child.Attribute( "Title" )?.Value;
-							var equal = same.Where( i => merged[i].Attribute( "Title" )?.Value == title ).ToList();
-							if( equal.Count > 0 ) at = equal[0];
-						}
+						// the Id is the identity: whatever else differs, the later node takes the earlier one's place
+						at = Enumerable.Range( 0, earlier )
+								.FirstOrDefault( i => NodeElementNames.Contains( merged[i].Name.LocalName ) && merged[i].Attribute( "Id" )?.Value == id, -1 );
 					}
 				}
 
@@ -161,6 +160,39 @@ namespace Dirigent
 			}
 
 			return plan;
+		}
+
+		/// <summary>
+		/// Two file definitions with the same Id on one level - one template, one machine - are a mistake: after
+		/// merging a machine has one definition per Id. Expects the node templates to be expanded already.
+		/// </summary>
+		/// <exception cref="ConfigurationErrorException">naming the Id and the level</exception>
+		public static void CheckLevel( IEnumerable<XElement> children, string where )
+		{
+			var seen = new HashSet<string>();
+			foreach( var child in children )
+			{
+				if( !NodeElementNames.Contains( child.Name.LocalName ) ) continue;
+
+				var id = child.Attribute( "Id" )?.Value;
+				if( string.IsNullOrEmpty( id ) ) continue;
+
+				if( !seen.Add( id ) )
+					throw new ConfigurationErrorException( $"Duplicate file definition Id '{id}' in {where}" );
+			}
+		}
+
+		/// <summary>
+		/// Checks every template, and every machine that names none (the others are checked as their layers
+		/// are merged). Call after <see cref="NodeTemplates.Apply"/> and before <see cref="Plan.Merge"/>.
+		/// </summary>
+		public static void CheckDuplicateIds( XElement root, Plan plan )
+		{
+			foreach( var t in root.Elements( TemplateElement ) )
+				CheckLevel( t.Elements(), $"{TemplateElement} '{t.Attribute( "Name" )?.Value}'" );
+
+			foreach( var m in root.Elements( "Machine" ).Where( m => !plan.Contains( m ) ) )
+				CheckLevel( m.Elements(), $"Machine '{m.Attribute( "Name" )?.Value}'" );
 		}
 
 		static List<string> ParseNames( string list )

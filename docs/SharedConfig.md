@@ -137,17 +137,19 @@ in a `<MachineTemplate>` and used with `Template=` on each `<Machine>`:
 * **Shares.** A `<Share>` with the same `Name` replaces the earlier one in its place (the machine's `C` above, not the template's).
 * **Nodes.** The replace rule applies:
 
-**The replace rule** (the same for apps and for machines): a node declared later - in a derived template, a later mixin, or in the
-`<App>` / `<Machine>` itself - **replaces** an inherited node with the same `Id`, in the inherited node's place, instead of being added
-as a second one. Only if **several** inherited nodes share that `Id` must the `Title` match as well: the one with the same title is
-replaced, and none the same means the node is added. A node without an `Id` never replaces anything. `Id` and `Title` are compared
-after the node templates are expanded, so a node may get its `Id` from its `<NodeTemplate>`, and for an app after the title's
-variables are put in (see [Variables](Files.md#Variables-in-Path-Mask-and-Title)).
+**The replace rule** (the same for apps and for machines): a file definition declared later - in a derived template, a later mixin, or in the
+`<App>` / `<Machine>` itself - with the **same `Id`** as an inherited one **replaces** it, in the inherited definition's place; any attribute,
+the `Title` included, may differ. A new `Id` is added. A definition without an `Id` is always added. Nothing else is compared.
+
+Two file definitions with the same `Id` written directly on **one level** - in one `<AppTemplate>`, one `<App>`, one `<MachineTemplate>`, one
+`<Machine>` - are a **load error**: `Duplicate file definition Id 'log' in AppTemplate 'apps.IOS'`. (The `Id`s are taken after the
+`<NodeTemplate>`s are expanded, so one that comes from a node template counts; the children of a `<FilePackage>` or `<VFolder>` are not
+covered.) So after merging, an app or a machine has one definition per `Id`; see [Ids: one per definition](Files.md#Ids-one-per-definition-kinds-by-prefix).
 
   In the example `ios03` ends up with *one* `log.dirigent` node, titled `Log/Dirigent agent and MASTER`, in the template's place.
 * **Registry.** Only the final list of a machine is ever registered, so a replaced node is not found by a `<FileRef>` or listed anywhere.
   The nodes of a template are ordinary machine nodes of each machine that uses it: `<FileRef Id="cfg" MachineId="ios01"/>` finds them.
-* **Load errors,** each naming the template: unknown template (`MachineTemplate 'x' not found`), a cycle through `Template=` of a template or through the
+* **Load errors,** each naming the template or machine: two definitions with one `Id` on one level (see the rule), unknown template (`MachineTemplate 'x' not found`), a cycle through `Template=` of a template or through the
   mixins (`MachineTemplate cycle: a -> b -> a`), a template without a `Name`, two with the same `Name`, an `IP` or a `Guid` on a template.
 * A `<Machine>` without `Template=` is read exactly as before, and `<MachineTemplate>` elements are never machines themselves.
 
@@ -402,12 +404,14 @@ An app, or a derived `<AppTemplate>`, inherits the `<File>`, `<Folder>`, ... nod
 inherited one by the rule below, instead of being added as a second node. This lets a template say "a log node" once and one app
 say "but for me it is 50 files".
 
-**The replace rule** (the same for apps and for machines): a node declared later - in a derived template, a later mixin, or in the
-`<App>` / `<Machine>` itself - **replaces** an inherited node with the same `Id`, in the inherited node's place, instead of being added
-as a second one. Only if **several** inherited nodes share that `Id` must the `Title` match as well: the one with the same title is
-replaced, and none the same means the node is added. A node without an `Id` never replaces anything. `Id` and `Title` are compared
-after the node templates are expanded, so a node may get its `Id` from its `<NodeTemplate>`, and for an app after the title's
-variables are put in (see [Variables](Files.md#Variables-in-Path-Mask-and-Title)).
+**The replace rule** (the same for apps and for machines): a file definition declared later - in a derived template, a later mixin, or in the
+`<App>` / `<Machine>` itself - with the **same `Id`** as an inherited one **replaces** it, in the inherited definition's place; any attribute,
+the `Title` included, may differ. A new `Id` is added. A definition without an `Id` is always added. Nothing else is compared.
+
+Two file definitions with the same `Id` written directly on **one level** - in one `<AppTemplate>`, one `<App>`, one `<MachineTemplate>`, one
+`<Machine>` - are a **load error**: `Duplicate file definition Id 'log' in AppTemplate 'apps.IOS'`. (The `Id`s are taken after the
+`<NodeTemplate>`s are expanded, so one that comes from a node template counts; the children of a `<FilePackage>` or `<VFolder>` are not
+covered.) So after merging, an app or a machine has one definition per `Id`; see [Ids: one per definition](Files.md#Ids-one-per-definition-kinds-by-prefix).
 
 (Before 3.1.19 such a node was added as a second one, and the menu showed two.)
 
