@@ -211,6 +211,14 @@ with `Can't construct UNC path, No file share matching ...`.
 Dirigent expects these shares to need **no extra credentials**. If credentials are required,
 the user must have entered them beforehand so that Windows can reuse the cached ones.
 
+### Reading the files from a diagnostic tool
+
+Two REST endpoints (and the matching CLI commands `GetAppFiles` and `GetNodeFiles`) list the actual
+files of an application or of a package, each with its machine-local path and, where a share covers it, a
+UNC path: `GET /api/appfiles/m1.a[@plan]` and `GET /api/nodefiles/<id>?machine=&app=`. The files are
+listed, not served - the tool opens them through the UNC paths. See [Web API](HTTP.md#GET-apiappfilesm1a)
+and [CLI](CLI.md#GetAppFiles).
+
 ## XML reference
 
 ### Attributes common to all node types

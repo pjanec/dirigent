@@ -592,6 +592,120 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
+	/// The actual files of one app instance, with local and UNC paths:
+	/// `GetAppFiles &lt;appId&gt;[@plan] [content=0]`. The same answer as GET /api/appfiles/{id}.
+	/// </summary>
+	/// <remarks>
+	/// The answer is `APPFILES:&lt;appIdAsGiven&gt;:&lt;json&gt;` followed by `END`. It arrives only when the
+	/// owning agents have answered, so - like <see cref="WaitForScript"/> - the command reports itself
+	/// unfinished and is ticked until the resolving task is done, and its terminator is END: the
+	/// client then waits without a read timeout instead of failing on a slow agent. An unknown app or
+	/// plan fails in Execute, so the answer is the usual single ERROR line.
+	/// </remarks>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetAppFiles : DirigentControlCommand
+	{
+		string _id = string.Empty;
+		System.Threading.Tasks.Task<Web.AppFilesResult>? _task;
+		bool _finished;
+
+		public GetAppFiles( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			_id = args[0];
+
+			var includeContent = true;
+			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+			if( Tools.TryGetValueIgnoreKeyCase( options, "content", out var content ) )
+				includeContent = !( content == "0" || string.Equals( content, "false", StringComparison.OrdinalIgnoreCase ) );
+
+			Web.AppFilesQuery query;
+			try
+			{
+				query = Web.AppFilesQuery.Prepare( ctrl, _id ); // on the master thread, which we are
+			}
+			catch( Web.AppFilesNotFoundException e )
+			{
+				throw new Exception( e.Message );
+			}
+
+			// started from here, but awaiting the agents on other threads - never blocking the tick
+			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync( includeContent ) );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( $"APPFILES:{_id}:{_task.Result.ToJson()}" );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
+	/// The files of any top-level VFS node, addressed as scripts address nodes:
+	/// `GetNodeFiles &lt;id&gt; [machine=m1] [app=a] [content=0]`. Same answer as GET /api/nodefiles/{id}:
+	/// `NODEFILES:&lt;id&gt;:&lt;json&gt;` and then `END`, completed asynchronously like <see cref="GetAppFiles"/>.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetNodeFiles : DirigentControlCommand
+	{
+		string _id = string.Empty;
+		System.Threading.Tasks.Task<Web.NodeFilesResult>? _task;
+		bool _finished;
+
+		public GetNodeFiles( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			if( args.Count == 0 ) throw new MissingArgumentException( "id", "VFS node id expected." );
+			_id = args[0];
+
+			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+
+			var includeContent = true;
+			if( Tools.TryGetValueIgnoreKeyCase( options, "content", out var content ) )
+				includeContent = !( content == "0" || string.Equals( content, "false", StringComparison.OrdinalIgnoreCase ) );
+
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
+
+			var query = new Web.NodeFilesQuery( ctrl, _id, machine, app );
+			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync( includeContent ) );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( $"NODEFILES:{_id}:{_task.Result.ToJson()}" );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
 	/// Waits for a script to end and says how it went. `WaitForScript &lt;guid&gt; [timeout=&lt;seconds&gt;]`
 	/// </summary>
 	/// <remarks>

@@ -28,6 +28,29 @@ namespace Dirigent.SystemTests
 			StringAssert.Contains( text, "m1.camera",
 				$"the applications came back over HTTP: {text}" );
 		}
+
+		[TestMethod()]
+		public void TheFilesOfAnAppAndOfANodeAreListedOverHttp()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			var app = http.GetAsync( $"{root}/appfiles/m1.camera" ).GetAwaiter().GetResult();
+			var appText = app.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, app.StatusCode, appText );
+			StringAssert.Contains( appText, "\"nodes\"", appText );
+			StringAssert.Contains( appText, "recent.log", $"the seeded log is listed: {appText}" );
+
+			var node = http.GetAsync( $"{root}/nodefiles/log?machine=m1&app=camera" ).GetAwaiter().GetResult();
+			var nodeText = node.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, node.StatusCode, nodeText );
+			StringAssert.Contains( nodeText, "recent.log", nodeText );
+
+			var missing = http.GetAsync( $"{root}/appfiles/m1.nosuch" ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound, missing.StatusCode );
+		}
 	}
 
 	/// <summary>

@@ -47,6 +47,8 @@ namespace Dirigent.Tests
 			{ "KillScript",         ETerminator.Ack },
 			{ "GetScriptState",     ETerminator.SingleLine },
 			{ "WaitForScript",      ETerminator.End },
+			{ "GetAppFiles",        ETerminator.End },
+			{ "GetNodeFiles",       ETerminator.End },
 			{ "ApplyPlan",          ETerminator.Ack },
 			{ "GetClientState",     ETerminator.SingleLine },
 			{ "GetAllClientsState", ETerminator.End },
@@ -110,9 +112,9 @@ namespace Dirigent.Tests
 					deferring.Add( name );
 			}
 
-			CollectionAssert.AreEqual( new List<string>() { "WaitForScript" }, deferring,
+			CollectionAssert.AreEquivalent( new List<string>() { "GetAppFiles", "GetNodeFiles", "WaitForScript" }, deferring,
 				"a command that reports itself unfinished keeps its request alive across ticks - "
-				+ "intended for the waiting one only" );
+				+ "intended for the commands that wait on something only" );
 		}
 
 		/// <summary>The class implementing a command, via the terminator lookup's own table.</summary>

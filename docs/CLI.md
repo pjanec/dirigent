@@ -15,6 +15,8 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetAllClientsState](#GetAllClientsState) | Gathers the status of all clients/machines known to the Dirigent. |
 | [GetAllPlansState](#GetAllPlansState)| Gathers the status of all plans known to the Dirigent.       |
 | [GetAppState](#GetAppState)          | returns the status of an app. |
+| [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
+| [GetNodeFiles](#GetNodeFiles)        | The same for a VFS node or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
 | [GetPlanState](#GetPlanState)        | Returns the status of a plan. |
 | [GetScriptState](#GetScriptState)    | Returns the status code, status text and associated data of a script, in json single line format. |
@@ -500,6 +502,48 @@ Ignored if a script instance with such guid is not defined or is not running.
     KillScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2
 
 
+
+### GetAppFiles
+
+Lists the actual files of one application instance.
+
+  `GetAppFiles <appId>[@plan] [content=0]`
+
+`<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app
+last ran in is used, else the default definition. `content=0` skips scanning folders. The
+files are listed, not transferred. The answer is the one of
+[`GET /api/appfiles/{id}`](HTTP.md#GET-apiappfilesm1a) - see there for the JSON.
+
+It answers when the machines owning the files have answered, which may take a moment, and then ends
+with `END`. An unknown app or plan gives a single `ERROR` line.
+
+##### Response text
+
+  `APPFILES:<appIdAsGiven>:<json on one line>`
+
+  `END`
+
+##### Example
+
+  Request:   `GetAppFiles m1.a@plan1`
+
+  Response:  `APPFILES:m1.a@plan1:{"app":"m1.a","plan":"plan1","planSource":"requested","nodes":[...]}`
+
+### GetNodeFiles
+
+Lists the files of a VFS node or file package, addressed like a script does.
+
+  `GetNodeFiles <id> [machine=m1] [app=a] [content=0]`
+
+`<id>` is the node id (wildcards allowed); `machine` and `app` narrow the selection. Answer as
+[`GET /api/nodefiles/{id}`](HTTP.md#GET-apinodefilespkgmachinem1appa), completed asynchronously like
+[`GetAppFiles`](#GetAppFiles). A package member that cannot be reached is reported in `notes` and the others are listed.
+
+##### Response text
+
+  `NODEFILES:<id>:<json on one line>`
+
+  `END`
 
 ### GetScriptState
 

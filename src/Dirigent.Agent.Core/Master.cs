@@ -67,6 +67,13 @@ namespace Dirigent
 					
 		#endregion
 
+		/// <summary>
+		/// A path local to the given machine as a UNC path through one of that machine's shares,
+		/// using the master's share table. Throws if no share covers the path.
+		/// </summary>
+		public string MakeUNC( string path, string? machineId, string whatFor )
+			=> _files.MakeUNC( path, machineId, whatFor );
+
 		public bool WantsQuit { get; set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 

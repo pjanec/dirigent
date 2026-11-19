@@ -103,6 +103,58 @@ namespace Dirigent.Web
 			return res;
 		}
 
+		// Gets the actual files of one app instance, with local and UNC paths.
+		// id is "m1.a" or "m1.a@plan1"; ?content=false skips scanning the folders.
+		[Route( HttpVerbs.Get, "/appfiles/{id}" )]
+		public async Task GetAppFiles( string id )
+		{
+			var contentArg = HttpContext.GetRequestQueryData()["content"];
+			var includeContent = !string.Equals( contentArg, "false", StringComparison.OrdinalIgnoreCase )
+								&& contentArg != "0";
+
+			// the definitions are read on the master thread, the resolving (which waits for the
+			// agents) is not - see AppFilesQuery
+			AppFilesQuery? query = null;
+			var op = _master.AddSynchronousOp( () =>
+			{
+				query = AppFilesQuery.Prepare( _master, id );
+			} );
+			await op.WaitAsync();
+
+			if( op.Exception is AppFilesNotFoundException )
+				throw HttpException.NotFound();
+			if( op.Exception is ArgumentSyntaxErrorException )
+				throw HttpException.BadRequest();
+			if( op.Exception != null ) throw op.Exception;
+
+			var result = await query!.ResolveAsync( includeContent );
+
+			await HttpContext.SendStringAsync( result.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+		}
+
+		// Gets the files of any top-level VFS node (a file package, typically), addressed as scripts do.
+		// ?machine=m1&app=a narrow the selection; ?content=false skips scanning the folders.
+		[Route( HttpVerbs.Get, "/nodefiles/{id}" )]
+		public async Task GetNodeFiles( string id )
+		{
+			var q = HttpContext.GetRequestQueryData();
+			var contentArg = q["content"];
+			var includeContent = !string.Equals( contentArg, "false", StringComparison.OrdinalIgnoreCase )
+								&& contentArg != "0";
+
+			NodeFilesResult result;
+			try
+			{
+				result = await new NodeFilesQuery( _master, id, q["machine"], q["app"] ).ResolveAsync( includeContent );
+			}
+			catch( AppFilesNotFoundException )
+			{
+				throw HttpException.NotFound();
+			}
+
+			await HttpContext.SendStringAsync( result.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+		}
+
 		AppState GetAppStateInternal( string id )
 		{
 			var (appIdTuple, planName) = Tools.ParseAppIdWithPlan( id );
