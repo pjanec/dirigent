@@ -103,6 +103,16 @@ namespace Dirigent.Web
 			return defs.Count == 0 ? null : Start( master, kind, selection, selection, defs, planOwned );
 		}
 
+		/// <summary>
+		/// One operation over the union of a selection of file definitions and applications: each file once, whatever
+		/// number of items reach it. All the items were looked up when the selection was parsed. Master thread only.
+		/// </summary>
+		public static MarkOperation StartForSelection( Master master, EKind kind, FileSelection selection )
+		{
+			var text = selection.Describe();
+			return Start( master, kind, text, text, selection.UnionOfDefinitions() );
+		}
+
 		/// <summary>All the file definitions of an application, picked as for the file previews. Master thread only.</summary>
 		/// <exception cref="AppFilesNotFoundException">unknown app or plan</exception>
 		public static MarkOperation StartForApp( Master master, EKind kind, string appId )

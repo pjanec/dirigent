@@ -34,7 +34,7 @@ namespace Dirigent.Web
 			List<FileDefInfo> nodes = new();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				nodes = FileDefListing.List( _master, q["type"], q["id"], q["machine"], q["app"] );
+				nodes = FileDefListing.List( _master, q["type"], q["id"], q["machine"], q["app"], q["group"] );
 			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
@@ -84,6 +84,34 @@ namespace Dirigent.Web
 
 			HttpContext.Response.StatusCode = (int) HttpStatusCode.Accepted;
 			await SendJson( AppFilesResult.ToJson( new { id = id.ToString() } ) );
+		}
+
+		// The preview of a selection: {"fileDefs":[{"id":"pkg.a","machine":"m1"}],"apps":["m1.a"]}; changes nothing.
+		// ?content=false skips scanning the folders.
+		[Route( HttpVerbs.Post, "/files/query" )]
+		public async Task QueryFiles()
+		{
+			var body = await HttpContext.GetRequestBodyAsStringAsync();
+
+			FileSelectionRequest? request;
+			try { request = FileSelection.ParseJson( body ); }
+			catch( Exception ) { throw HttpException.BadRequest( "The body is not a valid selection." ); }
+			if( request is null ) throw HttpException.BadRequest( "The body is not a valid selection." );
+
+			var contentArg = HttpContext.GetRequestQueryData()["content"];
+			var includeContent = !string.Equals( contentArg, "false", StringComparison.OrdinalIgnoreCase ) && contentArg != "0";
+
+			// the items are looked up on the master thread, resolving them (which waits for the agents) is not
+			FileSelection? selection = null;
+			var op = _master.AddSynchronousOp( () => { selection = FileSelection.Parse( _master, request ); } );
+			await op.WaitAsync();
+
+			if( op.Exception is AppFilesNotFoundException ) throw HttpException.NotFound( op.Exception.Message );
+			if( op.Exception is ArgumentException or ArgumentSyntaxErrorException ) throw HttpException.BadRequest( op.Exception.Message );
+			if( op.Exception != null ) throw op.Exception;
+
+			var result = await selection!.ResolveAsync( includeContent );
+			await SendJson( result.ToJson() );
 		}
 
 		[Route( HttpVerbs.Get, "/downloads" )]

@@ -371,6 +371,23 @@ The archive then holds `_comment.txt` at its root with the note, above a header 
 the machines and their addresses, the time and the Dirigent version. Cancelling the dialog collects
 nothing. See [Asking for a comment](Files.md#asking-for-a-comment).
 
+### Collecting Several Packages at Once
+
+A tool (or `DownloadPackage a b c`) can collect several packages in one job, into one zip. The layout depends on how many were asked for:
+
+* **one item** - the zip is laid out exactly as a single download always was: no extra folder;
+* **several items** - one top folder per item, titled as declared (the package `Title`; the app id for an application), the same title twice becoming `Title (2)`.
+
+Nothing is deduplicated: a log that two of the packages reach is in both folders, each copy following its own definition (`TailBytes`, marks). Packages overlap
+all the time - *Viewer* and *All logs* - and the folders then read like the boxes that were ticked. The cover note lists the selection. From REST:
+
+```json
+POST /api/downloads
+{ "fileDefs": [ {"id":"pkg.comp.viewer"}, {"id":"pkg.all.logs"} ], "apps": ["m1.a"], "comment": "after the crash" }
+```
+
+See [the selection](HTTP.md#The-selection) and [`POST /api/downloads`](HTTP.md#POST-apidownloads). `POST /api/files/query` previews the same selection with the sizes.
+
 ### Collecting One Test Run, Not the Whole Afternoon
 
 A tester who can reproduce an issue wants the logs of *that run*, not of the whole day. Two clicks:

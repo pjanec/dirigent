@@ -547,6 +547,9 @@ namespace Dirigent
 		VfsNodeDef? ResolveLocally( VfsNodeDef nodeDef, bool forceUNC, bool includeContent,
 				List<Guid>? usedGuids, List<RemoteStub> pending, VfsNodeDef? parent )
 		{
+			// usedGuids holds the ANCESTORS of the node, the definitions on the branch being walked: meeting one of
+			// them again is a real cycle and is refused. A definition reached a second time on another branch (two
+			// references to it in a package, two packages naming it) is no cycle and resolves each time.
 			if (usedGuids == null) usedGuids = new List<Guid>();
 			if (usedGuids.Contains( nodeDef.Guid ))
 			{
@@ -555,6 +558,36 @@ namespace Dirigent
 			}
 
 			usedGuids.Add( nodeDef.Guid );
+			try
+			{
+				var resolved = ResolveLocallyNotCircular( nodeDef, forceUNC, includeContent, usedGuids, pending, parent );
+
+				// where a file came from, for whoever lists the files: stamped from the inside out, so the
+				// definition nearest to the file keeps it
+				if( resolved is not null && resolved is not RemoteStub && nodeDef is not FileRef && !string.IsNullOrEmpty( nodeDef.Id ) )
+					StampOrigin( resolved, nodeDef.Id );
+
+				return resolved;
+			}
+			finally
+			{
+				usedGuids.RemoveAt( usedGuids.Count - 1 );
+			}
+		}
+
+		static void StampOrigin( VfsNodeDef node, string id )
+		{
+			if( !node.IsContainer && node.Children.Count == 0 )
+			{
+				node.OriginId ??= id;
+				return;
+			}
+			foreach( var c in node.Children ) StampOrigin( c, id );
+		}
+
+		VfsNodeDef? ResolveLocallyNotCircular( VfsNodeDef nodeDef, bool forceUNC, bool includeContent,
+				List<Guid> usedGuids, List<RemoteStub> pending, VfsNodeDef? parent )
+		{
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
 			// (a FileRef is the exception: it is resolved here, by looking it up in the registry we

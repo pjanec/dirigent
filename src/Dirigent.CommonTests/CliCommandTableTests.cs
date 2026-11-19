@@ -130,6 +130,26 @@ namespace Dirigent.Tests
 				+ "intended for the commands that wait on something only" );
 		}
 
+		/// <summary>
+		/// The commands taking several ids tell the ids from the options by name, so one id is the command it always was
+		/// and an id never has to be quoted to be told from `machine=m1`.
+		/// </summary>
+		[TestMethod()]
+		public void SeveralIdsAreToldFromTheOptions()
+		{
+			var args = new List<string>() { "pkg.a", "machine=m1", "pkg.b", "COMMENT=two words", "m1.app@plan", "wait=1" };
+
+			CollectionAssert.AreEqual( new[] { "pkg.a", "pkg.b", "m1.app@plan" }, Commands.CliIds.Ids( args ) );
+
+			var options = Commands.CliIds.Options( args );
+			Assert.AreEqual( "m1", options["machine"] );
+			Assert.AreEqual( "1", options["wait"] );
+			Assert.AreEqual( 3, options.Count );
+
+			CollectionAssert.AreEqual( new[] { "only" }, Commands.CliIds.Ids( new List<string>() { "only" } ) );
+			Assert.AreEqual( 0, Commands.CliIds.Options( new List<string>() { "only" } ).Count );
+		}
+
 		/// <summary>The class implementing a command, via the terminator lookup's own table.</summary>
 		static Type TypeOf( string commandName )
 		{

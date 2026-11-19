@@ -588,7 +588,7 @@ Lists the files of a file definition or file package, addressed like a script do
 [`GET /api/filedefs/{id}/files`](HTTP.md#GET-apifiledefsidfilesmachineapp), completed asynchronously like
 [`GetAppFiles`](#GetAppFiles). Each matching definition is resolved as itself and has one entry in `fileDefs` (a wildcard matching two gives two); a package
 member that cannot be reached is reported in `notes` and the others are listed. Every file carries `size`, `modified` and, for
-a `TailBytes` definition smaller than the file, `truncatedTo`. Nothing matching: a single `ERROR` line.
+a `TailBytes` definition smaller than the file, `truncatedTo`. Nothing matching: a single `ERROR` line. The answer also has `totals` (`files`, `bytes`, `bytesToCollect`), and each file has `app` and `fileDefId` - see [Totals](HTTP.md#Totals) and [Where a file came from](HTTP.md#Where-a-file-came-from).
 
 ##### Response text
 
@@ -600,7 +600,9 @@ a `TailBytes` definition smaller than the file, `truncatedTo`. Nothing matching:
 
 Lists the top-level file definitions as declared - the CLI twin of [`GET /api/filedefs`](HTTP.md#GET-apifiledefs).
 
-  `GetFileDefs [type=FilePackage] [id=logs.*] [machine=m1] [app=a]`
+  `GetFileDefs [type=FilePackage] [id=logs.*] [machine=m1] [app=a] [group=component]`
+
+`group` is one entry of the `Groups` of the definition - see [Groups for tools](Files.md#groups-for-tools).
 
 Answers once: `FILEDEFS:<json array>`.
 
@@ -642,7 +644,9 @@ Answers `UNMARKED:<report json>` and `END`. See [`POST /api/filedefs/{id}/unmark
 
 The same for all the file definitions of one application, as one selection.
 
-  `MarkAppFiles <appId>[@plan] [timeout=<seconds>]`
+  `MarkAppFiles <appId>[@plan] [<appId>[@plan] ...] [timeout=<seconds>]`
+
+Several applications are one operation over the union of their files.
 
 `<appId>` is `m1.a`, or `m1.a@plan1` for the definition in that plan; without a plan the plan the app last ran in is used, else the default definition (as for
 [`GetAppFiles`](#GetAppFiles)). Answers `MARKED:<report json>` and `END`; see [`POST /api/appdefs/{id}/mark`](HTTP.md#POST-apiappdefsidmark).
@@ -664,7 +668,10 @@ Answers `UNMARKED:<report json>` and `END`.
 Collects a file definition or file package into a download job on the master - see
 [Download jobs](HTTP.md#Download-jobs).
 
-  `DownloadPackage <id> [machine=m1] [app=a] [comment="why"] [wait=1]`
+  `DownloadPackage <id> [<id> ...] [machine=m1] [app=a] [comment="why"] [wait=1]`
+
+With **several ids** the one archive has a top folder per id and no file is left out for being in two of them - the layout rule of
+[`POST /api/downloads`](HTTP.md#POST-apidownloads). `machine=` and `app=` apply to every id. One id makes the archive it always has.
 
 Answers `DOWNLOAD:<jobId>:<job json>` and then `END`. Without `wait=1` the answer comes at once, with the job
 `Running`; with `wait=1` it comes when the job has ended. An unknown file definition gives a single `ERROR` line.
@@ -674,7 +681,9 @@ Answers `DOWNLOAD:<jobId>:<job json>` and then `END`. Without `wait=1` the answe
 The same for all the file definitions of an application, `m1.a` or `m1.a@plan1`, picked as for
 [`GetAppFiles`](#GetAppFiles).
 
-  `DownloadApp <appId>[@plan] [comment="why"] [wait=1]`
+  `DownloadApp <appId>[@plan] [<appId>[@plan] ...] [comment="why"] [wait=1]`
+
+Several applications make one archive with a folder per application.
 
 ### GetDownload
 

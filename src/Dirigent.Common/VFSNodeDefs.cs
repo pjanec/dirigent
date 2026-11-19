@@ -111,6 +111,12 @@ namespace Dirigent
 		/// <summary>Where the line is: the length of the file when it was marked.</summary>
 		public long? MarkedAtBytes;
 
+		/// <summary>
+		/// On a resolved file: the id of the file definition it came from - the innermost one that has an id, so the
+		/// definition a package or an application referred to, not the package. Filled in during resolution.
+		/// </summary>
+		public string? OriginId;
+
 
 		public override string ToString()
 		{

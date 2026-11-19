@@ -45,8 +45,25 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			public string? ToFolder;
 
+			/// <summary>
+			/// Several things to collect into one archive, each in a top folder of its own. Used when there are two or
+			/// more; one thing is named by <see cref="Node"/> or the VfsNode of the base class, and then the archive
+			/// is laid out exactly as it always was.
+			/// </summary>
+			public List<TItem>? Items;
+
 
 		};
+
+		/// <summary>One thing of a collection of several: a node by id, or a definition to be resolved.</summary>
+		public class TItem
+		{
+			/// <summary>What the item is called in messages: the id, the app.</summary>
+			public string Label = string.Empty;
+			public VfsNodeSelector? Node;
+			public VfsNodeDef? VfsNode;
+			public bool VfsNodeNeedsResolving;
+		}
 
 		//[MessagePack.MessagePackObject]
 		public class TResult
@@ -142,7 +159,16 @@ namespace Dirigent.Scripts.BuiltIn
 				//    nothing is watching
 				//  - a caller hands over an already resolved tree (tool actions still need to
 				//    resolve first for their FILE_PATH, so they arrive this way)
+				var multi = args.Items is { Count: > 1 };
+				List<string>? selectionLabels = null;
 				var vfsNode = args.VfsNode;
+				if( multi )
+				{
+					( vfsNode, selectionLabels ) = await ResolveItems( args.Items!, result );
+					if( vfsNode is null )
+						throw new Exception( "Nothing was found for any of the selected items: " + string.Join( "; ", result.NotCollected.Concat( result.Errors ) ) );
+				}
+				else
 				if( vfsNode is null )
 				{
 					if( args.Node is null )
@@ -180,7 +206,7 @@ namespace Dirigent.Scripts.BuiltIn
 				// What the resolution could not find. Kept before the machines add their own notes, so
 				// that this is about the lookup only - a package naming a folder that does not exist
 				// on one machine still collects everything else, and this is how anybody hears of it.
-				CollectNotes( container, result.NotCollected );
+				if( !multi ) CollectNotes( container, result.NotCollected );
 
 				// collect all individual machines
 				var allMachines = new HashSet<string>();
@@ -381,7 +407,7 @@ namespace Dirigent.Scripts.BuiltIn
 						// composed here, where the package, the machines and their addresses are known;
 						// the merge only writes it
 						CoverNote = await ComposeCoverNote( args.Comment, title, container.Id,
-										requestorMachine, clientStates, unreachable ),
+										requestorMachine, clientStates, unreachable, selectionLabels ),
 
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
@@ -770,7 +796,7 @@ namespace Dirigent.Scripts.BuiltIn
 		/// </param>
 		async Task<string> ComposeCoverNote( string? comment, string title, string packageId,
 				string requestorMachine, Dictionary<string, ClientState> clientStates,
-				IReadOnlyDictionary<string, string> unreachable )
+				IReadOnlyDictionary<string, string> unreachable, IReadOnlyList<string>? selection = null )
 		{
 			var machineDefs = ( await Dirig.GetAllMachinesDefAsync() ).ToDictionary( x => x.Id, x => x );
 
@@ -793,6 +819,8 @@ namespace Dirigent.Scripts.BuiltIn
 
 			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
 			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
+			if( selection is not null )
+				text.AppendLine( "Selection : " + string.Join( Environment.NewLine + new string( ' ', 12 ), selection ) );
 			text.AppendLine( label + string.Join( perMachineLine, described ) );
 			text.AppendLine( $"Downloaded to: {Describe( requestorMachine )}" );
 			text.AppendLine( $"Dirigent  : {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" );
@@ -1066,6 +1094,65 @@ namespace Dirigent.Scripts.BuiltIn
 				&& ( state.Ident?.IsAgent ?? false );
 
 		/// <summary>Everything the tree has to say about what it could not deliver.</summary>
+		/// <summary>
+		/// Resolves each item of a selection of several and puts it into a top folder of its own, titled as the item is
+		/// declared. Nothing is shared between the folders: a file reached through two items is in both, each copy
+		/// following its own definition. What goes wrong for an item is reported under the item's name and does not
+		/// take the others with it.
+		/// </summary>
+		async Task<(VfsNodeDef?, List<string>)> ResolveItems( List<TItem> items, TResult result )
+		{
+			var root = new VFolderDef() { IsContainer = true };
+			var labels = new List<string>();
+			var used = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
+
+			foreach( var item in items )
+			{
+				labels.Add( item.Label );
+
+				VfsNodeDef? node = null;
+				try
+				{
+					if( item.Node is not null )
+						node = await Dirig.ResolveAsync( item.Node.ToFileRef(), false, true );
+					else
+					if( item.VfsNode is not null )
+						node = item.VfsNodeNeedsResolving ? await Dirig.ResolveAsync( item.VfsNode, false, true ) : item.VfsNode;
+				}
+				catch( Exception e ) when ( e is not OperationCanceledException )
+				{
+					result.Errors.Add( $"{item.Label}: {Tools.JustFirstLine( e.Message )}" );
+					continue;
+				}
+
+				if( node is null )
+				{
+					result.NotCollected.Add( $"{item.Label}: nothing was found." );
+					continue;
+				}
+
+				var folder = node.IsContainer ? node : new VFolderDef() { IsContainer = true, Children = new List<VfsNodeDef>() { node } };
+
+				var name = DownloadZippedSlave.SanitizeName( !string.IsNullOrEmpty( node.Title ) ? node.Title : item.Label );
+				var unique = name;
+				for( int n = 2; !used.Add( unique ); n++ )
+					unique = $"{name} ({n})";
+				folder.Title = unique;
+
+				var notes = new List<string>();
+				CollectNotes( folder, notes );
+				result.NotCollected.AddRange( notes.Select( x => $"[{item.Label}] {x}" ) );
+
+				root.Children.Add( folder );
+			}
+
+			if( root.Children.Count == 0 )
+				return ( null, labels );
+
+			root.Title = $"{labels[0]} and {labels.Count - 1} more";
+			return ( root, labels );
+		}
+
 		static void CollectNotes( VfsNodeDef node, List<string> notes )
 		{
 			if( node.Notes is not null ) notes.AddRange( node.Notes );

@@ -706,7 +706,7 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
-	/// The top-level file definitions as declared: `GetFileDefs [type=] [id=] [machine=] [app=]`. Same as
+	/// The top-level file definitions as declared: `GetFileDefs [type=] [id=] [machine=] [app=] [group=]`. Same as
 	/// GET /api/filedefs. Answers `FILEDEFS:&lt;json&gt;`.
 	/// </summary>
 	[CliResponse( Terminator = ETerminator.SingleLine )]
@@ -724,8 +724,9 @@ namespace Dirigent.Commands
 			Tools.TryGetValueIgnoreKeyCase( options, "id", out var id );
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
+			Tools.TryGetValueIgnoreKeyCase( options, "group", out var group );
 
-			WriteResponse( "FILEDEFS:" + Web.FileDefListing.ToJson( Web.FileDefListing.List( ctrl, type, id, machine, app ) ) );
+			WriteResponse( "FILEDEFS:" + Web.FileDefListing.ToJson( Web.FileDefListing.List( ctrl, type, id, machine, app, group ) ) );
 		}
 	}
 
@@ -733,6 +734,26 @@ namespace Dirigent.Commands
 	/// Starts a download job and answers `DOWNLOAD:&lt;jobId&gt;:&lt;json&gt;`, then `END`. With `wait=1` the answer
 	/// comes when the job has ended. The common part of DownloadPackage and DownloadApp.
 	/// </summary>
+	/// <summary>
+	/// The arguments of a command that takes several ids: `a b c machine=m1 comment=...`. What looks like one of the known
+	/// options is an option, the rest are ids - so one id is the command as it has always been.
+	/// </summary>
+	public static class CliIds
+	{
+		static readonly string[] _options = { "machine", "app", "comment", "wait", "timeout", "content" };
+
+		static bool IsOption( string arg )
+		{
+			var eq = arg.IndexOf( '=' );
+			return eq > 0 && _options.Contains( arg.Substring( 0, eq ), StringComparer.OrdinalIgnoreCase );
+		}
+
+		public static List<string> Ids( IEnumerable<string> args ) => args.Where( a => !IsOption( a ) ).ToList();
+
+		public static Dictionary<string, string> Options( IEnumerable<string> args )
+			=> Tools.ParseKeyValList( args.Where( IsOption ).ToList() );
+	}
+
 	public abstract class StartDownloadCommand : DirigentControlCommand
 	{
 		Guid _job;
@@ -751,7 +772,7 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+			var options = CliIds.Options( args );
 			var request = MakeRequest( options );
 
 			if( Tools.TryGetValueIgnoreKeyCase( options, "comment", out var comment ) ) request.comment = comment;
@@ -791,12 +812,17 @@ namespace Dirigent.Commands
 
 		protected override DownloadRequest MakeRequest( Dictionary<string, string> options )
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "id", "VFS node id expected." );
+			var ids = CliIds.Ids( args );
+			if( ids.Count == 0 ) throw new MissingArgumentException( "id", "VFS node id expected." );
 
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
 
-			return new DownloadRequest() { fileDef = new DownloadFileDefSelection() { id = args[0], machine = machine, app = app } };
+			// one id is the request it always was; several are a selection, one folder each in the archive
+			if( ids.Count == 1 )
+				return new DownloadRequest() { fileDef = new DownloadFileDefSelection() { id = ids[0], machine = machine, app = app } };
+
+			return new DownloadRequest() { fileDefs = ids.Select( i => new DownloadFileDefSelection() { id = i, machine = machine, app = app } ).ToList() };
 		}
 	}
 
@@ -808,8 +834,9 @@ namespace Dirigent.Commands
 
 		protected override DownloadRequest MakeRequest( Dictionary<string, string> options )
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
-			return new DownloadRequest() { app = args[0] };
+			var ids = CliIds.Ids( args );
+			if( ids.Count == 0 ) throw new MissingArgumentException( "appIdTuple", "AppIdTuple expected." );
+			return ids.Count == 1 ? new DownloadRequest() { app = ids[0] } : new DownloadRequest() { apps = ids };
 		}
 	}
 
@@ -962,9 +989,9 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
-			if( args.Count == 0 ) throw new MissingArgumentException( "id", "an id expected." );
+			if( CliIds.Ids( args ).Count == 0 ) throw new MissingArgumentException( "id", "an id expected." );
 
-			var options = Tools.ParseKeyValList( args.Skip( 1 ).ToList() );
+			var options = CliIds.Options( args );
 
 			_timeoutSec = Web.MarkApiController.DefaultWaitSeconds;
 			if( Tools.TryGetValueIgnoreKeyCase( options, "timeout", out var timeoutStr ) )
@@ -1016,7 +1043,17 @@ namespace Dirigent.Commands
 		{
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
-			return Web.MarkOperation.StartForFileDefs( ctrl, Kind, args[0], machine, app );
+
+			var ids = CliIds.Ids( args );
+			if( ids.Count == 1 )
+				return Web.MarkOperation.StartForFileDefs( ctrl, Kind, ids[0], machine, app );
+
+			// several ids: one operation over the union
+			var request = new Web.FileSelectionRequest()
+			{
+				fileDefs = ids.Select( i => new DownloadFileDefSelection() { id = i, machine = machine, app = app } ).ToList(),
+			};
+			return Web.MarkOperation.StartForSelection( ctrl, Kind, Web.FileSelection.Parse( ctrl, request ) );
 		}
 	}
 
@@ -1050,7 +1087,13 @@ namespace Dirigent.Commands
 		protected MarkAppFilesCommand( Master ctrl, string requestorId ) : base( ctrl, requestorId ) { }
 
 		protected override Web.MarkOperation Start( Dictionary<string, string> options )
-			=> Web.MarkOperation.StartForApp( ctrl, Kind, args[0] );
+		{
+			var ids = CliIds.Ids( args );
+			if( ids.Count == 1 )
+				return Web.MarkOperation.StartForApp( ctrl, Kind, ids[0] );
+
+			return Web.MarkOperation.StartForSelection( ctrl, Kind, Web.FileSelection.Parse( ctrl, new Web.FileSelectionRequest() { apps = ids } ) );
+		}
 	}
 
 	/// <summary>`MarkAppFiles &lt;appId&gt;[@plan] [timeout=&lt;s&gt;]`</summary>

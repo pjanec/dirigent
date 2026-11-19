@@ -125,6 +125,13 @@ machine and a file can only be opened by the machine that owns it. Progress is c
 as each finishes; these operations read lengths and delete files, so there would be no point in
 weighing them by bytes.
 
+### Marking a selection
+
+A tool that offers a checkbox per component marks what is ticked in one operation: `POST /api/marks` with `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"]}`
+(or `operation` `clear` / `unmark`), on the CLI `MarkFiles pkg.comp.viewer pkg.comp.ig`, `ClearFiles a b`, `UnmarkFiles a b` and `MarkAppFiles x y`. The operation runs over the **union**
+of the files of the items: marks are kept per file, so a file two packages reach is marked once, and the report is the same as for one item, with `selection` naming them all. The
+same [selection](HTTP.md#The-selection) previews and collects, so what is marked is what is collected.
+
 ## What the collection does with a mark
 
 `DownloadZippedSlave` already streamed each file into the archive from an offset. It gained one

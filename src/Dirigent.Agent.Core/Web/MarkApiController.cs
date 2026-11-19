@@ -47,6 +47,35 @@ namespace Dirigent.Web
 		[Route( HttpVerbs.Post, "/appdefs/{id}/unmark" )]
 		public Task UnmarkApp( string id ) => RunApp( MarkOperation.EKind.Unmark, id );
 
+		// body: {"operation":"mark|clear|unmark","fileDefs":[{"id":"pkg.a"}],"apps":["m1.a"]} - one operation over the union
+		[Route( HttpVerbs.Post, "/marks" )]
+		public async Task MarkSelection()
+		{
+			var body = await HttpContext.GetRequestBodyAsStringAsync();
+
+			MarksRequest? request;
+			try { request = System.Text.Json.JsonSerializer.Deserialize<MarksRequest>( body, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true } ); }
+			catch( Exception ) { throw HttpException.BadRequest( "The body is not a valid marks request." ); }
+			if( request is null ) throw HttpException.BadRequest( "The body is not a valid marks request." );
+
+			MarkOperation.EKind kind;
+			switch( ( request.operation ?? string.Empty ).ToLowerInvariant() )
+			{
+				case "mark": kind = MarkOperation.EKind.Mark; break;
+				case "clear": kind = MarkOperation.EKind.Clear; break;
+				case "unmark": kind = MarkOperation.EKind.Unmark; break;
+				default: throw HttpException.BadRequest( "'operation' must be mark, clear or unmark." );
+			}
+
+			await Run( () => MarkOperation.StartForSelection( _master, kind, FileSelection.Parse( _master, request ) ) );
+		}
+
+		/// <summary>The body of POST /api/marks.</summary>
+		public class MarksRequest : FileSelectionRequest
+		{
+			public string? operation { get; set; }
+		}
+
 		Task RunFileDefs( MarkOperation.EKind kind, string id )
 		{
 			var q = HttpContext.GetRequestQueryData();

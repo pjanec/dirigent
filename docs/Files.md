@@ -368,7 +368,8 @@ proceeds recursively:
   becomes a subtree of virtual folders and files.
 * `<VFolder>` / `<FilePackage>`: children are resolved one by one.
 * `<FileRef>`: the registry is searched; see [`<FileRef>`](#fileref) for the outcome.
-* Cycles are detected: a file definition already visited on the current path resolves to nothing.
+* Cycles are detected: a file definition that is already on the way down to the current node - a package that, through its references, holds itself - resolves to
+  nothing there. A definition reached a second time on **another branch** is no cycle and resolves again: see [a definition reached twice](#a-definition-reached-twice).
 
 The result is a tree containing only virtual folders and concrete file paths. Paths are
 returned from the perspective of the *requesting* machine: files on other machines, and all
@@ -440,6 +441,31 @@ with `Can't construct UNC path, No file share matching ...`.
 Dirigent expects these shares to need **no extra credentials**. If credentials are required,
 the user must have entered them beforehand so that Windows can reuse the cached ones.
 
+### Groups for tools
+
+`Groups` on a file definition is the field a diagnostic tool sorts by. A tool that shows one checkbox per component asks for the packages of a group - `GET /api/filedefs?type=FilePackage&group=component`
+(CLI: `GetFileDefs type=FilePackage group=component`) - and gets each package's `id`, `title`, `description` and `groups`. The filter matches one entry of the `;`-separated list, ignoring
+letter case, with the wildcards of ids (`group=comp*`). The convention is yours; a common one is `component` for the packages offered as checkboxes and `major` or `minor` for how prominent:
+
+<!-- example: loads -->
+```xml
+<Machine Name="m1" IP="192.168.0.11">
+    <Share Name="C" Path="C:\"/>
+</Machine>
+
+<AppTemplate Name="apps.viewer" ExeFullPath="C:\Viewer\viewer.exe" StartupDir="C:\Viewer">
+    <File Id="log.viewer" Title="Log/Viewer" Path="%APP_STARTUPDIR%\logs" Mask="viewer*.log"/>
+</AppTemplate>
+<App AppIdTuple="m1.viewer" Template="apps.viewer"/>
+
+<FilePackage Id="pkg.comp.viewer" Title="Viewer" Description="Image generator logs" Groups="component;major">
+    <FileRef Id="log.viewer" MachineId="*" AppId="*"/>
+</FilePackage>
+```
+
+The tool then previews, collects and marks the ticked packages with one [selection](HTTP.md#The-selection) - see the
+[worked example](HTTP.md#A-tool-with-a-checkbox-per-component).
+
 ### Reading the files from a diagnostic tool
 
 Two REST endpoints (and the matching CLI commands `GetAppFiles` and `GetFiles`) list the actual
@@ -448,8 +474,9 @@ UNC path: `GET /api/appdefs/m1.a[@plan]/files` and `GET /api/filedefs/<id>/files
 listed, not served - the tool opens them through the UNC paths. See the [Web API reference](HTTP.md), in particular [the file previews](HTTP.md#GET-apiappdefsidfiles)
 and [CLI](CLI.md#GetAppFiles).
 
-To collect rather than just look, a tool starts a download job (`POST /api/downloads`, or `DownloadPackage` /
-`DownloadApp`), polls it and fetches the archive; see [Download jobs](HTTP.md#Download-jobs). The archives are built on the
+Several things at once - the checked components of a tool - are one [selection](HTTP.md#The-selection): `POST /api/files/query` previews it (with sizes), `POST /api/marks`
+marks it. To collect rather than just look, a tool starts a download job (`POST /api/downloads`, or `DownloadPackage` /
+`DownloadApp`, which take several ids), polls it and fetches the archive; see [Download jobs](HTTP.md#Download-jobs). The archives are built on the
 master's machine in `--archiveFolder`, which should be under a file share - see
 [Local Config](LocalConfig.md#Download-archives).
 
@@ -466,7 +493,7 @@ master's machine in `--archiveFolder`, which should be under a file share - see
 | `AppId`     | Overrides the app association inherited from the declaration site. Empty string means *no app* and, in `<FileRef>`, *any app*.                                                                                            |
 | `AppIdTuple` | Shorthand setting both of the above at once, in the `"machineId.appId"` format. Without a dot it sets the app only, leaving the machine empty. `MachineId` / `AppId` given alongside it still win.                        |
 | `Icon`      | Icon image shown next to the menu item.                                                                                                                                                                                  |
-| `Groups`    | Semicolon-separated group paths, as elsewhere in the config.                                                                                                                                                              |
+| `Groups`    | Semicolon-separated group paths, as elsewhere in the config. On a file definition it is also how a tool finds what to offer - see [Groups for tools](#groups-for-tools). |
 | `Clearable` | Whether **Clear** and **Mark** may touch the files this file definition yields. `0` (the default) means they never do, whatever any action or argument says - see [Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark). |
 | `Description` | What this file definition is, in prose. Shown where the user has to decide something about it - see [Asking for a comment](#asking-for-a-comment). Being an attribute, a line break in it is written `&#10;`.                       |
 
@@ -861,6 +888,14 @@ Results:
 * one match - resolves to that file definition, as if it had been written in place;
 * several matches - resolves to a virtual folder named after the reference's `Title` (or `Id`),
   containing all the matches.
+
+#### A definition reached twice
+
+A file definition that several references reach - two `<FileRef>`s in one package, or two packages naming it, or a package and an application - **appears each time it
+is reached**: the files are listed under each, and a download of a package that refers to the same log twice holds it twice (the second copy under a numbered name). Only a
+real cycle - a definition that, through its own contents, would contain itself - is cut. Before this change the second and later references to a definition silently
+resolved to nothing, so a log reachable by two routes was there only once, whichever route was resolved first; a tool previewing two packages that overlap now
+sees the overlap in both.
 
 ### Ids: one per definition, kinds by prefix
 

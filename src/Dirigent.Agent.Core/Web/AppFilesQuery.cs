@@ -34,6 +34,59 @@ namespace Dirigent.Web
 		/// the file is bigger: how many bytes at most a download will hold.
 		/// </summary>
 		public long? truncatedTo { get; set; }
+
+		/// <summary>The application the file belongs to, where it belongs to one.</summary>
+		public string? app { get; set; }
+
+		/// <summary>The id of the file definition the file came from: the one a package or an application referred to.</summary>
+		public string? fileDefId { get; set; }
+	}
+
+	/// <summary>How much a preview holds; the same three numbers wherever a preview is answered.</summary>
+	public class FilesTotals
+	{
+		public int files { get; set; }
+
+		/// <summary>The sum of the sizes of the files, as they are on disk.</summary>
+		public long bytes { get; set; }
+
+		/// <summary>What a download of these files would hold: from the mark on, and no more than the TailBytes of the definition.</summary>
+		public long bytesToCollect { get; set; }
+
+		/// <summary>
+		/// What a download takes of one file: <c>min( size - markedAtBytes, truncatedTo )</c>, never below zero. A file
+		/// of unknown size counts as nothing.
+		/// </summary>
+		public static long BytesToCollect( long? size, long? markedAtBytes, long? truncatedTo )
+		{
+			var s = size ?? 0;
+			return Math.Max( 0, Math.Min( s - ( markedAtBytes ?? 0 ), truncatedTo ?? s ) );
+		}
+
+		public static FilesTotals Of( IEnumerable<AppFileInfo> files )
+		{
+			var t = new FilesTotals();
+			foreach( var f in files )
+			{
+				t.files++;
+				t.bytes += f.size ?? 0;
+				t.bytesToCollect += BytesToCollect( f.size, f.markedAtBytes, f.truncatedTo );
+			}
+			return t;
+		}
+
+		/// <summary>The sum of several; nothing is left out for being in two of them - a download holds each copy.</summary>
+		public static FilesTotals Sum( IEnumerable<FilesTotals> parts )
+		{
+			var t = new FilesTotals();
+			foreach( var p in parts )
+			{
+				t.files += p.files;
+				t.bytes += p.bytes;
+				t.bytesToCollect += p.bytesToCollect;
+			}
+			return t;
+		}
 	}
 
 	/// <summary>One top-level file definition of an application or of the shared config, resolved.</summary>
@@ -50,6 +103,7 @@ namespace Dirigent.Web
 		public string? error { get; set; }
 		public List<string> notes { get; set; } = new();
 		public List<AppFileInfo> files { get; set; } = new();
+		public FilesTotals totals { get; set; } = new();
 
 		/// <summary>The resolver found nothing at all for the node. Not part of the answer.</summary>
 		[JsonIgnore]
@@ -63,6 +117,7 @@ namespace Dirigent.Web
 		/// <summary>"requested", "lastRun" or "none"</summary>
 		public string planSource { get; set; } = "none";
 		public List<FileDefEntry> fileDefs { get; set; } = new();
+		public FilesTotals totals { get; set; } = new();
 
 		static readonly JsonSerializerOptions _json = new()
 		{
@@ -187,17 +242,18 @@ namespace Dirigent.Web
 				plan = _plan,
 				planSource = _planSource,
 				fileDefs = nodes.ToList(),
+				totals = FilesTotals.Sum( nodes.Select( n => n.totals ) ),
 			};
 		}
 
 		Task<FileDefEntry> ResolveFileDefAsync( VfsNodeDef def, bool includeContent )
-			=> ResolveFileDefEntryAsync( _master, def, includeContent );
+			=> ResolveFileDefEntryAsync( _master, def, includeContent, Def.Id.AppId );
 
 		/// <summary>
 		/// Resolves one node and describes it: the one implementation of a node entry, shared by the
 		/// application query and the node query. A failure is reported in the entry, never thrown.
 		/// </summary>
-		public static async Task<FileDefEntry> ResolveFileDefEntryAsync( Master master, VfsNodeDef def, bool includeContent )
+		public static async Task<FileDefEntry> ResolveFileDefEntryAsync( Master master, VfsNodeDef def, bool includeContent, string? defaultApp = null )
 		{
 			var info = new FileDefEntry()
 			{
@@ -228,7 +284,8 @@ namespace Dirigent.Web
 				info.uncError = uncError;
 
 				CollectNotes( root, info.notes );
-				CollectFiles( master, root, info.title, info.files, isRoot: true );
+				CollectFiles( master, root, info.title, info.files, isRoot: true, def.Id, defaultApp );
+				info.totals = FilesTotals.Of( info.files );
 			}
 			catch( Exception e )
 			{
@@ -270,7 +327,7 @@ namespace Dirigent.Web
 			foreach( var c in n.Children ) CollectNotes( c, notes );
 		}
 
-		static void CollectFiles( Master master, VfsNodeDef n, string virtualPath, List<AppFileInfo> files, bool isRoot )
+		static void CollectFiles( Master master, VfsNodeDef n, string virtualPath, List<AppFileInfo> files, bool isRoot, string topId, string? defaultApp )
 		{
 			if( !n.IsContainer && n.Children.Count == 0 )
 			{
@@ -291,6 +348,8 @@ namespace Dirigent.Web
 					markedAt = n.MarkedAt,
 					markedAtBytes = n.MarkedAtBytes,
 					truncatedTo = n.TailBytes > 0 && n.Size > n.TailBytes ? n.TailBytes : null,
+					app = NullIfEmpty( n.AppId ) ?? NullIfEmpty( defaultApp ),
+					fileDefId = NullIfEmpty( n.OriginId ) ?? NullIfEmpty( topId ),
 				} );
 				return;
 			}
@@ -298,7 +357,7 @@ namespace Dirigent.Web
 			foreach( var c in n.Children )
 			{
 				var title = !string.IsNullOrEmpty( c.Title ) ? c.Title : c.Id;
-				CollectFiles( master, c, virtualPath + "/" + title, files, isRoot: false );
+				CollectFiles( master, c, virtualPath + "/" + title, files, isRoot: false, topId, defaultApp );
 			}
 		}
 	}
@@ -309,6 +368,7 @@ namespace Dirigent.Web
 		public string? machine { get; set; }
 		public string? app { get; set; }
 		public List<FileDefEntry> fileDefs { get; set; } = new();
+		public FilesTotals totals { get; set; } = new();
 
 		/// <summary>The one-line JSON both the REST endpoint and the CLI command answer with.</summary>
 		public string ToJson() => AppFilesResult.ToJson( this );
@@ -367,6 +427,7 @@ namespace Dirigent.Web
 				machine = string.IsNullOrEmpty( _selector.MachineId ) ? null : _selector.MachineId,
 				app = string.IsNullOrEmpty( _selector.AppId ) ? null : _selector.AppId,
 				fileDefs = entries.ToList(),
+				totals = FilesTotals.Sum( entries.Select( e => e.totals ) ),
 			};
 		}
 	}

@@ -17,7 +17,7 @@ namespace Dirigent
 	}
 
 	/// <summary>What was asked for: a node or package by id, or all the nodes of an application.</summary>
-	public class DownloadRequest
+	public class DownloadRequest : FileSelectionRequest
 	{
 		public DownloadFileDefSelection? fileDef { get; set; }
 
@@ -176,39 +176,61 @@ namespace Dirigent
 				Comment = request.comment,
 			};
 
-			if( request.fileDef is not null && !string.IsNullOrEmpty( request.fileDef.id ) )
+			// every item is looked up before anything starts, an unknown one named in the error
+			FileSelection selection;
+			try
 			{
-				var selector = new Scripts.BuiltIn.VfsNodeSelector()
+				selection = FileSelection.Parse( master, request, request.fileDef, request.app );
+			}
+			catch( ArgumentException e ) when( e.GetType() == typeof( ArgumentException )
+				&& request.fileDefs is null && request.apps is null )
+			{
+				throw new ArgumentException( "Either 'fileDef' (with an id), 'app' or a selection ('fileDefs', 'apps') is needed." );
+			}
+
+			if( selection.Count == 1 )
+			{
+				// one item: the collection and the archive are what they have always been
+				var item = selection.Items[0];
+				if( !item.IsApp )
 				{
-					Id = request.fileDef.id,
-					MachineId = request.fileDef.machine,
-					AppId = request.fileDef.app,
-				};
-
-				if( !master.GetAllVfsNodesDef().Any( n => Scripts.BuiltIn.ListVfsNodes.Matches( n, selector ) ) )
-					throw new AppFilesNotFoundException( $"No node matches {selector}." );
-
-				args.Node = selector;
+					args.Node = new Scripts.BuiltIn.VfsNodeSelector()
+					{
+						Id = item.FileDef!.id,
+						MachineId = item.FileDef.machine,
+						AppId = item.FileDef.app,
+					};
+				}
+				else
+				{
+					SetApp( args, item.AppQuery! );
+				}
 			}
 			else
-			if( !string.IsNullOrEmpty( request.app ) )
 			{
-				var query = AppFilesQuery.Prepare( master, request.app );
-
-				// the definition goes over as it is; DownloadZipped resolves it itself, with progress
-				args.VfsNode = new VFolderDef()
+				// several: a top folder per item
+				args.Items = new List<Scripts.BuiltIn.DownloadZipped.TItem>();
+				foreach( var item in selection.Items )
 				{
-					Guid = Guid.NewGuid(),
-					Id = query.AppIdText,
-					Title = query.AppIdText,
-					IsContainer = true,
-					Children = query.Nodes.ToList(),
-				};
-				args.VfsNodeNeedsResolving = true;
-			}
-			else
-			{
-				throw new ArgumentException( "Either 'node' (with an id) or 'app' is needed." );
+					var ti = new Scripts.BuiltIn.DownloadZipped.TItem() { Label = item.Label };
+					if( !item.IsApp )
+					{
+						ti.Node = new Scripts.BuiltIn.VfsNodeSelector()
+						{
+							Id = item.FileDef!.id,
+							MachineId = item.FileDef.machine,
+							AppId = item.FileDef.app,
+						};
+					}
+					else
+					{
+						var tmp = new Scripts.BuiltIn.DownloadZipped.TArgs();
+						SetApp( tmp, item.AppQuery! );
+						ti.VfsNode = tmp.VfsNode;
+						ti.VfsNodeNeedsResolving = true;
+					}
+					args.Items.Add( ti );
+				}
 			}
 
 			var id = Guid.NewGuid();
@@ -239,6 +261,20 @@ namespace Dirigent
 			}
 
 			return id;
+		}
+
+		/// <summary>The definition of an application goes over as it is; DownloadZipped resolves it itself, with progress.</summary>
+		static void SetApp( Scripts.BuiltIn.DownloadZipped.TArgs args, AppFilesQuery query )
+		{
+			args.VfsNode = new VFolderDef()
+			{
+				Guid = Guid.NewGuid(),
+				Id = query.AppIdText,
+				Title = query.AppIdText,
+				IsContainer = true,
+				Children = query.Nodes.ToList(),
+			};
+			args.VfsNodeNeedsResolving = true;
 		}
 
 		/// <summary>Follows the running jobs and tidies up now and then. Master thread.</summary>

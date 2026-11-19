@@ -25,7 +25,7 @@ namespace Dirigent.Web
 		/// Master thread only. The id, machine and app filters take the wildcards of
 		/// <see cref="Scripts.BuiltIn.ListVfsNodes.Matches"/>; the type is compared case-insensitively.
 		/// </summary>
-		public static List<FileDefInfo> List( Master master, string? type, string? id, string? machine, string? app )
+		public static List<FileDefInfo> List( Master master, string? type, string? id, string? machine, string? app, string? groupName = null )
 		{
 			var selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
 
@@ -33,6 +33,7 @@ namespace Dirigent.Web
 					 where Scripts.BuiltIn.ListVfsNodes.Matches( node, selector )
 						&& ( string.IsNullOrEmpty( type )
 							|| string.Equals( AppFilesQuery.TypeName( node ), type, StringComparison.OrdinalIgnoreCase ) )
+						&& InGroup( node, groupName )
 					 orderby node.Id, node.MachineId, node.AppId
 					 select new FileDefInfo()
 					 {
@@ -44,6 +45,22 @@ namespace Dirigent.Web
 						 machine = string.IsNullOrEmpty( node.MachineId ) ? null : node.MachineId,
 						 app = string.IsNullOrEmpty( node.AppId ) ? null : node.AppId,
 					 } ).ToList();
+		}
+
+		/// <summary>
+		/// Whether one entry of the ';' separated Groups of the node is the group asked for: case-insensitive, with the
+		/// wildcards of the ids. No group asked for means every node.
+		/// </summary>
+		public static bool InGroup( VfsNodeDef node, string? groupName )
+		{
+			if( string.IsNullOrEmpty( groupName ) ) return true;
+
+			foreach( var g in ( node.Groups ?? string.Empty ).Split( ';', StringSplitOptions.RemoveEmptyEntries ) )
+			{
+				if( Scripts.BuiltIn.ListVfsNodes.IsMatch( groupName.Trim(), g.Trim() ) )
+					return true;
+			}
+			return false;
 		}
 
 		public static string ToJson( List<FileDefInfo> nodes ) => AppFilesResult.ToJson( nodes );

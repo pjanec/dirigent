@@ -65,8 +65,9 @@ examples below are real answers, shortened where they are long.
 * **Download jobs** (`POST /api/downloads`) start a collection that runs for as long as it takes. The call returns
   at once with a job id; you poll the job, optionally with `?wait=N` (seconds to hold the answer, at most 120).
 
-**Mutating calls.** The only calls that change anything are `POST /api/cli` (anything the [CLI](CLI.md) can do),
-`POST /api/downloads` and `DELETE /api/downloads/{id}`. Everything else is `GET`.
+**Mutating calls.** The calls that change anything are `POST /api/cli` (anything the [CLI](CLI.md) can do),
+`POST /api/downloads`, `DELETE /api/downloads/{id}`, and the marking calls (`POST /api/marks` and the `.../mark|clear|unmark` routes).
+`POST /api/files/query` is a `POST` only because it takes a body: it is a **read-only** preview and changes nothing. Everything else is `GET`.
 
 ## Overview
 
@@ -90,7 +91,9 @@ examples below are real answers, shortened where they are long.
 | GET | [`/api/scriptstates/{id}`](#GET-apiscriptstatesid) | State of one script (also `/api/scriptstate/{id}`) | [`GetScriptState`](CLI.md#GetScriptState) |
 | GET | [`/api/clients`](#GET-apiclients) | All clients (machines) | [`GetAllClientsState`](CLI.md#GetAllClientsState) |
 | GET | [`/api/clients/{id}`](#GET-apiclientsid) | One client | [`GetClientState`](CLI.md#GetClientState) |
-| GET | [`/api/filedefs`](#GET-apifiledefs) | List the file definitions | [`GetFileDefs`](CLI.md#GetFileDefs) |
+| GET | [`/api/filedefs`](#GET-apifiledefs) | List the file definitions (`?type=&group=&id=&machine=&app=`) | [`GetFileDefs`](CLI.md#GetFileDefs) |
+| POST | [`/api/files/query`](#POST-apifilesquery) | Preview the files of a [selection](#The-selection) - read-only | |
+| POST | [`/api/marks`](#POST-apimarks) | Mark, clear or unmark a [selection](#The-selection) in one operation | [`MarkFiles`](CLI.md#MarkFiles) a b c ... |
 | GET | [`/api/filedefs/{id}`](#GET-apifiledefsid) | The file definitions with an id | |
 | GET | [`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp) | The actual files of file definitions | [`GetFiles`](CLI.md#GetFiles) |
 | POST | [`/api/filedefs/{id}/mark`](#POST-apifiledefsidmark), [`/clear`](#POST-apifiledefsidclear), [`/unmark`](#POST-apifiledefsidunmark) | Draw a line under the clearable files of file definitions, empty them, or take the line away | [`MarkFiles`](CLI.md#MarkFiles), [`ClearFiles`](CLI.md#ClearFiles), [`UnmarkFiles`](CLI.md#UnmarkFiles) |
@@ -314,9 +317,76 @@ How files, folders and packages are declared, resolved and limited is explained 
 machine's `<Share>` covers the file ([machine definitions](SharedConfig.md#Machine-definitions)). Collecting logs from several
 machines is walked through in [Log file collection](LogFileCollection.md). A file the operator has marked for a test run is collected only from the mark on - see [Marking and clearing](MarkAndClear.md).
 
-The flow of a diagnostic tool: **list** the file definitions (`/api/filedefs`), **preview** the files of one
-(`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** them (`POST /api/downloads`), **poll** the job,
-**fetch** the archive - or read the files in place through their UNC paths.
+The flow of a diagnostic tool: **list** the file definitions (`GET /api/filedefs`), **preview** what the user ticked
+(`POST /api/files/query`), **collect** it (`POST /api/downloads`), **poll** the job, **fetch** the archive - or read the files in place
+through their UNC paths - and **mark** the same selection before the next run (`POST /api/marks`). All three operations take the same
+[selection](#The-selection). The single-item routes (`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`, the single `fileDef` / `app` forms of
+`POST /api/downloads`, `/api/filedefs/{id}/mark`) stay as shortcuts for a selection of one.
+
+### The selection
+
+One object says what a tool's checkboxes stand for, and the same object goes to the preview, the download and the marking, so that what is previewed is what is
+collected is what is marked:
+
+```json
+{ "fileDefs": [ { "id": "pkg.comp.viewer" }, { "id": "log.*", "machine": "m1", "app": "*" } ],
+  "apps":     [ "m1.a", "m1.a@plan1" ] }
+```
+
+* `fileDefs` - file definitions or packages by `id`; `machine` and `app` are optional per item, and `id`, `machine` and `app` take the wildcards of a
+  [`<FileRef>`](Files.md#fileref). A wildcard item may match several definitions. In a JSON body the wildcards need no escaping, unlike in a URL path.
+* `apps` - applications, `m1.a` or `m1.a@plan1`, the definition picked as for [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles).
+* **All the items are looked up before anything runs.** An item that matches nothing is a `404` whose message names it; an empty selection - no items, or an item
+  without an `id` - is a `400`.
+* There is **no deduplication across items**. A file that two items reach is listed under both, counted in both and, in a download, in the folder of each, each copy
+  following its own definition (`TailBytes`, marks). A marking, which is per file, simply marks it once.
+
+#### A tool with a checkbox per component
+
+```
+GET  /api/filedefs?type=FilePackage&group=component      -> one checkbox per package: id, title, description
+POST /api/files/query     {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}]}   -> the files and the sizes, to show
+POST /api/downloads       {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"comment":"why"}   -> 202 {"id": "..."}
+GET  /api/downloads/{id}?wait=60                         -> poll; then GET the archive's url
+POST /api/marks           {"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}]}  -> before the next run
+```
+
+The `group` is one entry of the `Groups` of the file definition (`Groups="component;major"`) - see [Groups for tools](Files.md#groups-for-tools).
+
+### POST /api/files/query
+
+Previews the files of a [selection](#The-selection). **Read-only**: nothing is marked, collected or changed. Body: the selection. `?content=false` skips scanning the folders.
+
+```json
+{ "items": [
+    { "id": "pkg.comp.viewer", "machine": null, "app": null, "fileDefs": [ { "id": "pkg.comp.viewer", "type": "FilePackage", "files": [ ... ], "totals": { "files": 4, "bytes": 90112, "bytesToCollect": 45056 } } ],
+      "totals": { "files": 4, "bytes": 90112, "bytesToCollect": 45056 } },
+    { "app": "m1.a", "plan": null, "planSource": "none", "fileDefs": [ ... ], "totals": { "files": 2, "bytes": 2048, "bytesToCollect": 2048 } } ],
+  "totals": { "files": 6, "bytes": 92160, "bytesToCollect": 47104 } }
+```
+
+`items` has one entry per selected item, in the order of the selection, in the shape of the single route's answer: that of
+[`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp) for a file definition item, that of [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) for an application.
+Every file carries what the single routes give, and `app` and `fileDefId` (see below). The `totals` of the answer are the sum of the totals of the items.
+Unknown item: 404; empty selection: 400.
+
+#### Totals
+
+Every preview answer - the single routes and the query - has `totals` at the top (and on each file definition entry):
+
+| field | meaning |
+| --- | --- |
+| `files` | the number of files |
+| `bytes` | the sum of their `size` (a file of unknown size counts as 0) |
+| `bytesToCollect` | what a download would hold: the sum, over the files, of `min( size - (markedAtBytes or 0), truncatedTo or size )`, never below 0 |
+
+The totals of a query are the sums of its items'; a file in two items is in the total twice, which is what the zip holds.
+
+#### Where a file came from
+
+Each previewed file has two more fields: `app`, the application it belongs to (null for a machine-level or global file), and `fileDefId`, the `id` of the file
+definition it came from - the one a package or an application referred to, carried down through folder scans and package members. A tool can show *component -> app ->
+files* and filter by kind (`log.*`, `cfg.*`) without reading the paths.
 
 ### GET /api/appdefs/{id}/files
 
@@ -373,7 +443,9 @@ Each file carries its own `machine`. Also available as `POST /api/cli` with `Get
 lists the top-level file definitions (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`) as declared in the shared config - what there is to collect. Nothing is
 looked up in any file system. Optional filters: `type` (`File`, `Folder`, `VFolder`, `FilePackage`,
 `FileRef`; case-insensitive), `id`, `machine`, `app` (the wildcards of the `ListVfsNodes` script: `*`
-and `?`, empty means anything). Example: `GET /api/filedefs?type=FilePackage&id=logs.*`
+and `?`, empty means anything) and `group` - one entry of the `;`-separated `Groups` of the definition, compared case-insensitively, wildcards allowed
+(`group=component` finds `Groups="Component;major"`; see [Groups for tools](Files.md#groups-for-tools)). Example: `GET /api/filedefs?type=FilePackage&id=logs.*`
+or `GET /api/filedefs?type=FilePackage&group=component`.
 
 ```json
 [ { "id": "logs.all", "type": "FilePackage", "title": "Logs/All apps", "description": "...",
@@ -387,8 +459,8 @@ list above - the same as the list with an `id` filter, but a 404 when nothing ma
 
 ### Download jobs
 
-A diagnostic tool collects files in five steps: **list** the file definitions (`/api/filedefs`), **preview** what a
-file definition or app stands for (`/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** (`POST /api/downloads`),
+A diagnostic tool collects files in five steps: **list** the file definitions (`/api/filedefs`), **preview** what the user ticked
+(`POST /api/files/query`, or for one item `/api/filedefs/{id}/files`, `/api/appdefs/{id}/files`), **collect** (`POST /api/downloads`),
 **poll** the job, **fetch** the archive. The archives are built on the master's machine, in a folder
 of Dirigent's own (`--archiveFolder`, see [Local Config](LocalConfig.md#Download-archives)), one
 subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
@@ -397,9 +469,21 @@ subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
 
 starts a collection. Body: `{"fileDef":{"id":"logs.all","machine":"m1","app":"a"}}` (a file definition or package, addressed
 like `/api/filedefs/{id}/files`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the file definitions of the
-application, from the definition picked as for `/api/appdefs/{id}/files`), and an optional `"comment"` that goes
-into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan: 404.
-Old jobs are cleaned up first.
+application, from the definition picked as for `/api/appdefs/{id}/files`), or a [selection](#The-selection) of several - `{"fileDefs":[...],"apps":[...]}` -
+and an optional `"comment"` that goes into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan
+(the message names the item): 404; nothing selected: 400. All the items are looked up before the job starts. Old jobs are cleaned up first.
+
+**One zip, and its layout.** A job makes one archive however many items there are.
+
+* **One item** (a single `fileDef` or `app`, or a selection with exactly one item): the layout is what it has always been - no extra folder.
+* **More than one item**: one top folder per item, titled as the item is declared - the `Title` of the package or file definition, the app id for an application -
+  made fit to be a folder name; the same title twice becomes `Title` and `Title (2)`. (When the files come from several machines the machine folders come first, as ever.)
+* **No deduplication.** A file reached through two items is in both folders, each copy following its own definition (`TailBytes`, marks). The archive's
+  `_comment.txt` lists the selection; `job.json` and the job's `request` echo it; what could not be collected is reported under the name of the item.
+
+```json
+{"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"],"comment":"after the crash"}
+```
 
 #### GET /api/downloads
 
@@ -437,8 +521,8 @@ memory. `name` must be one of the job's `archives`, otherwise 404; a job that is
 stops the job if it is running and removes its folder (204); unknown job: 404. A running job's folder
 goes as soon as its script has stopped.
 
-The same through `POST /api/cli`: `GetFileDefs`, `GetFiles`, `DownloadPackage`, `DownloadApp`, `GetDownload`,
-`DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
+The same through `POST /api/cli`: `GetFileDefs`, `GetFiles`, `DownloadPackage` (several ids: `DownloadPackage a b c`), `DownloadApp` (`DownloadApp x y`),
+`GetDownload`, `DeleteDownload` (see [CLI](CLI.md#DownloadPackage)).
 
 ## Marking the files of a test run
 
@@ -460,6 +544,13 @@ run and not the whole afternoon - the mechanism, and why a mark rather than a de
 `?waitSeconds=N` bounds the wait (60 by default, 300 at most); a script that is still running then is `504` with a JSON body naming its script id, which goes on
 and can be followed at [`/api/scriptstates/{id}`](#GET-apiscriptstatesid). A script that fails - say, no machine holding the files is online - is `502`
 with the reason. A file definition that has a mark is shown in the [previews](#GET-apiappdefsidfiles) as `markedAt` (UTC) and `markedAtBytes`.
+
+### POST /api/marks
+
+One operation over a whole [selection](#The-selection): `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"]}`.
+`operation` is `mark`, `clear` or `unmark`. The operation runs over the **union** of the selected files - a file reached through two items is marked once, because marks
+are per file - and answers in the shape above, with `selection` echoing the items. Marking works as ever: only `Clearable="1"` files, one helper per machine. Unknown
+item: 404 naming it; empty selection or an unknown `operation`: 400. `?waitSeconds=N` as above. (CLI: `MarkFiles a b c`, `ClearFiles a b`, `UnmarkFiles a b`, `MarkAppFiles x y` - several ids.)
 
 ### POST /api/filedefs/{id}/mark
 

@@ -717,7 +717,7 @@ namespace Dirigent.Scripts.BuiltIn
 		/// Makes given string usable as a single file/folder name.
 		/// Node titles may contain submenu separators and characters not allowed in a path.
 		/// </summary>
-		static string SanitizeName( string name )
+		internal static string SanitizeName( string name )
 		{
 			// a title like "Logs/Recent" denotes a submenu path - take just the last segment of it
 			var lastSegment = name.Split( new char[] {'/','\\'}, StringSplitOptions.RemoveEmptyEntries ).LastOrDefault() ?? name;

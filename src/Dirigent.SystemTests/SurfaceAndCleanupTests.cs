@@ -107,6 +107,63 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void ASelectionIsPreviewedDownloadedAndMarkedOverHttp()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 90 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			System.Net.Http.StringContent Json( string s ) => new( s, System.Text.Encoding.UTF8, "application/json" );
+			const string selection = "{\"fileDefs\":[{\"id\":\"logs.all\"}],\"apps\":[\"m1.camera\"]}";
+
+			// the preview: one item each, and the totals; it changes nothing
+			var query = http.PostAsync( $"{root}/files/query", Json( selection ) ).GetAwaiter().GetResult();
+			var queryText = query.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, query.StatusCode, queryText );
+			var q = System.Text.Json.JsonDocument.Parse( queryText ).RootElement;
+			Assert.AreEqual( 2, q.GetProperty( "items" ).GetArrayLength(), queryText );
+			Assert.IsTrue( q.GetProperty( "totals" ).GetProperty( "files" ).GetInt32() > 0, queryText );
+			var firstFile = q.GetProperty( "items" )[0].GetProperty( "fileDefs" )[0].GetProperty( "files" )[0];
+			Assert.AreEqual( "log", firstFile.GetProperty( "fileDefId" ).GetString(), queryText );
+
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.PostAsync( $"{root}/files/query", Json( "{\"fileDefs\":[{\"id\":\"nosuch\"}]}" ) ).GetAwaiter().GetResult().StatusCode );
+			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest,
+				http.PostAsync( $"{root}/files/query", Json( "{}" ) ).GetAwaiter().GetResult().StatusCode );
+
+			// two items, one job, one archive with a top folder per item
+			var start = http.PostAsync( $"{root}/downloads", Json( selection.TrimEnd( '}' ) + ",\"comment\":\"selection\"}" ) ).GetAwaiter().GetResult();
+			var startText = start.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Accepted, start.StatusCode, startText );
+			var jobId = System.Text.Json.JsonDocument.Parse( startText ).RootElement.GetProperty( "id" ).GetString();
+
+			var done = http.GetAsync( $"{root}/downloads/{jobId}?wait=90" ).GetAwaiter().GetResult();
+			var doneText = done.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			var job = System.Text.Json.JsonDocument.Parse( doneText ).RootElement;
+			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), doneText );
+
+			var archiveUrl = job.GetProperty( "archives" )[0].GetProperty( "url" ).GetString();
+			var zipBytes = http.GetByteArrayAsync( $"http://127.0.0.1:{world.HttpPort}{archiveUrl}" ).GetAwaiter().GetResult();
+			using var zip = new System.IO.Compression.ZipArchive( new System.IO.MemoryStream( zipBytes ) );
+			var names = zip.Entries.Select( e => e.FullName ).ToList();
+			Assert.IsTrue( names.Any( n => n.Contains( "All apps/" ) ), string.Join( ", ", names ) );
+			Assert.IsTrue( names.Any( n => n.Contains( "m1.camera/" ) ), string.Join( ", ", names ) );
+
+			// the same selection marked: one report
+			var mark = http.PostAsync( $"{root}/marks", Json( selection.TrimEnd( '}' ) + ",\"operation\":\"mark\"}" ) ).GetAwaiter().GetResult();
+			var markText = mark.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, mark.StatusCode, markText );
+			Assert.AreEqual( "mark", System.Text.Json.JsonDocument.Parse( markText ).RootElement.GetProperty( "operation" ).GetString() );
+			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest,
+				http.PostAsync( $"{root}/marks", Json( selection.TrimEnd( '}' ) + ",\"operation\":\"explode\"}" ) ).GetAwaiter().GetResult().StatusCode );
+
+			// the group filter
+			var groups = http.GetAsync( $"{root}/filedefs?type=FilePackage&group=nosuchgroup" ).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( "[]", groups );
+		}
+
+		[TestMethod()]
 		public void StateEndpointsAnswerToThePluralAndTheOlderSingularName()
 		{
 			using var world = SystemWorld.Start( "WaitingWorld", withHttp: true ); // has the plan "never"
