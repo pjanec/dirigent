@@ -101,6 +101,58 @@ The `MAC` attribute is an **override**, not a requirement. Agents report their n
 
 Waking is done from the GUI (Machines tab, right click, Power, Wake Up - offered for machines that are not connected) or with the [WakeUp](CLI.md#WakeUp) command. The master sends the packets, from every network interface it has.
 
+##### `<MachineTemplate/>` element
+
+On a large site most machines share the same `<Share>`s and the same machine-wide log and configuration nodes. They are written once
+in a `<MachineTemplate>` and used with `Template=` on each `<Machine>`:
+
+```xml
+<NodeTemplate Name="log.dirigent" Id="log.dirigent" Title="Log/Dirigent agent" Path="C:\Dirigent\logs" Mask="*.log"/>
+
+<MachineTemplate Name="m.base">
+    <Share Name="C" Path="C:\"/>
+    <Folder Template="log.dirigent"/>
+    <File Id="cfg" Title="Config" Path="C:\site\cfg.xml"/>
+</MachineTemplate>
+<MachineTemplate Name="m.ios" Template="m.base">      <!-- a template can name a parent -->
+    <File Id="ios" Title="IOS log" Path="C:\ios\ios.log"/>
+</MachineTemplate>
+<MachineTemplate Name="m.viewer">
+    <File Id="viewer" Title="Viewer log" Path="C:\viewer\viewer.log"/>
+</MachineTemplate>
+
+<Machine Name="ios01" Template="m.ios"/>
+<Machine Name="ios02" Template="m.ios;m.viewer"/>        <!-- several templates, applied left to right -->
+<Machine Name="ios03" Template="m.ios">                <!-- and the machine's own, which win -->
+    <Share Name="C" Path="D:\"/>
+    <Folder Template="log.dirigent" Title="Log/Dirigent agent and MASTER"/>
+    <File Id="own" Title="Own" Path="C:\own.txt"/>
+</Machine>
+```
+
+* **Attributes.** The attributes of a template (except `Name` and `Template`) are defaults for the machine; the machine's own attributes
+  win, as do the ones of a later template over an earlier. `IP` and `Guid` are not allowed on a template - every machine would share them.
+* **Children.** Everything a `<Machine>` accepts - `<Share>`, file nodes, `<Tool>`, `<Script>` - is copied into the machine in front of its own
+  children, in the order: the parent template, the template, the next template of the list, the machine itself.
+* **Shares.** A `<Share>` with the same `Name` replaces the earlier one in its place (the machine's `C` above, not the template's).
+* **Nodes.** The replace rule applies:
+
+**The replace rule** (the same for apps and for machines): a node declared later - in a derived template, a later mixin, or in the
+`<App>` / `<Machine>` itself - **replaces** an inherited node with the same `Id`, in the inherited node's place, instead of being added
+as a second one. Only if **several** inherited nodes share that `Id` must the `Title` match as well: the one with the same title is
+replaced, and none the same means the node is added. A node without an `Id` never replaces anything. `Id` and `Title` are compared
+after the node templates are expanded, so a node may get its `Id` from its `<NodeTemplate>`, and for an app after the title's
+variables are put in (see [Variables](Files.md#Variables-in-Path-Mask-and-Title)).
+
+  In the example `ios03` ends up with *one* `log.dirigent` node, titled `Log/Dirigent agent and MASTER`, in the template's place.
+* **Registry.** Only the final list of a machine is ever registered, so a replaced node is not found by a `<FileRef>` or listed anywhere.
+  The nodes of a template are ordinary machine nodes of each machine that uses it: `<FileRef Id="cfg" MachineId="ios01"/>` finds them.
+* **Load errors,** each naming the template: unknown template (`MachineTemplate 'x' not found`), a cycle through `Template=` of a template or through the
+  mixins (`MachineTemplate cycle: a -> b -> a`), a template without a `Name`, two with the same `Name`, an `IP` or a `Guid` on a template.
+* A `<Machine>` without `Template=` is read exactly as before, and `<MachineTemplate>` elements are never machines themselves.
+
+See also [Node templates](Files.md#Node-templates) for the attributes repeated on the nodes.
+
 #### App definitions
 
 ##### `<App/>` element
@@ -346,10 +398,17 @@ Notes:
 
 ##### AppTemplate: replacing inherited nodes
 
-An app, or a derived `<AppTemplate>`, inherits the `<File>`, `<Folder>`, ... nodes of its template. A node it declares with the same
-`Id` **and** the same `Title` (after the title's variables are put in - see [Variables](Files.md#Variables-in-Path-Mask-and-Title))
-**replaces** the inherited one, at its place in the list, instead of being added as a second node. A node with another title, or
-without an `Id`, is added as before. This lets a template say "a log node" once and one app say "but for me it is 50 files".
+An app, or a derived `<AppTemplate>`, inherits the `<File>`, `<Folder>`, ... nodes of its template. A node it declares replaces an
+inherited one by the rule below, instead of being added as a second node. This lets a template say "a log node" once and one app
+say "but for me it is 50 files".
+
+**The replace rule** (the same for apps and for machines): a node declared later - in a derived template, a later mixin, or in the
+`<App>` / `<Machine>` itself - **replaces** an inherited node with the same `Id`, in the inherited node's place, instead of being added
+as a second one. Only if **several** inherited nodes share that `Id` must the `Title` match as well: the one with the same title is
+replaced, and none the same means the node is added. A node without an `Id` never replaces anything. `Id` and `Title` are compared
+after the node templates are expanded, so a node may get its `Id` from its `<NodeTemplate>`, and for an app after the title's
+variables are put in (see [Variables](Files.md#Variables-in-Path-Mask-and-Title)).
+
 (Before 3.1.19 such a node was added as a second one, and the menu showed two.)
 
 #### Standalone app definitions

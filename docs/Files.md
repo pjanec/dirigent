@@ -98,6 +98,9 @@ The association decides two things:
 So a node declared under an app running on machine `m1` has its `%USERPROFILE%` expanded using
 the environment of the Dirigent agent on `m1`, regardless of which machine the user clicked on.
 
+The machine-bound nodes of a site rarely differ from machine to machine: write them once in a `<MachineTemplate>` and use it
+with `Template=` on the `<Machine>`s - see [Machine templates](SharedConfig.md#MachineTemplate-element).
+
 ### Where nodes can be declared
 
 | Declaration site         | Resulting association                             | Appears in                                                |

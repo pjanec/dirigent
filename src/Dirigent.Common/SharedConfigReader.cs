@@ -38,7 +38,11 @@ namespace Dirigent
 			CheckMinVersion( _root );
 
 			// before anything is read: from here on the file nodes are plain, templates are history
+			// machine templates first: the nodes they bring into a machine may use node templates, and the
+			// machines are put together only once those are expanded, because a node's Id may come from one
+			var machineTemplates = MachineTemplates.Apply( _root );
 			NodeTemplates.Apply( _root );
+			machineTemplates.Merge();
 
 			LoadAppDefaults();
 			LoadPlans();
@@ -334,18 +338,29 @@ namespace Dirigent
 				a.Groups += x.Groups;
 			}
 
-			// A node of this element with the same Id and Title as an inherited one (from a template) replaces
-			// it, in the inherited node's place; one without an Id, or with another Title, is added. Only the
-			// inherited nodes can be replaced, not the ones this element declares itself.
+			// A node of this element with the same Id as an inherited one (from a template) replaces it, in the
+			// inherited node's place - the same rule as for a machine's, see MachineTemplates. Only if several
+			// inherited nodes share that Id must the Title be the same as well; one without an Id is always
+			// added. Only the inherited nodes can be replaced, not the ones this element declares itself.
 			var inheritedCount = a.VfsNodes.Count;
 			foreach ( var vfsNode in LoadVfsNodes( e, machineId, appId ) )
 			{
 				var replaces = -1;
 				if( vfsNode.Id != vfsNode.Guid.ToString() ) // an Id was written
 				{
-					var title = ExpandAppTitleVars( vfsNode.Title, a );
-					replaces = a.VfsNodes.Take( inheritedCount ).ToList()
-								.FindIndex( n => n.Id == vfsNode.Id && ExpandAppTitleVars( n.Title, a ) == title );
+					var sameId = Enumerable.Range( 0, inheritedCount ).Where( i => a.VfsNodes[i].Id == vfsNode.Id ).ToList();
+
+					if( sameId.Count == 1 )
+					{
+						replaces = sameId[0];
+					}
+					else
+					if( sameId.Count > 1 )
+					{
+						var title = ExpandAppTitleVars( vfsNode.Title, a );
+						var sameTitle = sameId.Where( i => ExpandAppTitleVars( a.VfsNodes[i].Title, a ) == title ).ToList();
+						if( sameTitle.Count > 0 ) replaces = sameTitle[0];
+					}
 				}
 
 				if( replaces >= 0 )

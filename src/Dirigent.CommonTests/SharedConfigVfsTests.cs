@@ -645,7 +645,7 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void ADifferentTitleOrNoIdAddsInsteadOfReplacingTest()
+		public void AUniqueInheritedIdIsReplacedWhateverTheTitleAndNoIdAddsTest()
 		{
 			var cfg = Parse( @"
 				<Shared>
@@ -658,12 +658,199 @@ namespace Dirigent.Tests
 					<AppTemplate Name='noId' Template='base'>
 						<File Title='Log' Path='D:\logs' MaxFiles='60'/>
 					</AppTemplate>
+					<AppTemplate Name='twoLogs'>
+						<File Id='log' Title='One' Path='D:\1'/>
+						<File Id='log' Title='Two' Path='D:\2'/>
+					</AppTemplate>
+					<AppTemplate Name='twoLogsDerived' Template='twoLogs'>
+						<File Id='log' Title='Two' Path='D:\two'/>
+						<File Id='log' Title='Three' Path='D:\3'/>
+					</AppTemplate>
 					<App AppIdTuple='m1.a' Template='otherTitle'/>
 					<App AppIdTuple='m1.b' Template='noId'/>
+					<App AppIdTuple='m1.c' Template='twoLogsDerived' ExeFullPath='c:\x.exe'/>
 				</Shared>" );
 
-			Assert.AreEqual( 2, NodesOf( cfg, "m1.a" ).Count, "another title: both kept" );
+			var a = NodesOf( cfg, "m1.a" );
+			Assert.AreEqual( 1, a.Count, "a unique Id: replaced although the title differs" );
+			Assert.AreEqual( "Other title", a[0].Title );
+
 			Assert.AreEqual( 2, NodesOf( cfg, "m1.b" ).Count, "no Id: both kept" );
+
+			// several inherited nodes of one Id: the title tells which is meant, and none equal adds
+			CollectionAssert.AreEqual( new[] { @"D:\1", @"D:\two", @"D:\3" }, NodesOf( cfg, "m1.c" ).Select( n => n.Path! ).ToArray() );
+		}
+
+		// ---- machine templates --------------------------------------------------------------------
+
+		const string SiteConfig = @"
+			<Shared>
+				<NodeTemplate Name='log.dirigent' Id='log.dirigent' Title='Log/Dirigent agent' Path='C:\Dirigent\logs' Mask='*.log'/>
+
+				<MachineTemplate Name='m.base' MAC='00-11-22-33-44-55'>
+					<Share Name='C' Path='C:\'/>
+					<Folder Template='log.dirigent'/>
+					<File Id='cfg' Title='Config' Path='C:\cfg.xml'/>
+					<File Id='ver' Title='Version' Path='C:\ver.txt'/>
+					<Folder Id='crash' Title='Crash dumps' Path='C:\dumps' Mask='*.dmp'/>
+				</MachineTemplate>
+				<MachineTemplate Name='m.ios' Template='m.base'>
+					<File Id='ios1' Title='IOS one' Path='C:\ios1.log'/>
+					<File Id='ios2' Title='IOS two' Path='C:\ios2.log'/>
+				</MachineTemplate>
+				<MachineTemplate Name='m.viewer'>
+					<File Id='viewer1' Title='Viewer one' Path='C:\viewer1.log'/>
+				</MachineTemplate>
+
+				<Machine Name='a' IP='10.0.0.1' Template='m.ios'/>
+				<Machine Name='b' IP='10.0.0.2' Template='m.ios;m.viewer'/>
+				<Machine Name='c' IP='10.0.0.3' Template='m.ios'>
+					<Share Name='C' Path='D:\'/>
+					<Share Name='X' Path='X:\'/>
+					<Folder Template='log.dirigent' Title='Log/Dirigent agent and MASTER'/>
+					<File Id='own' Title='Own' Path='C:\own.txt'/>
+				</Machine>
+				<Machine Name='d' IP='10.0.0.4' MAC='AA-BB-CC-DD-EE-FF' Template='m.base'/>
+				<Machine Name='plain' IP='10.0.0.5'><File Id='only' Path='C:\only.txt'/></Machine>
+			</Shared>";
+
+		static List<string> Ids( SharedConfig cfg, string machine )
+			=> cfg.Machines.Single( m => m.Id == machine ).VfsNodes.Select( n => n.Id ).ToList();
+
+		[TestMethod()]
+		public void MachinesGetTheSharesAndNodesOfTheirTemplatesTest()
+		{
+			var cfg = Parse( SiteConfig );
+
+			// m.ios = m.base + 2
+			CollectionAssert.AreEqual( new[] { "log.dirigent", "cfg", "ver", "crash", "ios1", "ios2" }, Ids( cfg, "a" ) );
+			CollectionAssert.AreEqual( new[] { "C" }, cfg.Machines.Single( m => m.Id == "a" ).FileShares.Select( s => s.Name ).ToList() );
+
+			// a mixin comes after
+			CollectionAssert.AreEqual( new[] { "log.dirigent", "cfg", "ver", "crash", "ios1", "ios2", "viewer1" }, Ids( cfg, "b" ) );
+
+			// the template of the node gave it its title and its path
+			var log = cfg.Machines.Single( m => m.Id == "a" ).VfsNodes[0];
+			Assert.AreEqual( "Log/Dirigent agent", log.Title );
+			Assert.AreEqual( @"C:\Dirigent\logs", log.Path );
+			Assert.AreEqual( "a", log.MachineId );
+
+			// a machine without a template is read as it always was
+			CollectionAssert.AreEqual( new[] { "only" }, Ids( cfg, "plain" ) );
+		}
+
+		[TestMethod()]
+		public void AMachineReplacesAnInheritedNodeEvenWithAnotherTitleTest()
+		{
+			var cfg = Parse( SiteConfig );
+
+			var c = cfg.Machines.Single( m => m.Id == "c" ).VfsNodes;
+			Assert.AreEqual( 1, c.Count( n => n.Id == "log.dirigent" ), "replaced, not duplicated" );
+			Assert.AreEqual( "log.dirigent", c[0].Id, "in the place of the inherited one" );
+			Assert.AreEqual( "Log/Dirigent agent and MASTER", c[0].Title );
+			Assert.AreEqual( @"C:\Dirigent\logs", c[0].Path, "the rest still comes from the node template" );
+
+			CollectionAssert.AreEqual( new[] { "log.dirigent", "cfg", "ver", "crash", "ios1", "ios2", "own" }, Ids( cfg, "c" ) );
+
+			// the registry holds the final nodes only
+			Assert.AreEqual( 1, cfg.VfsNodes.Count( n => n.Id == "log.dirigent" && n.MachineId == "c" ) );
+			Assert.AreEqual( 7, cfg.VfsNodes.Count( n => n.MachineId == "c" ) );
+		}
+
+		[TestMethod()]
+		public void AShareOfTheSameNameReplacesTheInheritedOneTest()
+		{
+			var shares = Parse( SiteConfig ).Machines.Single( m => m.Id == "c" ).FileShares;
+
+			CollectionAssert.AreEqual( new[] { "C", "X" }, shares.Select( s => s.Name ).ToList() );
+			Assert.AreEqual( @"D:\", shares[0].Path, "the machine's C, not the template's" );
+		}
+
+		[TestMethod()]
+		public void TemplateAttributesAreDefaultsAndTheMachinesOwnWinTest()
+		{
+			var cfg = Parse( SiteConfig );
+
+			Assert.AreEqual( "00-11-22-33-44-55", cfg.Machines.Single( m => m.Id == "a" ).MAC );
+			Assert.AreEqual( "AA-BB-CC-DD-EE-FF", cfg.Machines.Single( m => m.Id == "d" ).MAC );
+			Assert.AreEqual( "10.0.0.1", cfg.Machines.Single( m => m.Id == "a" ).IP );
+		}
+
+		[TestMethod()]
+		public void AFileRefFindsANodeABaseTemplateBroughtIntoTheMachineTest()
+		{
+			var cfg = Parse( SiteConfig );
+
+			var reg = new FileRegistry( new RefStub(), "a", @"C:\", ( id ) => "127.0.0.1" );
+			reg.SetVfsNodes( cfg.VfsNodes );
+			reg.SetMachines( cfg.Machines );
+
+			var resolved = reg.ResolveAsync( null!, new FileRef() { Guid = Guid.NewGuid(), Id = "cfg", MachineId = "a", AppId = "*" }, false, false, null )
+								.GetAwaiter().GetResult();
+
+			Assert.IsNotNull( resolved );
+			Assert.AreEqual( @"C:\cfg.xml", resolved!.Path );
+		}
+
+		class RefStub : IDirig
+		{
+			public string Name => "a";
+
+			public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName,
+					string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
+				=> throw new NotImplementedException();
+
+			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+				=> throw new NotImplementedException();
+		}
+
+		[TestMethod()]
+		public void MachineTemplateLoadErrorsNameTheProblemTest()
+		{
+			string Fail( string xml ) => Assert.ThrowsException<ConfigurationErrorException>( () => Parse( xml ) ).Message;
+
+			StringAssert.Contains( Fail( "<Shared><Machine Name='a' IP='1.1.1.1' Template='m.nosuch'/></Shared>" ), "'m.nosuch' not found" );
+
+			StringAssert.Contains(
+				Fail( "<Shared><MachineTemplate Name='m.a' Template='m.b'/><MachineTemplate Name='m.b' Template='m.a'/><Machine Name='a' IP='1.1.1.1' Template='m.a'/></Shared>" ),
+				"cycle: m.a -> m.b -> m.a" );
+
+			// a cycle through the mixins of a template
+			StringAssert.Contains(
+				Fail( "<Shared><MachineTemplate Name='m.a' Template='m.b;m.c'/><MachineTemplate Name='m.b'/><MachineTemplate Name='m.c' Template='m.a'/><Machine Name='a' IP='1.1.1.1' Template='m.a'/></Shared>" ),
+				"cycle: m.a -> m.c -> m.a" );
+
+			StringAssert.Contains( Fail( "<Shared><MachineTemplate Name='m.a' IP='1.2.3.4'/></Shared>" ), "'m.a' must not have an IP" );
+			StringAssert.Contains( Fail( "<Shared><MachineTemplate Name='m.a' Guid='11111111-1111-1111-1111-111111111111'/></Shared>" ), "'m.a' must not have a Guid" );
+			StringAssert.Contains( Fail( "<Shared><MachineTemplate Name='m.a'/><MachineTemplate Name='m.a'/></Shared>" ), "Duplicate MachineTemplate 'm.a'" );
+			StringAssert.Contains( Fail( "<Shared><MachineTemplate Share='x'/></Shared>" ), "without a Name" );
+		}
+
+		[TestMethod()]
+		public void SeveralNodesOfTheSameInheritedIdAreToldApartByTitleTest()
+		{
+			var cfg = Parse( @"
+				<Shared>
+					<MachineTemplate Name='m.base'>
+						<File Id='log' Title='One' Path='C:\1.log'/>
+						<File Id='log' Title='Two' Path='C:\2.log'/>
+					</MachineTemplate>
+					<Machine Name='a' IP='1.1.1.1' Template='m.base'>
+						<File Id='log' Title='Two' Path='C:\two.log'/>
+					</Machine>
+					<Machine Name='b' IP='1.1.1.2' Template='m.base'>
+						<File Id='log' Title='Three' Path='C:\3.log'/>
+					</Machine>
+					<Machine Name='c' IP='1.1.1.3' Template='m.base'>
+						<File Title='One' Path='C:\noid.log'/>
+					</Machine>
+				</Shared>" );
+
+			string[] Paths( string m ) => cfg.Machines.Single( x => x.Id == m ).VfsNodes.Select( n => n.Path! ).ToArray();
+
+			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\two.log" }, Paths( "a" ), "the one with the same title was replaced" );
+			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\2.log", @"C:\3.log" }, Paths( "b" ), "no title matches: added" );
+			CollectionAssert.AreEqual( new[] { @"C:\1.log", @"C:\2.log", @"C:\noid.log" }, Paths( "c" ), "no Id: never replaces" );
 		}
 	}
 }
