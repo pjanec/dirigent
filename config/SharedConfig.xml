@@ -313,8 +313,8 @@
     />
 
     <!-- Attributes shared by the nodes that carry the template; a node's own attribute wins, so
-         MaxSeconds="86400" on a node would override the week below. See docs/Files.md, "Node templates". -->
-    <NodeTemplate Name="log.collected" Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
+         MaxSeconds="86400" on a node would override the week below. See docs/Files.md, "File templates". -->
+    <FileTemplate Name="log.collected" Mask="**/*.log" MaxSeconds="604800" MaxTotalBytes="52428800"
                   Clearable="1" TailBytes="1048576"/>
 
     <!-- What the machines of a site have in common is written once and used with Template="..." on

@@ -11,11 +11,11 @@ namespace Dirigent
 	/// <c>&lt;Machine Template="m.base;m.extra"&gt;</c>.
 	/// </summary>
 	/// <remarks>
-	/// Two steps around <see cref="NodeTemplates.Apply"/>, because a node a template brings in may use a
-	/// NodeTemplate, and may get its Id from it - which the replacing below goes by:
+	/// Two steps around <see cref="FileTemplates.Apply"/>, because a node a template brings in may use a
+	/// FileTemplate, and may get its Id from it - which the replacing below goes by:
 	/// <list type="number">
 	/// <item>Apply copies the templates' attributes (the machine's own win) and children into each
-	/// machine, so that NodeTemplates can expand the nodes there.</item>
+	/// machine, so that FileTemplates can expand the nodes there.</item>
 	/// <item>Merge then re-composes each machine's children from the layers they came in: every template
 	/// of the chain, the mixins left to right, the machine itself. A later layer's Share with the same
 	/// Name, and its node with the same Id (the title and the rest may differ), replace the earlier one in its
@@ -105,7 +105,7 @@ namespace Dirigent
 
 		/// <summary>
 		/// First step: attributes and children of the templates are copied into each machine that names
-		/// any. Returns what <see cref="Plan.Merge"/> needs once the NodeTemplates are expanded.
+		/// any. Returns what <see cref="Plan.Merge"/> needs once the FileTemplates are expanded.
 		/// </summary>
 		/// <exception cref="ConfigurationErrorException">
 		/// unknown template, cycle (in a chain or through mixins), a template without a Name, a duplicate Name,
@@ -164,7 +164,7 @@ namespace Dirigent
 
 		/// <summary>
 		/// Two file definitions with the same Id on one level - one template, one machine - are a mistake: after
-		/// merging a machine has one definition per Id. Expects the node templates to be expanded already.
+		/// merging a machine has one definition per Id. Expects the file templates to be expanded already.
 		/// </summary>
 		/// <exception cref="ConfigurationErrorException">naming the Id and the level</exception>
 		public static void CheckLevel( IEnumerable<XElement> children, string where )
@@ -184,7 +184,7 @@ namespace Dirigent
 
 		/// <summary>
 		/// Checks every template, and every machine that names none (the others are checked as their layers
-		/// are merged). Call after <see cref="NodeTemplates.Apply"/> and before <see cref="Plan.Merge"/>.
+		/// are merged). Call after <see cref="FileTemplates.Apply"/> and before <see cref="Plan.Merge"/>.
 		/// </summary>
 		public static void CheckDuplicateIds( XElement root, Plan plan )
 		{

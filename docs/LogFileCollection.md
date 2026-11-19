@@ -632,8 +632,8 @@ stations.
               Filter="Newest" MaxFiles="10" MaxSeconds="3600"/>
     </Machine>
 
-    <!-- Attributes repeated like the four above can be written once, in a <NodeTemplate>:
-         see "Node templates" in Files.md. -->
+    <!-- Attributes repeated like the four above can be written once, in a <FileTemplate>:
+         see "File templates" in Files.md. -->
 
     <!-- Collect recent logs from both stations, one folder per station in the ZIP -->
     <FilePackage Id="recent_logs_collection" Title="Logs/Last hour">

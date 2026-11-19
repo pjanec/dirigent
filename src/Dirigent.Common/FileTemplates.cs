@@ -6,7 +6,7 @@ using System.Xml.Linq;
 namespace Dirigent
 {
 	/// <summary>
-	/// Resolves &lt;NodeTemplate&gt; elements: defaults for file nodes (File, Folder, VFolder,
+	/// Resolves &lt;FileTemplate&gt; elements: defaults for file nodes (File, Folder, VFolder,
 	/// FilePackage, FileRef), so that attributes repeated on dozens of nodes can be written once.
 	/// </summary>
 	/// <remarks>
@@ -20,11 +20,11 @@ namespace Dirigent
 	/// replaces actions by Id in document order). A template may name a base template itself: the
 	/// derived template's attributes win, children are concatenated base first.
 	///
-	/// A config that has no NodeTemplate and no Template= on a file node is not touched at all.
+	/// A config that has no FileTemplate and no Template= on a file node is not touched at all.
 	/// </remarks>
-	public static class NodeTemplates
+	public static class FileTemplates
 	{
-		const string TemplateElement = "NodeTemplate";
+		const string TemplateElement = "FileTemplate";
 		const string TemplateAttr = "Template";
 
 		static readonly HashSet<string> NodeElementNames = new() { "File", "Folder", "VFolder", "FilePackage", "FileRef" };
@@ -43,6 +43,10 @@ namespace Dirigent
 		/// </exception>
 		public static void Apply( XElement root )
 		{
+			// the element used to be called NodeTemplate; a config still using the name would silently lose its defaults
+			if( root.Elements( "NodeTemplate" ).Any() )
+				throw new ConfigurationErrorException( "<NodeTemplate> was renamed to <FileTemplate>" );
+
 			var templates = new Dictionary<string, XElement>();
 			foreach( var t in root.Elements( TemplateElement ) )
 			{

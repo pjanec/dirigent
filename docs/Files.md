@@ -42,7 +42,7 @@ Contents:
   * [`<FileRef>`](#fileref)
   * [File masks](#file-masks)
   * [Variables in `Path`, `Mask` and `Title`](#variables-in-path-mask-and-title)
-  * [Node templates](#node-templates)
+  * [File templates](#node-templates)
   * [Actions on nodes](#actions-on-nodes)
 * [Looking the files up](#looking-the-files-up)
 * [Built-in actions](#built-in-actions)
@@ -749,15 +749,15 @@ in the template the app gets the title `Log/RenderHost-3801` and collects `C:\IG
 A node of a derived template, or of the `<App>` itself, whose `Id` **and** `Title` are the same as an inherited node's
 *replaces* it - see [Templates](SharedConfig.md#AppTemplate-replacing-inherited-nodes).
 
-### Node templates
+### File templates
 
 Nodes of one kind tend to repeat the same attributes - on a site that collects logs, `Filter`,
 `MaxFiles`, `MaxSeconds`, `TailBytes` and `Clearable` on every log node. A top-level
-`<NodeTemplate>` carries them once.
+`<FileTemplate>` carries them once.
 
 ```xml
 <Shared>
-    <NodeTemplate Name="log" Filter="Newest" MaxFiles="3" MaxSeconds="604800"
+    <FileTemplate Name="log" Filter="Newest" MaxFiles="3" MaxSeconds="604800"
                   TailBytes="10485760" Clearable="1"/>
 
     <Machine Name="m1" IP="192.168.0.10">
@@ -782,22 +782,22 @@ keeps only 2 files, because a node's own attribute beats the template's.
 * **Child elements.** `<Tool>` and `<Script>` actions (and nested nodes) inside the template are
   copied into every node using it, **in front of** the node's own children. A node's own action
   with the same `Id` as one of the template's therefore replaces it; one with a new `Id` is added.
-* **Chaining.** A `<NodeTemplate>` may itself carry `Template="base"`. The derived template's
+* **Chaining.** A `<FileTemplate>` may itself carry `Template="base"`. The derived template's
   attributes beat the base's, and the children are concatenated base first.
-* **Not a node.** A `<NodeTemplate>` is not a file node and is never listed or referenced.
+* **Not a node.** A `<FileTemplate>` is not a file node and is never listed or referenced.
   Template names are their own namespace: they do not clash with `<AppTemplate>` names.
 
 Mistakes are load errors (the master refuses the config, a reload keeps the previous one):
 
 | Message says | Cause |
 | --- | --- |
-| `NodeTemplate 'x' not found` | a node or template names a template that does not exist |
-| `NodeTemplate cycle: a -> b -> a` | templates that lead back to themselves, through `Template=` or through nodes inside their children |
-| `NodeTemplate without a Name` | a `<NodeTemplate>` has no `Name` |
-| `Duplicate NodeTemplate 'x'` | two templates with the same `Name` |
-| `NodeTemplate 'x' must not have a Guid` | every node made from the template would get the same `Guid` |
+| `FileTemplate 'x' not found` | a node or template names a template that does not exist |
+| `FileTemplate cycle: a -> b -> a` | templates that lead back to themselves, through `Template=` or through nodes inside their children |
+| `FileTemplate without a Name` | a `<FileTemplate>` has no `Name` |
+| `Duplicate FileTemplate 'x'` | two templates with the same `Name` |
+| `FileTemplate 'x' must not have a Guid` | every node made from the template would get the same `Guid` |
 
-A config with no `<NodeTemplate>` and no `Template=` on a file node is read exactly as before.
+A config with no `<FileTemplate>` and no `Template=` on a file node is read exactly as before.
 
 ### Actions on nodes
 
@@ -1216,7 +1216,7 @@ Every one of those apps now has *Recent logs* in its context menu, resolved agai
 startup folder on its own machine.
 
 When many nodes repeat the same attributes, write them once in a
-[`<NodeTemplate>`](#node-templates); and `Title="Log/%APP_ID%"` / `Mask="%APP_ID%*.log"` give each
+[`<FileTemplate>`](#node-templates); and `Title="Log/%APP_ID%"` / `Mask="%APP_ID%*.log"` give each
 app its own entry from this one declaration (see [Variables](#variables-in-path-mask-and-title)).
 
 ### Bundles built from those nodes

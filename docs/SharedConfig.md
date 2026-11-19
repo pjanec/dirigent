@@ -47,7 +47,7 @@ The file defines
 * Plans and apps inside them
 * Scripts
 * `<AppTemplate>` elements - default settings for apps, named by the `Template` attribute of an app (or of another template)
-* `<NodeTemplate>` elements - default attributes for file nodes (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`), named by their `Template` attribute; see [Node templates](Files.md#node-templates)
+* `<FileTemplate>` elements - default attributes for file nodes (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`), named by their `Template` attribute; see [File templates](Files.md#node-templates)
 
 ```
 <Shared>
@@ -77,7 +77,7 @@ older than that refuses to load it, with `This SharedConfig needs Dirigent 3.1.1
 Versions are compared number by number (a missing number is 0); a value that is not dotted numbers is a load error
 naming it. A build without a release version (a development build, which reports 1.0.0.0) is not checked.
 
-Why: an older master does not fail on what it does not know. It would quietly ignore a `<NodeTemplate>` and
+Why: an older master does not fail on what it does not know. It would quietly ignore a `<FileTemplate>` and
 collect whole folders where the config asked for the newest few files. Put the attribute in any file that
 uses a feature newer than the oldest master on the site.
 
@@ -107,7 +107,7 @@ On a large site most machines share the same `<Share>`s and the same machine-wid
 in a `<MachineTemplate>` and used with `Template=` on each `<Machine>`:
 
 ```xml
-<NodeTemplate Name="log.dirigent" Id="log.dirigent" Title="Log/Dirigent agent" Path="C:\Dirigent\logs" Mask="*.log"/>
+<FileTemplate Name="log.dirigent" Id="log.dirigent" Title="Log/Dirigent agent" Path="C:\Dirigent\logs" Mask="*.log"/>
 
 <MachineTemplate Name="m.base">
     <Share Name="C" Path="C:\"/>
@@ -143,7 +143,7 @@ the `Title` included, may differ. A new `Id` is added. A definition without an `
 
 Two file definitions with the same `Id` written directly on **one level** - in one `<AppTemplate>`, one `<App>`, one `<MachineTemplate>`, one
 `<Machine>` - are a **load error**: `Duplicate file definition Id 'log' in AppTemplate 'apps.IOS'`. (The `Id`s are taken after the
-`<NodeTemplate>`s are expanded, so one that comes from a node template counts; the children of a `<FilePackage>` or `<VFolder>` are not
+`<FileTemplate>`s are expanded, so one that comes from a file template counts; the children of a `<FilePackage>` or `<VFolder>` are not
 covered.) So after merging, an app or a machine has one definition per `Id`; see [Ids: one per definition](Files.md#Ids-one-per-definition-kinds-by-prefix).
 
   In the example `ios03` ends up with *one* `log.dirigent` node, titled `Log/Dirigent agent and MASTER`, in the template's place.
@@ -153,7 +153,7 @@ covered.) So after merging, an app or a machine has one definition per `Id`; see
   mixins (`MachineTemplate cycle: a -> b -> a`), a template without a `Name`, two with the same `Name`, an `IP` or a `Guid` on a template.
 * A `<Machine>` without `Template=` is read exactly as before, and `<MachineTemplate>` elements are never machines themselves.
 
-See also [Node templates](Files.md#Node-templates) for the attributes repeated on the nodes.
+See also [File templates](Files.md#File-templates) for the attributes repeated on the nodes.
 
 #### App definitions
 
@@ -410,7 +410,7 @@ the `Title` included, may differ. A new `Id` is added. A definition without an `
 
 Two file definitions with the same `Id` written directly on **one level** - in one `<AppTemplate>`, one `<App>`, one `<MachineTemplate>`, one
 `<Machine>` - are a **load error**: `Duplicate file definition Id 'log' in AppTemplate 'apps.IOS'`. (The `Id`s are taken after the
-`<NodeTemplate>`s are expanded, so one that comes from a node template counts; the children of a `<FilePackage>` or `<VFolder>` are not
+`<FileTemplate>`s are expanded, so one that comes from a file template counts; the children of a `<FilePackage>` or `<VFolder>` are not
 covered.) So after merging, an app or a machine has one definition per `Id`; see [Ids: one per definition](Files.md#Ids-one-per-definition-kinds-by-prefix).
 
 (Before 3.1.19 such a node was added as a second one, and the menu showed two.)

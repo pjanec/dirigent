@@ -38,10 +38,10 @@ namespace Dirigent
 			CheckMinVersion( _root );
 
 			// before anything is read: from here on the file nodes are plain, templates are history
-			// machine templates first: the nodes they bring into a machine may use node templates, and the
+			// machine templates first: the nodes they bring into a machine may use file templates, and the
 			// machines are put together only once those are expanded, because a node's Id may come from one
 			var machineTemplates = MachineTemplates.Apply( _root );
-			NodeTemplates.Apply( _root );
+			FileTemplates.Apply( _root );
 			MachineTemplates.CheckDuplicateIds( _root, machineTemplates );
 			machineTemplates.Merge();
 
@@ -103,7 +103,7 @@ namespace Dirigent
 
 		/// <summary>
 		/// Refuses a config that needs a newer Dirigent than this one. An older program would not fail
-		/// on what it does not know - it would ignore a NodeTemplate and collect whole folders.
+		/// on what it does not know - it would ignore a FileTemplate and collect whole folders.
 		/// </summary>
 		static void CheckMinVersion( XElement root )
 		{

@@ -201,13 +201,13 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void NodeTemplateDefaultsAndOverridesTest()
+		public void FileTemplateDefaultsAndOverridesTest()
 		{
 			// the template's attributes are defaults; a node's own attribute wins; the Template attribute is gone
 			// from what the rest of the system sees, and the template itself is not a node
 			var cfg = Parse( @"
 				<Shared>
-					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3' MaxSeconds='604800' TailBytes='1000' Clearable='1'/>
+					<FileTemplate Name='log' Filter='Newest' MaxFiles='3' MaxSeconds='604800' TailBytes='1000' Clearable='1'/>
 					<Machine Name='m1' IP='127.0.0.1'>
 						<File Template='log' Id='plain' Path='D:\Logs' Mask='a*.log'/>
 						<File Template='log' Id='over' Path='D:\Logs' Mask='b*.log' MaxFiles='2' TailBytes='5'/>
@@ -233,17 +233,17 @@ namespace Dirigent.Tests
 			Assert.AreEqual( "Newest", FindNode( cfg, "folder" ).Filter );
 			Assert.AreEqual( 3, ( (FolderDef) FindNode( cfg, "folder" ) ).MaxFiles );
 
-			Assert.AreEqual( 3, cfg.VfsNodes.Count, "NodeTemplate must not become a node" );
+			Assert.AreEqual( 3, cfg.VfsNodes.Count, "FileTemplate must not become a node" );
 		}
 
 		[TestMethod()]
-		public void NodeTemplateChainingTest()
+		public void FileTemplateChainingTest()
 		{
 			// the derived template wins over its base; the node wins over both
 			var cfg = Parse( @"
 				<Shared>
-					<NodeTemplate Name='base' Filter='Newest' MaxFiles='3' TailBytes='100' Clearable='1'/>
-					<NodeTemplate Name='derived' Template='base' MaxFiles='7' TailBytes='200'/>
+					<FileTemplate Name='base' Filter='Newest' MaxFiles='3' TailBytes='100' Clearable='1'/>
+					<FileTemplate Name='derived' Template='base' MaxFiles='7' TailBytes='200'/>
 					<Machine Name='m1' IP='127.0.0.1'>
 						<File Template='derived' Id='a' Path='D:\Logs' Mask='*.log'/>
 						<File Template='derived' Id='b' Path='D:\Logs' Mask='*.log' TailBytes='300'/>
@@ -259,17 +259,17 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void NodeTemplateChildActionsTest()
+		public void FileTemplateChildActionsTest()
 		{
 			// children of the template come first, so a node's own action with the same Id replaces the template's
 			var cfg = Parse( @"
 				<Shared>
-					<NodeTemplate Name='base'>
+					<FileTemplate Name='base'>
 						<Script Id='dl' Name='Base.cs'/>
-					</NodeTemplate>
-					<NodeTemplate Name='derived' Template='base'>
+					</FileTemplate>
+					<FileTemplate Name='derived' Template='base'>
 						<Script Id='extra' Name='Extra.cs'/>
-					</NodeTemplate>
+					</FileTemplate>
 					<Machine Name='m1' IP='127.0.0.1'>
 						<File Template='derived' Id='plain' Path='D:\a.log'/>
 						<File Template='derived' Id='own' Path='D:\b.log'>
@@ -288,13 +288,13 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void NodeTemplateInsideAppTemplateAndContainersTest()
+		public void FileTemplateInsideAppTemplateAndContainersTest()
 		{
 			// a template used in an AppTemplate gives per-app nodes, and %APP_ID%/%MACHINE_ID% in a title are
 			// expanded with the ids of the app that node belongs to
 			var cfg = Parse( @"
 				<Shared>
-					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3' Clearable='1'/>
+					<FileTemplate Name='log' Filter='Newest' MaxFiles='3' Clearable='1'/>
 					<AppTemplate Name='base' ExeFullPath='c:\windows\notepad.exe'>
 						<File Template='log' Id='log' Title='Log/%APP_ID% on %machine_id%' Path='D:\logs' Mask='%APP_ID%*.log'/>
 					</AppTemplate>
@@ -330,12 +330,12 @@ namespace Dirigent.Tests
 			// the copied-in child, and must not keep a bare Template= that nothing resolves
 			var cfg = Parse( @"
 				<Shared>
-					<NodeTemplate Name='log' Filter='Newest' MaxFiles='3'/>
-					<NodeTemplate Name='bundle'>
+					<FileTemplate Name='log' Filter='Newest' MaxFiles='3'/>
+					<FileTemplate Name='bundle'>
 						<VFolder Id='inner' Title='Inner'>
 							<File Template='log' Id='deep' Path='D:\deep' Mask='*.log'/>
 						</VFolder>
-					</NodeTemplate>
+					</FileTemplate>
 					<Machine Name='m1' IP='127.0.0.1'>
 						<FilePackage Template='bundle' Id='pack' Title='Pack'/>
 					</Machine>
@@ -368,31 +368,31 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void NodeTemplateLoadErrorsTest()
+		public void FileTemplateLoadErrorsTest()
 		{
 			AssertConfigError( @"<Shared><File Template='nope' Id='x' Path='\\s\h\a'/></Shared>", "'nope' not found" );
 
 			AssertConfigError( @"<Shared>
-				<NodeTemplate Name='a' Template='nope'/>
+				<FileTemplate Name='a' Template='nope'/>
 				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "'nope' not found" );
 
 			AssertConfigError( @"<Shared>
-				<NodeTemplate Name='a' Template='b'/><NodeTemplate Name='b' Template='a'/>
+				<FileTemplate Name='a' Template='b'/><FileTemplate Name='b' Template='a'/>
 				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "a -> b -> a" );
 
 			AssertConfigError( @"<Shared>
-				<NodeTemplate Name='a' Template='a'/>
+				<FileTemplate Name='a' Template='a'/>
 				<File Template='a' Id='x' Path='\\s\h\a'/></Shared>", "a -> a" );
 
-			AssertConfigError( @"<Shared><NodeTemplate MaxFiles='3'/></Shared>", "without a Name" );
+			AssertConfigError( @"<Shared><FileTemplate MaxFiles='3'/></Shared>", "without a Name" );
 
-			AssertConfigError( @"<Shared><NodeTemplate Name='a'/><NodeTemplate Name='a'/></Shared>", "Duplicate" );
+			AssertConfigError( @"<Shared><FileTemplate Name='a'/><FileTemplate Name='a'/></Shared>", "Duplicate" );
 
-			AssertConfigError( @"<Shared><NodeTemplate Name='a' Guid='6f9619ff-8b86-d011-b42d-00c04fc964ff'/></Shared>", "Guid" );
+			AssertConfigError( @"<Shared><FileTemplate Name='a' Guid='6f9619ff-8b86-d011-b42d-00c04fc964ff'/></Shared>", "Guid" );
 
 			// a template whose own child nodes use the template again would never end
 			AssertConfigError( @"<Shared>
-				<NodeTemplate Name='a'><File Template='a' Id='in' Path='\\s\h\a'/></NodeTemplate>
+				<FileTemplate Name='a'><File Template='a' Id='in' Path='\\s\h\a'/></FileTemplate>
 				<FilePackage Template='a' Id='x'/></Shared>", "a -> a" );
 		}
 
@@ -410,13 +410,13 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
-		public void DocumentedNodeTemplateExamplesTest()
+		public void DocumentedFileTemplateExamplesTest()
 		{
-			// the two examples of docs/Files.md ("Node templates", "Variables in Path, Mask and Title"),
+			// the two examples of docs/Files.md ("File templates", "Variables in Path, Mask and Title"),
 			// as written there
 			var cfg = Parse( @"
 <Shared>
-    <NodeTemplate Name=""log"" Filter=""Newest"" MaxFiles=""3"" MaxSeconds=""604800""
+    <FileTemplate Name=""log"" Filter=""Newest"" MaxFiles=""3"" MaxSeconds=""604800""
                   TailBytes=""10485760"" Clearable=""1""/>
 
     <Machine Name=""m1"" IP=""192.168.0.10"">
@@ -697,9 +697,9 @@ namespace Dirigent.Tests
 				Fail( @"<Shared><Machine Name='a' IP='1.1.1.1'><File Id='log' Path='C:\1'/><File Id='log' Path='C:\2'/></Machine></Shared>" ),
 				"Duplicate file definition Id 'log' in Machine 'a'" );
 
-			// also when the machine uses a template, and when the second one comes out of a node template
+			// also when the machine uses a template, and when the second one comes out of a file template
 			StringAssert.Contains(
-				Fail( @"<Shared><NodeTemplate Name='n' Id='log'/><MachineTemplate Name='m.base'/>
+				Fail( @"<Shared><FileTemplate Name='n' Id='log'/><MachineTemplate Name='m.base'/>
 						<Machine Name='a' IP='1.1.1.1' Template='m.base'><File Id='log' Path='C:\1'/><File Template='n' Path='C:\2'/></Machine></Shared>" ),
 				"Duplicate file definition Id 'log' in Machine 'a'" );
 
@@ -713,7 +713,7 @@ namespace Dirigent.Tests
 
 		const string SiteConfig = @"
 			<Shared>
-				<NodeTemplate Name='log.dirigent' Id='log.dirigent' Title='Log/Dirigent agent' Path='C:\Dirigent\logs' Mask='*.log'/>
+				<FileTemplate Name='log.dirigent' Id='log.dirigent' Title='Log/Dirigent agent' Path='C:\Dirigent\logs' Mask='*.log'/>
 
 				<MachineTemplate Name='m.base' MAC='00-11-22-33-44-55'>
 					<Share Name='C' Path='C:\'/>
@@ -776,7 +776,7 @@ namespace Dirigent.Tests
 			Assert.AreEqual( 1, c.Count( n => n.Id == "log.dirigent" ), "replaced, not duplicated" );
 			Assert.AreEqual( "log.dirigent", c[0].Id, "in the place of the inherited one" );
 			Assert.AreEqual( "Log/Dirigent agent and MASTER", c[0].Title );
-			Assert.AreEqual( @"C:\Dirigent\logs", c[0].Path, "the rest still comes from the node template" );
+			Assert.AreEqual( @"C:\Dirigent\logs", c[0].Path, "the rest still comes from the file template" );
 
 			CollectionAssert.AreEqual( new[] { "log.dirigent", "cfg", "ver", "crash", "ios1", "ios2", "own" }, Ids( cfg, "c" ) );
 
@@ -866,6 +866,52 @@ namespace Dirigent.Tests
 			Assert.IsFalse( Matches( "log.*", "logs.x" ) );
 			Assert.IsFalse( Matches( "log.*", "log" ) );
 			Assert.IsTrue( Matches( "log.?iewer", "log.viewer" ) );
+		}
+
+		[TestMethod()]
+		public void TheOldNodeTemplateElementIsALoadErrorTest()
+		{
+			var e = Assert.ThrowsException<ConfigurationErrorException>( () => Parse( "<Shared><NodeTemplate Name='log' MaxFiles='3'/></Shared>" ) );
+			Assert.AreEqual( "<NodeTemplate> was renamed to <FileTemplate>", e.Message );
+		}
+
+		[TestMethod()]
+		public void AMachinePackageOfAWildcardReferenceCollectsThatMachinesLogsOnlyTest()
+		{
+			// the package is written once, in the machine template; its <FileRef> names no machine and no app,
+			// so it takes the machine of the place it was copied to
+			var cfg = Parse( @"
+				<Shared>
+					<MachineTemplate Name='m.base'>
+						<FilePackage Id='pkg.machine' Title='Logs of the machine'><FileRef Id='log.*'/></FilePackage>
+					</MachineTemplate>
+					<App AppIdTuple='m1.a' ExeFullPath='x.exe'><File Id='log.y' Title='Y' Path='C:\m1\y.log'/></App>
+					<App AppIdTuple='m2.a' ExeFullPath='x.exe'><File Id='log.y' Title='Y' Path='C:\m2\y.log'/></App>
+					<Machine Name='m1' IP='10.0.0.1' Template='m.base'><File Id='log.x' Title='X' Path='C:\m1\x.log'/></Machine>
+					<Machine Name='m2' IP='10.0.0.2' Template='m.base'><File Id='log.x' Title='X' Path='C:\m2\x.log'/></Machine>
+				</Shared>" );
+
+			static void Leaves( VfsNodeDef node, List<VfsNodeDef> into )
+			{
+				if( node.IsContainer ) foreach( var c in node.Children ) Leaves( c, into );
+				else into.Add( node );
+			}
+
+			foreach( var machine in new[] { "m1", "m2" } )
+			{
+				var reg = new FileRegistry( new RefStub(), machine, @"C:\", ( id ) => "127.0.0.1" );
+				reg.SetVfsNodes( cfg.VfsNodes );
+				reg.SetMachines( cfg.Machines );
+
+				var package = cfg.VfsNodes.Single( n => n.Id == "pkg.machine" && n.MachineId == machine );
+				var resolved = reg.ResolveAsync( null!, package, false, false, null ).GetAwaiter().GetResult();
+
+				var leaves = new List<VfsNodeDef>();
+				Leaves( resolved!, leaves );
+
+				CollectionAssert.AreEquivalent( new[] { $@"C:\{machine}\x.log", $@"C:\{machine}\y.log" }, leaves.Select( l => l.Path! ).ToList(), machine );
+				Assert.IsTrue( leaves.All( l => l.MachineId == machine ), "nothing of the other machine" );
+			}
 		}
 	}
 }
