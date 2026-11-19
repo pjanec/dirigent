@@ -759,6 +759,24 @@ namespace Dirigent
 			
 		}
 
+		/// <summary>
+		/// Records the size and last write time of the file a resolved node stands for, where this
+		/// machine can see it. A file it cannot see - or cannot read - just goes without.
+		/// </summary>
+		static void FillFileFacts( VfsNodeDef node )
+		{
+			try
+			{
+				var info = new System.IO.FileInfo( node.Path! );
+				if( !info.Exists ) return;
+				node.Size = info.Length;
+				node.Modified = info.LastWriteTimeUtc;
+			}
+			catch( Exception )
+			{
+			}
+		}
+
 		private VfsNodeDef? ResolveFileDef( bool forceUNC, FileDef fileDef )
 		{
 			if (string.IsNullOrEmpty( fileDef.Path )) throw new Exception( $"FileDef.Path is empty. {fileDef.Xml}" );
@@ -772,7 +790,7 @@ namespace Dirigent
 				r.IsContainer = false;
 				r.Guid = fileDef.Guid;
 				r.Path = ResolveFilePath( fileDef, forceUNC );
-				if( r.Path is null ) return null;
+				if( r.Path is null ) return null; FillFileFacts( r );
 				return r;
 			}
 
@@ -806,7 +824,7 @@ namespace Dirigent
 					{
 						var r = EmptyFrom<FileDef>( fileDef );
 						r.Guid = fileDef.Guid;
-						r.Path = newestFiles[0];
+						r.Path = newestFiles[0]; FillFileFacts( r );
 						return r;
 					}
 				}
@@ -820,7 +838,7 @@ namespace Dirigent
 					{
 						var r = EmptyFrom<FileDef>( fileDef );
 						r.Guid = fileDef.Guid;
-						r.Path = fpath;
+						r.Path = fpath; FillFileFacts( r );
 						pack.Children.Add( r );
 					}
 					return pack;
@@ -983,6 +1001,8 @@ namespace Dirigent
 						Title = info.Name,
 						TailBytes = folderDef.TailBytes, // a folder's setting applies to its files
 						Clearable = folderDef.Clearable, // and so does the permission
+						Size = info.Length,
+						Modified = info.LastWriteTimeUtc,
 					}
 				);
 			}

@@ -62,17 +62,20 @@ Which definition answers (the one whose file definitions - `<File>`, `<Folder>`,
 
 ```json
 { "app": "m1.a", "plan": "plan1", "planSource": "requested",
-  "fileDefs": [ { "id": "logs", "title": "Logs", "type": "Folder", "machine": "m1",
+  "fileDefs": [ { "id": "logs", "title": "Logs", "type": "Folder", "description": null, "machine": "m1",
                "localPath": "D:\\Logs", "uncPath": "\\\\10.0.0.5\\D\\Logs", "uncError": null,
                "error": null, "notes": [],
                "files": [ { "path": "Logs/sub/a.log", "machine": "m1",
-                            "localPath": "D:\\Logs\\sub\\a.log", "uncPath": "\\\\10.0.0.5\\D\\Logs\\sub\\a.log" } ] } ] }
+                            "localPath": "D:\\Logs\\sub\\a.log", "uncPath": "\\\\10.0.0.5\\D\\Logs\\sub\\a.log",
+                            "size": 1048576, "modified": "2026-11-19T09:58:03Z", "truncatedTo": null } ] } ] }
 ```
 
 Each top-level file definition of the app is resolved on its own, so one that fails (its machine is not
 connected, the folder is missing) has `error` set and the others are still answered. If no
 share of the machine covers a path, `uncPath` is `null` and `uncError` says why (once per file definition);
-`localPath` is still there. `notes` carries what the resolution had to leave out (size limits,
+`localPath` is still there. Each file also says its `size` in bytes and `modified` (UTC) as found when it was looked up, and
+`truncatedTo` when the file definition has `TailBytes` smaller than the file: a download will hold only the last
+part, at most that many bytes (otherwise `null`). `notes` carries what the resolution had to leave out (size limits,
 members of a package that could not be looked up). A file definition with no machine (global) has only `uncPath`.
 
 The files are listed, not served: the tool reads them through the UNC path. The same answer is given by
@@ -80,15 +83,16 @@ The files are listed, not served: the tool reads them through the UNC path. The 
 
 ### GET /api/filedefs/pkg/files?machine=m1&app=a
 
-the same for any top-level file definition - a file package, usually - addressed the way scripts address
+the same for the top-level file definitions with this id - a file package, usually - addressed the way scripts address
 them: `pkg` is the file definition id (wildcards allowed), `machine` and `app` optionally narrow it, `content`
-is as above. A selector matching several file definitions answers as one container of all of them. Nothing
-matching: 404. The whole selection is resolved in one go, so a package spanning many machines costs one
-round trip per machine, and a member that cannot be reached becomes a `note` while the other members'
-files are listed.
+is as above. Each matching definition is resolved as itself and answers with one entry of its own, typed and
+titled as declared (`FilePackage`, `Folder`, ...), with its `description`; a wildcard matching two definitions gives two
+entries, and nothing matching is a 404. A package spanning many machines costs one round trip per machine, and a member
+that cannot be reached becomes a `note` while the other members' files are listed.
 
 ```json
-{ "id": "pkg", "machine": null, "app": null, "fileDefs": [ { "id": "pkg", "title": "Pkg", "type": "FileRef", "files": [ ... ] } ] }
+{ "id": "pkg", "machine": null, "app": null,
+  "fileDefs": [ { "id": "pkg", "title": "Pkg", "type": "FilePackage", "description": "...", "files": [ ... ] } ] }
 ```
 
 Each file carries its own `machine`. Also available as `POST /api/cli` with `GetFiles pkg machine=m1`.
@@ -106,6 +110,11 @@ and `?`, empty means anything). Example: `GET /api/filedefs?type=FilePackage&id=
 [ { "id": "logs.all", "type": "FilePackage", "title": "Logs/All apps", "description": "...",
     "groups": "", "machine": null, "app": null } ]
 ```
+
+### GET /api/filedefs/{id}
+
+the definitions with this id (wildcards allowed), narrowed by `?machine=` and `?app=`, in the shape of the
+list above - the same as the list with an `id` filter, but a 404 when nothing matches. Example: `GET /api/filedefs/logs.all`
 
 ### Download jobs
 
@@ -133,10 +142,10 @@ lists the jobs on disk, newest first, each as below.
 { "id": "...", "status": "Finished", "progress": 1.0, "text": null,
   "created": "2026-11-19T10:00:00Z", "finished": "2026-11-19T10:00:20Z", "machine": "master1",
   "request": { "fileDef": { "id": "logs.all" } },
-  "files": [ { "name": "All apps_261119_1000.zip", "size": 1234567,
-               "url": "/api/downloads/<id>/files/All%20apps_261119_1000.zip",
-               "localPath": "C:\\ProgramData\\Dirigent\\Archives\\<id>\\All%20apps_261119_1000.zip",
-               "uncPath": "\\\\10.0.0.5\\C\\ProgramData\\Dirigent\\Archives\\<id>\\All%20apps_261119_1000.zip",
+  "archives": [ { "name": "All apps_261119_1000.zip", "size": 1234567,
+               "url": "/api/downloads/<id>/archives/All%20apps_261119_1000.zip",
+               "localPath": "C:\\ProgramData\\Dirigent\\Archives\\<id>\\All apps_261119_1000.zip",
+               "uncPath": "\\\\10.0.0.5\\C\\ProgramData\\Dirigent\\Archives\\<id>\\All apps_261119_1000.zip",
                "uncError": null } ],
   "errors": [], "notCollected": [] }
 ```
@@ -145,12 +154,13 @@ lists the jobs on disk, newest first, each as below.
 went away; nothing is left to finish it). While running, `progress` (0..1, or `null` when unknown) and `text`
 come from the live script. `?wait=N` holds the answer until the job has ended, at most N seconds
 (max 120). After a master restart the job is still answered from its `job.json`. `uncPath` is `null`
-with the reason in `uncError` when no file share covers the archive folder.
+with the reason in `uncError` when no file share covers the archive folder. Only the `url` is percent-encoded; `name`,
+`localPath` and `uncPath` are plain paths and may contain spaces.
 
-#### GET /api/downloads/{id}/files/{name}
+#### GET /api/downloads/{id}/archives/{name}
 
 streams the archive (`application/zip`, `Content-Disposition: attachment` with an ASCII `filename` and the exact `filename*=UTF-8''...`) without loading it into
-memory. `name` must be one of the job's `files`, otherwise 404; a job that is still running: 409;
+memory. `name` must be one of the job's `archives`, otherwise 404; a job that is still running: 409;
 `--serveArchives 0`: 403 (listing, status and `uncPath` still work, so a tool can read the archive through the share instead).
 
 #### DELETE /api/downloads/{id}

@@ -101,6 +101,25 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( System.Net.HttpStatusCode.OK, nodes.StatusCode, nodesText );
 			StringAssert.Contains( nodesText, "logs.all", nodesText );
 
+			// one definition, in the listing shape; and the same id with a machine that has none: 404
+			var one = http.GetAsync( $"{root}/filedefs/logs.all" ).GetAwaiter().GetResult();
+			var oneText = one.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, one.StatusCode, oneText );
+			var oneDef = System.Text.Json.JsonDocument.Parse( oneText ).RootElement;
+			Assert.AreEqual( 1, oneDef.GetArrayLength(), oneText );
+			Assert.AreEqual( "FilePackage", oneDef[0].GetProperty( "type" ).GetString() );
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.GetAsync( $"{root}/filedefs/logs.all?machine=nosuchmachine" ).GetAwaiter().GetResult().StatusCode );
+			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
+				http.GetAsync( $"{root}/filedefs/nosuch" ).GetAwaiter().GetResult().StatusCode );
+
+			// the files of that definition are the definition's own entry, typed as it is
+			var pkgFiles = http.GetAsync( $"{root}/filedefs/logs.all/files" ).GetAwaiter().GetResult();
+			var pkgText = pkgFiles.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, pkgFiles.StatusCode, pkgText );
+			var pkgEntry = System.Text.Json.JsonDocument.Parse( pkgText ).RootElement.GetProperty( "fileDefs" )[0];
+			Assert.AreEqual( "FilePackage", pkgEntry.GetProperty( "type" ).GetString() );
+
 			var post = http.PostAsync( $"{root}/downloads",
 				new StringContent( "{\"fileDef\":{\"id\":\"logs.all\"},\"comment\":\"system test\"}", Encoding.UTF8, "application/json" ) )
 				.GetAwaiter().GetResult();
@@ -116,7 +135,8 @@ namespace Dirigent.SystemTests
 			var job = System.Text.Json.JsonDocument.Parse( statusText ).RootElement;
 			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), statusText );
 
-			var url = job.GetProperty( "files" )[0].GetProperty( "url" ).GetString();
+			var url = job.GetProperty( "archives" )[0].GetProperty( "url" ).GetString();
+			StringAssert.Contains( url, "/archives/", url );
 			var file = http.GetAsync( $"http://127.0.0.1:{world.HttpPort}{url}" ).GetAwaiter().GetResult();
 			var bytes = file.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
 			Assert.AreEqual( System.Net.HttpStatusCode.OK, file.StatusCode );
@@ -126,7 +146,7 @@ namespace Dirigent.SystemTests
 
 			// the title "Logs/All apps" gives a name with a space; it travelled as %20 in the url,
 			// and the download header carries it in both the plain and the RFC 5987 form
-			var fileName = job.GetProperty( "files" )[0].GetProperty( "name" ).GetString()!;
+			var fileName = job.GetProperty( "archives" )[0].GetProperty( "name" ).GetString()!;
 			StringAssert.StartsWith( fileName, "All apps_" );
 			Assert.IsTrue( url!.Contains( "%20" ), url );
 			var disposition = string.Join( " ", file.Content.Headers.ContentDisposition?.ToString() ?? "" );

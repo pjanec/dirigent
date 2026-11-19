@@ -42,6 +42,26 @@ namespace Dirigent.Web
 			await SendJson( FileDefListing.ToJson( nodes ) );
 		}
 
+		// the definitions with this id (wildcards allowed), narrowed by ?machine= and ?app=; the listing shape
+		[Route( HttpVerbs.Get, "/filedefs/{id}" )]
+		public async Task GetFileDef( string id )
+		{
+			var q = HttpContext.GetRequestQueryData();
+
+			List<FileDefInfo> defs = new();
+			var op = _master.AddSynchronousOp( () =>
+			{
+				defs = FileDefListing.List( _master, null, id, q["machine"], q["app"] );
+			} );
+			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
+
+			if( defs.Count == 0 )
+				throw HttpException.NotFound( $"No file definition matches '{id}'." );
+
+			await SendJson( FileDefListing.ToJson( defs ) );
+		}
+
 		// body: {"fileDef":{"id":"logs","machine":"m1","app":"a"}} or {"app":"m1.a@plan"}, optional "comment"
 		[Route( HttpVerbs.Post, "/downloads" )]
 		public async Task StartDownload()
@@ -92,7 +112,7 @@ namespace Dirigent.Web
 			await SendJson( view.ToJson() );
 		}
 
-		[Route( HttpVerbs.Get, "/downloads/{id}/files/{name}" )]
+		[Route( HttpVerbs.Get, "/downloads/{id}/archives/{name}" )]
 		public async Task GetDownloadFile( string id, string name )
 		{
 			string path;

@@ -89,25 +89,25 @@ namespace Dirigent.IntegrationTests
 			var job = await Run( bed, "DownloadPackage logs.all wait=1 \"comment=for the test\"" );
 
 			Assert.AreEqual( "Finished", job.status, string.Join( "; ", job.errors ) );
-			Assert.AreEqual( 1, job.files.Count );
+			Assert.AreEqual( 1, job.archives.Count );
 
 			var folder = Path.Combine( bed.Master.DownloadJobs.ArchiveFolder, job.id );
 			Assert.IsTrue( File.Exists( Path.Combine( folder, "job.json" ) ), "the job is on disk" );
-			Assert.AreEqual( Path.Combine( folder, job.files[0].name ), job.files[0].localPath );
-			Assert.IsTrue( File.Exists( job.files[0].localPath ), "the zip is in the job folder" );
-			Assert.IsTrue( job.files[0].size > 0 );
+			Assert.AreEqual( Path.Combine( folder, job.archives[0].name ), job.archives[0].localPath );
+			Assert.IsTrue( File.Exists( job.archives[0].localPath ), "the zip is in the job folder" );
+			Assert.IsTrue( job.archives[0].size > 0 );
 
 			// no share declared in this world: said so, not guessed
-			Assert.IsNull( job.files[0].uncPath );
-			Assert.IsFalse( string.IsNullOrEmpty( job.files[0].uncError ) );
+			Assert.IsNull( job.archives[0].uncPath );
+			Assert.IsFalse( string.IsNullOrEmpty( job.archives[0].uncError ) );
 
-			var entries = Archive.EntriesOf( job.files[0].localPath );
+			var entries = Archive.EntriesOf( job.archives[0].localPath );
 			Assert.IsTrue( Archive.HasEntryMatching( entries, "m1/", "camera/", "recent.log" ), string.Join( ", ", entries ) );
 			Assert.IsTrue( Archive.HasEntryMatching( entries, "m2/", "recorder/", "recent.log" ), string.Join( ", ", entries ) );
 
 			// what the status says it made is what the manager serves, byte for byte
-			var served = bed.Master.DownloadJobs.FileToServe( Guid.Parse( job.id ), job.files[0].name );
-			CollectionAssert.AreEqual( File.ReadAllBytes( job.files[0].localPath ), File.ReadAllBytes( served ) );
+			var served = bed.Master.DownloadJobs.FileToServe( Guid.Parse( job.id ), job.archives[0].name );
+			CollectionAssert.AreEqual( File.ReadAllBytes( job.archives[0].localPath ), File.ReadAllBytes( served ) );
 
 			// and the CLI twin of the status says the same
 			var lines = await bed.SendCliCommandAsync( $"GetDownload {job.id}", Timeout );
@@ -124,12 +124,12 @@ namespace Dirigent.IntegrationTests
 			Assert.AreEqual( "Finished", job.status, string.Join( "; ", job.errors ) );
 			Assert.AreEqual( "m1.a@planX", job.request.app );
 
-			var entries = Archive.EntriesOf( job.files.Single().localPath );
+			var entries = Archive.EntriesOf( job.archives.Single().localPath );
 			Assert.IsTrue( Archive.HasEntryMatching( entries, "p.log" ), string.Join( ", ", entries ) );
 			Assert.IsFalse( Archive.HasEntryMatching( entries, "default.log" ), "the plan's definition, not the default one" );
 
-			var rel = job.files[0].localPath.Substring( SystemDriveRoot.Length );
-			Assert.AreEqual( @"\\127.0.0.1\C\" + rel, job.files[0].uncPath, "through the share of the master's machine" );
+			var rel = job.archives[0].localPath.Substring( SystemDriveRoot.Length );
+			Assert.AreEqual( @"\\127.0.0.1\C\" + rel, job.archives[0].uncPath, "through the share of the master's machine" );
 		}
 
 		[TestMethod()]
@@ -149,7 +149,7 @@ namespace Dirigent.IntegrationTests
 			var job = await Run( bed, "DownloadPackage single wait=1" );
 			Assert.AreEqual( "Finished", job.status, string.Join( "; ", job.errors ) );
 
-			using( var zip = System.IO.Compression.ZipFile.OpenRead( job.files.Single().localPath ) )
+			using( var zip = System.IO.Compression.ZipFile.OpenRead( job.archives.Single().localPath ) )
 			{
 				var files = zip.Entries.Where( e => !e.FullName.EndsWith( "/" ) && !e.Name.StartsWith( "_" ) ).ToList();
 				Assert.AreEqual( 1, files.Count, string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
@@ -163,7 +163,7 @@ namespace Dirigent.IntegrationTests
 			var tailJob = await Run( bed, "DownloadPackage tailed wait=1" );
 			Assert.AreEqual( "Finished", tailJob.status, string.Join( "; ", tailJob.errors ) );
 
-			using( var zip = System.IO.Compression.ZipFile.OpenRead( tailJob.files.Single().localPath ) )
+			using( var zip = System.IO.Compression.ZipFile.OpenRead( tailJob.archives.Single().localPath ) )
 			{
 				var files = zip.Entries.Where( e => !e.FullName.EndsWith( "/" ) && !e.Name.StartsWith( "_" ) ).ToList();
 				Assert.AreEqual( 1, files.Count, string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
@@ -227,7 +227,7 @@ namespace Dirigent.IntegrationTests
 				Assert.AreEqual( EDownloadJobProblem.NotFound, e.Problem, name );
 			}
 
-			Assert.IsNotNull( bed.Master.DownloadJobs.FileToServe( id, job.files[0].name ) );
+			Assert.IsNotNull( bed.Master.DownloadJobs.FileToServe( id, job.archives[0].name ) );
 		}
 
 		[TestMethod()]
@@ -238,7 +238,7 @@ namespace Dirigent.IntegrationTests
 			Directory.CreateDirectory( folder );
 			File.WriteAllText( Path.Combine( folder, "a.zip" ), "zip" );
 			File.WriteAllText( Path.Combine( folder, "job.json" ),
-				$"{{\"id\":\"{id}\",\"status\":\"Finished\",\"created\":\"{DateTime.UtcNow:o}\",\"files\":[\"a.zip\"]}}" );
+				$"{{\"id\":\"{id}\",\"status\":\"Finished\",\"created\":\"{DateTime.UtcNow:o}\",\"archives\":[\"a.zip\"]}}" );
 
 			var off = new DownloadJobs( _root, 24, 0, serveArchives: false );
 			Assert.AreEqual( EDownloadJobProblem.Forbidden,
@@ -246,7 +246,7 @@ namespace Dirigent.IntegrationTests
 			Assert.AreEqual( "Finished", off.Get( id )!.status, "listing and status still work" );
 
 			File.WriteAllText( Path.Combine( folder, "job.json" ),
-				$"{{\"id\":\"{id}\",\"status\":\"Running\",\"created\":\"{DateTime.UtcNow:o}\",\"files\":[\"a.zip\"]}}" );
+				$"{{\"id\":\"{id}\",\"status\":\"Running\",\"created\":\"{DateTime.UtcNow:o}\",\"archives\":[\"a.zip\"]}}" );
 			var busy = new DownloadJobs( _root, 24, 0, serveArchives: true, isRunningExtra: g => g == id );
 			Assert.AreEqual( EDownloadJobProblem.Conflict,
 				Assert.ThrowsException<DownloadJobException>( () => busy.FileToServe( id, "a.zip" ) ).Problem );
@@ -270,7 +270,7 @@ namespace Dirigent.IntegrationTests
 				var created = ( finishedUtc ?? DateTime.UtcNow ).AddMinutes( -5 );
 				var fin = finishedUtc is null ? "null" : $"\"{finishedUtc.Value:o}\"";
 				File.WriteAllText( Path.Combine( folder, "job.json" ),
-					$"{{\"id\":\"{id}\",\"status\":\"{status}\",\"created\":\"{created:o}\",\"finished\":{fin},\"files\":[\"a.zip\"]}}" );
+					$"{{\"id\":\"{id}\",\"status\":\"{status}\",\"created\":\"{created:o}\",\"finished\":{fin},\"archives\":[\"a.zip\"]}}" );
 			}
 			return id;
 		}

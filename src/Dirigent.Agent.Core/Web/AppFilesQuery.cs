@@ -16,14 +16,27 @@ namespace Dirigent.Web
 		public string? machine { get; set; }
 		public string? localPath { get; set; }
 		public string? uncPath { get; set; }
+
+		/// <summary>Bytes, as found when the file was looked up; null where it could not be read.</summary>
+		public long? size { get; set; }
+
+		/// <summary>Last write time, UTC.</summary>
+		public DateTime? modified { get; set; }
+
+		/// <summary>
+		/// Set when the file definition limits a download to the end of the file (<c>TailBytes</c>) and
+		/// the file is bigger: how many bytes at most a download will hold.
+		/// </summary>
+		public long? truncatedTo { get; set; }
 	}
 
-	/// <summary>One top-level VFS node of an application, resolved.</summary>
+	/// <summary>One top-level file definition of an application or of the shared config, resolved.</summary>
 	public class FileDefEntry
 	{
 		public string id { get; set; } = string.Empty;
 		public string title { get; set; } = string.Empty;
 		public string type { get; set; } = string.Empty;
+		public string? description { get; set; }
 		public string? machine { get; set; }
 		public string? localPath { get; set; }
 		public string? uncPath { get; set; }
@@ -178,6 +191,7 @@ namespace Dirigent.Web
 				id = def.Id,
 				title = !string.IsNullOrEmpty( def.Title ) ? def.Title : def.Id,
 				type = TypeName( def ),
+				description = NullIfEmpty( def.Description ),
 				machine = NullIfEmpty( def.MachineId ),
 			};
 
@@ -259,6 +273,9 @@ namespace Dirigent.Web
 					machine = NullIfEmpty( n.MachineId ),
 					localPath = LocalPath( n ),
 					uncPath = TryUnc( master, n, out _ ),
+					size = n.Size,
+					modified = n.Modified,
+					truncatedTo = n.TailBytes > 0 && n.Size > n.TailBytes ? n.TailBytes : null,
 				} );
 				return;
 			}
@@ -283,36 +300,55 @@ namespace Dirigent.Web
 	}
 
 	/// <summary>
-	/// The files of any top-level VFS node - a file package, usually - addressed the way scripts
-	/// address nodes. The whole selection is resolved as one reference, so the resolver batches it into
-	/// one round trip per machine and turns an unreachable member into a note on its container.
+	/// The files of the top-level file definitions matching an id (and optionally a machine and an
+	/// application), each definition resolved as itself: a file package answers as a file package, with
+	/// its own title and description, and a wildcard matching two definitions answers with two entries.
 	/// </summary>
+	/// <remarks>
+	/// Two steps like <see cref="AppFilesQuery"/>: <see cref="Prepare"/> reads the master's registry and
+	/// runs on the master thread; <see cref="ResolveAsync"/> awaits the agents and does not.
+	/// </remarks>
 	public class FileDefFilesQuery
 	{
 		readonly Master _master;
 		readonly Scripts.BuiltIn.VfsNodeSelector _selector;
+		readonly List<VfsNodeDef> _defs;
 
-		public FileDefFilesQuery( Master master, string id, string? machine, string? app )
+		FileDefFilesQuery( Master master, Scripts.BuiltIn.VfsNodeSelector selector, List<VfsNodeDef> defs )
 		{
 			_master = master;
-			_selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
-			_selector.ToFileRef(); // validates the id
+			_selector = selector;
+			_defs = defs;
 		}
 
+		/// <summary>The matching definitions, found on the master thread.</summary>
 		/// <exception cref="AppFilesNotFoundException">nothing matches the selector</exception>
+		public static FileDefFilesQuery Prepare( Master master, string id, string? machine, string? app )
+		{
+			var selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
+			selector.ToFileRef(); // validates the id
+
+			var defs = ( from n in master.GetAllVfsNodesDef()
+						 where Scripts.BuiltIn.ListVfsNodes.Matches( n, selector )
+						 orderby n.Id, n.MachineId, n.AppId
+						 select n ).ToList();
+
+			if( defs.Count == 0 )
+				throw new AppFilesNotFoundException( $"No file definition matches {selector}." );
+
+			return new FileDefFilesQuery( master, selector, defs );
+		}
+
 		public async Task<FileDefFilesResult> ResolveAsync( bool includeContent )
 		{
-			var entry = await AppFilesQuery.ResolveFileDefEntryAsync( _master, _selector.ToFileRef(), includeContent );
-
-			if( entry.resolvedToNothing )
-				throw new AppFilesNotFoundException( $"No node matches {_selector}." );
+			var entries = await Task.WhenAll( _defs.Select( d => AppFilesQuery.ResolveFileDefEntryAsync( _master, d, includeContent ) ) );
 
 			return new FileDefFilesResult()
 			{
 				id = _selector.Id!,
 				machine = string.IsNullOrEmpty( _selector.MachineId ) ? null : _selector.MachineId,
 				app = string.IsNullOrEmpty( _selector.AppId ) ? null : _selector.AppId,
-				fileDefs = new List<FileDefEntry>() { entry },
+				fileDefs = entries.ToList(),
 			};
 		}
 	}

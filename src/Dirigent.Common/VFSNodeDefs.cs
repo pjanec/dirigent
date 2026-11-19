@@ -95,6 +95,16 @@ namespace Dirigent
 		//[MessagePack.Key( 32 )]
 		public List<string>? Notes;
 
+		/// <summary>
+		/// Size in bytes of the file this resolved node stands for, as found when it was looked up
+		/// (on the machine that owns it). Null in a definition, for a folder, and where the file
+		/// could not be read.
+		/// </summary>
+		public long? Size;
+
+		/// <summary>Last write time (UTC) of the file, found together with <see cref="Size"/>.</summary>
+		public DateTime? Modified;
+
 
 		public override string ToString()
 		{

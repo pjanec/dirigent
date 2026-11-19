@@ -542,7 +542,9 @@ Lists the files of a file definition or file package, addressed like a script do
 
 `<fileDefId>` is the file definition id (wildcards allowed); `machine` and `app` narrow the selection. Answer as
 [`GET /api/filedefs/{id}/files`](HTTP.md#GET-apifiledefspkgfilesmachinem1appa), completed asynchronously like
-[`GetAppFiles`](#GetAppFiles). A package member that cannot be reached is reported in `notes` and the others are listed.
+[`GetAppFiles`](#GetAppFiles). Each matching definition is resolved as itself and has one entry in `fileDefs` (a wildcard matching two gives two); a package
+member that cannot be reached is reported in `notes` and the others are listed. Every file carries `size`, `modified` and, for
+a `TailBytes` definition smaller than the file, `truncatedTo`. Nothing matching: a single `ERROR` line.
 
 ##### Response text
 

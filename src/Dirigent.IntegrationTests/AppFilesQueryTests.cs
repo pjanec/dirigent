@@ -46,11 +46,16 @@ namespace Dirigent.IntegrationTests
 					"<Plan Name='planX'><App AppIdTuple='{m1}.a' ExeFullPath='{testapp}' CmdLineArgs='--run-forever' StartupDir='{temp}'>"
 					+ "<Folder Id='plannode' Title='PlanLogs' Path='{temp}\\planfiles' Mask='*.log'/></App></Plan>" )
 				.RawXml(
-					"<FilePackage Id='pkg' Title='Pkg'>"
+					"<FilePackage Id='pkg' Title='Pkg' Description='First package'>"
 					+ "<Folder Id='pk1' Title='M1' MachineId='{m1}' Path='{temp}\\pk1' Mask='*.log'/>"
 					+ "<Folder Id='pk2' Title='M2' MachineId='{m2}' Path='{temp}\\pk2' Mask='*.log'/>"
 					+ "<Folder Id='pk3' Title='M3' MachineId='ghost' Path='C:/x' Mask='*.log'/>"
-					+ "</FilePackage>" );
+					+ "</FilePackage>" )
+				.RawXml(
+					"<FilePackage Id='pkg2' Title='Pkg two'>"
+					+ "<Folder Id='pk1b' Title='M1 again' MachineId='{m1}' Path='{temp}\\pk1' Mask='*.log'/>"
+					+ "</FilePackage>" )
+				.RawXml( "<File Id='tailed' Title='Tailed' MachineId='{m1}' Path='{temp}\\single\\big.txt' TailBytes='10'/>" );
 
 		static async Task<TestBed.TestBed> StartBed()
 		{
@@ -73,6 +78,9 @@ namespace Dirigent.IntegrationTests
 				Directory.CreateDirectory( Path.Combine( bed.TempRoot, d ) );
 				File.WriteAllText( Path.Combine( bed.TempRoot, d, d + ".log" ), d );
 			}
+
+			Directory.CreateDirectory( Path.Combine( bed.TempRoot, "single" ) );
+			File.WriteAllText( Path.Combine( bed.TempRoot, "single", "big.txt" ), string.Concat( Enumerable.Range( 0, 10 ).Select( i => $"L{i}\n" ) ) ); // 30 bytes
 
 			return bed;
 		}
@@ -241,6 +249,9 @@ namespace Dirigent.IntegrationTests
 
 			var res = ParseNode( lines[0], "pkg" );
 			Assert.AreEqual( 1, res.fileDefs.Count, "one entry for the whole package" );
+			Assert.AreEqual( "FilePackage", res.fileDefs[0].type, "the definition itself, not a reference to it" );
+			Assert.AreEqual( "Pkg", res.fileDefs[0].title );
+			Assert.AreEqual( "First package", res.fileDefs[0].description );
 			Assert.IsNull( res.fileDefs[0].error, res.fileDefs[0].error );
 
 			var files = res.fileDefs[0].files.OrderBy( f => f.machine ).ToList();
@@ -268,6 +279,50 @@ namespace Dirigent.IntegrationTests
 			Assert.AreEqual( 2, node.files.Count, "the members that could be resolved are listed" );
 			Assert.IsTrue( node.notes.Any( n => n.Contains( "'M3'" ) ),
 				$"a note names the failing member; notes: {string.Join( " | ", node.notes )}" );
+		}
+
+		[TestMethod()]
+		public async Task AWildcardMatchingTwoDefinitionsGivesTwoEntries()
+		{
+			using var bed = await StartBed();
+
+			var lines = await bed.SendCliCommandAsync( "GetFiles pkg*", Timeout );
+			var res = ParseNode( lines[0], "pkg*" );
+
+			CollectionAssert.AreEqual( new[] { "pkg", "pkg2" }, res.fileDefs.Select( d => d.id ).ToList() );
+			CollectionAssert.AreEqual( new[] { "Pkg", "Pkg two" }, res.fileDefs.Select( d => d.title ).ToList() );
+			Assert.IsTrue( res.fileDefs.All( d => d.type == "FilePackage" ) );
+			Assert.AreEqual( 1, res.fileDefs[1].files.Count, "each entry has the files of its own definition" );
+		}
+
+		[TestMethod()]
+		public async Task PreviewedFilesCarrySizeAndModifiedTime()
+		{
+			using var bed = await StartBed();
+
+			var res = await Ask( bed, "m1.a" );
+			var logs = res.fileDefs.Single( n => n.id == "logs" );
+
+			var top = logs.files.Single( f => f.path == "Logs/top.log" );
+			var onDisk = new FileInfo( top.localPath! );
+			Assert.AreEqual( onDisk.Length, top.size );
+			Assert.AreEqual( onDisk.LastWriteTimeUtc, top.modified!.Value.ToUniversalTime() );
+			Assert.IsNull( top.truncatedTo, "no TailBytes, nothing is cut" );
+		}
+
+		[TestMethod()]
+		public async Task ABiggerFileThanTailBytesSaysWhatADownloadWouldHold()
+		{
+			using var bed = await StartBed();
+
+			var lines = await bed.SendCliCommandAsync( "GetFiles tailed", Timeout );
+			var entry = ParseNode( lines[0], "tailed" ).fileDefs.Single();
+
+			Assert.AreEqual( "File", entry.type );
+			var file = entry.files.Single();
+			Assert.AreEqual( 30L, file.size );
+			Assert.AreEqual( 10L, file.truncatedTo );
+			Assert.IsNotNull( file.modified );
 		}
 
 		[TestMethod()]

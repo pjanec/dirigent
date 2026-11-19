@@ -42,12 +42,12 @@ namespace Dirigent
 		public string machine { get; set; } = string.Empty;
 
 		/// <summary>File names, relative to the job folder.</summary>
-		public List<string> files { get; set; } = new();
+		public List<string> archives { get; set; } = new();
 		public List<string> errors { get; set; } = new();
 		public List<string> notCollected { get; set; } = new();
 	}
 
-	public class DownloadJobFile
+	public class DownloadJobArchive
 	{
 		public string name { get; set; } = string.Empty;
 		public long size { get; set; }
@@ -70,7 +70,7 @@ namespace Dirigent
 		public DateTime? finished { get; set; }
 		public string machine { get; set; } = string.Empty;
 		public DownloadRequest request { get; set; } = new();
-		public List<DownloadJobFile> files { get; set; } = new();
+		public List<DownloadJobArchive> archives { get; set; } = new();
 		public List<string> errors { get; set; } = new();
 		public List<string> notCollected { get; set; } = new();
 
@@ -92,7 +92,7 @@ namespace Dirigent
 	/// <remarks>
 	/// A job is `&lt;ArchiveFolder&gt;\&lt;guid&gt;\` holding `job.json` and what DownloadZipped made. The
 	/// guid is the instance id of the script doing the collection. Starting, killing and the ticking
-	/// belong to the master thread; reading a job (status, files, listing) is safe from any thread,
+	/// belong to the master thread; reading a job (status, archives, listing) is safe from any thread,
 	/// because job.json is only ever replaced whole.
 	/// </remarks>
 	public class DownloadJobs
@@ -306,7 +306,7 @@ namespace Dirigent
 							if( result is not null )
 							{
 								record.machine = string.IsNullOrEmpty( result.DownloadMachine ) ? record.machine : result.DownloadMachine;
-								record.files = result.Files.Select( f => Path.GetFileName( f ) ).ToList();
+								record.archives = result.Files.Select( f => Path.GetFileName( f ) ).ToList();
 								record.errors = result.Errors;
 								record.notCollected = result.NotCollected;
 							}
@@ -406,15 +406,15 @@ namespace Dirigent
 				view.progress = 1.0;
 			}
 
-			foreach( var name in record.files )
+			foreach( var name in record.archives )
 			{
 				var path = Path.Combine( folder, name );
 
-				var file = new DownloadJobFile()
+				var file = new DownloadJobArchive()
 				{
 					name = name,
 					size = File.Exists( path ) ? new FileInfo( path ).Length : 0,
-					url = $"/api/downloads/{id}/files/{Uri.EscapeDataString( name )}",
+					url = $"/api/downloads/{id}/archives/{Uri.EscapeDataString( name )}",
 					localPath = path,
 				};
 
@@ -424,7 +424,7 @@ namespace Dirigent
 					catch( Exception e ) { file.uncError = Tools.JustFirstLine( e.Message ); }
 				}
 
-				view.files.Add( file );
+				view.archives.Add( file );
 			}
 
 			return view;
@@ -441,13 +441,13 @@ namespace Dirigent
 
 			var view = Get( id ) ?? throw new DownloadJobException( EDownloadJobProblem.NotFound, $"No download {id}." );
 
-			// first, because a running job has no files listed yet: asking for one of them is "not yet", not "no such file"
+			// first, because a running job has no archives listed yet: asking for one of them is "not yet", not "no such file"
 			if( view.status == "Running" )
 				throw new DownloadJobException( EDownloadJobProblem.Conflict, $"Download {id} is still running." );
 
 			// only what the job says it made; a name with a path in it can never be one of those
 			if( string.IsNullOrEmpty( name ) || name != Path.GetFileName( name )
-				|| !view.files.Any( f => string.Equals( f.name, name, StringComparison.Ordinal ) ) )
+				|| !view.archives.Any( f => string.Equals( f.name, name, StringComparison.Ordinal ) ) )
 				throw new DownloadJobException( EDownloadJobProblem.NotFound, $"Download {id} has no file '{name}'." );
 
 			var path = Path.Combine( FolderOf( id ), name );

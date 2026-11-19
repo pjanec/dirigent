@@ -687,7 +687,7 @@ namespace Dirigent.Commands
 			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
 			Tools.TryGetValueIgnoreKeyCase( options, "app", out var app );
 
-			var query = new Web.FileDefFilesQuery( ctrl, _id, machine, app );
+			var query = Web.FileDefFilesQuery.Prepare( ctrl, _id, machine, app ); // master thread: finds the definitions
 			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync( includeContent ) );
 		}
 
