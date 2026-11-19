@@ -56,7 +56,7 @@ A package worth collecting is rarely only logs. The the example site packages ho
 *and* their configuration files, and a single archive containing both is the point.
 
 Deleting a configuration file must be impossible - not "unlikely", not "only if the action names
-it". So the permission lives on the node, and it is off by default:
+it". So the permission lives on the file definition, and it is off by default:
 
 ```xml
 <File   Id="log" Title="Log/RenderHost" Path="C:\Apps\Site\Render\Logs\Manager"
@@ -68,8 +68,8 @@ it". So the permission lives on the node, and it is off by default:
 `Clearable="0"` (the default) means the file is never cleared and never marked, whatever any
 action, package or argument says. `cfg.dds` above cannot be destroyed by any click.
 
-When every log node carries `Clearable="1"` and the same limits, put them in a `<FileTemplate>` and
-write `Template="..."` on the nodes - see [File templates](Files.md#node-templates). Nodes
+When every log file definition carries `Clearable="1"` and the same limits, put them in a `<FileTemplate>` and
+write `Template="..."` on the file definitions - see [File templates](Files.md#file-templates). File definitions
 without the template keep the safe default.
 
 **It gates marking as well as clearing, and that is deliberate.** Marking looks harmless, but
@@ -87,7 +87,7 @@ be emptied may also have a line drawn under it, and a file that may not is alway
 | configuration file | `0` (default) | it is the run's input, not its output |
 | a file somebody may need whole | `0` | the default protects it |
 
-The cost is honest: every log node needs the attribute, and a real site's config declares about thirty
+The cost is honest: every log file definition needs the attribute, and a real site's config declares about thirty
 of them. Declaring it in an `<AppTemplate>` covers every app using the template at once.
 
 ## The three operations
@@ -159,7 +159,7 @@ On each machine, in a small JSON file beside the agent status file - `--agentSta
 existed as a seam, so marks survive an agent restart and a test can isolate them. They have to live
 on the machine because that is where the files are and where the collecting slave runs.
 
-Keyed by **path**, not by node or package, so that "mark, then collect" holds however the collection
+Keyed by **path**, not by file definition or package, so that "mark, then collect" holds however the collection
 is assembled. Two people marking overlapping packages means the later mark wins; harmless, and every
 entry header states the mark's time, so it is never a mystery which run a file was cut for.
 
@@ -186,12 +186,12 @@ cases the bytes cannot (a file shorter than its mark has nothing to compare).
 
 Nothing new was needed for the menus; the actions ride the paths the download already used.
 
-* **A node's context menu** - the actions declared on the package, so Clear / Mark / Unmark appear
+* **A file definition's context menu** - the actions declared on the package, so Clear / Mark / Unmark appear
   beside Download.
 * **The main menu** - a `<FileRef Id="pkg.run"/>` under `<MainMenu>` is rendered by the same
   builder, so the package becomes a submenu and its actions the items:
   `File -> Logs -> Test run -> Clear / Mark / Unmark / Download`.
-* **The Files tab** - each row's menu is built from that node's actions, which is how Download
+* **The Files tab** - each row's menu is built from that file definition's actions, which is how Download
   appears there. Adding the three scripts to `DefaultFileActions` and `DefaultFilePackageActions`
   in `LocalConfig.xml` puts them on every row, with no code.
 * **Progress and completion** - each operation appears in the status bar of the GUI that started
@@ -200,7 +200,7 @@ Nothing new was needed for the menus; the actions ride the paths the download al
 
 ```mermaid
 flowchart TD
-    A[Clear or Mark on a package] --> B{node Clearable?}
+    A[Clear or Mark on a package] --> B{definition Clearable?}
     B -- no --> S[skipped, counted in the report]
     B -- yes --> C{operation}
     C -- Mark --> M[record length, creation time<br/>and the bytes before the mark]
@@ -215,10 +215,11 @@ flowchart TD
 The two clicks are for somebody sitting at the GUI. A `System Start` plan can draw the line by
 itself, so that every start of the system is a run boundary and nobody has to remember:
 
+<!-- example: loads -->
 ```xml
 <App AppIdTuple = "master.mark_logs"
      ExeFullPath = "[dirigent.command]"
-     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}' ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
      Volatile = "1"
      InitCondition = "cliresponse any"
 />
@@ -250,8 +251,8 @@ See [Running a script as a step of a plan](ScriptsInPlans.md) for how the waitin
 * **Called `Clearable`, though it governs marking too.** `Resettable` described the widened meaning
   more literally, but `Clearable` reads better beside `ClearFiles` and is the name the operation is
   known by. The wider meaning is documented at the flag instead of encoded in its name.
-* **`Clearable` on the node, not a list on the action.** The first proposal had the Clear action
-  naming which node ids to reset, which is one line instead of thirty attributes - but it made
+* **`Clearable` on the file definition, not a list on the action.** The first proposal had the Clear action
+  naming which file definition ids to reset, which is one line instead of thirty attributes - but it made
   safety a property of every action that would ever be written, rather than of the file. A config
   survives a badly written action; it does not survive a badly written action plus a click.
 * **No separate operation for dumps.** A dump folder marked `Clearable="1"` is cleared by Clear,
@@ -260,7 +261,7 @@ See [Running a script as a step of a plan](ScriptsInPlans.md) for how the waitin
   would put the reset item and the download item in different menus, which is the two-operation
   feel this design exists to avoid. Nesting stays useful for composing collections.
 * **Unmark ignores `Clearable`,** unlike the other two. It only ever removes a mark, which can only
-  make a later collection more complete; refusing it on a node whose `Clearable` was taken away
+  make a later collection more complete; refusing it on a file definition whose `Clearable` was taken away
   after it had been marked would leave that mark in place with no way of getting rid of it.
 
 ## Found while building it
@@ -273,7 +274,7 @@ See [Running a script as a step of a plan](ScriptsInPlans.md) for how the waitin
   file that has been emptied is cleared either way. Deleting on top of that only keeps the folder
   tidy.
 * **The `Args` patterns have to match the title as well as the id.** A `<FileRef Id="log"
-  MachineId="*" AppId="*"/>` matching several nodes resolves to a folder carrying the reference's id
+  MachineId="*" AppId="*"/>` matching several file definitions resolves to a folder carrying the reference's id
   as its **title** and no id of its own, so `Args="log"` found nothing at all until both were
   matched.
 * **Two downloads of one package in the same minute collided.** The archive name carries the time to
@@ -294,7 +295,7 @@ damaged store meaning "no marks", and the cut landing on a line boundary.
 
 At tier 1 (`MarkAndClearTests`, 10 tests): mark, append, collect, and the archive holding only the
 new lines while the non-clearable config arrives whole in the same archive; the entry header; a
-locked file marked rather than cleared while a free one is really deleted; a non-clearable node
+locked file marked rather than cleared while a free one is really deleted; a non-clearable file definition
 skipped and counted; `Unmark` restoring the full history; `Args` narrowing the set; a file replaced
 between mark and collect arriving whole with the note; the `Since` line in `_comment.txt`; marking
 twice moving the line forward; and a second download of the same run yielding the same window.

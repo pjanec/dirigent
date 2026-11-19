@@ -287,7 +287,7 @@ One client, as above. (CLI: [`GetClientState`](CLI.md#GetClientState).) Unknown 
 ## Files and downloads
 
 How files, folders and packages are declared, resolved and limited is explained in [Files](Files.md): the
-[node types](Files.md#Node-types), [how they belong to an app, machine or nothing](Files.md#Association-app-machine-or-global),
+[node types](Files.md#File-definition-types), [how they belong to an app, machine or nothing](Files.md#Association-app-machine-or-global),
 [how they are resolved](Files.md#Resolution), [`TailBytes`](Files.md#Files-too-big-to-collect-whole) for very big logs, and
 [UNC paths and file shares](Files.md#UNC-paths-and-file-shares) - the `uncPath` in the answers below exists only where the
 machine's `<Share>` covers the file ([machine definitions](SharedConfig.md#Machine-definitions)). Collecting logs from several

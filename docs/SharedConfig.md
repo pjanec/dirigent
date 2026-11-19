@@ -47,7 +47,7 @@ The file defines
 * Plans and apps inside them
 * Scripts
 * `<AppTemplate>` elements - default settings for apps, named by the `Template` attribute of an app (or of another template)
-* `<FileTemplate>` elements - default attributes for file nodes (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`), named by their `Template` attribute; see [File templates](Files.md#node-templates)
+* `<FileTemplate>` elements - default attributes for file nodes (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`), named by their `Template` attribute; see [File templates](Files.md#file-templates)
 
 ```
 <Shared>
@@ -60,12 +60,12 @@ The file defines
     <Plan ... >
         <App ... />
         <App ... />
-    <Plan/>  
+    </Plan>
 
     <Plan ... >
         <App ... />
         <App ... />
-    <Plan/>
+    </Plan>
     <KillAll/>
 </Shared>
 ```
@@ -106,6 +106,7 @@ Waking is done from the GUI (Machines tab, right click, Power, Wake Up - offered
 On a large site most machines share the same `<Share>`s and the same machine-wide log and configuration nodes. They are written once
 in a `<MachineTemplate>` and used with `Template=` on each `<Machine>`:
 
+<!-- example: loads -->
 ```xml
 <FileTemplate Name="log.dirigent" Id="log.dirigent" Title="Log/Dirigent agent" Path="C:\Dirigent\logs" Mask="*.log"/>
 
@@ -161,6 +162,7 @@ See also [File templates](Files.md#File-templates) for the attributes repeated o
 
 Example:
 
+<!-- example: loads -->
 ```xml
 <App
      AppIdTuple = "m1.a"
@@ -231,6 +233,7 @@ App sub-sections:
 
 - `SoftKill`
 
+<!-- example: loads -->
   ```xml
   <SoftKill>
      <Keys Timeout="1.5" Keys="^(c)"/>
@@ -276,6 +279,7 @@ App sub-sections:
 
 - `WindowPos`
 
+<!-- example: loads -->
   ```xml
   <WindowPos TitleRegExp="\s-\sNotepad" Rect="10,50,300,200" Screen="1" Keep="0" /> 
   ```
@@ -334,10 +338,11 @@ The value is mandatory:
 | `cliresponse ok` | initialized once the answer arrives and **every** command of the line succeeded. A failure leaves the step uninitialized, so its dependants never start and the plan reports a failure. |
 | `cliresponse any` | initialized once the answer arrives, whatever it says. The command is waited for, a failure is logged, and the plan carries on. |
 
+<!-- example: loads -->
 ```xml
 <App AppIdTuple = "master.mark_logs"
      ExeFullPath = "[dirigent.command]"
-     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+     CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}' ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
      Volatile = "1"
      InitCondition = "cliresponse any"
 />
@@ -349,6 +354,7 @@ Notes:
 * a command that answers as soon as it is accepted (most of them) makes this an immediate initialization; the waiting comes from the command, e.g. [`WaitForScript`](CLI.md#waitforscript), which answers only when the script is over;
 * nothing bounds the waiting by itself. Where a ceiling is wanted, combine the detectors - the first one satisfied wins:
 
+<!-- example: loads -->
   ```xml
   <InitDetectors>
       <cliresponse>any</cliresponse>
@@ -358,6 +364,7 @@ Notes:
 
 - `Env`
 
+<!-- example: loads -->
   ```xml
   <Env>
     <Set Variable="TMP" Value="C:\TEMP" />
@@ -381,6 +388,7 @@ Notes:
 
 - `Restarter`
 
+<!-- example: loads -->
   ```xml
   <Restarter maxTries="2" delay="5"/>
   ```
@@ -466,6 +474,7 @@ App element have same format and meaning as the "standalone" `<App/>` elements d
 
 Example:
 
+<!-- example: loads -->
 ```xml
 <Script Name="Demo1" File="Scripts/DemoScript1.cs" Args="" />
 ```
@@ -486,6 +495,7 @@ This optional section lists the action taken when a [KillAll](CLI.md#KillAll) co
 
 Example:
 
+<!-- example: loads -->
 ```xml
 <KillAll>
     <!-- HostId is mandatory. The tool needs to be defined in LocalConfig.xml on that host. -->

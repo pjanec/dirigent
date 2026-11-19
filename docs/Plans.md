@@ -84,18 +84,19 @@ An application of a plan can be a Dirigent command rather than a program -
 for that command before launching whatever depends on it. The case it exists for is drawing a line
 under the log files before the applications start writing to them:
 
+<!-- example: loads -->
 ```xml
 <Plan Name="System Start">
 
     <App AppIdTuple = "master.mark_logs"
          ExeFullPath = "[dirigent.command]"
-         CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs ""'{Node:{Id:''pkg.run''}}'"" ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
+         CmdLineArgs = "StartScript 7B3C1E90-1111-2222-3333-444455556666 BuiltIns/MarkFiles.cs '{Node:{Id:''pkg.run''}}' ; WaitForScript 7B3C1E90-1111-2222-3333-444455556666 timeout=300"
          Volatile = "1"
          InitCondition = "cliresponse any"
     />
 
-    <App AppIdTuple="m1.camera"   Dependencies="master.mark_logs" ... />
-    <App AppIdTuple="m2.recorder" Dependencies="master.mark_logs" ... />
+    <App AppIdTuple="m1.camera"   ExeFullPath="C:\apps\camera.exe"   Dependencies="master.mark_logs"/>
+    <App AppIdTuple="m2.recorder" ExeFullPath="C:\apps\recorder.exe" Dependencies="master.mark_logs"/>
 
 </Plan>
 ```
@@ -151,16 +152,21 @@ App started from a plan uses the settings from the app record defined inside the
 
 The same app can be started with different settings from different plans - each plan defines its own settings for an app.
 
+<!-- example: loads -->
 ```xml
-<SharedConfig>
+<Shared>
   <Plan Name="plan1">
-    <AppDef AppIdTuple="Machine1.App1">
+    <App AppIdTuple="Machine1.App1" ExeFullPath="C:\apps\app1.exe"/>
+  </Plan>
+</Shared>
 ```
 
 A free app is an app whose settings are defined outside of any plan.  
+<!-- example: loads -->
 ```xml
-<SharedConfig>
-  <AppDef AppIdTuple="Machine1.App1">
+<Shared>
+  <App AppIdTuple="Machine1.App1" ExeFullPath="C:\apps\app1.exe"/>
+</Shared>
 ```
 
 An app can be defined in multiple plans or also as a free app.

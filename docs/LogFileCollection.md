@@ -26,6 +26,7 @@ requestor can open.
 
 **Example Machine Configuration:**
 
+<!-- example: loads -->
 ```xml
 <Machine Name="station1" IP="192.168.1.100">
     <!-- File shares for UNC path conversion -->
@@ -56,6 +57,7 @@ requestor can open.
 machine the download goes to. Those copies travel through a share of the **requestor's** machine,
 so that machine needs a `<Share>` covering its download folder - typically the whole drive:
 
+<!-- example: loads -->
 ```xml
 <!-- the machine the operator's GUI runs on -->
 <Machine Name="operator1" IP="192.168.1.50">
@@ -82,7 +84,7 @@ Each approach has its use cases:
 - **Machine-Scoped**: Best when collecting all logs from a machine regardless of app
 - **Global-Scoped**: Best for centralized log file definitions
 
-They mix freely - one package can reference nodes declared in all three places.
+They mix freely - one package can reference file definitions declared in all three places.
 
 ## Step-by-Step Examples
 
@@ -92,6 +94,7 @@ Define log files within each application, then collect them using a FilePackage.
 
 #### Step 1: Define Log Files in Each App
 
+<!-- example: loads -->
 ```xml
 <App AppIdTuple="station1.webapp" ExeFullPath="C:\Apps\webapp.exe">
     <File Id="webapp_log" Path="C:\Logs\webapp.log"/>
@@ -110,7 +113,7 @@ Define log files within each application, then collect them using a FilePackage.
 </App>
 ```
 
-Nodes declared in an `<App>` inherit that app's machine and app id, so `webapp_log` above exists
+File definitions declared in an `<App>` inherit that app's machine and app id, so `webapp_log` above exists
 twice - once bound to `station1.webapp`, once to `station2.webapp`. That is what makes collecting
 both with a single reference possible.
 
@@ -156,6 +159,7 @@ declaration site*, which inside an `<App>` element narrows the reference down to
 A `<FilePackage>` declared at the top level of `<Shared>` is in the registry but in **no menu**.
 Put it in the GUI's main menu bar to be able to click it:
 
+<!-- example: loads -->
 ```xml
 <MainMenu>
     <FileRef Title="File/Logs/All production logs" Id="all_production_logs"/>
@@ -173,6 +177,7 @@ Define log files at the machine level, useful for collecting all logs from a mac
 
 #### Step 1: Define Log Files in Machine Sections
 
+<!-- example: loads -->
 ```xml
 <Machine Name="station1" IP="192.168.1.100">
     <Share Name="C" Path="C:\"/>
@@ -217,7 +222,7 @@ Two different mechanisms are at work here, and they are easy to mix up:
     <FileRef Id="newest_logs" MachineId="station2" AppId="*"/>
 </FilePackage>
 
-<!-- or every machine that declares such a node, current and future -->
+<!-- or every machine that declares such a definition, current and future -->
 <FilePackage Id="all_machine_logs" Title="Logs/All machines">
     <FileRef Id="newest_logs" MachineId="*" AppId="*"/>
 </FilePackage>
@@ -232,6 +237,7 @@ Define log files globally, then reference them selectively.
 
 #### Step 1: Define Global Log Files
 
+<!-- example: loads -->
 ```xml
 <!-- Global log file definitions -->
 <File Id="webapp_log_station1" MachineId="station1" Path="C:\Logs\webapp.log"/>
@@ -241,7 +247,7 @@ Define log files globally, then reference them selectively.
 ```
 
 The `MachineId` matters: it says on whose file system the path is to be resolved. A top-level
-`<File>` **without** it is a global node and must be given a UNC path - the config reader rejects
+`<File>` **without** it is a global file definition and must be given a UNC path - the config reader rejects
 a plain local one.
 
 #### Step 2: Create Selective FilePackages
@@ -265,17 +271,18 @@ a plain local one.
 
 Repeating the same `<File>` in every `<App>` is what `<AppTemplate>` exists to avoid. The
 template is parsed once per app that uses it, with that app's ids, so one declaration yields one
-correctly bound node per app:
+correctly bound file definition per app:
 
+<!-- example: loads -->
 ```xml
-<AppTemplate Name="apps.base">
+<AppTemplate Name="apps.base" ExeFullPath="C:\apps\app.exe">
     <File Id="log" Title="Recent logs" Path="%APP_STARTUPDIR%\logs"
           Mask="*.log" Filter="Newest" MaxFiles="10" MaxSeconds="172800"/>
 </AppTemplate>
 
-<App AppIdTuple="station1.webapp"   Template="apps.base" ExeFullPath="..." StartupDir="C:\apps\webapp"/>
-<App AppIdTuple="station1.database" Template="apps.base" ExeFullPath="..." StartupDir="C:\apps\db"/>
-<App AppIdTuple="station2.webapp"   Template="apps.base" ExeFullPath="..." StartupDir="E:\apps\webapp"/>
+<App AppIdTuple="station1.webapp"   Template="apps.base" StartupDir="C:\apps\webapp"/>
+<App AppIdTuple="station1.database" Template="apps.base" StartupDir="C:\apps\db"/>
+<App AppIdTuple="station2.webapp"   Template="apps.base" StartupDir="E:\apps\webapp"/>
 
 <FilePackage Id="logs.all" Title="Logs/All apps (2 days)">
     <FileRef Id="log" MachineId="*" AppId="*"/>
@@ -287,14 +294,14 @@ system.
 
 ### Using Wildcards in FileRef
 
-You can use wildcard patterns to match multiple nodes by ID:
+You can use wildcard patterns to match multiple file definitions by ID:
 
 ```xml
 <FilePackage Id="all_newest_logs" Title="Logs/Newest">
-    <!-- Match all nodes with IDs starting with "newest" -->
+    <!-- Match all definitions with IDs starting with "newest" -->
     <FileRef Id="newest*" MachineId="*" AppId="*"/>
 
-    <!-- Match all log nodes from station1 -->
+    <!-- Match all log definitions from station1 -->
     <FileRef Id="*_log" MachineId="station1" AppId="*"/>
 </FilePackage>
 ```
@@ -316,7 +323,7 @@ An empty `MachineId` or `AppId` in a `FileRef` matches any value, exactly like `
 </FilePackage>
 ```
 
-Both `""` and `*` also match nodes whose field is unset - a machine-scoped node has no app id, and
+Both `""` and `*` also match file definitions whose field is unset - a machine-scoped file definition has no app id, and
 is still found by `AppId=""` or `AppId="*"`. A concrete pattern such as `webapp` never matches an
 unset field.
 
@@ -324,6 +331,7 @@ unset field.
 
 Collect multiple files using folder definitions with glob-style masks:
 
+<!-- example: loads -->
 ```xml
 <FilePackage Id="comprehensive_logs" Title="Logs/Everything on station1">
     <!-- All .log files in the whole tree (a mask without a separator applies at any depth) -->
@@ -341,8 +349,8 @@ Collect multiple files using folder definitions with glob-style masks:
 </FilePackage>
 ```
 
-These `<Folder>` nodes are written *inside* the package, which is fine as content but leaves them
-unreferenceable - only nodes declared directly under `<Shared>`, `<Machine>`, `<App>` or
+These `<Folder>` definitions are written *inside* the package, which is fine as content but leaves them
+unreferenceable - only file definitions declared directly under `<Shared>`, `<Machine>`, `<App>` or
 `<AppTemplate>` can be found by a `<FileRef>`.
 
 ### Asking the Operator Why
@@ -369,7 +377,7 @@ A tester who can reproduce an issue wants the logs of *that run*, not of the who
 **Clear** before the run, **Download** after it.
 
 ```xml
-<AppTemplate Id="station_app">
+<AppTemplate Name="station_app" ExeFullPath="C:\Apps\app.exe">
     <!-- Clearable="1" is what allows the log to be emptied or marked. Without it the file is
          always collected whole - which is what a config file wants, and a log does not. -->
     <File Id="app_log" Title="Logs/Application" Path="%APP_STARTUPDIR%\Logs"
@@ -424,6 +432,7 @@ A logger that never rotates grows one file to tens of gigabytes, which no downlo
 `TailBytes` collects only the end of such a file - which is the part an investigation wants
 anyway:
 
+<!-- example: loads -->
 ```xml
 <Machine Name="station1" IP="192.168.1.100">
     <Share Name="C" Path="C:\"/>
@@ -449,6 +458,7 @@ Rotation itself is the producing application's job - Dirigent takes the files as
 
 Use the `Filter="Newest"` attribute to collect only the most recent files of one folder:
 
+<!-- example: loads -->
 ```xml
 <Machine Name="station1" IP="192.168.1.100">
     <Share Name="C" Path="C:\"/>
@@ -464,8 +474,8 @@ Use the `Filter="Newest"` attribute to collect only the most recent files of one
 </Machine>
 ```
 
-With `MaxFiles="1"` the node resolves to a single file, with more to a virtual folder named after
-the node's `Title`.
+With `MaxFiles="1"` the file definition resolves to a single file, with more to a virtual folder named after
+the file definition's `Title`.
 
 ### Organizing with Virtual Folders
 
@@ -497,6 +507,7 @@ becomes a folder name inside the downloaded ZIP:
 **Scenario**: Collect logs from the `webapp` and `database` apps running on `station1` and
 `station2`, but not from other apps.
 
+<!-- example: loads -->
 ```xml
 <Shared>
     <!-- Machine definitions with shares -->
@@ -558,6 +569,7 @@ than listing the machines one by one.
 **Scenario**: Collect all log files from `station1` and `station2`, regardless of which app
 created them.
 
+<!-- example: loads -->
 ```xml
 <Shared>
     <Machine Name="station1" IP="192.168.1.100">
@@ -608,6 +620,7 @@ if the folder is one that keeps filling up.
 **Scenario**: Collect only recent log files (from the last hour) from specific apps on multiple
 stations.
 
+<!-- example: loads -->
 ```xml
 <Shared>
     <Machine Name="station1" IP="192.168.1.100">
@@ -654,6 +667,7 @@ stations.
 
 **Scenario**: Collect all logs matching a naming pattern from multiple stations.
 
+<!-- example: loads -->
 ```xml
 <Shared>
     <Machine Name="station1" IP="192.168.1.100">
@@ -695,7 +709,7 @@ stations.
 3. **Bound the Result**: Use `Filter="Newest"` with `MaxFiles` / `MaxSeconds`, or a `<Folder>` with
    `MaxFiles` / `MaxSeconds` / `MaxTotalBytes`, so that a full log folder cannot turn into a
    gigabyte-sized download. Note `MaxTotalBytes` works on `<Folder>` only - on a `Filter="Newest"`
-   node it is ignored without a word, so bound that one with `MaxFiles`.
+   file definition it is ignored without a word, so bound that one with `MaxFiles`.
 
 4. **Expect the Unrotated Log**: One file that grew to gigabytes is the usual reason a collection
    becomes untransferable. `TailBytes` keeps it collectable; see
@@ -712,7 +726,7 @@ stations.
 
 7. **Prefer Variables to Relative Paths**: `%APP_STARTUPDIR%`, `%APP_BINDIR%`, `%MACHINE_ID%`,
    `%DOWNLOADS%` and the app's own environment variables are all expanded on the machine owning
-   the node. A *relative* path is **not** taken against the app's folder - it is resolved against
+   the file definition. A *relative* path is **not** taken against the app's folder - it is resolved against
    the root for relative paths (by default the folder holding `SharedConfig.xml`).
 
 8. **Test the Shares**: Before relying on a path, open `\\{IP}\{ShareName}\{path}` in Explorer from
@@ -727,16 +741,16 @@ stations.
 
 - A `<FilePackage>` at the top level of `<Shared>` appears in no menu on its own - reference it
   from `<MainMenu>`, or declare it there directly
-- Nodes declared under a `<Machine>` appear in that machine's context menu, nodes under an `<App>`
+- File definitions declared under a `<Machine>` appear in that machine's context menu, file definitions under an `<App>`
   in that app's
 
 ### Empty or Incomplete Package
 
-- Check that the `FileRef` ids match the ids of actually declared nodes (wildcards allowed)
+- Check that the `FileRef` ids match the ids of actually declared file definitions (wildcards allowed)
 - Check `MachineId` / `AppId`: **omitting** them means *inherited from the declaration site*, not
   *any*. Write `MachineId="*" AppId="*"` to broaden the search
-- Only nodes declared **directly** under `<Shared>`, `<Machine>`, `<App>` or `<AppTemplate>` can be
-  found by a `<FileRef>`; a node nested inside another container cannot
+- Only file definitions declared **directly** under `<Shared>`, `<Machine>`, `<App>` or `<AppTemplate>` can be
+  found by a `<FileRef>`; a file definition nested inside another container cannot
 - An unmatched reference, and a `Filter="Newest"` folder holding nothing, resolve to nothing
   silently - no error is reported
 - The order of declarations does not matter; the whole config is read before anything is resolved
@@ -745,15 +759,15 @@ stations.
 
 That file is the collection telling you what it could not include in full, and it names each case:
 
-- a file over the `MaxTotalBytes` budget of its node - it was passed over, and the files behind it
+- a file over the `MaxTotalBytes` budget of its file definition - it was passed over, and the files behind it
   were still collected. Raise the budget, or set `TailBytes` so a big file costs only its tail
 - a file truncated by `TailBytes` - expected; the entry named `*.last<size>*` holds its end
 
 ### A Log Still Holds Yesterday's Lines After a Clear
 
-The node is missing `Clearable="1"`, and Clear passed over it - by design, so that a config file
+The file definition is missing `Clearable="1"`, and Clear passed over it - by design, so that a config file
 can share the package. The closing message box says how many files were skipped for exactly this
-reason. Add the attribute to the log nodes only.
+reason. Add the attribute to the log file definitions only.
 
 If the file *is* clearable and the message says it was **marked** instead of cleared, that is the
 normal outcome for a log the application is holding open: the collection will still deliver only
@@ -762,9 +776,9 @@ the new lines.
 ### Files Not Found
 
 - Verify that the paths exist on the target machines, and that the variables expand to what you
-  expect - they are expanded on the machine owning the node, using that machine's agent environment
-- `Machine <id> not connected.` means the agent owning the node is down - Dirigent cannot resolve
-  the node without it, and *Download zipped* skips such machines
+  expect - they are expanded on the machine owning the file definition, using that machine's agent environment
+- `Machine <id> not connected.` means the agent owning the file definition is down - Dirigent cannot resolve
+  the file definition without it, and *Download zipped* skips such machines
 
 ### UNC Path Issues
 
