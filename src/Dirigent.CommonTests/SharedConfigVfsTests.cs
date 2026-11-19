@@ -833,6 +833,30 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void PlanMarkFilesAndClearFilesNameFileDefinitionsTest()
+		{
+			const string files = "<File Id='a.log' Title='A' MachineId='m1' Path='C:/a.log' Clearable='1'/><File Id='b.log' Title='B' MachineId='m1' Path='C:/b.log' Clearable='1'/>";
+
+			// lists are semicolon separated, trimmed, empties ignored; a wildcard may name several
+			var cfg = Parse( "<Shared>" + files + "<Plan Name='p' MarkFiles=' a.log ; ;b.* ' ClearFiles='a.log' MarkTimeout='45'><App AppIdTuple='m1.a' ExeFullPath='x'/></Plan></Shared>" );
+			var p = cfg.Plans.Single( x => x.Name == "p" );
+			CollectionAssert.AreEqual( new[] { "a.log", "b.*" }, p.MarkFiles );
+			CollectionAssert.AreEqual( new[] { "a.log" }, p.ClearFiles );
+			Assert.AreEqual( 45.0, p.MarkTimeout );
+
+			// without the attributes a plan marks nothing and has the default time
+			var plain = Parse( "<Shared><Plan Name='q'><App AppIdTuple='m1.a' ExeFullPath='x'/></Plan></Shared>" ).Plans.Single();
+			Assert.IsFalse( plain.HasMarking );
+			Assert.AreEqual( PlanDef.DefaultMarkTimeout, plain.MarkTimeout );
+
+			// an id that matches no file definition is a load error that says which plan and attribute
+			AssertConfigError( "<Shared>" + files + "<Plan Name='p' MarkFiles='a.log;nosuch'><App AppIdTuple='m1.a' ExeFullPath='x'/></Plan></Shared>",
+				"Plan 'p': MarkFiles 'nosuch' matches no file definition" );
+			AssertConfigError( "<Shared>" + files + "<Plan Name='p' ClearFiles='zz*'><App AppIdTuple='m1.a' ExeFullPath='x'/></Plan></Shared>",
+				"Plan 'p': ClearFiles 'zz*' matches no file definition" );
+		}
+
+		[TestMethod()]
 		public void MachineTemplateLoadErrorsNameTheProblemTest()
 		{
 			string Fail( string xml ) => Assert.ThrowsException<ConfigurationErrorException>( () => Parse( xml ) ).Message;

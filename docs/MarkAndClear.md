@@ -219,8 +219,27 @@ flowchart TD
 (A plan step is one way to run the command line; the same commands - `MarkFiles`, `ClearFiles` and the others - are in [CLI](CLI.md#MarkFiles), where they wait for the machines
 themselves, and the HTTP twins are described in [Web API](HTTP.md#POST-apifiledefsidmark).)
 
-The two clicks are for somebody sitting at the GUI. A `System Start` plan can draw the line by
-itself, so that every start of the system is a run boundary and nobody has to remember:
+The two clicks are for somebody sitting at the GUI. A plan can draw the line by itself, so that every
+start of the system is a run boundary and nobody has to remember. The way to do it is to name the file
+definitions on the plan:
+
+<!-- example: loads -->
+```xml
+<Shared>
+  <File Id="pkg.run" Title="Run log" MachineId="m1" Path="C:\logs\run.log" Clearable="1"/>
+  <Plan Name="System Start" MarkFiles="pkg.run" MarkTimeout="45">
+    <App AppIdTuple="m1.camera" ExeFullPath="C:\camera.exe"/>
+  </Plan>
+</Shared>
+```
+
+(`ClearFiles="..."` is the destructive half.) The marking happens when the plan starts, before the first
+app is launched; a marking that fails or takes longer than `MarkTimeout` never fails the plan. All of the
+rules - Stop, Restart, Kill All - are in
+[Marking or clearing files when a plan starts](Plans.md#marking-or-clearing-files-when-a-plan-starts).
+
+The lower-level alternative is a plan step that runs the command line itself, which allows a different
+order or timeout per plan step:
 
 <!-- example: loads -->
 ```xml

@@ -1077,9 +1077,18 @@ namespace Dirigent
 				}
 			}
 
-			// kill all running scripts
+			// kill all running scripts - except the marking a plan is doing as it starts: that finishes, bounded by the plan's
+			// MarkTimeout. A second Kill All while the first is still going is the emergency stop and takes those too: the
+			// master script of each marking is killed, and it stops its slaves itself.
+			if( alreadyInProgress )
+			{
+				foreach( var id in PlanOwnedScripts.Masters() )
+					KillScript( requestorId, id );
+			}
+
 			foreach( var (id, state) in _reflScripts.GetAllScriptsState() )
 			{
+				if( PlanOwnedScripts.Contains( id ) ) continue;
 				KillScript( requestorId, id );
 			}
 

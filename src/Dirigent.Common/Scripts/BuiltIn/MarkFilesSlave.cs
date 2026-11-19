@@ -123,8 +123,12 @@ namespace Dirigent.Scripts.BuiltIn
 		FileMarkStore? _marks;
 		TResult _result = new();
 
-		protected override Task<string?> Run()
+		protected override async Task<string?> Run()
 		{
+			// a test can make the machine slow, to have a marking that is still under way when it matters
+			if( int.TryParse( Environment.GetEnvironmentVariable( "DIRIGENT_TEST_MARK_DELAY_MS" ), out var delayMs ) && delayMs > 0 )
+				await Task.Delay( delayMs, CancellationToken );
+
 			_args = Tools.Deserialize<TArgs>( Args );
 			if( _args is null ) throw new NullReferenceException( "Args == null" );
 			if( _args.Container is null ) throw new ArgumentException( "No files given." );
@@ -142,7 +146,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 			SetStatus( _result.Summary(), null, 1.0 );
 
-			return Task.FromResult( Tools.Serialize( _result ) )!;
+			return Tools.Serialize( _result );
 		}
 
 		void Visit( VfsNodeDef container )

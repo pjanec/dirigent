@@ -81,6 +81,18 @@ namespace Dirigent
 		[MaybeNull] // when constructed without arguments by protobuf
 		public Dictionary<AppIdTuple, PlanAppState> PlanAppStates;
 
+		/// <summary>
+		/// What the plan is doing before it launches anything, in words - "Marking files (pkg.logs)" - and empty
+		/// otherwise. Only plans that mark files on start ever have one.
+		/// </summary>
+		public string Phase = string.Empty;
+
+		/// <summary>When the marking of the current start began (UTC).</summary>
+		public DateTime? MarkStarted;
+
+		/// <summary>What the last marking came to. Null until a plan with marking has marked.</summary>
+		public PlanMarkResult? MarkResult;
+
 		// Add this Clone method
 		public PlanState Clone()
 		{
@@ -96,7 +108,9 @@ namespace Dirigent
 
 			return this.Running == other.Running &&
 				   this.Killing == other.Killing &&
-				   this.OpStatus == other.OpStatus;
+				   this.OpStatus == other.OpStatus &&
+				   this.Phase == other.Phase &&
+				   ( this.MarkResult is null ? other.MarkResult is null : this.MarkResult.Equals( other.MarkResult ) );
 		}
 
 		public override bool Equals(object? obj)
@@ -106,9 +120,33 @@ namespace Dirigent
 
 		public override int GetHashCode()
 		{
-			return HashCode.Combine(Running, Killing, OpStatus);
+			return HashCode.Combine(Running, Killing, OpStatus, Phase);
 		}
 	}
 
+	/// <summary>What the marking a plan does when it starts came to.</summary>
+	public class PlanMarkResult : IEquatable<PlanMarkResult>
+	{
+		public int Marked;
+		public int Cleared;
+		public int Skipped;
+		public int Failed;
+
+		/// <summary>The marking took longer than the plan's MarkTimeout; it was stopped and the apps launched anyway.</summary>
+		public bool TimedOut;
+
+		/// <summary>The marking was stopped before it was done: its script was killed - by a second Kill All, by KillScript.</summary>
+		public bool Cancelled;
+
+		/// <summary>What went wrong, in words: a machine that is not connected, a file that could not be touched.</summary>
+		public List<string> Errors = new List<string>();
+
+		public bool Equals( PlanMarkResult? o )
+			=> o is not null && Marked == o.Marked && Cleared == o.Cleared && Skipped == o.Skipped && Failed == o.Failed
+			&& TimedOut == o.TimedOut && Cancelled == o.Cancelled && Errors.SequenceEqual( o.Errors );
+
+		public override bool Equals( object? obj ) => Equals( obj as PlanMarkResult );
+		public override int GetHashCode() => HashCode.Combine( Marked, Cleared, Skipped, Failed, TimedOut );
+	}
 
 }

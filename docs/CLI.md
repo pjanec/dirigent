@@ -356,6 +356,11 @@ Returns the status of given plan
 
   Response:     `PLAN:plan1:Success`
 
+A plan that [marks files when it starts](Plans.md#marking-or-clearing-files-when-a-plan-starts) appends a JSON field while it is marking and
+once it has: `PLAN:plan1:InProgress:{"phase":"Marking files (pkg.logs)"}`, then
+`PLAN:plan1:Success:{"markResult":{"marked":2,"cleared":0,"skipped":0,"failed":0,"timedOut":false,"cancelled":false,"errors":[]}}`.
+Other plans answer exactly as above.
+
 ### GetAllPlansState
 
 Gathers the status of all plans known to the Dirigent
@@ -742,6 +747,9 @@ Kills all running apps on all computers, stops all plans
   `KillAll` 
 
 If defined in the [KillAll section](SharedConfig.md#KillAll-definitions) of the SharedConfig.xml, it also takes a set of extra actions.
+
+A plan that is [marking files as it starts](Plans.md#marking-or-clearing-files-when-a-plan-starts) is stopped, but its marking is left to finish
+(bounded by the plan's `MarkTimeout`). A second `KillAll` while the first is still going also cuts the marking.
 
 ### ReloadSharedConfig
 

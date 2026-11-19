@@ -30,7 +30,23 @@ namespace Dirigent
 		// update app def of all contained apps when the plan is selected on GUI
 		//[MessagePack.Key( 7 )]
 		public bool ApplyOnSelect;
-		
+
+		/// <summary>
+		/// File definition ids (wildcards allowed) whose clearable files are marked when the plan starts, before the
+		/// first app is launched. Empty = nothing is marked, and the plan behaves exactly as it always did.
+		/// </summary>
+		public List<string> MarkFiles = new List<string>();
+
+		/// <summary>The same, clearing: emptied where possible, marked where not.</summary>
+		public List<string> ClearFiles = new List<string>();
+
+		/// <summary>Seconds the marking may take before the plan carries on without waiting for it.</summary>
+		public double MarkTimeout = DefaultMarkTimeout;
+
+		public const double DefaultMarkTimeout = 60.0;
+
+		public bool HasMarking => MarkFiles.Count > 0 || ClearFiles.Count > 0;
+
 
 		public bool Equals( PlanDef other )
 		{
@@ -40,6 +56,12 @@ namespace Dirigent
 			if( this.Name == other.Name
 					&&
 					this.AppDefs.SequenceEqual( other.AppDefs )
+					&&
+					this.MarkFiles.SequenceEqual( other.MarkFiles )
+					&&
+					this.ClearFiles.SequenceEqual( other.ClearFiles )
+					&&
+					this.MarkTimeout == other.MarkTimeout
 			  )
 				return true;
 			else

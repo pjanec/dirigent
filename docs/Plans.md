@@ -59,6 +59,37 @@ The plan status indicates whether everything went successfully or if there was a
 | Failure     | Some apps have failed to start or to initialize within given time limit. The status will switch from Failure to Success as soon as the app causing the failure finally starts and initializes. |
 | Killing     | Plan is in killing mode where all apps are being closed. As soon as the apps terminate the status goes back to None. |
 
+### Marking or clearing files when a plan starts
+
+A plan can draw the line under the logs of a run itself, so that every start is a run boundary and nobody has to remember:
+
+<!-- example: loads -->
+```xml
+<Shared>
+  <File Id="pkg.logs" Title="Logs" MachineId="m1" Path="C:\logs\run.log" Clearable="1"/>
+  <Plan Name="system" MarkFiles="pkg.logs" MarkTimeout="45">
+    <App AppIdTuple="m1.camera" ExeFullPath="C:\camera.exe"/>
+  </Plan>
+</Shared>
+```
+
+* `MarkFiles` and `ClearFiles` - semicolon separated lists of file definition `Id`s (wildcards allowed, blanks and empty items ignored). A name that matches no file definition is a load error. Only files whose definition says `Clearable="1"` are touched, as with [Mark and Clear](MarkAndClear.md).
+* `MarkTimeout` - seconds the marking may take, 60 by default. Both lists may be given; the clear is run first.
+
+What happens:
+
+* The marking runs when the plan actually starts (not when it is already running), **before the first app is launched**. While it runs the plan is `Running`, its status stays *In Progress*, and its state carries `phase` ("Marking files (pkg.logs)").
+* The plan's `StartTimeout` counts from the moment the apps are launched, not from the start of the marking.
+* When the marking ends the plan state carries `markResult`: how many files were marked, cleared, skipped (not clearable) and failed, the errors, and `timedOut`/`cancelled`. See [`planstates`](HTTP.md#GET-apiplanstates) and [`GetPlanState`](CLI.md#GetPlanState).
+* A marking that fails or does not finish in `MarkTimeout` **never fails the plan**: the operation is stopped, a warning is logged, the result is recorded and the apps are launched. Machines that are not connected are not waited for; the result says so.
+* **Stop** or **Kill** of the plan during the marking launches nothing; the marking is not cut short, it ends by itself (bounded by `MarkTimeout`) and its result is recorded.
+* A **Start** while the marking of the previous start is still going starts no second one; the apps are launched when it ends.
+* **Restart** kills the apps, then marks again as part of its start.
+* The same holds however the plan is started: GUI, CLI, REST or a step of another plan.
+* **Kill All** stops the plan but does **not** cut the marking: it finishes, bounded by `MarkTimeout`, and no app is launched. A **second Kill All** while the first is still going (the emergency stop) does cut it: `markResult.cancelled` is set, the phase is cleared and the plan is not left stuck. A marking whose script is killed any other way (`KillScript`) is recorded as cancelled too. A plan without these attributes is not affected in any way.
+
+A plan without `MarkFiles`/`ClearFiles` behaves exactly as before. For doing it by hand with a plan step, see [Marking from a plan](MarkAndClear.md#marking-from-a-plan).
+
 ### Execution of a launch plan
 
 The application from the plan are initially assigned the state 'not launched'.

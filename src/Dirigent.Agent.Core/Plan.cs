@@ -38,6 +38,19 @@ namespace Dirigent
 
         AppLaunchPlanner? _appLaunchPlanner;
 		PlanRestarter? _restarter;
+
+		/// <summary>The marking this plan began when it started, while it is under way - it outlives a Stop.</summary>
+		class Marking
+		{
+			public List<Web.MarkOperation> Operations = new();
+			public DateTime Started = DateTime.UtcNow;
+			public double TimeoutSec;
+		}
+
+		Marking? _marking;
+
+		/// <summary>The plan is running and waits for its marking to end before it launches the first app.</summary>
+		bool _launchAfterMarking;
 		string _requestorId; // last one who asked for some plan operation
 
 		// extra vars last time used when starting a plan; null = leave same vars as were set for the apps what app were recentyl launched
@@ -56,6 +69,8 @@ namespace Dirigent
 
 		public void Tick()
 		{
+			ProcessMarking();
+
 			// tick restarter
 			if( _restarter != null )
 			{
@@ -126,8 +141,147 @@ namespace Dirigent
 				State.Killing = false;
 				State.TimeStarted = DateTime.UtcNow;
 
-                _appLaunchPlanner = new AppLaunchPlanner( _appsState, this, IsMachineOnline );
+                if( _marking is not null )
+				{
+					// stopped and started again while the marking of the last start is still under way: no second one,
+					// the apps are launched when it ends
+					_launchAfterMarking = true;
+				}
+				else
+				if( Def.HasMarking )
+				{
+					StartMarking();
+				}
+				else
+				{
+					_appLaunchPlanner = new AppLaunchPlanner( _appsState, this, IsMachineOnline );
+				}
             }                    
+		}
+
+		/// <summary>
+		/// Draws the lines under the files the plan names - and launches the apps once that is done, or if it cannot be.
+		/// Marking never fails a plan: whatever goes wrong is recorded and the apps start anyway.
+		/// </summary>
+		void StartMarking()
+		{
+			var marking = new Marking() { TimeoutSec = Def.MarkTimeout };
+			PlanMarkResult? failure = null;
+
+			try
+			{
+				if( Def.ClearFiles.Count > 0 )
+				{
+					var op = Web.MarkOperation.StartForFileDefIds( _master, Web.MarkOperation.EKind.Clear, Def.ClearFiles, string.Join( ";", Def.ClearFiles ), planOwned: true );
+					if( op is not null ) marking.Operations.Add( op );
+				}
+
+				if( Def.MarkFiles.Count > 0 )
+				{
+					var op = Web.MarkOperation.StartForFileDefIds( _master, Web.MarkOperation.EKind.Mark, Def.MarkFiles, string.Join( ";", Def.MarkFiles ), planOwned: true );
+					if( op is not null ) marking.Operations.Add( op );
+				}
+			}
+			catch( Exception e )
+			{
+				log.Warn( $"Plan {Name}: could not start marking the files: {e.Message}" );
+				failure = new PlanMarkResult();
+				failure.Errors.Add( e.Message );
+			}
+
+			if( marking.Operations.Count == 0 )
+			{
+				if( failure is null )
+				{
+					failure = new PlanMarkResult();
+					failure.Errors.Add( "The file definitions named by the plan match nothing." );
+					log.Warn( $"Plan {Name}: the file definitions to mark match nothing." );
+				}
+				State.MarkResult = failure;
+				BeginLaunch();
+				return;
+			}
+
+			_marking = marking;
+			_launchAfterMarking = true;
+			State.Phase = "Marking files (" + string.Join( ", ", marking.Operations.Select( o => o.Selection ) ) + ")";
+			State.MarkStarted = DateTime.UtcNow;
+		}
+
+		/// <summary>The apps may be launched: the plan's time for them to come up counts from now.</summary>
+		void BeginLaunch()
+		{
+			State.TimeStarted = DateTime.UtcNow;
+			_appLaunchPlanner = new AppLaunchPlanner( _appsState, this, IsMachineOnline );
+		}
+
+		/// <summary>
+		/// Follows the marking: when every operation has ended - or the plan's MarkTimeout has - records what it came to and
+		/// lets the apps go. Also for a plan that was stopped meanwhile, which only wants the result.
+		/// </summary>
+		void ProcessMarking()
+		{
+			if( _marking is null ) return;
+
+			var states = _marking.Operations.Select( o => ( Operation: o, State: o.State( _master ) ) ).ToList();
+			var allEnded = states.All( x => x.State is not null && !x.State.IsAlive );
+
+			var timedOut = false;
+			if( !allEnded )
+			{
+				if( ( DateTime.UtcNow - _marking.Started ).TotalSeconds < _marking.TimeoutSec ) return;
+
+				// stop the operations FIRST; the apps are not made to wait for them to say so
+				timedOut = true;
+				foreach( var x in states.Where( x => x.State is null || x.State.IsAlive ) )
+					_master.KillScript( _requestorId, x.Operation.ScriptId );
+			}
+
+			var result = new PlanMarkResult() { TimedOut = timedOut };
+
+			foreach( var (op, st) in states )
+			{
+				PlanOwnedScripts.Remove( op.ScriptId );
+
+				if( st is null || st.IsAlive )
+				{
+					result.Errors.Add( $"{Web.MarkOperation.Word( op.Kind )} of {op.Selection}: not done in {_marking.TimeoutSec:0} s, stopped." );
+					continue;
+				}
+
+				if( st.Status == EScriptStatus.Cancelled )
+				{
+					result.Cancelled = true;
+					result.Errors.Add( $"{Web.MarkOperation.Word( op.Kind )} of {op.Selection}: cancelled - its script was killed." );
+					continue;
+				}
+
+				try
+				{
+					var report = op.ReportOf( st );
+					result.Marked += report.machines.Sum( m => m.marked.Count );
+					result.Cleared += report.machines.Sum( m => m.cleared.Count );
+					result.Skipped += report.machines.Sum( m => m.skippedNotClearable.Count );
+					result.Failed += report.machines.Sum( m => m.failed.Count );
+					result.Errors.AddRange( report.errors );
+				}
+				catch( Exception e )
+				{
+					result.Errors.Add( $"{Web.MarkOperation.Word( op.Kind )} of {op.Selection}: {e.Message}" );
+				}
+			}
+
+			if( result.TimedOut || result.Cancelled || result.Failed > 0 || result.Errors.Count > 0 )
+				log.Warn( $"Plan {Name}: marking the files did not go cleanly (timed out: {result.TimedOut}, cancelled: {result.Cancelled}): {string.Join( "; ", result.Errors )}" );
+
+			_marking = null;
+			State.Phase = string.Empty;
+			State.MarkResult = result;
+
+			if( _launchAfterMarking && State.Running )
+				BeginLaunch();
+
+			_launchAfterMarking = false;
 		}
 
 		private bool IsMachineOnline( string machineId )
@@ -141,6 +295,9 @@ namespace Dirigent
 			_requestorId = requestorId;
 
 			log.DebugFormat( "Stop plan {0}", Name );
+
+			// the marking, if one is under way, is not cut short - it ends by itself, bounded by MarkTimeout
+			_launchAfterMarking = false;
 
             State.Running = false;
 			State.Killing = false;
@@ -178,6 +335,7 @@ namespace Dirigent
             }
             
             // stop the launch sequencer
+			_launchAfterMarking = false;
             _appLaunchPlanner = null;
         }
 
@@ -338,6 +496,14 @@ namespace Dirigent
 			}
 
 			// here the plan must be Running...
+
+			// still marking files: nothing is launched yet, so nothing can have failed - and the time for the apps
+			// to come up has not begun
+			if( _launchAfterMarking && _marking is not null )
+			{
+				State.OpStatus = PlanState.EOpStatus.InProgress;
+				return;
+			}
 
 
 			bool allLaunched = true;

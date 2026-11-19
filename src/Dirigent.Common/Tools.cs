@@ -332,6 +332,25 @@ namespace Dirigent
 			return stateStr;
 		}
 
+		/// <summary>
+		/// What a plan's marking of files adds to its CLI state line: ":{json}" - the phase and the result - or nothing at all
+		/// for a plan that has not marked, so such a line is what it ever was.
+		/// </summary>
+		public static string GetPlanMarkingSuffix( PlanState? planState )
+		{
+			if( planState is null || ( planState.Phase.Length == 0 && planState.MarkResult is null ) )
+				return string.Empty;
+
+			var r = planState.MarkResult;
+			var o = new Dictionary<string, object?>();
+			if( planState.Phase.Length > 0 ) o["phase"] = planState.Phase;
+			if( r is not null )
+				o["markResult"] = new { marked = r.Marked, cleared = r.Cleared, skipped = r.Skipped, failed = r.Failed, timedOut = r.TimedOut, cancelled = r.Cancelled, errors = r.Errors };
+
+			// one line: the errors are messages and may hold anything
+			return ":" + System.Text.Json.JsonSerializer.Serialize( o );
+		}
+
 		public static string GetClientStateString( string machineId, ClientState? state )
 		{
 			if( state is null )

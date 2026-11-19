@@ -246,7 +246,7 @@ namespace Dirigent.Commands
 			if( args.Count == 0 ) throw new MissingArgumentException( "args[0]", "Plan name expected." );
 			var planName = args[0];
 			var planState = ctrl.GetPlanState( planName );
-			var stateStr = Tools.GetPlanStateString( planName, planState );
+			var stateStr = Tools.GetPlanStateString( planName, planState ) + Tools.GetPlanMarkingSuffix( planState );
 			WriteResponse( stateStr );
 		}
 	}
@@ -285,7 +285,7 @@ namespace Dirigent.Commands
 		{
 			foreach( (var planName, var planState) in ctrl.GetAllPlansState() )
 			{
-				var stateStr = Tools.GetPlanStateString( planName, planState );
+				var stateStr = Tools.GetPlanStateString( planName, planState ) + Tools.GetPlanMarkingSuffix( planState );
 				WriteResponse( stateStr );
 			}
 			WriteResponse( "END" );

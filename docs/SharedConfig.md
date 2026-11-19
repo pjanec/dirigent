@@ -456,6 +456,8 @@ Attributes
 * `StartTimeout` - time in seconds before an unsuccessfully running plan is reported as *Failed*. Unsuccessful means that
   * Non-volatile apps (that should be running all the time) is not running or has not initialized yet.
   * Volatile apps have not yet been started, initialized or finished.
+* `MarkFiles`, `ClearFiles` - semicolon separated lists of file definition ids (wildcards allowed) whose clearable files are marked, or cleared, when the plan starts, before the first app is launched. An id that matches no file definition is a load error. See [Marking or clearing files when a plan starts](Plans.md#marking-or-clearing-files-when-a-plan-starts).
+* `MarkTimeout` - seconds the marking may take before it is stopped and the apps are launched anyway, 60 by default.
 * `Groups` - a semicolon separated list of group names the plan belongs to
   * Some GUIs support sorting the plans to the groups
 * `ApplyOnStart` - the app definition for all of the apps from the plan are updated to the ones from this plan when the plan gets started/restarted.

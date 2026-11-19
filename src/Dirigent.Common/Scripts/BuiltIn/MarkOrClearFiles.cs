@@ -30,6 +30,12 @@ namespace Dirigent.Scripts.BuiltIn
 			/// case for every caller but a GUI.
 			/// </summary>
 			public VfsNodeSelector? Node;
+
+			/// <summary>
+			/// Set by a plan that marks files when it starts. The slaves started are then registered as
+			/// <see cref="PlanOwnedScripts"/>, which a Kill All spares.
+			/// </summary>
+			public bool PlanOwned;
 		}
 
 		//[MessagePack.MessagePackObject]
@@ -134,6 +140,7 @@ namespace Dirigent.Scripts.BuiltIn
 					var task = Dirig.RunScriptAsync<MarkFilesSlave.TArgs, MarkFilesSlave.TResult>(
 						mach, MarkFilesSlave._Name, null, slaveArgs, $"{Verb} on {mach}", out var inst );
 
+					if( args.PlanOwned ) PlanOwnedScripts.Add( inst, slave: true );
 					_slaveTasks.Add( new SlaveTask() { MachineName = mach, ScriptId = inst, Task = task! } );
 				}
 
@@ -144,6 +151,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 				await SetStatus( Report( result, oneLine: true ), null, 1.0 );
 
+				if( !args.PlanOwned )
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
 					HostClientId = Requestor,
@@ -165,6 +173,7 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 			catch( Exception e )
 			{
+				if( !args.PlanOwned )
 				await Dirig.SendAsync( new Net.UserNotificationMessage
 				{
 					HostClientId = Requestor,
@@ -175,6 +184,10 @@ namespace Dirigent.Scripts.BuiltIn
 
 				result.Errors.Add( e.Message );
 				throw;
+			}
+			finally
+			{
+				foreach( var st in _slaveTasks ) PlanOwnedScripts.Remove( st.ScriptId );
 			}
 
 			return Tools.Serialize( result );

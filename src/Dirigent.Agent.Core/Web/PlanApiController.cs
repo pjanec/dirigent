@@ -26,6 +26,45 @@ namespace Dirigent.Web
 		}
     }
 
+	/// <summary>What a plan's marking of files came to; see Plans.md. Part of the planstate answer only once a plan has marked.</summary>
+	public class PlanMarkResultDetails
+	{
+		public int marked { get; set; }
+		public int cleared { get; set; }
+		public int skipped { get; set; }
+		public int failed { get; set; }
+		public bool timedOut { get; set; }
+		public bool cancelled { get; set; }
+		public List<string> errors { get; set; } = new();
+
+		public PlanMarkResultDetails() { }
+
+		public PlanMarkResultDetails( Dirigent.PlanMarkResult r )
+		{
+			marked = r.Marked; cleared = r.Cleared; skipped = r.Skipped; failed = r.Failed;
+			timedOut = r.TimedOut; cancelled = r.Cancelled; errors = r.Errors.ToList();
+		}
+	}
+
+	/// <summary>
+	/// The state of a plan that is marking files or has marked them. A separate type so that a plan that never does
+	/// has the same answer as ever - the extra fields are there only when they mean something.
+	/// </summary>
+	public class PlanStateDetailsWithMarking : PlanStateDetails
+	{
+		/// <summary>What the plan is doing before it launches the first app, e.g. "Marking files (pkg.logs)"; absent when it is not.</summary>
+		public string phase { get; set; } = string.Empty;
+		public PlanMarkResultDetails? markResult { get; set; }
+
+		public PlanStateDetailsWithMarking() { }
+
+		public PlanStateDetailsWithMarking( Dirigent.PlanState ps ) : base( ps )
+		{
+			phase = ps.Phase;
+			markResult = ps.MarkResult is null ? null : new PlanMarkResultDetails( ps.MarkResult );
+		}
+	}
+
     public class PlanState
     {
         public string id { get; set; } = string.Empty;
@@ -38,7 +77,7 @@ namespace Dirigent.Web
 		public PlanState( string id, Dirigent.PlanState ps )
 		{
 			this.id = id;
-			this.state = new PlanStateDetails( ps );
+			this.state = ps.Phase.Length > 0 || ps.MarkResult is not null ? new PlanStateDetailsWithMarking( ps ) : new PlanStateDetails( ps );
 		}
     }
 

@@ -237,6 +237,10 @@ One plan definition, as above. Unknown plan: 404.
 `code` is one of `None`, `InProgress`, `Success`, `Failure`, `Killing`; `flags` has `R` while the plan is running and `K`
 while it is killing - all explained in [Plan status](Plans.md#Plan-status). (CLI: [`GetAllPlansState`](CLI.md#GetAllPlansState).)
 
+A plan that [marks files when it starts](Plans.md#marking-or-clearing-files-when-a-plan-starts) adds, inside `state`, only while it does or once it has:
+`phase` (e.g. `"Marking files (pkg.logs)"`, while the marking runs) and `markResult`
+(`{"marked":2,"cleared":0,"skipped":0,"failed":0,"timedOut":false,"cancelled":false,"errors":[]}`). Other plans have exactly the fields above.
+
 ### GET /api/planstates/{id}
 
 One plan state, as above. (CLI: [`GetPlanState`](CLI.md#GetPlanState).) The older name [`/api/planstate/{id}`](#GET-apiplanstateid) is also accepted.

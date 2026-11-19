@@ -50,6 +50,7 @@ namespace Dirigent
 			CheckDependencies();
 			LoadMachines( _fdReg );
 			LoadUnboundFiles( _fdReg );
+			CheckPlanMarkSelections();
 			LoadKillAllExtras();
 
 			_cfg.VfsNodes = _fdReg.VfsNodes;
@@ -879,11 +880,41 @@ namespace Dirigent
 						StartTimeout = startTimeout,
 						Groups = groups,
 						ApplyOnStart = applyOnStart,
-						ApplyOnSelect = applyOnSelect
+						ApplyOnSelect = applyOnSelect,
+						MarkFiles = IdList( p, "MarkFiles" ),
+						ClearFiles = IdList( p, "ClearFiles" ),
+						MarkTimeout = X.getDoubleAttr( p, "MarkTimeout", PlanDef.DefaultMarkTimeout, true ),
 					}
 				);
 			}
 
+		}
+
+		/// <summary>A semicolon separated list of ids: trimmed, empty entries dropped.</summary>
+		static List<string> IdList( XElement e, string attribute )
+			=> ( e.Attribute( attribute )?.Value ?? string.Empty )
+				.Split( ';', StringSplitOptions.RemoveEmptyEntries )
+				.Select( x => x.Trim() )
+				.Where( x => x.Length > 0 )
+				.ToList();
+
+		/// <summary>
+		/// What a plan marks or clears when it starts has to exist: an id that matches no file definition is
+		/// a typo that would leave the logs of the run unmarked without a word.
+		/// </summary>
+		void CheckPlanMarkSelections()
+		{
+			foreach( var plan in _cfg.Plans )
+			{
+				foreach( var (attribute, ids) in new[] { ( "MarkFiles", plan.MarkFiles ), ( "ClearFiles", plan.ClearFiles ) } )
+				{
+					foreach( var id in ids )
+					{
+						if( !_fdReg.VfsNodes.Any( n => System.IO.Enumeration.FileSystemName.MatchesSimpleExpression( id, n.Id ) ) )
+							throw new ConfigurationErrorException( $"Plan '{plan.Name}': {attribute} '{id}' matches no file definition" );
+					}
+				}
+			}
 		}
 
 		bool AppExists( AppIdTuple id )

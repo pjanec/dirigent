@@ -80,6 +80,29 @@ namespace Dirigent.Web
 			return Start( master, kind, selection, id, query.Defs );
 		}
 
+		/// <summary>
+		/// The file definitions matching any of the ids (wildcards allowed), each once. Null if none of them matches
+		/// anything - the config said they would, so the caller says so. Master thread only.
+		/// </summary>
+		public static MarkOperation? StartForFileDefIds( Master master, EKind kind, IEnumerable<string> ids, string selection, bool planOwned = false )
+		{
+			var defs = new List<VfsNodeDef>();
+
+			foreach( var id in ids )
+			{
+				try
+				{
+					foreach( var d in FileDefFilesQuery.Prepare( master, id, null, null ).Defs )
+						if( !defs.Any( x => x.Guid == d.Guid ) ) defs.Add( d );
+				}
+				catch( AppFilesNotFoundException )
+				{
+				}
+			}
+
+			return defs.Count == 0 ? null : Start( master, kind, selection, selection, defs, planOwned );
+		}
+
 		/// <summary>All the file definitions of an application, picked as for the file previews. Master thread only.</summary>
 		/// <exception cref="AppFilesNotFoundException">unknown app or plan</exception>
 		public static MarkOperation StartForApp( Master master, EKind kind, string appId )
@@ -88,7 +111,7 @@ namespace Dirigent.Web
 			return Start( master, kind, appId, query.AppIdText, query.Nodes );
 		}
 
-		static MarkOperation Start( Master master, EKind kind, string selection, string title, IEnumerable<VfsNodeDef> defs )
+		static MarkOperation Start( Master master, EKind kind, string selection, string title, IEnumerable<VfsNodeDef> defs, bool planOwned = false )
 		{
 			// the definitions go over as they are; the script resolves them itself, with progress
 			var args = new MarkOrClearFiles.TArgs()
@@ -102,9 +125,11 @@ namespace Dirigent.Web
 					Children = defs.ToList(),
 				},
 				VfsNodeNeedsResolving = true,
+				PlanOwned = planOwned,
 			};
 
 			var id = Guid.NewGuid();
+			if( planOwned ) PlanOwnedScripts.Add( id );
 			master.StartSingletonScript( "", id, ScriptOf( kind ), Tools.Serialize( args ) );
 			return new MarkOperation( id, kind, selection );
 		}
