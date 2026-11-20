@@ -83,7 +83,7 @@ namespace Dirigent.Web
 			_master = master;
 		}
 
-		Task Json( object o ) => HttpContext.SendStringAsync( AppFilesResult.ToJson( o ), "application/json", System.Text.Encoding.UTF8 );
+		Task Json( object o ) => HttpContext.SendStringAsync( AppFilesResult.ToJson( o ), "application/json", ApiOps.Utf8 );
 
 		async Task Accepted( object o )
 		{
@@ -189,6 +189,7 @@ namespace Dirigent.Web
 
 			var wasRunning = false;
 			var oldPid = 0;
+			var failedBefore = false;
 
 			await ApiOps.OnMaster( _master, () =>
 			{
@@ -203,9 +204,14 @@ namespace Dirigent.Web
 					throw HttpException.NotFound( $"No application '{appId}' is defined." );
 				}
 
+				// nobody to tell: the request would go nowhere, and a 202 would say it had been done
+				if( _master.GetClientState( appId.MachineId ) is not { Connected: true } )
+					throw new HttpException( HttpStatusCode.Conflict, $"Machine {appId.MachineId} is not connected." );
+
 				var st = _master.GetAppState( appId );
 				wasRunning = st?.Running ?? false;
 				oldPid = st?.PID ?? 0;
+				failedBefore = st?.StartFailed ?? false;
 
 				switch( what )
 				{
@@ -219,12 +225,20 @@ namespace Dirigent.Web
 
 			if( wait > 0 )
 			{
+				var failed = false;
+
 				bool Done()
 				{
 					var st = _master.GetAppState( appId );
 					if( st is null ) return false;
 
 					if( what == "kill" ) return !st.Running && !st.Dying;
+
+					// A start that failed will not become running: say so now rather than at the end of the wait.
+					// Only a failure that appears during the wait counts - the agent clears and sets the flag within
+					// one launch, so a flag left from an earlier failure cannot be told from a new one.
+					if( st.StartFailed && !failedBefore ) { failed = true; return true; }
+
 					if( what == "restart" ) return st.Running && st.Initialized && st.PID != oldPid;
 					return st.Running && st.Initialized;
 				}
@@ -232,6 +246,8 @@ namespace Dirigent.Web
 				await Task.Delay( 250 );
 
 				reached = await ApiOps.WaitFor( _master, Done, wait );
+				if( failed )
+					throw new HttpException( HttpStatusCode.Conflict, $"Application {appId} failed to start - see the log of the agent on {appId.MachineId}." );
 				if( !reached )
 					throw ApiOps.Timeout( what == "kill" ? $"The death of {appId}" : $"Application {appId} running and initialized", wait );
 			}
@@ -347,6 +363,10 @@ namespace Dirigent.Web
 			{
 				if( string.IsNullOrEmpty( machine ) )
 				{
+					// the master can tell whether it has such a script; an agent's own script files it cannot see
+					if( !_master.ScriptFactory.Exists( body.name! ) )
+						throw HttpException.NotFound( $"No script '{body.name}' - not a built-in one, and no such file next to the shared config." );
+
 					_master.StartSingletonScript( "", guid, body.name, args );
 				}
 				else

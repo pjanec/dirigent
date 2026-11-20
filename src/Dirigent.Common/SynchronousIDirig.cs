@@ -98,6 +98,13 @@ namespace Dirigent
 		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent );
 		public async Task<AppLaunchSpec?> ResolveAppLaunchSpecAsync( AppDef appDef ) => await GuardedFunc( () => _ctrl.ResolveAppLaunchSpec( appDef ) );
 
+		// started on the master's thread, finished wherever the agents answer
+		public async Task<string?> ComposeSiteStateAsync( SiteStateExtras extras )
+		{
+			var task = await GuardedFunc( () => _ctrl.ComposeSiteState( extras ) );
+			return task is null ? null : await task;
+		}
+
 #pragma warning restore CS8603 // Possible null reference return.
 	}
 }

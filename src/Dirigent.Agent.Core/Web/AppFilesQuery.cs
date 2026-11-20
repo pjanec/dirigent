@@ -40,6 +40,12 @@ namespace Dirigent.Web
 
 		/// <summary>The id of the file definition the file came from: the one a package or an application referred to.</summary>
 		public string? fileDefId { get; set; }
+
+		/// <summary>
+		/// The software component the file belongs to: its application's <c>Component</c>, else that of the nearest package or
+		/// file definition around it that names one; null if none does.
+		/// </summary>
+		public string? component { get; set; }
 	}
 
 	/// <summary>How much a preview holds; the same three numbers wherever a preview is answered.</summary>
@@ -327,8 +333,11 @@ namespace Dirigent.Web
 			foreach( var c in n.Children ) CollectNotes( c, notes );
 		}
 
-		static void CollectFiles( Master master, VfsNodeDef n, string virtualPath, List<AppFileInfo> files, bool isRoot, string topId, string? defaultApp )
+		static void CollectFiles( Master master, VfsNodeDef n, string virtualPath, List<AppFileInfo> files, bool isRoot, string topId, string? defaultApp,
+				string? outerComponent = null )
 		{
+			var component = NullIfEmpty( n.Component ) ?? outerComponent;
+
 			if( !n.IsContainer && n.Children.Count == 0 )
 			{
 				if( string.IsNullOrEmpty( n.Path ) ) return;
@@ -350,6 +359,7 @@ namespace Dirigent.Web
 					truncatedTo = n.TailBytes > 0 && n.Size > n.TailBytes ? n.TailBytes : null,
 					app = NullIfEmpty( n.AppId ) ?? NullIfEmpty( defaultApp ),
 					fileDefId = NullIfEmpty( n.OriginId ) ?? NullIfEmpty( topId ),
+					component = ComponentOfApp( master, n.MachineId, NullIfEmpty( n.AppId ) ?? NullIfEmpty( defaultApp ) ) ?? component,
 				} );
 				return;
 			}
@@ -357,8 +367,15 @@ namespace Dirigent.Web
 			foreach( var c in n.Children )
 			{
 				var title = !string.IsNullOrEmpty( c.Title ) ? c.Title : c.Id;
-				CollectFiles( master, c, virtualPath + "/" + title, files, isRoot: false, topId, defaultApp );
+				CollectFiles( master, c, virtualPath + "/" + title, files, isRoot: false, topId, defaultApp, component );
 			}
+		}
+
+		/// <summary>The Component of the application, null if it has none or there is no such application.</summary>
+		static string? ComponentOfApp( Master master, string? machine, string? app )
+		{
+			if( string.IsNullOrEmpty( machine ) || string.IsNullOrEmpty( app ) ) return null;
+			return NullIfEmpty( master.GetAppDef( new AppIdTuple( machine, app ) )?.Component );
 		}
 	}
 

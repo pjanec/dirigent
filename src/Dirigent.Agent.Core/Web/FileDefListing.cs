@@ -12,6 +12,9 @@ namespace Dirigent.Web
 		public string title { get; set; } = string.Empty;
 		public string? description { get; set; }
 		public string groups { get; set; } = string.Empty;
+
+		/// <summary>The Component the definition names; null if none.</summary>
+		public string? component { get; set; }
 		public string? machine { get; set; }
 		public string? app { get; set; }
 	}
@@ -21,12 +24,19 @@ namespace Dirigent.Web
 	/// </summary>
 	public static class FileDefListing
 	{
+		/// <summary>The values of the type filter - <see cref="Scripts.BuiltIn.ListVfsNodes.TypeName"/> of each kind.</summary>
+		public static readonly string[] Types = { "File", "Folder", "VFolder", "FilePackage", "FileRef" };
+
 		/// <summary>
 		/// Master thread only. The id, machine and app filters take the wildcards of
 		/// <see cref="Scripts.BuiltIn.ListVfsNodes.Matches"/>; the type is compared case-insensitively.
 		/// </summary>
 		public static List<FileDefInfo> List( Master master, string? type, string? id, string? machine, string? app, string? groupName = null )
 		{
+			// a misspelt type would answer "no such definitions", which reads as a fact about the config
+			if( !string.IsNullOrEmpty( type ) && !Types.Contains( type, StringComparer.OrdinalIgnoreCase ) )
+				throw new ArgumentException( $"Unknown type '{type}'; one of {string.Join( ", ", Types )}." );
+
 			var selector = new Scripts.BuiltIn.VfsNodeSelector() { Id = id, MachineId = machine, AppId = app };
 
 			return ( from node in master.GetAllVfsNodesDef()
@@ -42,6 +52,7 @@ namespace Dirigent.Web
 						 title = node.Title,
 						 description = node.Description,
 						 groups = node.Groups,
+						 component = string.IsNullOrEmpty( node.Component ) ? null : node.Component,
 						 machine = string.IsNullOrEmpty( node.MachineId ) ? null : node.MachineId,
 						 app = string.IsNullOrEmpty( node.AppId ) ? null : node.AppId,
 					 } ).ToList();

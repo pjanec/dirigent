@@ -32,6 +32,12 @@ namespace Dirigent.Scripts.BuiltIn
 
 			/// <summary>Forget its mark, so that the next collection takes the whole file again.</summary>
 			Unmark = 2,
+
+			/// <summary>
+			/// Record its length in its history only - the mark stays where it is. What a running plan with a MarkInterval
+			/// does, so that a collection "since a time" can start near that time.
+			/// </summary>
+			Checkpoint = 3,
 		}
 
 		//[MessagePack.MessagePackObject]
@@ -243,6 +249,21 @@ namespace Dirigent.Scripts.BuiltIn
 			if( _args.Operation == EOperation.Clear )
 			{
 				Clear( path! );
+				return;
+			}
+
+			if( _args.Operation == EOperation.Checkpoint )
+			{
+				var point = _marks!.Checkpoint( path! );
+				if( point is null )
+				{
+					_result.Failed++;
+					_result.FailedFiles.Add( new TFailedFile() { Path = path!, Error = "could not be looked at" } );
+					return;
+				}
+				_result.Marked++;
+				_result.MarkedPaths.Add( path! );
+				_result.Details.Add( $"Checkpoint at {point.Offset} bytes: {path}" );
 				return;
 			}
 

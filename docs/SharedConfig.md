@@ -70,6 +70,12 @@ The file defines
 </Shared>
 ```
 
+##### `Name`
+
+`<Shared Name="Lab 2">` names the site - optional, free text. It is what `GET /api/status` and `GET /api` answer as `siteName`,
+and what the cover note (`_comment.txt`) of a collected archive starts with, so that an archive attached to a bug report says where it
+comes from.
+
 ##### `MinDirigentVersion`
 
 `<Shared MinDirigentVersion="3.1.19">` states the oldest Dirigent this file may be used with. A master
@@ -177,6 +183,10 @@ Example:
 Attributes:
 
 - `AppIdTuple` - unique text id of the application instance; comes together with the machine id; format "machineId.appId"
+
+- `Component` - the software component the application belongs to (`Viewer`); optional, inherited from the template (the application's own wins). Tools group versions and collected files by it: the API answers it with the application, its location and each of its files - see [Components and groups for tools](Files.md#components-and-groups-for-tools). Not a UI grouping, and changing it restarts nothing.
+
+- `Groups` - `;`-separated group paths, accumulated through the templates; grouping for people - the folders of the GUI's application tree.
 
 - `ExeFullPath` - application binary file full path; can be relative to the Dirigent's shared config file location (or CWD if none defined). Environment variables in form of %VARNAME% are expanded using Agent's current environment.
 
@@ -458,6 +468,9 @@ Attributes
   * Volatile apps have not yet been started, initialized or finished.
 * `MarkFiles`, `ClearFiles` - semicolon separated lists of file definition ids (wildcards allowed) whose clearable files are marked, or cleared, when the plan starts, before the first app is launched. An id that matches no file definition is a load error. See [Marking or clearing files when a plan starts](Plans.md#marking-or-clearing-files-when-a-plan-starts).
 * `MarkTimeout` - seconds the marking may take before it is stopped and the apps are launched anyway, 60 by default.
+* `MarkInterval` - seconds between the checkpoints the plan takes of its `MarkFiles` while it runs (the file lengths recorded, the
+  mark left alone), so that a collection "since a time" can start near that time; none by default, 10 at least, needs `MarkFiles`.
+  See [Checkpoints](Plans.md#checkpoints-collecting-since-a-time).
 * `Groups` - a semicolon separated list of group names the plan belongs to
   * Some GUIs support sorting the plans to the groups
 * `ApplyOnStart` - the app definition for all of the apps from the plan are updated to the ones from this plan when the plan gets started/restarted.

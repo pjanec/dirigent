@@ -49,6 +49,10 @@ namespace Dirigent
 
 		Marking? _marking;
 
+		/// <summary>The checkpoint under way (MarkInterval), and when the interval counts from.</summary>
+		Web.MarkOperation? _checkpoint;
+		DateTime _lastCheckpointDue = DateTime.UtcNow;
+
 		/// <summary>The plan is running and waits for its marking to end before it launches the first app.</summary>
 		bool _launchAfterMarking;
 		string _requestorId; // last one who asked for some plan operation
@@ -70,6 +74,8 @@ namespace Dirigent
 		public void Tick()
 		{
 			ProcessMarking();
+
+			ProcessCheckpoints();
 
 			// tick restarter
 			if( _restarter != null )
@@ -140,6 +146,7 @@ namespace Dirigent
                 State.Running = true;
 				State.Killing = false;
 				State.TimeStarted = DateTime.UtcNow;
+				_lastCheckpointDue = DateTime.UtcNow; // the marking at the start is the first record; the interval counts from it
 
                 if( _marking is not null )
 				{
@@ -206,6 +213,38 @@ namespace Dirigent
 			_launchAfterMarking = true;
 			State.Phase = "Marking files (" + string.Join( ", ", marking.Operations.Select( o => o.Selection ) ) + ")";
 			State.MarkStarted = DateTime.UtcNow;
+		}
+
+		/// <summary>
+		/// Takes a checkpoint of the plan's MarkFiles every MarkInterval while the plan runs: records how long each file is,
+		/// in its history only. Never two at a time, never while the plan's own marking runs, never once the plan was
+		/// stopped or killed - and never moving a mark, so it cannot get in the way of a mark, a clear or an unmark.
+		/// </summary>
+		void ProcessCheckpoints()
+		{
+			if( Def.MarkInterval <= 0 ) return;
+
+			if( _checkpoint is not null )
+			{
+				var st = _checkpoint.State( _master );
+				if( st is not null && st.IsAlive ) return; // the last one has not finished: this one waits
+				if( st is not null && st.Status == EScriptStatus.Finished ) State.LastCheckpoint = DateTime.UtcNow;
+				_checkpoint = null;
+			}
+
+			if( !State.Running || _marking is not null ) return;
+			if( ( DateTime.UtcNow - _lastCheckpointDue ).TotalSeconds < Def.MarkInterval ) return;
+
+			_lastCheckpointDue = DateTime.UtcNow;
+			try
+			{
+				_checkpoint = Web.MarkOperation.StartForFileDefIds( _master, Web.MarkOperation.EKind.Checkpoint, Def.MarkFiles,
+								string.Join( ";", Def.MarkFiles ) );
+			}
+			catch( Exception e )
+			{
+				log.Warn( $"Plan {Name}: could not take a checkpoint of the files: {e.Message}" );
+			}
 		}
 
 		/// <summary>The apps may be launched: the plan's time for them to come up counts from now.</summary>

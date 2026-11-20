@@ -33,10 +33,12 @@ namespace Dirigent
 #pragma warning disable CS8601 // Possible null reference assignment.
 			_root = _doc.Element( "Shared" );
 #pragma warning restore CS8601 // Possible null reference assignment.
-			if ( _root is null ) throw new Exception("SharedConfig missing the root element");
+			// a configuration error like any other: the file is read, it is just not a shared config
+			if ( _root is null ) throw new ConfigurationErrorException("SharedConfig missing the root element <Shared>");
 
 			CheckMinVersion( _root );
 			_cfg.MinDirigentVersion = _root.Attribute( "MinDirigentVersion" )?.Value?.Trim() ?? string.Empty;
+			_cfg.SiteName = _root.Attribute( "Name" )?.Value?.Trim() ?? string.Empty;
 
 			// before anything is read: from here on the file nodes are plain, templates are history
 			// machine templates first: the nodes they bring into a machine may use file templates, and the
@@ -204,6 +206,7 @@ namespace Dirigent
 				Env = e.Element( "Env" ),
 				InitDetectors = e.Element( "InitDetectors" )?.Elements(),
 				Groups = e.Attribute( "Groups" )?.Value,
+				Component = e.Attribute( "Component" )?.Value,
 				Actions = new List<ActionDef>(),
 			};
 
@@ -340,6 +343,9 @@ namespace Dirigent
 				if( !string.IsNullOrEmpty(a.Groups) ) a.Groups += ";";
 				a.Groups += x.Groups;
 			}
+
+			// one name, not a list: the derived element's wins over its template's
+			if( x.Component != null ) a.Component = x.Component.Trim();
 
 			// A node of this element with the same Id as an inherited one (from a template) replaces it, in the
 			// inherited node's place - whatever else differs, the same rule as for a machine's, see
@@ -607,6 +613,9 @@ namespace Dirigent
 			// which are nodes in their own right and may live on another machine altogether
 			a.TailBytes = X.getLongAttr( e, "TailBytes", 0 );
 			a.Clearable = X.getBoolAttr( e, "Clearable", false );
+
+			// a package (or any file definition) may name the component it stands for - CycloneDDS has no app to inherit it from
+			a.Component = e.Attribute( "Component" )?.Value?.Trim() ?? string.Empty;
 
 			a.Xml = xml.ToString();
 			a.Children.AddRange( x.Children );
@@ -885,6 +894,7 @@ namespace Dirigent
 						MarkFiles = IdList( p, "MarkFiles" ),
 						ClearFiles = IdList( p, "ClearFiles" ),
 						MarkTimeout = X.getDoubleAttr( p, "MarkTimeout", PlanDef.DefaultMarkTimeout, true ),
+						MarkInterval = X.getDoubleAttr( p, "MarkInterval", 0, true ),
 					}
 				);
 			}
@@ -907,6 +917,12 @@ namespace Dirigent
 		{
 			foreach( var plan in _cfg.Plans )
 			{
+				// checkpoints are taken of what the plan marks - nothing to take them of otherwise
+				if( plan.MarkInterval > 0 && plan.MarkFiles.Count == 0 )
+					throw new ConfigurationErrorException( $"Plan '{plan.Name}': MarkInterval needs MarkFiles - the checkpoints are taken of the files the plan marks" );
+				if( plan.MarkInterval > 0 && plan.MarkInterval < PlanDef.MinMarkInterval )
+					throw new ConfigurationErrorException( $"Plan '{plan.Name}': MarkInterval {plan.MarkInterval} s is too short; {PlanDef.MinMarkInterval} s at least" );
+
 				foreach( var (attribute, ids) in new[] { ( "MarkFiles", plan.MarkFiles ), ( "ClearFiles", plan.ClearFiles ) } )
 				{
 					foreach( var id in ids )

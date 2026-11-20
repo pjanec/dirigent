@@ -25,6 +25,9 @@ namespace Dirigent.TestBed.Scenarios
 		/// The same placeholders as elsewhere are substituted.
 		/// </summary>
 		public List<string> ExtraSharedXml = new();
+
+		/// <summary>&lt;Shared Name="..."&gt;; none when empty.</summary>
+		public string SiteName = string.Empty;
 	}
 
 	public class MachineSpec

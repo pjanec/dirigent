@@ -96,6 +96,29 @@ namespace Dirigent
 		public List<string>? Notes;
 
 		/// <summary>
+		/// The machine each of the <see cref="Notes"/> is about, at the same index; null for a note tied to no
+		/// machine. A download writes a note into the part of the archive of that machine only - the tree goes to
+		/// every machine, and each used to write every note.
+		/// </summary>
+		public List<string?>? NoteMachines;
+
+		/// <summary>Adds a note about the given machine (null = no machine in particular).</summary>
+		public void AddNote( string note, string? machineId )
+		{
+			// a list that predates NoteMachines (or was filled by hand) gets its gaps filled with "no machine"
+			Notes ??= new List<string>();
+			NoteMachines ??= new List<string?>();
+			while( NoteMachines.Count < Notes.Count ) NoteMachines.Add( null );
+
+			Notes.Add( note );
+			NoteMachines.Add( machineId );
+		}
+
+		/// <summary>The machine the note at the index is about, or null.</summary>
+		public string? NoteMachine( int index )
+			=> NoteMachines is not null && index < NoteMachines.Count ? NoteMachines[index] : null;
+
+		/// <summary>
 		/// Size in bytes of the file this resolved node stands for, as found when it was looked up
 		/// (on the machine that owns it). Null in a definition, for a folder, and where the file
 		/// could not be read.
@@ -116,6 +139,12 @@ namespace Dirigent
 		/// definition a package or an application referred to, not the package. Filled in during resolution.
 		/// </summary>
 		public string? OriginId;
+
+		/// <summary>
+		/// The software component this file definition stands for, as its &lt;... Component="..."&gt; says; empty if it says none
+		/// (a file of an application then belongs to the application's component).
+		/// </summary>
+		public string Component = string.Empty;
 
 
 		public override string ToString()

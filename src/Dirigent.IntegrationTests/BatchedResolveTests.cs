@@ -110,6 +110,31 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task AnAgentCanLookUpAReferenceItselfTest()
+		{
+			// The master used to send the file definitions to the GUIs only, so an agent asked to resolve a
+			// <FileRef> - a package of its machine, a script started on it - looked it up in nothing and
+			// answered with an empty package (seen on a site: "Logs/This machine" empty on every slave).
+			var world = Scenario.TwoMachines()
+				.RawXml( "<Folder Id='d.logs' Title='D logs' MachineId='{m2}' Path='{temp}\\dlogs' Mask='*.log'/>" );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = world } );
+			Directory.CreateDirectory( Path.Combine( bed.TempRoot, "dlogs" ) );
+			File.WriteAllText( Path.Combine( bed.TempRoot, "dlogs", "d.log" ), "hello" );
+
+			var result = await AskAgent( bed, "m2",
+				new FileRef() { Guid = Guid.NewGuid(), Id = "d.logs", MachineId = bed.MachineIds["m2"] } );
+
+			Assert.IsNotNull( result?.Nodes );
+			Assert.IsNull( result!.Nodes![0].Error, result.Nodes[0].Error );
+			var leaves = new List<VfsNodeDef>();
+			void Walk( VfsNodeDef n ) { if( n.Children.Count == 0 ) leaves.Add( n ); else n.Children.ForEach( Walk ); }
+			Walk( result.Nodes[0].VfsNode! );
+			Assert.IsTrue( leaves.Any( l => l.Title == "d.log" ),
+				$"the agent found the definition and scanned the folder: {string.Join( ", ", leaves.Select( l => l.Title ) )}" );
+		}
+
+		[TestMethod()]
 		public async Task OneBadNodeDoesNotCostTheOthersTheirAnswerTest()
 		{
 			// twenty nodes travelling together to save a round trip are still twenty separate things

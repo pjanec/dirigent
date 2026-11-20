@@ -14,6 +14,7 @@ namespace Dirigent
 		public List<VfsNodeDef> VfsNodes = new List<VfsNodeDef>(); // all Vfs nodes defined throughout the SharedConfig
 		public List<AssocMenuItemDef> MainMenuItems = new List<AssocMenuItemDef>(); // shown in main menu
 		public string MinDirigentVersion = string.Empty; // as written in <Shared MinDirigentVersion=...>; empty if none
+		public string SiteName = string.Empty; // <Shared Name=...>: what the site is called ("Lab 2"); empty if not said
 		public List<ActionDef> KillAllExtras = new List<ActionDef>(); // actions to run when KillAll is issued, on top of killing all running apps and plans
 	}
 }

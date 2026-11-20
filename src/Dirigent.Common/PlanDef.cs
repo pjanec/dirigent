@@ -45,6 +45,16 @@ namespace Dirigent
 
 		public const double DefaultMarkTimeout = 60.0;
 
+		/// <summary>
+		/// Seconds between the checkpoints the plan takes of its MarkFiles while it runs - the lengths of the files recorded
+		/// in their history, never moving the mark - so that a collection "since a time" can start near that time. 0 (the
+		/// default): none.
+		/// </summary>
+		public double MarkInterval;
+
+		/// <summary>The shortest MarkInterval accepted: a checkpoint is a look at every file of the selection on every machine.</summary>
+		public const double MinMarkInterval = 10.0;
+
 		public bool HasMarking => MarkFiles.Count > 0 || ClearFiles.Count > 0;
 
 
@@ -62,6 +72,8 @@ namespace Dirigent
 					this.ClearFiles.SequenceEqual( other.ClearFiles )
 					&&
 					this.MarkTimeout == other.MarkTimeout
+					&&
+					this.MarkInterval == other.MarkInterval
 			  )
 				return true;
 			else

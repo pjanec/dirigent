@@ -109,9 +109,39 @@ namespace Dirigent
 			AddScript( Scripts.BuiltIn.ClearFiles._Name, () => new Scripts.BuiltIn.ClearFiles() );
 			AddScript( Scripts.BuiltIn.MarkFiles._Name, () => new Scripts.BuiltIn.MarkFiles() );
 			AddScript( Scripts.BuiltIn.UnmarkFiles._Name, () => new Scripts.BuiltIn.UnmarkFiles() );
+			AddScript( Scripts.BuiltIn.CheckpointFiles._Name, () => new Scripts.BuiltIn.CheckpointFiles() );
 			AddScript( Scripts.BuiltIn.MarkFilesSlave._Name, () => new Scripts.BuiltIn.MarkFilesSlave() );
 			AddScript( Scripts.BuiltIn.BrowseInDblCmdVirtPanel._Name, () => new Scripts.BuiltIn.BrowseInDblCmdVirtPanel() );
 			AddScript( Scripts.BuiltIn.RunPlanWhenMachinesOnline._Name, () => new Scripts.BuiltIn.RunPlanWhenMachinesOnline() );
+		}
+
+		/// <summary>
+		/// The file a script name stands for: an absolute path, or one relative to the script root folder, ".cs" added
+		/// when missing; environment variables expanded.
+		/// </summary>
+		static string FileNameOf( string scriptName, string? scriptRootFolder )
+		{
+			var fileName = Tools.ExpandEnvVars( scriptName );
+
+			if( !Path.IsPathRooted( fileName ) )
+			{
+				if( string.IsNullOrEmpty( scriptRootFolder ) )
+					throw new Exception( $"Failed to construct script file name, scriptRootFolder not specified." );
+				fileName = Path.Combine( scriptRootFolder, fileName );
+			}
+
+			if( !fileName.EndsWith( ".cs" ) )
+				fileName = fileName + ".cs";
+
+			return fileName;
+		}
+
+		/// <summary>Whether a script of this name can be made here - a built-in one, or a file under the root folder.</summary>
+		public bool Exists( string scriptName )
+		{
+			if( _scriptCreators.ContainsKey( scriptName ) ) return true;
+			try { return File.Exists( FileNameOf( scriptName, _scriptRootFolder ) ); }
+			catch( Exception ) { return false; }
 		}
 
 		/// <summary>
@@ -150,29 +180,11 @@ namespace Dirigent
 			// construct the file path from the script name and the script root folder
 			if (!string.IsNullOrEmpty( scriptName ))
 			{
-				// script name can be an absolute path or relative to the script root folder
-				// it also can be missing the extension (then .cs is used)
+				var fileName = FileNameOf( scriptName, scriptRootFolder );
 
-				string fileName = scriptName;
-
-				fileName = Tools.ExpandEnvVars( fileName );
-
-				if (!Path.IsPathRooted( fileName ))
-				{
-					if (!string.IsNullOrEmpty( scriptRootFolder ))
-					{
-						fileName = Path.Combine( scriptRootFolder, fileName );
-					}
-					else
-					{
-						throw new Exception( $"Failed to construct script file name, scriptRootFolder not specified." );
-					}
-				}
-
-				if (!fileName.EndsWith( ".cs" ))
-				{
-					fileName = fileName + ".cs";
-				}
+				// said in words, rather than as the DirectoryNotFoundException of the read with a path in it
+				if( !File.Exists( fileName ) )
+					throw new FileNotFoundException( $"No script '{scriptName}': it is not a built-in one and there is no file {fileName}." );
 
 				script = CreateFromFile<T>( title, fileName, args, ctrl, requestorId );
 			}

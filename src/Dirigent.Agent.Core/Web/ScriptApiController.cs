@@ -93,7 +93,7 @@ namespace Dirigent.Web
 				var pd = _master.GetScriptDef( ( Guid.TryParse( id, out var guid ) ? guid : throw HttpException.BadRequest( $"'{id}' is not a script guid." ) ) );
 
 				if( pd is null )
-					throw HttpException.NotFound();
+					throw HttpException.NotFound( $"No script definition '{id}'." );
 
 				res = new ScriptDef( pd );
 			} );
@@ -114,7 +114,7 @@ namespace Dirigent.Web
 				var ps = _master.GetScriptState( ( Guid.TryParse( id, out var guid ) ? guid : throw HttpException.BadRequest( $"'{id}' is not a script guid." ) ) );
 
 				if( ps is null )
-					throw HttpException.NotFound();
+					throw HttpException.NotFound( $"No script '{id}' is known." );
 
 				res = new ScriptState( id, ps );
 			} );

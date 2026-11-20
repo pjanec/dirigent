@@ -132,7 +132,7 @@ namespace Dirigent.Web
 				throw new HttpException( HttpStatusCode.BadGateway, Tools.JustFirstLine( e.Message ) );
 			}
 
-			await HttpContext.SendStringAsync( report.ToJson(), "application/json", Encoding.UTF8 );
+			await HttpContext.SendStringAsync( report.ToJson(), "application/json", ApiOps.Utf8 );
 		}
 	}
 }

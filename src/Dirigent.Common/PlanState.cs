@@ -93,6 +93,9 @@ namespace Dirigent
 		/// <summary>What the last marking came to. Null until a plan with marking has marked.</summary>
 		public PlanMarkResult? MarkResult;
 
+		/// <summary>When the plan last took a checkpoint of its MarkFiles (its MarkInterval), UTC; null if it never has.</summary>
+		public DateTime? LastCheckpoint;
+
 		// Add this Clone method
 		public PlanState Clone()
 		{

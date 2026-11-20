@@ -275,6 +275,10 @@ namespace Dirigent
 			return sbFlags.ToString();
 		}
 
+		/// <summary>A UTC time without ':' - "20261120T134215Z" - for the ':'-separated CLI lines; empty for none.</summary>
+		public static string CompactUtc( DateTime? t )
+			=> t is null ? string.Empty : t.Value.ToUniversalTime().ToString( "yyyyMMdd'T'HHmmss'Z'", System.Globalization.CultureInfo.InvariantCulture );
+
 		public static string GetAppStateString( AppIdTuple t, AppState? appState )
 		{
 			if( appState is null )
@@ -286,7 +290,8 @@ namespace Dirigent
 
 			var stateStr = String.Format(
 							   System.Globalization.CultureInfo.InvariantCulture,
-							   "APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}:{8}",
+							   // new fields go at the end only: scripts split this line by ':' and count from the start
+							   "APP:{0}:{1}:{2}:{3:0.00}:{4}:{5}:{6}:{7}:{8}:{9}:{10}",
 							   t.ToString(),
 							   flags,
 							   appState.ExitCode,
@@ -295,7 +300,9 @@ namespace Dirigent
 							   appState.GPU,
 							   appState.Memory,
 							   appState.PlanName,
-							   appState.PID
+							   appState.PID,
+							   CompactUtc( appState.StartedAt ),
+							   CompactUtc( appState.EndedAt )
 						   );
 
 			return stateStr;

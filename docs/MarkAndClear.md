@@ -127,8 +127,8 @@ weighing them by bytes.
 
 ### Marking a selection
 
-A tool that offers a checkbox per component marks what is ticked in one operation: `POST /api/marks` with `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"]}`
-(or `operation` `clear` / `unmark`), on the CLI `MarkFiles pkg.comp.viewer pkg.comp.ig`, `ClearFiles a b`, `UnmarkFiles a b` and `MarkAppFiles x y`. The operation runs over the **union**
+A tool that offers a checkbox per component marks what is ticked in one operation: `POST /api/marks` with `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}],"apps":["m1.a"]}`
+(or `operation` `clear` / `unmark`), on the CLI `MarkFiles pkg.comp.viewer pkg.comp.broker`, `ClearFiles a b`, `UnmarkFiles a b` and `MarkAppFiles x y`. The operation runs over the **union**
 of the files of the items: marks are kept per file, so a file two packages reach is marked once, and the report is the same as for one item, with `selection` naming them all. The
 same [selection](HTTP.md#The-selection) previews and collects, so what is marked is what is collected.
 
@@ -268,6 +268,37 @@ each run with the logs really emptied.
 
 See [Running a script as a step of a plan](ScriptsInPlans.md) for how the waiting works, and
 [`WaitForScript`](CLI.md#waitforscript) for the command that does it.
+
+## Collecting since a time
+
+A mark answers "what was written in this run". Often the question is "what was written in the last two hours" - in a
+system that has been running for days, whose logs grow across runs and whose lines Dirigent cannot, and will not, parse
+for timestamps. Dirigent answers it from **the history of each file's length**:
+
+* every mark records the file's length at that moment (a mark is a moment too), and
+* a plan with [`MarkInterval`](Plans.md#checkpoints-collecting-since-a-time) records it every so many seconds while it runs
+  (a *checkpoint*) - without touching the mark.
+
+A collection with `"since": "<time>"` ([`POST /api/downloads`](HTTP.md#POST-apidownloads)) takes each clearable file:
+
+| The file | Collected |
+| --- | --- |
+| not written since the time (its last write is older) | not at all - `_incomplete.txt` says so |
+| created after the time | whole |
+| with a record at or before the time, still the same file | from the **latest** such record - so it holds everything written since, and at most one interval more |
+| replaced, truncated or rotated since that record | whole - the record says nothing about the file now there |
+| with no record at or before the time | whole |
+
+Every way of being wrong is towards too much, never too little. The entry of a file that was cut says from where and why
+("written after the Checkpoint of 2026-11-20 13:10:00 (byte 51200), the last record at or before 2026-11-20 13:12:00"),
+`_comment.txt` names the time asked for, and the same rules about rotation as for a mark apply (see below). Files that are
+not `Clearable` are never cut, as ever.
+
+Records are kept beside the marks, a week at most and 2000 per file, and forgotten with the file. An **unmark** removes the
+mark and keeps the history; a **clear** that empties a file makes its records useless, which the length check notices.
+
+The previews (`POST /api/files/query`) do not take `since` into account yet: their `bytesToCollect` is from the mark. The
+size of the archive is known once the job has finished, before it is downloaded.
 
 ## What this refuses to do
 

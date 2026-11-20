@@ -178,6 +178,12 @@ namespace Dirigent
 		//[MessagePack.Key( 4 )]
 		public int ExitCode;
 
+		/// <summary>When the current (or last) process of the application was started, UTC, by the clock of its agent; null if never.</summary>
+		public DateTime? StartedAt;
+
+		/// <summary>When that process ended, UTC, by the clock of its agent; null while it runs or if it never ran.</summary>
+		public DateTime? EndedAt;
+
 		/// <summary>
 		/// Timne of the last change in the application state.
 		/// </summary>
@@ -270,7 +276,9 @@ namespace Dirigent
 			return this._flags == other._flags &&
 				   this.ExitCode == other.ExitCode &&
 				   this.PlanName == other.PlanName &&
-				   this.PID == other.PID;
+				   this.PID == other.PID &&
+				   this.StartedAt == other.StartedAt &&
+				   this.EndedAt == other.EndedAt;
 		}
 
 		public override bool Equals(object? obj)
@@ -280,7 +288,7 @@ namespace Dirigent
 
 		public override int GetHashCode()
 		{
-			return HashCode.Combine(_flags, ExitCode, PlanName, PID);
+			return HashCode.Combine(_flags, ExitCode, PlanName, PID, StartedAt, EndedAt);
 		}
 
 		#endregion

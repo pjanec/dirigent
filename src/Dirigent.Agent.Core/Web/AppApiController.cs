@@ -15,6 +15,31 @@ namespace Dirigent.Web
         public string code { get; set; } = string.Empty;
 		public string flags { get; set; } = string.Empty;
 
+		/// <summary>The plan the application was last started in; null for none.</summary>
+		public string? plan { get; set; }
+
+		/// <summary>The process id while it runs; null when it does not.</summary>
+		public int? pid { get; set; }
+
+		/// <summary>When the current (or last) process was started, and when it ended (null while it runs) - UTC, by its agent's clock.</summary>
+		public DateTime? startedAt { get; set; }
+		public DateTime? endedAt { get; set; }
+
+		/// <summary>How the process ended: only once it was started and is no longer running, and was not killed.</summary>
+		public int? exitCode { get; set; }
+
+		/// <summary>Restarts left before the agent gives up; -1 = without limit; null = not counted (never restarted).</summary>
+		public int? restartsRemaining { get; set; }
+
+		/// <summary>CPU usage in percent, GPU usage in percent and memory in MB of the process, as its agent last measured.</summary>
+		public float cpu { get; set; }
+		public float gpu { get; set; }
+		public float memoryMB { get; set; }
+
+		/// <summary>Seconds since the agent last reported this state, null if it never has; over 3 the state is considered offline.</summary>
+		public double? reportAgeSeconds { get; set; }
+		public bool offline { get; set; }
+
 		public AppStateDetails()
 		{
 		}
@@ -23,12 +48,27 @@ namespace Dirigent.Web
 		{
 			code = Tools.GetAppStateText( appState, planState, appDef );
 			flags = Tools.GetAppStateFlags( appState );
+			plan = string.IsNullOrEmpty( appState.PlanName ) ? null : appState.PlanName;
+			pid = appState.Running && appState.PID > 0 ? appState.PID : null;
+			startedAt = appState.StartedAt;
+			endedAt = appState.EndedAt;
+			exitCode = appState.Started && !appState.Running && !appState.Killed ? appState.ExitCode : null;
+			restartsRemaining = appState.RestartsRemaining == Dirigent.AppState.RESTARTS_UNITIALIZED ? null : appState.RestartsRemaining;
+			cpu = appState.CPU;
+			gpu = appState.GPU;
+			memoryMB = appState.Memory;
+			// a state no agent has reported yet carries the zero time, not a moment
+			reportAgeSeconds = appState.LastChange.Year < 2000 ? null : Math.Round( ( DateTime.UtcNow - appState.LastChange ).TotalSeconds, 1 );
+			offline = appState.IsOffline;
 		}
     }
 
     public class AppState
     {
         public string id { get; set; } = string.Empty;
+
+		/// <summary>The application's Component; null if it names none.</summary>
+		public string? component { get; set; }
         public AppStateDetails state { get; set; } = new();
 
 		public AppState()
@@ -38,6 +78,7 @@ namespace Dirigent.Web
 		public AppState( Dirigent.AppDef appDef, Dirigent.PlanState? planState, Dirigent.AppState appState )
 		{
 			this.id = appDef.ToString();
+			this.component = string.IsNullOrEmpty( appDef.Component ) ? null : appDef.Component;
 			this.state = new AppStateDetails( appDef, planState, appState );
 		}
     }
@@ -48,6 +89,9 @@ namespace Dirigent.Web
         //public string ExeFullPath { get; set; } = string.Empty;
         //public string CmdLineArgs { get; set; } = string.Empty;
 		public string groups { get; set; } = string.Empty;
+
+		/// <summary>The software component the application belongs to (its Component attribute); null if it names none.</summary>
+		public string? component { get; set; }
 
 		/// <summary>The machine the application runs on.</summary>
 		public string machine { get; set; } = string.Empty;
@@ -69,6 +113,7 @@ namespace Dirigent.Web
 		{
 			id = x.Id.ToString();
 			groups = x.Groups;
+			component = string.IsNullOrEmpty( x.Component ) ? null : x.Component;
 			machine = x.Id.MachineId;
 			exeFullPath = x.ExeFullPath;
 			startupDir = x.StartupDir;
@@ -106,12 +151,12 @@ namespace Dirigent.Web
 			AppDef res = new AppDef();
 			var op = _master.AddSynchronousOp( () =>
 			{
-				var (appIdTuple, planName) = Tools.ParseAppIdWithPlan( id );
+				var (appIdTuple, planName) = ApiOps.ParseAppId( id );
 
 				var ad = _master.GetAppDef( appIdTuple );
 
 				if( ad is null )
-					throw HttpException.NotFound();
+					throw HttpException.NotFound( $"No application '{appIdTuple}' is defined." );
 
 				res = new AppDef( ad );
 			} );
@@ -136,7 +181,7 @@ namespace Dirigent.Web
 			if( op.Exception != null ) throw op.Exception;
 
 			var entry = ( await query!.ResolveAsync() ).Single();
-			await HttpContext.SendStringAsync( entry.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+			await HttpContext.SendStringAsync( entry.ToJson(), "application/json", ApiOps.Utf8 );
 		}
 
 		// The same for all the apps, or those of one machine (?machine=m1).
@@ -146,12 +191,42 @@ namespace Dirigent.Web
 			var machine = HttpContext.GetRequestQueryData()["machine"];
 
 			AppLocationQuery? query = null;
-			var op = _master.AddSynchronousOp( () => { query = AppLocationQuery.PrepareAll( _master, machine ); } );
+			var op = _master.AddSynchronousOp( () =>
+			{
+				// unknown like everywhere else - but a machine only an app record names (no <Machine>) is known enough
+				if( !string.IsNullOrEmpty( machine ) && _master.GetMachineDef( machine ) is null
+					&& !_master.GetAllAppsDef().Any( kv => kv.Key.MachineId == machine ) )
+					throw HttpException.NotFound( $"No machine '{machine}' is known." );
+
+				query = AppLocationQuery.PrepareAll( _master, machine );
+			} );
 			await op.WaitAsync();
 			if( op.Exception != null ) throw op.Exception;
 
 			var entries = await query!.ResolveAsync();
-			await HttpContext.SendStringAsync( AppFilesResult.ToJson( entries ), "application/json", System.Text.Encoding.UTF8 );
+			await HttpContext.SendStringAsync( AppFilesResult.ToJson( entries ), "application/json", ApiOps.Utf8 );
+		}
+
+		// The versions of the applications, each listed once with the machines and apps that have it (?machine=m1).
+		[Route( HttpVerbs.Get, "/appversions" )]
+		public async Task GetAppVersions()
+		{
+			var machine = HttpContext.GetRequestQueryData()["machine"];
+
+			AppLocationQuery? query = null;
+			var op = _master.AddSynchronousOp( () =>
+			{
+				if( !string.IsNullOrEmpty( machine ) && _master.GetMachineDef( machine ) is null
+					&& !_master.GetAllAppsDef().Any( kv => kv.Key.MachineId == machine ) )
+					throw HttpException.NotFound( $"No machine '{machine}' is known." );
+
+				query = AppLocationQuery.PrepareAll( _master, machine );
+			} );
+			await op.WaitAsync();
+			if( op.Exception != null ) throw op.Exception;
+
+			var versions = AppVersions.Of( await query!.ResolveAsync() );
+			await HttpContext.SendStringAsync( AppFilesResult.ToJson( versions ), "application/json", ApiOps.Utf8 );
 		}
 
 		// Gets the actual files of one app instance, with local and UNC paths.
@@ -180,7 +255,7 @@ namespace Dirigent.Web
 
 			var result = await query!.ResolveAsync( includeContent );
 
-			await HttpContext.SendStringAsync( result.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+			await HttpContext.SendStringAsync( result.ToJson(), "application/json", ApiOps.Utf8 );
 		}
 
 		// Gets the files of any top-level VFS node (a file package, typically), addressed as scripts do.
@@ -206,19 +281,18 @@ namespace Dirigent.Web
 
 			var result = await query!.ResolveAsync( includeContent );
 
-			await HttpContext.SendStringAsync( result.ToJson(), "application/json", System.Text.Encoding.UTF8 );
+			await HttpContext.SendStringAsync( result.ToJson(), "application/json", ApiOps.Utf8 );
 		}
 
 		AppState GetAppStateInternal( string id )
 		{
-			var (appIdTuple, planName) = Tools.ParseAppIdWithPlan( id );
+			var (appIdTuple, planName) = ApiOps.ParseAppId( id );
 
-			var appDef = _master.GetAppDef( appIdTuple );
+			var appDef = _master.GetAppDef( appIdTuple ) ?? throw HttpException.NotFound( $"No application '{appIdTuple}' is defined." );
+			if( !string.IsNullOrEmpty( planName ) && _master.GetPlanDef( planName ) is null )
+				throw HttpException.NotFound( $"No plan '{planName}' is defined." );
 			var planState = _master.GetPlanState( planName ?? "" );
-			var appState = _master.GetAppState( appIdTuple );
-
-			if( appDef is null || appState is null )
-				throw  HttpException.NotFound();
+			var appState = _master.GetAppState( appIdTuple ) ?? throw HttpException.NotFound( $"Application '{appIdTuple}' has no state." );
 
 			return new AppState( appDef, planState, appState );
 		}

@@ -52,10 +52,16 @@ namespace Dirigent.Web
 			if( page is null )
 				throw HttpException.NotFound( $"There is no documentation page '{doc}'." );
 
-			using var stream = _asm.GetManifestResourceStream( Prefix + page )!;
-			using var reader = new StreamReader( stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true );
+			await HttpContext.SendStringAsync( ReadPage( page )!, "text/markdown", ApiOps.Utf8 );
+		}
 
-			await HttpContext.SendStringAsync( await reader.ReadToEndAsync(), "text/markdown", Encoding.UTF8 );
+		/// <summary>The text of an embedded page, null if there is none of that name.</summary>
+		public static string? ReadPage( string page )
+		{
+			using var stream = _asm.GetManifestResourceStream( Prefix + page );
+			if( stream is null ) return null;
+			using var reader = new StreamReader( stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true );
+			return reader.ReadToEnd();
 		}
 	}
 }

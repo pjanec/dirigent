@@ -163,6 +163,25 @@ namespace Dirigent
 		/// </summary>
 		AppLaunchSpec? ResolveAppLaunchSpec( AppDef appDef ) { return null; }
 
+		/// <summary>
+		/// The state of the site as a readable JSON document - versions, machines, plans, applications - for an archive of
+		/// collected files (<c>_sitestate.json</c>). Called on the master's thread; what has to ask the agents runs in the
+		/// task returned. Only a master knows - null anywhere else.
+		/// </summary>
+		Task<string?>? ComposeSiteState( SiteStateExtras extras ) { return null; }
+
+	}
+
+	/// <summary>What the collection adds to the site state: things only it knows.</summary>
+	public class SiteStateExtras
+	{
+		public string? Comment;
+
+		/// <summary>The time window of the collected logs, when marks drew it ("since 2026-11-20 13:20:05 (the mark of ...)").</summary>
+		public string? LogsSince;
+
+		/// <summary>What was asked to be collected, as the cover note names it.</summary>
+		public List<string> Selection = new();
 	}
 
 
@@ -263,5 +282,8 @@ namespace Dirigent
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
 		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
 		Task<AppLaunchSpec?> ResolveAppLaunchSpecAsync( AppDef appDef );
+
+		/// <summary>See <see cref="IDirig.ComposeSiteState"/>; null where it cannot be composed.</summary>
+		Task<string?> ComposeSiteStateAsync( SiteStateExtras extras ) => Task.FromResult<string?>( null );
 	}
 }

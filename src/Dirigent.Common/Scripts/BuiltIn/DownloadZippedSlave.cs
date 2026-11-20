@@ -59,6 +59,16 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 4 )]
 			public bool IncludeGlobals;
 
+			// The machines collecting in this download. A note the resolution left in the tree is written by
+			// the machine it is about; one about no machine, or about a machine not collecting (offline,
+			// unknown), by the machine doing the globals - so that every note is in the archive exactly once.
+			// Null (an older master): every machine writes every note, as before.
+			public List<string>? CollectingMachines;
+
+			// Collect what was written since this time (UTC) rather than since the mark: each clearable file from the
+			// latest recorded length at or before it - see FileMarkStore.WhereToStartSince. Null: from the mark, as ever.
+			public DateTime? SinceUtc;
+
 			public override string ToString() => $"{Container} => {DestinationFolder}/{ZipFileBaseName}";
 		};
 
@@ -370,6 +380,18 @@ namespace Dirigent.Scripts.BuiltIn
 		{
 			return string.IsNullOrEmpty(node.MachineId);
 		}
+
+		/// <summary>Whether this machine writes a note about the given machine - see TArgs.CollectingMachines.</summary>
+		bool IsOurNote( string? noteMachine )
+		{
+			var collecting = _args!.CollectingMachines;
+			if( collecting is null ) return true; // an older master: everybody writes everything
+
+			if( noteMachine == Dirig.Name ) return true;
+
+			bool someoneElseWrites = !string.IsNullOrEmpty( noteMachine ) && collecting.Contains( noteMachine );
+			return !someoneElseWrites && _args.IncludeGlobals;
+		}
 		
 
 		/// <summary>
@@ -382,7 +404,13 @@ namespace Dirigent.Scripts.BuiltIn
 		{
 			// anything the resolution left out, so that the archive itself says it is incomplete
 			if( container.Notes is not null )
-				notes.AddRange( container.Notes );
+			{
+				for( int i = 0; i < container.Notes.Count; i++ )
+				{
+					if( IsOurNote( container.NoteMachine( i ) ) )
+						notes.Add( container.Notes[i] );
+				}
+			}
 
 			foreach( var node in container.Children )
 			{
@@ -476,20 +504,42 @@ namespace Dirigent.Scripts.BuiltIn
 		/// cuts the run short for the same reason. The entry is named and headed after whichever cut
 		/// won, so that the archive says which of the two limits was the binding one.
 		/// </remarks>
-		(long RawStart, bool ByMark, string? MarkNote) WhereToStart( VfsNodeDef node, FileInfo info )
+		/// <summary>Where a file is cut, and by what.</summary>
+		/// <param name="Skip">nothing was written to it since the time asked for: it is left out (with SkipNote)</param>
+		/// <param name="DrawnAt">when the line it is cut at was drawn (local time) - a mark's, or a history record's</param>
+		/// <param name="DrawnBy">what drew it - "Mark", "Clear", "Checkpoint"</param>
+		record struct Start( long RawStart, bool ByMark, string? MarkNote, DateTime? DrawnAt, string? DrawnBy, bool Skip = false, string? SkipNote = null );
+
+		Start WhereToStart( VfsNodeDef node, FileInfo info )
 		{
 			var tailStart = FileTail.RawTailStart( info.Length, node.TailBytes );
 
 			// only a file the configuration allows to be marked can carry a mark; a stale one is
 			// dropped by the store itself, with a note saying so
 			if( MarkStore is null || !node.Clearable )
-				return ( tailStart, false, null );
+				return new Start( tailStart, false, null, null, null );
+
+			if( _args!.SinceUtc is DateTime since )
+			{
+				// "since a time": from the latest record of the file's length at or before it - a mark or a checkpoint
+				var s = MarkStore.WhereToStartSince( node.Path!, info.Length, info.CreationTimeUtc, info.LastWriteTimeUtc, since );
+				if( s.Skip )
+					return new Start( 0, true, null, null, null, Skip: true, SkipNote: s.Note );
+
+				return s.Offset >= tailStart && s.Offset > 0
+						? new Start( s.Offset, true, s.Note, s.From!.AtUtc.ToLocalTime(), s.From.MadeBy )
+						: new Start( tailStart, false, s.Note, null, null );
+			}
 
 			var (markStart, markNote) = MarkStore.WhereToStart( node.Path!, info.Length, info.CreationTimeUtc );
 
-			return markStart >= tailStart && markStart > 0
-					? ( markStart, true, markNote )
-					: ( tailStart, false, markNote ); // the note still explains a stale mark
+			if( markStart >= tailStart && markStart > 0 )
+			{
+				var mark = MarkStore.Get( node.Path! );
+				return new Start( markStart, true, markNote, mark?.MarkedAt, mark is null ? null : FileMarkStore.OperationOf( mark ) );
+			}
+
+			return new Start( tailStart, false, markNote, null, null ); // the note still explains a stale mark
 		}
 
 		/// <summary>
@@ -498,8 +548,8 @@ namespace Dirigent.Scripts.BuiltIn
 		long EffectiveSize( VfsNodeDef node )
 		{
 			var info = new FileInfo( node.Path! );
-			var (rawStart, _, _) = WhereToStart( node, info );
-			return Math.Max( 0, info.Length - rawStart );
+			var start = WhereToStart( node, info );
+			return start.Skip ? 0 : Math.Max( 0, info.Length - start.RawStart );
 		}
 
 		/// <summary>
@@ -512,7 +562,16 @@ namespace Dirigent.Scripts.BuiltIn
 			var filePath = node.Path!;
 			var info = new FileInfo( filePath );
 
-			var (rawStart, byMark, markNote) = WhereToStart( node, info );
+			var start = WhereToStart( node, info );
+			var (rawStart, byMark, markNote) = ( start.RawStart, start.ByMark, start.MarkNote );
+
+			// asked for what was written since a time, and nothing was: not in the archive, and the report says so
+			if( start.Skip )
+			{
+				notes.Add( $"'{filePath}' is {info.Length} bytes, and {start.SkipNote} - so it is not in this archive at all." );
+				return;
+			}
+
 			var truncate = rawStart > 0;
 
 			// The share flags are not optional here:
@@ -532,9 +591,8 @@ namespace Dirigent.Scripts.BuiltIn
 			var taken = src.Length - startedAt;
 
 			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
-			var mark = byMark ? MarkStore?.Get( filePath ) : null;
-			var drawnBy = mark is not null
-					? $"the {FileMarkStore.OperationOf( mark )} of {mark.MarkedAt:yyyy-MM-dd HH:mm:ss}"
+			var drawnBy = byMark && start.DrawnAt is not null
+					? $"the {start.DrawnBy} of {start.DrawnAt:yyyy-MM-dd HH:mm:ss}"
 					: null;
 
 			// A file with nothing after the line is left out altogether rather than added as an empty
@@ -564,16 +622,16 @@ namespace Dirigent.Scripts.BuiltIn
 
 			using var dst = entry.Open();
 
-			if( truncate && byMark && mark is not null )
+			if( truncate && byMark && start.DrawnAt is not null )
 			{
 				// remembered for the cover note: an archive of files cut at a mark covers a window,
 				// and its beginning is worth stating once at the top rather than per entry
 				_markedFileCount++;
 
-				if( _earliestMark is null || mark.MarkedAt < _earliestMark )
-					_earliestMark = mark.MarkedAt;
+				if( _earliestMark is null || start.DrawnAt < _earliestMark )
+					_earliestMark = start.DrawnAt;
 
-				_markedBy.Add( FileMarkStore.OperationOf( mark ) );
+				_markedBy.Add( start.DrawnBy! );
 			}
 
 			if( truncate )

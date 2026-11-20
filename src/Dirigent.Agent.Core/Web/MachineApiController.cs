@@ -65,6 +65,9 @@ namespace Dirigent.Web
 	{
 		/// <summary>As <c>--version</c> prints it.</summary>
 		public string version { get; set; } = string.Empty;
+
+		/// <summary>The name of the site (<c>&lt;Shared Name="..."&gt;</c>); null if the shared config gives none.</summary>
+		public string? siteName { get; set; }
 		public string masterMachineId { get; set; } = string.Empty;
 		public string? masterIp { get; set; }
 		public int httpPort { get; set; }
@@ -183,6 +186,7 @@ namespace Dirigent.Web
 			=> new MasterStatus()
 		{
 			version = AppConfig.VersionText(),
+			siteName = NullIfEmpty( _master.SiteName ),
 			masterMachineId = _master.MachineId,
 			masterIp = NullIfEmpty( _master.LocalIp ),
 			httpPort = _master.HttpPort,
@@ -212,6 +216,6 @@ namespace Dirigent.Web
 			await SendJson( AppFilesResult.ToJson( status ) );
 		}
 
-		Task SendJson( string json ) => HttpContext.SendStringAsync( json, "application/json", System.Text.Encoding.UTF8 );
+		Task SendJson( string json ) => HttpContext.SendStringAsync( json, "application/json", ApiOps.Utf8 );
 	}
 }

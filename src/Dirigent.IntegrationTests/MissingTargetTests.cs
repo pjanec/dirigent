@@ -112,6 +112,54 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task ANoteIsWrittenOnceByTheMachineItIsAbout()
+		{
+			// Every machine is sent the whole resolved tree, and each used to write every note it walked
+			// past - so a folder missing on one machine was reported in the _incomplete.txt of all of them
+			// (seen on a 7-machine site: one machine's missing tool log folder, seven times).
+			var world = Scenario.TwoMachines()
+				.App( "m1.app", a => a.LongRunning().WithLogNode() )
+				.App( "m2.app", a => a
+					.LongRunning()
+					.WithLogNode()
+					.WithFolderNode( "dump.folder", "{temp}\\no_such_folder", mask: "*.dmp" ) )
+				.Package( "pkg", "Logs/Everything", p => p.RefAll( "log" ).RefAll( "dump.folder" ) );
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = world } );
+			foreach( var m in new[] { "m1", "m2" } )
+			{
+				var log = Worlds.LogOf( bed, m, "app" );
+				Directory.CreateDirectory( Path.GetDirectoryName( log )! );
+				await File.WriteAllTextAsync( log, $"the log of {m}" + Environment.NewLine );
+			}
+
+			var package = await bed.Operator.GetVfsNodeAsync( "pkg" );
+			var result = await bed.Operator.DownloadAsync( package, timeout: Timeout );
+			Assert.AreEqual( 1, result.Files.Count, $"an archive was produced: {string.Join( ", ", result.Errors )}" );
+
+			var archive = Archive.In( bed.DownloadFolder ).Single();
+			var reports = new List<(string Entry, string Text)>();
+			using( var zip = System.IO.Compression.ZipFile.OpenRead( archive ) )
+			{
+				foreach( var e in zip.Entries.Where( e => e.Name.Equals( "_incomplete.txt", StringComparison.OrdinalIgnoreCase ) ) )
+				{
+					using var reader = new StreamReader( e.Open() );
+					reports.Add( ( e.FullName, reader.ReadToEnd() ) );
+				}
+			}
+
+			var mentioning = reports.Where( r => r.Text.Contains( "no_such_folder" ) ).ToList();
+			Assert.AreEqual( 1, mentioning.Count,
+				"the missing folder is reported once, not once per machine:\n"
+				+ string.Join( "\n", reports.Select( r => $"--- {r.Entry}\n{r.Text}" ) ) );
+			StringAssert.StartsWith( mentioning[0].Entry, bed.MachineIds["m2"] + "/",
+				"and by the machine the folder belongs to" );
+
+			Assert.AreEqual( 1, result.NotCollected.Count( n => n.Contains( "no_such_folder" ) ),
+				$"the operator hears of it once too: {string.Join( " | ", result.NotCollected )}" );
+		}
+
+		[TestMethod()]
 		public async Task TheOperatorIsToldToo()
 		{
 			// the archive tells whoever opens it later; this tells whoever is standing there now

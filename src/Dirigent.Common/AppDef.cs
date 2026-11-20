@@ -149,6 +149,12 @@ namespace Dirigent
 		//[MessagePack.Key( 26 )]
 		public string Groups = string.Empty;
 
+		/// <summary>
+		/// The software component the application belongs to ("Viewer") - an explicit name for tools, which group versions and
+		/// collected files by it. Not a UI grouping (that is <see cref="Groups"/>), not compared: renaming a component restarts nothing.
+		/// </summary>
+		public string Component = string.Empty;
+
 		//[MessagePack.Key( 27 )]
 		public double MinKillingTime; // min seconds before reporting "killed" after the kill operation
 

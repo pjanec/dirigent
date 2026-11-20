@@ -74,10 +74,33 @@ namespace Dirigent
 		/// <summary>How many bytes before the mark are kept to recognise the file by.</summary>
 		const int _fingerprintBytes = 32;
 
+		/// <summary>
+		/// A record of how long a file was at a moment - made by every mark, and by the checkpoints a running plan takes
+		/// (its MarkInterval). Never moves the mark: only a collection "since a time" reads these.
+		/// </summary>
+		public class Point
+		{
+			public long Offset;
+			public DateTime CreatedUtc;
+			public DateTime AtUtc;
+
+			/// <summary>"Mark", "Clear" or "Checkpoint".</summary>
+			public string MadeBy = string.Empty;
+
+			public byte[]? Fingerprint;
+		}
+
+		/// <summary>How long the points are kept, and how many per file at most - the newest win.</summary>
+		public static TimeSpan HistoryKeptFor = TimeSpan.FromDays( 7 );
+		public const int MaxPointsPerFile = 2000;
+
 		class Content
 		{
 			// path -> mark; the comparer is applied on load, so the file itself needs no ordering
 			public Dictionary<string, Mark> Marks = new();
+
+			// path -> points, oldest first; absent in a store written before there were any
+			public Dictionary<string, List<Point>>? History;
 		}
 
 		readonly string _filePath;
@@ -85,6 +108,7 @@ namespace Dirigent
 		DateTime _loadedWriteUtc;
 
 		Dictionary<string, Mark> _marks = new( StringComparer.OrdinalIgnoreCase );
+		Dictionary<string, List<Point>> _history = new( StringComparer.OrdinalIgnoreCase );
 
 		/// <param name="folder">
 		/// Where to keep the file. Empty selects the same default as the agent status file,
@@ -119,7 +143,7 @@ namespace Dirigent
 				var write = File.Exists( _filePath ) ? File.GetLastWriteTimeUtc( _filePath ) : default;
 				if( write != _loadedWriteUtc )
 				{
-					lock( _lock ) _marks = new( StringComparer.OrdinalIgnoreCase );
+					lock( _lock ) { _marks = new( StringComparer.OrdinalIgnoreCase ); _history = new( StringComparer.OrdinalIgnoreCase ); }
 					Load();
 					_loadedWriteUtc = write;
 				}
@@ -160,7 +184,13 @@ namespace Dirigent
 					Fingerprint = ReadFingerprint( path, info.Length ),
 				};
 
-				lock( _lock ) _marks[path] = mark;
+				lock( _lock )
+				{
+					_marks[path] = mark;
+					// a mark is a moment too: "since" a time can start from it
+					AddPoint( path, new Point() { Offset = mark.Offset, CreatedUtc = mark.CreatedUtc, AtUtc = DateTime.UtcNow,
+												  MadeBy = madeBy, Fingerprint = mark.Fingerprint } );
+				}
 				return mark;
 			}
 			catch( Exception e )
@@ -168,6 +198,57 @@ namespace Dirigent
 				log.Warn( $"Could not mark '{path}': {e.Message}" );
 				return null;
 			}
+		}
+
+		/// <summary>
+		/// Records how long the file is now, in its history only - the mark, if any, stays where it is. Null if the
+		/// file could not be looked at.
+		/// </summary>
+		public Point? Checkpoint( string path )
+		{
+			try
+			{
+				var info = new FileInfo( path );
+				if( !info.Exists ) return null;
+
+				var point = new Point()
+				{
+					Offset = info.Length,
+					CreatedUtc = info.CreationTimeUtc,
+					AtUtc = DateTime.UtcNow,
+					MadeBy = "Checkpoint",
+					Fingerprint = ReadFingerprint( path, info.Length ),
+				};
+
+				lock( _lock ) AddPoint( path, point );
+				return point;
+			}
+			catch( Exception e )
+			{
+				log.Warn( $"Could not take a checkpoint of '{path}': {e.Message}" );
+				return null;
+			}
+		}
+
+		/// <summary>The recorded points of a file, oldest first.</summary>
+		public IReadOnlyList<Point> History( string path )
+		{
+			lock( _lock ) return _history.TryGetValue( path, out var h ) ? h.ToList() : new List<Point>();
+		}
+
+		// under _lock
+		void AddPoint( string path, Point point )
+		{
+			if( !_history.TryGetValue( path, out var h ) ) _history[path] = h = new List<Point>();
+			h.Add( point );
+			Trim( h );
+		}
+
+		static void Trim( List<Point> h )
+		{
+			var oldest = DateTime.UtcNow - HistoryKeptFor;
+			h.RemoveAll( p => p.AtUtc < oldest );
+			if( h.Count > MaxPointsPerFile ) h.RemoveRange( 0, h.Count - MaxPointsPerFile );
 		}
 
 		/// <summary>
@@ -241,6 +322,9 @@ namespace Dirigent
 				lock( _lock )
 				{
 					_marks = new Dictionary<string, Mark>( content.Marks, StringComparer.OrdinalIgnoreCase );
+					_history = content.History is null
+						? new( StringComparer.OrdinalIgnoreCase )
+						: new Dictionary<string, List<Point>>( content.History, StringComparer.OrdinalIgnoreCase );
 				}
 			}
 			catch( Exception e )
@@ -265,7 +349,15 @@ namespace Dirigent
 				DropMarksOfFilesThatAreGone();
 
 				Content content;
-				lock( _lock ) content = new Content() { Marks = new Dictionary<string, Mark>( _marks ) };
+				lock( _lock )
+				{
+					foreach( var h in _history.Values ) Trim( h );
+					content = new Content()
+					{
+						Marks = new Dictionary<string, Mark>( _marks ),
+						History = _history.Where( kv => kv.Value.Count > 0 ).ToDictionary( kv => kv.Key, kv => kv.Value.ToList() ),
+					};
+				}
 
 				var temp = _filePath + ".writing";
 				File.WriteAllText( temp, Tools.Serialize( content ) );
@@ -298,8 +390,8 @@ namespace Dirigent
 
 			lock( _lock )
 			{
-				gone = _marks.Keys.Where( path => !Exists( path ) ).ToList();
-				foreach( var path in gone ) _marks.Remove( path );
+				gone = _marks.Keys.Concat( _history.Keys ).Distinct( StringComparer.OrdinalIgnoreCase ).Where( path => !Exists( path ) ).ToList();
+				foreach( var path in gone ) { _marks.Remove( path ); _history.Remove( path ); }
 			}
 
 			if( gone.Count > 0 )
@@ -350,6 +442,62 @@ namespace Dirigent
 			if( mark.Offset <= 0 ) return ( 0, null );
 
 			return ( mark.Offset, $"written after the {drawn} (byte {mark.Offset})" );
+		}
+
+		/// <summary>Where a collection "since a time" starts in a file, and what decided it.</summary>
+		public class SinceStart
+		{
+			/// <summary>Nothing was written to the file since the time: it is left out.</summary>
+			public bool Skip;
+
+			/// <summary>Where to start; 0 for the whole file.</summary>
+			public long Offset;
+
+			/// <summary>For the archive: what this part of the file is, or why the whole file came.</summary>
+			public string? Note;
+
+			/// <summary>The record the collection starts at - its time and kind - or null for the whole file.</summary>
+			public Point? From;
+		}
+
+		/// <summary>
+		/// Where a collection of this file "since" the given time should start: at the latest recorded length at or before
+		/// that time - a mark or a checkpoint - so that it holds everything written since, and a little before at most.
+		/// </summary>
+		/// <remarks>
+		/// Nothing is read from inside the file: the time comes from the records and from the file system. Wrong only
+		/// in the safe direction - a file that cannot be cut where it should is collected whole, with a note saying why.
+		/// </remarks>
+		public SinceStart WhereToStartSince( string path, long currentLength, DateTime currentCreatedUtc, DateTime lastWriteUtc, DateTime sinceUtc )
+		{
+			var at = $"{sinceUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+			if( lastWriteUtc < sinceUtc )
+				return new SinceStart() { Skip = true, Note = $"nothing has been written to it since {at}" };
+
+			if( currentCreatedUtc > sinceUtc )
+				return new SinceStart() { Note = $"the whole file: it was created after {at}" };
+
+			Point? from;
+			lock( _lock )
+			{
+				from = _history.TryGetValue( path, out var h ) ? h.LastOrDefault( p => p.AtUtc <= sinceUtc ) : null;
+			}
+
+			if( from is null )
+				return new SinceStart() { Note = $"the whole file: there is no record of its length at or before {at}" };
+
+			var drawn = $"{from.MadeBy} of {from.AtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+			// the same checks as for a mark - see WhereToStart
+			if( from.CreatedUtc != currentCreatedUtc || currentLength < from.Offset
+				|| !FingerprintMatches( path, new Mark() { Offset = from.Offset, Fingerprint = from.Fingerprint } ) )
+				return new SinceStart() { Note = $"the whole file: it was replaced, truncated or rotated since the {drawn}" };
+
+			if( from.Offset <= 0 ) return new SinceStart() { From = from };
+
+			return new SinceStart() { Offset = from.Offset, From = from,
+									  Note = $"written after the {drawn} (byte {from.Offset}), the last record at or before {at}" };
 		}
 	}
 }

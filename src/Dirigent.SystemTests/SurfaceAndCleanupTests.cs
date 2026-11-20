@@ -27,6 +27,10 @@ namespace Dirigent.SystemTests
 
 			StringAssert.Contains( text, "m1.camera",
 				$"the applications came back over HTTP: {text}" );
+
+			// one JSON string, as documented - the lines joined with escaped line breaks
+			var lines = System.Text.Json.JsonDocument.Parse( text ).RootElement.GetString()!;
+			StringAssert.EndsWith( lines.TrimEnd(), "END", lines );
 		}
 
 		[TestMethod()]
@@ -205,10 +209,53 @@ namespace Dirigent.SystemTests
 			Call( HttpMethod.Post, "plandefs/all/start", System.Net.HttpStatusCode.BadRequest, "{ not json" );
 			Call( HttpMethod.Post, "plandefs/all/start?waitSeconds=abc", System.Net.HttpStatusCode.BadRequest );
 
+			// the site's name, from <Shared Name="...">
+			Assert.AreEqual( "Control world", Call( HttpMethod.Get, "status", ok ).GetProperty( "siteName" ).GetString() );
+			Assert.AreEqual( "Control world", Call( HttpMethod.Get, "", ok ).GetProperty( "siteName" ).GetString() );
+
+			// a running application's state, as fields
+			var running = Call( HttpMethod.Get, "appstates/m1.idler", ok ).GetProperty( "state" );
+			Assert.IsTrue( running.GetProperty( "pid" ).GetInt32() > 0, running.ToString() );
+			Assert.AreEqual( "all", running.GetProperty( "plan" ).GetString(), running.ToString() );
+			Assert.AreEqual( System.Text.Json.JsonValueKind.Null, running.GetProperty( "exitCode" ).ValueKind, "no exit code while it runs" );
+			Assert.IsFalse( running.GetProperty( "offline" ).GetBoolean(), running.ToString() );
+			Assert.IsTrue( running.GetProperty( "reportAgeSeconds" ).GetDouble() < 10, running.ToString() );
+			var startedAt = running.GetProperty( "startedAt" ).GetDateTime();
+			Assert.IsTrue( Math.Abs( ( DateTime.UtcNow - startedAt.ToUniversalTime() ).TotalMinutes ) < 5, $"started a moment ago: {running}" );
+			Assert.AreEqual( System.Text.Json.JsonValueKind.Null, running.GetProperty( "endedAt" ).ValueKind, "no end while it runs" );
+
+			// the CLI line keeps its fields where they were; the start and the end come after the PID
+			var line = world.Cli( "GetAppState m1.idler" ).Trim().Split( ':' );
+			Assert.AreEqual( "APP", line[0] );
+			Assert.AreEqual( "m1.idler", line[1] );
+			Assert.IsTrue( line[2].Contains( 'R' ), string.Join( ":", line ) );
+			Assert.AreEqual( "all", line[8], string.Join( ":", line ) );
+			Assert.IsTrue( line.Length >= 12 && System.Text.RegularExpressions.Regex.IsMatch( line[10], @"^\d{8}T\d{6}Z$" ) && line[11] == "",
+				"StartedAt (and no EndedAt) after the PID: " + string.Join( ":", line ) );
+
+			// the component, named explicitly by the application
+			Assert.AreEqual( "Tools", Call( HttpMethod.Get, "appdefs/m2.broken", ok ).GetProperty( "component" ).GetString() );
+			Assert.AreEqual( System.Text.Json.JsonValueKind.Null, Call( HttpMethod.Get, "appdefs/m1.idler", ok ).GetProperty( "component" ).ValueKind );
+
+			// the locations carry the application's groups, so that versions can be shown per component
+			var locations = Call( HttpMethod.Get, "applocations?machine=m1", ok );
+			Assert.IsTrue( locations.EnumerateArray().All( l => l.TryGetProperty( "groups", out _ ) ), locations.ToString() );
+
 			// an application killed, and waited for
 			var killed = Call( HttpMethod.Post, "appdefs/m1.idler/kill?waitSeconds=30", ok );
 			Assert.IsFalse( killed.GetProperty( "state" ).GetProperty( "flags" ).GetString()!.Contains( 'R' ), killed.ToString() );
+			Assert.AreNotEqual( System.Text.Json.JsonValueKind.Null, killed.GetProperty( "state" ).GetProperty( "endedAt" ).ValueKind, $"the end is recorded: {killed}" );
 			Call( HttpMethod.Post, "appdefs/m1.nosuch/kill", System.Net.HttpStatusCode.NotFound );
+
+			// a start that fails is said at once, not at the end of the wait (seen on a site: 20 s for a missing program)
+			var clock = System.Diagnostics.Stopwatch.StartNew();
+			var broken = Call( HttpMethod.Post, "appdefs/m2.broken/start?waitSeconds=60", System.Net.HttpStatusCode.Conflict );
+			StringAssert.Contains( broken.GetProperty( "error" ).GetString(), "failed to start", broken.ToString() );
+			Assert.IsTrue( clock.Elapsed < TimeSpan.FromSeconds( 15 ), $"the failure took {clock.Elapsed} to be told" );
+
+			// a machine nobody serves: refused, rather than a 202 for a start that goes nowhere
+			var ghost = Call( HttpMethod.Post, "appdefs/ghost.app/start", System.Net.HttpStatusCode.Conflict );
+			StringAssert.Contains( ghost.GetProperty( "error" ).GetString(), "not connected", ghost.ToString() );
 
 			// a script started by name and waited for: the answer holds what it returned
 			var script = Call( HttpMethod.Post, "scripts?waitSeconds=30", ok, "{\"name\":\"BuiltIns/ListVfsNodes.cs\",\"args\":{}}" );
@@ -256,8 +303,10 @@ namespace Dirigent.SystemTests
 			var ok = System.Net.HttpStatusCode.OK;
 
 			// the app: both names, the same answer
+			// the same answer - but for the age of the last report, which moves between two calls
+			string WithoutAge( string json ) => System.Text.RegularExpressions.Regex.Replace( json, "\"reportAgeSeconds\":[^,}]*", "" );
 			var plural = Get( "appstates/m1.camera", ok );
-			Assert.AreEqual( plural, Get( "appstate/m1.camera", ok ) );
+			Assert.AreEqual( WithoutAge( plural ), WithoutAge( Get( "appstate/m1.camera", ok ) ) );
 			StringAssert.Contains( plural, "\"state\"" );
 
 			// the plan, likewise
@@ -339,6 +388,215 @@ namespace Dirigent.SystemTests
 		}
 
 		[TestMethod()]
+		public void TheStatusCodesAreTheDocumentedOnes()
+		{
+			// each line was answered differently on a real 7-machine site - see HTTP.md, Conventions
+			using var world = SystemWorld.Start( "ControlWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			System.Text.Json.JsonElement Send( HttpMethod method, string url, System.Net.HttpStatusCode expected, string? body = null, string type = "application/json" )
+			{
+				var req = new HttpRequestMessage( method, $"{root}/{url}" );
+				if( body is not null ) req.Content = new StringContent( body, Encoding.UTF8, type );
+				var r = http.SendAsync( req ).GetAwaiter().GetResult();
+				var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Assert.AreEqual( expected, r.StatusCode, $"{method} {url}: {text}" );
+				Assert.AreEqual( "application/json", r.Content.Headers.ContentType?.MediaType, $"{method} {url}: {text}" );
+				return System.Text.Json.JsonDocument.Parse( text ).RootElement.Clone();
+			}
+			string Error( System.Text.Json.JsonElement e ) => e.GetProperty( "error" ).GetString() ?? "";
+
+			var badRequest = System.Net.HttpStatusCode.BadRequest;
+			var notFound = System.Net.HttpStatusCode.NotFound;
+
+			// an id that cannot be parsed is 400, everywhere
+			Send( HttpMethod.Get, "appdefs/m1.", badRequest );
+			Send( HttpMethod.Get, "appstates/m1.", badRequest );
+			Send( HttpMethod.Get, "downloads/not-a-guid", badRequest );
+
+			// every 404 says what is missing
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "appdefs/m1.nosuch", notFound ) ), "m1.nosuch" );
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "clients/nosuch", notFound ) ), "nosuch" );
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "plandefs/nosuch", notFound ) ), "nosuch" );
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "appstates/m1.idler@nosuch", notFound ) ), "nosuch" );
+			StringAssert.Contains( Error( Send( HttpMethod.Get, $"scriptdefs/{Guid.NewGuid()}", notFound ) ), "script" );
+
+			// a filter naming something unknown is not an empty answer
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "applocations?machine=nosuch", notFound ) ), "nosuch" );
+			StringAssert.Contains( Error( Send( HttpMethod.Get, "filedefs?type=Nonsense", badRequest ) ), "FilePackage" );
+
+			// a script the master does not have is not started to fail
+			StringAssert.Contains( Error( Send( HttpMethod.Post, "scripts", notFound, "{\"name\":\"BuiltIns/NoSuch.cs\"}" ) ), "NoSuch" );
+
+			// a file that is XML but not a shared config: the caller's mistake, and the running config stays
+			var notShared = Path.Combine( world.Root, "not-a-shared-config.xml" );
+			File.WriteAllText( notShared, "<Local/>" );
+			StringAssert.Contains( Error( Send( HttpMethod.Post, "sharedconfig/reload", badRequest,
+				System.Text.Json.JsonSerializer.Serialize( new { file = notShared, killApps = false } ) ) ), "<Shared>" );
+
+			// the CLI: nothing to run is 400; an unknown app is an ERROR like any unknown id
+			Send( HttpMethod.Post, "cli", badRequest, "", "text/plain" );
+			var cli = Send( HttpMethod.Post, "cli", System.Net.HttpStatusCode.OK, "GetAppState m1.nosuch", "text/plain" );
+			StringAssert.StartsWith( cli.GetString(), "ERROR", cli.ToString() );
+
+			// a path no route takes is still answered as the API answers
+			Send( HttpMethod.Get, "help/..%5C..%5CDirigent.Agent.dll.config", notFound );
+
+			// the plan says what it marks
+			var plan = Send( HttpMethod.Get, "plandefs/all", System.Net.HttpStatusCode.OK );
+			Assert.AreEqual( 0, plan.GetProperty( "markFiles" ).GetArrayLength(), plan.ToString() );
+			Assert.AreEqual( 0, plan.GetProperty( "clearFiles" ).GetArrayLength(), plan.ToString() );
+			Assert.AreEqual( 60.0, plan.GetProperty( "markTimeout" ).GetDouble(), plan.ToString() );
+		}
+
+		[TestMethod()]
+		public void TheApiDescribesItselfAndTheRootLeadsThere()
+		{
+			// what a tool or an AI agent that knows only the address finds
+			using var world = SystemWorld.Start( "TwoMachines", withHttp: true );
+
+			using var noRedirect = new HttpClient( new HttpClientHandler() { AllowAutoRedirect = false } ) { Timeout = TimeSpan.FromSeconds( 30 ) };
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var host = $"http://127.0.0.1:{world.HttpPort}";
+
+			var root = noRedirect.GetAsync( $"{host}/" ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Found, root.StatusCode );
+			Assert.IsTrue( root.Headers.Location?.OriginalString.TrimEnd( '/' ).EndsWith( "/api" ) == true, root.Headers.Location?.OriginalString );
+
+			foreach( var path in new[] { "/api", "/api/", "/" } ) // the last one followed through the redirect
+			{
+				var r = http.GetAsync( host + path ).GetAwaiter().GetResult();
+				var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Assert.AreEqual( System.Net.HttpStatusCode.OK, r.StatusCode, $"{path}: {text}" );
+				Assert.AreEqual( "application/json", r.Content.Headers.ContentType?.MediaType, path );
+
+				var index = System.Text.Json.JsonDocument.Parse( text ).RootElement;
+				Assert.AreEqual( "Dirigent", index.GetProperty( "name" ).GetString() );
+				Assert.AreEqual( "/api/help/HTTP.md", index.GetProperty( "help" ).GetString() );
+				Assert.IsTrue( index.GetProperty( "start" ).GetArrayLength() > 0 );
+				Assert.IsTrue( index.GetProperty( "docs" ).EnumerateArray().Any( d => d.GetString() == "/api/help/Files.md" ), text );
+			}
+
+			// every route is listed, and every one has its section in the manual - a route added without documentation fails here
+			var manual = http.GetStringAsync( $"{host}/api/help/HTTP.md" ).GetAwaiter().GetResult();
+			var all = System.Text.Json.JsonDocument.Parse( http.GetStringAsync( $"{host}/api" ).GetAwaiter().GetResult() ).RootElement.GetProperty( "routes" );
+			var undocumented = new List<string>();
+			foreach( var route in all.EnumerateArray() )
+			{
+				var help = route.GetProperty( "help" ).GetString()!;
+				if( !help.Contains( '#' ) ) undocumented.Add( $"{route.GetProperty( "method" ).GetString()} {route.GetProperty( "path" ).GetString()}" );
+			}
+			Assert.AreEqual( 0, undocumented.Count, "routes with no section in HTTP.md: " + string.Join( ", ", undocumented ) );
+			Assert.IsTrue( all.GetArrayLength() > 50, $"{all.GetArrayLength()} routes" );
+
+			// JSON over HTTP starts with JSON, not with a byte order mark - strict parsers (Windows PowerShell's) refuse it
+			foreach( var (method, path, body) in new (HttpMethod, string, string?)[] {
+				( HttpMethod.Get, "/api", null ), ( HttpMethod.Get, "/api/status", null ), ( HttpMethod.Get, "/api/appstates", null ),
+				( HttpMethod.Get, "/api/filedefs", null ), ( HttpMethod.Get, "/api/appdefs/nosuch.app", null ), ( HttpMethod.Post, "/api/cli", "GetAllPlansState" ) } )
+			{
+				var req = new HttpRequestMessage( method, host + path );
+				if( body is not null ) req.Content = new StringContent( body, Encoding.UTF8, "text/plain" );
+				var bytes = http.SendAsync( req ).GetAwaiter().GetResult().Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+				Assert.IsTrue( bytes.Length > 0 && ( bytes[0] == '{' || bytes[0] == '[' || bytes[0] == '"' ),
+					$"{method} {path} starts with 0x{( bytes.Length > 0 ? bytes[0] : 0 ):X2}" );
+			}
+			Assert.IsTrue( all.EnumerateArray().Any( r => r.GetProperty( "path" ).GetString() == "/api/status"
+				&& r.GetProperty( "help" ).GetString() == "/api/help/HTTP.md#GET-apistatus" ) );
+			StringAssert.Contains( manual, "### GET /api/status" );
+		}
+
+		[TestMethod()]
+		public void ARunningPlanTakesCheckpointsAndACollectionSinceATimeStartsThere()
+		{
+			// the plan marks the log when it starts and takes a checkpoint of it every 10 s while it runs; a collection
+			// "since" a time after a checkpoint holds what was written since that checkpoint - nothing older
+			using var world = SystemWorld.Start( "CheckpointWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 120 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+			System.Text.Json.JsonElement Json( string text ) => System.Text.Json.JsonDocument.Parse( text ).RootElement.Clone();
+
+			var logs = world.Files.Apps.Single( a => a.IdTuple == "m1.ticker" ).LogsDir;
+			Directory.CreateDirectory( logs );
+			var log = Path.Combine( logs, "run.log" );
+			File.WriteAllText( log, "before the run\n" );
+
+			var plan = Json( http.GetStringAsync( $"{root}/plandefs/run" ).GetAwaiter().GetResult() );
+			Assert.AreEqual( 10.0, plan.GetProperty( "markInterval" ).GetDouble(), plan.ToString() );
+
+			var started = http.PostAsync( $"{root}/plandefs/run/start?waitSeconds=60", null ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, started.StatusCode, started.Content.ReadAsStringAsync().GetAwaiter().GetResult() );
+
+			// the marking at the start is in the plan's state (a derived answer type: it was once dropped by the serializer)
+			var afterStart = Json( http.GetStringAsync( $"{root}/planstates/run" ).GetAwaiter().GetResult() ).GetProperty( "state" );
+			Assert.IsTrue( afterStart.TryGetProperty( "markResult", out var mr ) && mr.GetProperty( "marked" ).GetInt32() == 1, afterStart.ToString() );
+
+			File.AppendAllText( log, "during the run, before the checkpoint\n" );
+
+			// the first checkpoint comes about 10 s after the start
+			System.Text.Json.JsonElement state = default;
+			var clock = System.Diagnostics.Stopwatch.StartNew();
+			while( clock.Elapsed < TimeSpan.FromSeconds( 40 ) )
+			{
+				state = Json( http.GetStringAsync( $"{root}/planstates/run" ).GetAwaiter().GetResult() ).GetProperty( "state" );
+				if( state.TryGetProperty( "lastCheckpoint", out var lc ) && lc.ValueKind != System.Text.Json.JsonValueKind.Null ) break;
+				Thread.Sleep( 1000 );
+			}
+			Assert.IsTrue( state.TryGetProperty( "lastCheckpoint", out var last ) && last.ValueKind != System.Text.Json.JsonValueKind.Null,
+				$"a checkpoint within 40 s: {state}\nplan: {plan}\nmaster log:\n" + string.Join( "\n", new StreamReader( new FileStream( world.Files.LogOf( world.Files.MasterMachine ), FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) ).ReadToEnd().Split( '\n' )
+					.Where( l => l.Contains( "Plan run" ) || l.Contains( "heckpoint" ) || l.Contains( "Mark" ) || l.Contains( "ERROR" ) || l.Contains( "WARN" ) ).TakeLast( 30 ) ) );
+
+			Thread.Sleep( 1500 );
+			var since = DateTime.UtcNow;
+			Thread.Sleep( 1500 );
+			File.AppendAllText( log, "after the time asked for\n" );
+
+			var body = System.Text.Json.JsonSerializer.Serialize( new { fileDef = new { id = "log" }, since = since.ToString( "o" ) } );
+			var post = http.PostAsync( $"{root}/downloads", new StringContent( body, Encoding.UTF8, "application/json" ) ).GetAwaiter().GetResult();
+			var id = Json( post.Content.ReadAsStringAsync().GetAwaiter().GetResult() ).GetProperty( "id" ).GetString();
+			var job = Json( http.GetStringAsync( $"{root}/downloads/{id}?wait=60" ).GetAwaiter().GetResult() );
+			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), job.ToString() );
+
+			var bytes = http.GetByteArrayAsync( $"http://127.0.0.1:{world.HttpPort}{job.GetProperty( "archives" )[0].GetProperty( "url" ).GetString()}" ).GetAwaiter().GetResult();
+			using var zip = new System.IO.Compression.ZipArchive( new MemoryStream( bytes ) );
+			var entry = zip.Entries.Single( e => e.Name.StartsWith( "run" ) && e.Name.EndsWith( ".log" ) );
+			using var reader = new StreamReader( entry.Open() );
+			var text = reader.ReadToEnd();
+
+			StringAssert.Contains( text, "after the time asked for", text );
+			Assert.IsFalse( text.Contains( "before the run" ), $"nothing from before the plan's mark: {text}" );
+			Assert.IsFalse( text.Contains( "before the checkpoint" ), $"nothing from before the checkpoint: {text}" );
+
+			using var comment = new StreamReader( zip.GetEntry( "_comment.txt" )!.Open() );
+			StringAssert.Contains( comment.ReadToEnd(), "Since     :", "the cover note says the time asked for" );
+		}
+
+		[TestMethod()]
+		public void TheBanIsAnsweredAsTheApiAnswers()
+		{
+			// more than the limit in one second bans the address - this master's only, and the world goes with the test
+			using var world = SystemWorld.Start( "TwoMachines", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 30 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			var burst = Enumerable.Range( 0, 300 ).Select( _ => http.GetAsync( $"{root}/downloads" ) ).ToArray();
+			System.Threading.Tasks.Task.WaitAll( burst );
+			Assert.IsTrue( burst.Any( t => t.Result.StatusCode == System.Net.HttpStatusCode.Forbidden ),
+				"300 requests at once are over the limit: " + string.Join( ",", burst.Select( t => (int) t.Result.StatusCode ).Distinct() ) );
+
+			var r = http.GetAsync( $"{root}/status" ).GetAwaiter().GetResult();
+			var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Forbidden, r.StatusCode, text );
+			Assert.AreEqual( "application/json", r.Content.Headers.ContentType?.MediaType, text );
+			var error = System.Text.Json.JsonDocument.Parse( text ).RootElement.GetProperty( "error" ).GetString();
+			StringAssert.Contains( error, "banned for 10 minutes", error );
+			StringAssert.Contains( error, "/api/appstates", "and it says what to do instead: " + error );
+		}
+
+		[TestMethod()]
 		public void APackageIsCollectedAndFetchedOverHttp()
 		{
 			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
@@ -394,6 +652,23 @@ namespace Dirigent.SystemTests
 			Assert.IsTrue( bytes.Length > 0, "the archive came with its bytes" );
 			Assert.AreEqual( (byte) 'P', bytes[0], "a zip" );
 
+			// beside the files, the state of the site: readable, the versions first, the applications as facts
+			using( var zip = new System.IO.Compression.ZipArchive( new MemoryStream( bytes ) ) )
+			{
+				var entry = zip.GetEntry( "_sitestate.json" );
+				Assert.IsNotNull( entry, "entries: " + string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
+				using var reader = new StreamReader( entry!.Open() );
+				var text = reader.ReadToEnd();
+				StringAssert.Contains( text, "\n  \"", "indented, for a person to read" );
+				var site = System.Text.Json.JsonDocument.Parse( text ).RootElement;
+				Assert.AreEqual( "system test", site.GetProperty( "comment" ).GetString(), text );
+				Assert.IsTrue( site.GetProperty( "versions" ).GetArrayLength() > 0, text );
+				Assert.IsTrue( site.GetProperty( "machines" ).EnumerateArray().Any( m => m.GetProperty( "id" ).GetString() == "m1" ), text );
+				Assert.IsTrue( site.GetProperty( "apps" ).EnumerateArray().Any( a => a.GetProperty( "id" ).GetString() == "m1.camera" ), text );
+				var names = site.EnumerateObject().Select( p => p.Name ).ToList();
+				Assert.IsTrue( names.IndexOf( "versions" ) < names.IndexOf( "apps" ), "the versions before the applications: " + string.Join( ",", names ) );
+			}
+
 			// the title "Logs/All apps" gives a name with a space; it travelled as %20 in the url,
 			// and the download header carries it in both the plain and the RFC 5987 form
 			var fileName = job.GetProperty( "archives" )[0].GetProperty( "name" ).GetString()!;
@@ -406,6 +681,21 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( System.Net.HttpStatusCode.NoContent, gone.StatusCode );
 			Assert.AreEqual( System.Net.HttpStatusCode.NotFound,
 				http.GetAsync( $"{root}/downloads/{id}" ).GetAwaiter().GetResult().StatusCode );
+
+			// a name of the caller's: used as given, ".zip" added, what a file name cannot hold made '_'
+			var named = http.PostAsync( $"{root}/downloads",
+				new StringContent( "{\"fileDef\":{\"id\":\"logs.all\"},\"name\":\"Bug 4711: site logs\",\"siteState\":false}", Encoding.UTF8, "application/json" ) )
+				.GetAwaiter().GetResult();
+			var namedId = System.Text.Json.JsonDocument.Parse( named.Content.ReadAsStringAsync().GetAwaiter().GetResult() ).RootElement.GetProperty( "id" ).GetString();
+			var namedJob = System.Text.Json.JsonDocument.Parse(
+				http.GetStringAsync( $"{root}/downloads/{namedId}?wait=60" ).GetAwaiter().GetResult() ).RootElement;
+			Assert.AreEqual( "Bug 4711_ site logs.zip", namedJob.GetProperty( "archives" )[0].GetProperty( "name" ).GetString(), namedJob.ToString() );
+			Assert.IsTrue( namedJob.GetProperty( "archives" )[0].GetProperty( "size" ).GetInt64() > 0,
+				"the size is known once the job is finished - before anything is downloaded" );
+			var namedBytes = http.GetByteArrayAsync( $"http://127.0.0.1:{world.HttpPort}{namedJob.GetProperty( "archives" )[0].GetProperty( "url" ).GetString()}" ).GetAwaiter().GetResult();
+			using( var namedZip = new System.IO.Compression.ZipArchive( new MemoryStream( namedBytes ) ) )
+				Assert.IsNull( namedZip.GetEntry( "_sitestate.json" ), "\"siteState\": false leaves it out" );
+			http.DeleteAsync( $"{root}/downloads/{namedId}" ).GetAwaiter().GetResult();
 		}
 	}
 

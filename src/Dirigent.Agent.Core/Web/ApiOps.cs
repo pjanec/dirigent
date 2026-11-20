@@ -20,6 +20,9 @@ namespace Dirigent.Web
 	/// </remarks>
 	public static class ApiOps
 	{
+		/// <summary>UTF-8 without the byte order mark: JSON over HTTP must not start with one, and strict parsers refuse it.</summary>
+		public static readonly System.Text.Encoding Utf8 = new System.Text.UTF8Encoding( encoderShouldEmitUTF8Identifier: false );
+
 		/// <summary>How long a call may wait for a state, at most.</summary>
 		public const int MaxWaitSeconds = 300;
 
@@ -110,6 +113,15 @@ namespace Dirigent.Web
 				if( DateTime.UtcNow >= until ) return false;
 				await Task.Delay( 150 );
 			}
+		}
+
+		/// <summary>"m1.a" or "m1.a@plan1"; anything else ("m1.", ".a", "m1") is a 400.</summary>
+		public static (AppIdTuple App, string? Plan) ParseAppId( string id )
+		{
+			var (app, plan) = Tools.ParseAppIdWithPlan( id );
+			if( string.IsNullOrEmpty( app.MachineId ) || string.IsNullOrEmpty( app.AppId ) )
+				throw HttpException.BadRequest( $"'{id}' is not an application id: \"<machine>.<app>[@<plan>]\" expected." );
+			return (app, plan);
 		}
 
 		public static HttpException Timeout( string what, double seconds )

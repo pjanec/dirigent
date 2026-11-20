@@ -216,6 +216,10 @@ namespace Dirigent
 			AppState.Running = true;  // will be updated in periodical refresh, here we think the app is running as it ahs been just started
 			AppState.PlanName = appDef.PlanName;
 
+			// the process's own start time - which is also right for a process adopted after an agent restart
+			AppState.StartedAt = ProcessStartTime() ?? DateTime.UtcNow;
+			AppState.EndedAt = null;
+
 #if Windows
 			// install main window styler if we specified the style explicitly
 			if( RecentAppDef.WindowStyle != EWindowStyle.NotSet )
@@ -362,6 +366,7 @@ namespace Dirigent
 				// nullify launcher if the process not running any more
 				if(	!AppState.Running )
 				{
+					AppState.EndedAt ??= DateTime.UtcNow; // first seen gone - within a tick of the real end
 					Launcher.Dispose();
 					Launcher = null;
 				}
@@ -418,6 +423,19 @@ namespace Dirigent
             );
             #endif
         }
+
+		/// <summary>When the launched process started, UTC; null if there is no process to ask (a command, a process already gone).</summary>
+		DateTime? ProcessStartTime()
+		{
+			try
+			{
+				var pid = Launcher?.PID ?? -1;
+				if( pid <= 0 ) return null;
+				using var p = System.Diagnostics.Process.GetProcessById( pid );
+				return p.StartTime.ToUniversalTime();
+			}
+			catch( Exception ) { return null; }
+		}
 
         public void AdoptRunning( int PID, AppDef appDef, Dictionary<string, string> vars )
 		{

@@ -49,7 +49,7 @@ namespace Dirigent.Web
 	/// </summary>
 	public class MarkOperation
 	{
-		public enum EKind { Mark, Clear, Unmark }
+		public enum EKind { Mark, Clear, Unmark, Checkpoint }
 
 		public Guid ScriptId { get; }
 		public EKind Kind { get; }
@@ -68,6 +68,7 @@ namespace Dirigent.Web
 		{
 			EKind.Mark => MarkFiles._Name,
 			EKind.Clear => ClearFiles._Name,
+			EKind.Checkpoint => CheckpointFiles._Name,
 			_ => UnmarkFiles._Name,
 		};
 

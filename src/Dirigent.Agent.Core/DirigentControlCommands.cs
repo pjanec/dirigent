@@ -265,7 +265,9 @@ namespace Dirigent.Commands
 			var t = new AppIdTuple( args[0] );
 			if( t.AppId == "" ) throw new ArgumentSyntaxErrorException( "appIdTuple", args[0], "\"machineId.appId\" expected" );
 
-			var appState = ctrl.GetAppState( t );
+			// every defined app has a state from the start, so none is an app the master does not know - an ERROR, as for
+			// any other unknown id, rather than an empty line
+			var appState = ctrl.GetAppState( t ) ?? throw new UnknownAppIdException( t );
 			var stateStr = Tools.GetAppStateString( t, appState );
 
 			WriteResponse( stateStr );
@@ -951,6 +953,46 @@ namespace Dirigent.Commands
 				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
 
 			WriteResponse( "APPLOCATIONS:" + Web.AppFilesResult.ToJson( _task.Result ) );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
+	/// The versions of the applications, each listed once: `GetAppVersions [machine=m1]`.
+	/// `APPVERSIONS:&lt;json array&gt;` and then `END` - the answer of GET /api/appversions.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetAppVersions : DirigentControlCommand
+	{
+		System.Threading.Tasks.Task<List<Web.AppLocationEntry>>? _task;
+		bool _finished;
+
+		public GetAppVersions( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			var options = Tools.ParseKeyValList( args );
+			Tools.TryGetValueIgnoreKeyCase( options, "machine", out var machine );
+
+			var query = Web.AppLocationQuery.PrepareAll( ctrl, machine );
+			_task = System.Threading.Tasks.Task.Run( () => query.ResolveAsync() );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( "APPVERSIONS:" + Web.AppFilesResult.ToJson( Web.AppVersions.Of( _task.Result ) ) );
 			WriteResponse( "END" );
 		}
 	}

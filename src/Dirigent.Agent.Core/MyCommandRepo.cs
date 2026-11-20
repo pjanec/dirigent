@@ -61,6 +61,7 @@ namespace Dirigent
             new( "GetAppFiles",        typeof( Commands.GetAppFiles ),        (ctrl, requestorId) => new Commands.GetAppFiles(ctrl, requestorId) ),
             new( "GetAppLocation", typeof( Commands.GetAppLocation ), (ctrl, requestorId) => new Commands.GetAppLocation(ctrl, requestorId) ),
             new( "GetAppLocations", typeof( Commands.GetAppLocations ), (ctrl, requestorId) => new Commands.GetAppLocations(ctrl, requestorId) ),
+            new( "GetAppVersions", typeof( Commands.GetAppVersions ), (ctrl, requestorId) => new Commands.GetAppVersions(ctrl, requestorId) ),
             new( "MarkFiles", typeof( Commands.MarkFiles ), (ctrl, requestorId) => new Commands.MarkFiles(ctrl, requestorId) ),
             new( "ClearFiles", typeof( Commands.ClearFiles ), (ctrl, requestorId) => new Commands.ClearFiles(ctrl, requestorId) ),
             new( "UnmarkFiles", typeof( Commands.UnmarkFiles ), (ctrl, requestorId) => new Commands.UnmarkFiles(ctrl, requestorId) ),

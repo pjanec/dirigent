@@ -66,10 +66,27 @@ namespace Dirigent.TestBed.Scenarios
 			return scenario;
 		}
 
-		/// <summary>Two machines with an idler each and a plan "all" holding both - what the control calls are tried on.</summary>
+		/// <summary>
+		/// Two machines with an idler each and a plan "all" holding both - what the control calls are tried on. Outside the
+		/// plan: an application whose program does not exist, and one on a machine no agent serves.
+		/// </summary>
 		public static Scenario ControlWorld()
 			=> TwoMachinesWithIdlers().PlanWithEverything( "all" )
-				.RawXml( "<Script Id='" + ControlScriptId + "' Name='BuiltIns/ListVfsNodes.cs' Args='{}'/>" );
+				.RawXml( "<Script Id='" + ControlScriptId + "' Name='BuiltIns/ListVfsNodes.cs' Args='{}'/>" )
+				// "m2" as is: this world is rendered to disk for the tier-3 tests, where machine ids are the names and
+				// "{m2}" is not substituted
+				.RawXml( "<App AppIdTuple='m2.broken' Component='Tools' ExeFullPath='{temp}\\no_such_program.exe'/>" )
+				.RawXml( "<App AppIdTuple='ghost.app' ExeFullPath='[cmd]'/>" )
+				.SiteName( "Control world" );
+
+		/// <summary>
+		/// An application with a clearable log nobody writes but the test, and a plan "run" that marks it when it starts and
+		/// takes a checkpoint of it every 10 s while it runs - what a collection "since a time" is tried on.
+		/// </summary>
+		public static Scenario CheckpointWorld()
+			=> OneMachine()
+				.App( "m1.ticker", a => a.LongRunning().WithLogNode( clearable: true ) )
+				.Plan( "run", p => p.App( "m1.ticker" ).Attribute( "MarkFiles", "log" ).Attribute( "MarkInterval", "10" ) );
 
 		/// <summary>The guid of the script ControlWorld defines.</summary>
 		public const string ControlScriptId = "7B3C1E90-1111-2222-3333-444455556677";
@@ -100,6 +117,7 @@ namespace Dirigent.TestBed.Scenarios
 			{ "LoggingWorld", LoggingWorld },
 			{ "WaitingWorld", WaitingWorld },
 			{ "ControlWorld", ControlWorld },
+			{ "CheckpointWorld", CheckpointWorld },
 		};
 
 		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>
@@ -249,6 +267,12 @@ namespace Dirigent.TestBed.Scenarios
 		}
 
 		// ---- escape hatch -----------------------------------------------------------
+
+		public Scenario SiteName( string name )
+		{
+			Spec.SiteName = name;
+			return this;
+		}
 
 		public Scenario RawXml( string xml )
 		{

@@ -37,6 +37,7 @@ namespace Dirigent.Web
 				nodes = FileDefListing.List( _master, q["type"], q["id"], q["machine"], q["app"], q["group"] );
 			} );
 			await op.WaitAsync();
+			if( op.Exception is ArgumentException ) throw HttpException.BadRequest( op.Exception.Message );
 			if( op.Exception != null ) throw op.Exception;
 
 			await SendJson( FileDefListing.ToJson( nodes ) );
@@ -192,9 +193,9 @@ namespace Dirigent.Web
 		}
 
 		static Guid ParseId( string id )
-			=> Guid.TryParse( id, out var guid ) ? guid : throw HttpException.NotFound( $"'{id}' is not a download id." );
+			=> Guid.TryParse( id, out var guid ) ? guid : throw HttpException.BadRequest( $"'{id}' is not a download id." ); // malformed, like a script id that is no guid
 
 		Task SendJson( string json )
-			=> HttpContext.SendStringAsync( json, "application/json", Encoding.UTF8 );
+			=> HttpContext.SendStringAsync( json, "application/json", ApiOps.Utf8 );
 	}
 }

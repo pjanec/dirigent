@@ -444,6 +444,7 @@ namespace Dirigent
 			r.AppId = x.AppId; // kept so that the actions can tell which app the resolved file belongs to
 			r.TailBytes = x.TailBytes; // the download needs it, and only the definition knows it
 			r.Clearable = x.Clearable; // ditto - Clear and Mark act on the resolved node
+			r.Component = x.Component; // so that a resolved package still says which component it stands for
 			return r;
 		}
 
@@ -594,7 +595,12 @@ namespace Dirigent
 			// hold a copy of. Its machine id is a filter for that lookup and may be a wildcard, so
 			// it is not the name of a machine to send the reference to. Whatever the lookup finds
 			// then gets resolved on its own machine.)
+			// (So are a package and a virtual folder: they are lists and touch no disk, and their
+			// references can only be looked up here - an agent is never sent the registry. Their
+			// members carry their own machine and are sent there one by one, batched per machine.)
 			if( nodeDef is not FileRef
+				&& nodeDef is not FilePackageDef
+				&& nodeDef is not VFolderDef
 				&& !string.IsNullOrEmpty(nodeDef.MachineId) // global resources are machine independent - can be resolved on any machine
 				&& !IsLocalMachine(nodeDef.MachineId) )
 			{
@@ -746,7 +752,7 @@ namespace Dirigent
 				log.Warn( $"Could not resolve {stub.Request}: {stub.Failure.Message}" );
 
 				var target = stub.Fallback ?? stub.Parent!;
-				( target.Notes ??= new List<string>() ).Add( CouldNotLookUp( stub.Request, stub.Failure ) );
+				target.AddNote( CouldNotLookUp( stub.Request, stub.Failure ), stub.Request.MachineId );
 
 				replacement = stub.Fallback;
 			}
@@ -779,8 +785,11 @@ namespace Dirigent
 			// remove reference to self
 			defs.RemoveAll( x => x.Guid == fref.Guid );
 
+			// said out loud: inside a package this becomes a note (ResolveChild), so a reference that finds
+			// nothing - a misspelt id, a machine without that definition - is not just a quietly smaller archive
 			if( defs.Count == 0 )
-				return null;
+				throw new Exception( $"No file definition matches it (id '{fref.Id}', machine '{AnyIfEmpty( fref.MachineId )}',"
+					+ $" app '{AnyIfEmpty( fref.AppId )}')." );
 
 			if ( defs.Count == 1 )
 			{
@@ -993,11 +1002,13 @@ namespace Dirigent
 				if( target is null )
 					throw;
 
-				( target.Notes ??= new List<string>() ).Add( CouldNotLookUp( child, ex ) );
+				target.AddNote( CouldNotLookUp( child, ex ), child.MachineId );
 
 				return null;
 			}
 		}
+
+		static string AnyIfEmpty( string? s ) => string.IsNullOrEmpty( s ) ? "any" : s;
 
 		/// <summary>Why something the operator asked for is not in the tree.</summary>
 		static string CouldNotLookUp( VfsNodeDef node, Exception ex )
@@ -1063,7 +1074,7 @@ namespace Dirigent
 						+ ( scan.Skipped.Count > 20 ? ", ..." : "" );
 
 				log.Warn( note );
-				( rootNode.Notes ??= new List<string>() ).Add( note );
+				rootNode.AddNote( note, folderDef.MachineId );
 			}
 
 			// build the tree of virtual subfolders mirroring the location of the files within the scanned folder

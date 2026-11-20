@@ -443,6 +443,18 @@ namespace Dirigent.Scripts.BuiltIn
 	/// <summary>
 	/// Forgets the marks, so that the next download takes the whole files again.
 	/// </summary>
+	/// <summary>
+	/// Records the length of the clearable files in their history, leaving their marks alone - a running plan's checkpoint
+	/// (its MarkInterval), which a collection "since a time" starts from.
+	/// </summary>
+	public class CheckpointFiles : MarkOrClearFiles
+	{
+		public static readonly string _Name = "BuiltIns/CheckpointFiles.cs";
+
+		protected override MarkFilesSlave.EOperation Operation => MarkFilesSlave.EOperation.Checkpoint;
+		protected override string Verb => "Checkpoint";
+	}
+
 	public class UnmarkFiles : MarkOrClearFiles
 	{
 		public static readonly string _Name = "BuiltIns/UnmarkFiles.cs";

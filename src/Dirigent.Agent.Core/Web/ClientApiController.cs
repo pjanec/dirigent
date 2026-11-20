@@ -83,7 +83,7 @@ namespace Dirigent.Web
             {
                 var cs = _master.GetClientState( id );
                 if( cs is null )
-                    throw HttpException.NotFound();
+                    throw HttpException.NotFound( $"No client '{id}' is known." );
 
                 res = new ClientState( id, cs );
             } );

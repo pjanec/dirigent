@@ -75,6 +75,8 @@ A plan can draw the line under the logs of a run itself, so that every start is 
 
 * `MarkFiles` and `ClearFiles` - semicolon separated lists of file definition `Id`s (wildcards allowed, blanks and empty items ignored). A name that matches no file definition is a load error. Only files whose definition says `Clearable="1"` are touched, as with [Mark and Clear](MarkAndClear.md).
 * `MarkTimeout` - seconds the marking may take, 60 by default. Both lists may be given; the clear is run first.
+* `MarkInterval` - seconds between the **checkpoints** the plan takes of its `MarkFiles` while it runs; none by default. See
+  [Checkpoints](#checkpoints-collecting-since-a-time) below.
 
 What happens:
 
@@ -89,6 +91,38 @@ What happens:
 * **Kill All** stops the plan but does **not** cut the marking: it finishes, bounded by `MarkTimeout`, and no app is launched. A **second Kill All** while the first is still going (the emergency stop) does cut it: `markResult.cancelled` is set, the phase is cleared and the plan is not left stuck. A marking whose script is killed any other way (`KillScript`) is recorded as cancelled too. A plan without these attributes is not affected in any way.
 
 A plan without `MarkFiles`/`ClearFiles` behaves exactly as before. For doing it by hand with a plan step, see [Marking from a plan](MarkAndClear.md#marking-from-a-plan).
+
+### Checkpoints: collecting "since a time"
+
+A mark divides a log into before and after one moment - the start of the plan. To collect *the last two hours* of a system
+that has been running for days, Dirigent has to know how long each log was two hours ago, and it learns that without
+reading a single line of any log: a plan with `MarkInterval` records it as it goes.
+
+<!-- example: loads -->
+```xml
+<Shared>
+  <File Id="pkg.logs" Title="Logs" MachineId="m1" Path="C:\logs\run.log" Clearable="1"/>
+  <Plan Name="system" MarkFiles="pkg.logs" MarkInterval="600">
+    <App AppIdTuple="m1.camera" ExeFullPath="C:\camera.exe"/>
+  </Plan>
+</Shared>
+```
+
+* Every `MarkInterval` seconds **while the plan runs** - from its start until it is stopped or killed - the plan takes a
+  checkpoint of its `MarkFiles`: on each machine, the length of every clearable file is recorded in the file's history.
+  Nothing is read from inside the files; the files themselves are not touched.
+* **A checkpoint never moves the mark.** The mark - the boundary an ordinary collection uses - stays where the start of the
+  plan, or an explicit `MarkFiles`/`POST /api/marks`, put it. Checkpoints only add records to the history, which only a
+  collection "since a time" reads. So they cannot get in the way of a mark, a clear or an unmark, whenever those come.
+* Never two at a time: one is not started while the previous one is still running, nor while the plan's own marking runs.
+* The first interval counts from the start of the plan (whose marking is itself the first record).
+* `MarkInterval` needs `MarkFiles` (the checkpoints are taken of those) and is at least 10 seconds; otherwise the config does
+  not load. The plan state's `lastCheckpoint` says when the last one finished ([`planstates`](HTTP.md#GET-apiplanstates)).
+
+A collection asked for **since a time** (`"since"` of [`POST /api/downloads`](HTTP.md#POST-apidownloads)) then takes each
+clearable file from the latest record at or before that time - see
+[Collecting since a time](MarkAndClear.md#collecting-since-a-time). The finer the interval, the closer the collection starts to the
+time asked for; a record is one length per file, so even 10 minutes over a week is a small file per machine.
 
 ### Execution of a launch plan
 

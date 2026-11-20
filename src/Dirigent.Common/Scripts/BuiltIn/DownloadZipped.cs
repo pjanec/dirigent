@@ -52,6 +52,21 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			public List<TItem>? Items;
 
+			/// <summary>
+			/// The file name of the archive, without or with ".zip"; characters a file name cannot hold become '_'. Empty for
+			/// the name made of the title and the time. Taken already, it gets a number, as the made-up one does.
+			/// </summary>
+			public string? ArchiveName;
+
+			/// <summary>The name of the site, for the cover note; empty when the caller does not know it.</summary>
+			public string? SiteName;
+
+			/// <summary>Whether to add _sitestate.json - versions, machines, plans, applications - where the host can compose it (a master).</summary>
+			public bool SiteState = true;
+
+			/// <summary>Collect what was written since this time (UTC) instead of since the marks - see DownloadZippedSlave.TArgs.SinceUtc.</summary>
+			public DateTime? SinceUtc;
+
 
 		};
 
@@ -135,10 +150,16 @@ namespace Dirigent.Scripts.BuiltIn
 		string? _stagingFolder;
 		string? _finalArchive;
 
+		// for the cover note - see TArgs.SiteName, TArgs.SinceUtc
+		string? _siteName;
+		DateTime? _sinceUtc;
+
 		protected async override Task<string?> Run()
 		{
 			var args = Tools.Deserialize<TArgs>( Args );
 			if( args is null ) throw new NullReferenceException("Args is null");
+			_siteName = args.SiteName;
+			_sinceUtc = args.SinceUtc;
 
 			var result = new TResult();
 
@@ -279,9 +300,7 @@ namespace Dirigent.Scripts.BuiltIn
 				// get the name of the archive file to download
 				// the title is free text and ends up as a file name; a colon in it used to fail the
 				// download at the write, after everything had already been collected
-				string zipFileBase = FreeName( downloadsFolder,
-									Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) )
-									+ DateTime.Now.ToString("_yyMMdd_HHmm") );
+				string zipFileBase = FreeName( downloadsFolder, ArchiveBaseName( args.ArchiveName, title ) );
 
 				// Each machine produces its own archive. To get a single one, the machines upload
 				// their archives to a staging folder next to the final one and a merging script
@@ -319,6 +338,12 @@ namespace Dirigent.Scripts.BuiltIn
 				// machines that cannot reach the download folder at all
 				var unreachable = new Dictionary<string,string>();
 
+				// the machines that will collect - those the loop below starts - so that each note the
+				// resolution left in the tree is written once, by the machine it is about
+				var collecting = onlineMachines
+						.Where( m => OwnsDownloadFolder( m ) || !string.IsNullOrEmpty( uncSlaveDestination ) )
+						.ToList();
+
 				// start a slave script on each machine
 				// (the list itself lives on the instance, so that a cancellation can kill what it started)
 				bool globalsAssigned = false;
@@ -342,6 +367,8 @@ namespace Dirigent.Scripts.BuiltIn
 						DestinationIsLocal = destinationIsLocal,
 						ZipFileBaseName = zipFileBase,
 						IncludeGlobals = !globalsAssigned, // the first machine to run does the global files
+						CollectingMachines = collecting,
+						SinceUtc = args.SinceUtc,
 					};
 					globalsAssigned = true;
 
@@ -398,6 +425,29 @@ namespace Dirigent.Scripts.BuiltIn
 									 MachineName = x.MachineName
 								 }).ToList();
 
+					// what the site was like, beside the files - composed now, when the marks of the collection are known
+					string? siteState = null;
+					if( args.SiteState )
+					{
+						try
+						{
+							siteState = await Dirig.ComposeSiteStateAsync( new SiteStateExtras()
+							{
+								Comment = args.Comment,
+								// the cover note's line without its label: "2026-11-20 13:20:09 - 2 file(s) hold only what ..."
+								LogsSince = _sinceUtc is DateTime since
+									? $"{since.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for); {WithoutLabel( MarkWindow() )}"
+									: WithoutLabel( MarkWindow() ),
+								Selection = selectionLabels?.ToList() ?? new List<string>() { title },
+							} );
+						}
+						catch( Exception e )
+						{
+							log.Warn( $"DownloadZipped: no site state: {e}" );
+							result.Errors.Add( $"The site state could not be composed: {Tools.JustFirstLine( e.Message )}" );
+						}
+					}
+
 					var mergeArgs = new MergeZipped.TArgs()
 					{
 						StagingFolder = Path.Combine( downloadsFolder, stagingFolderName ),
@@ -408,6 +458,8 @@ namespace Dirigent.Scripts.BuiltIn
 						// the merge only writes it
 						CoverNote = await ComposeCoverNote( args.Comment, title, container.Id,
 										requestorMachine, clientStates, unreachable, selectionLabels ),
+
+						SiteState = siteState,
 
 						// files from a single machine need no folder to tell them apart from the others
 						PrefixWithMachine = parts.Count > 1,
@@ -817,7 +869,11 @@ namespace Dirigent.Scripts.BuiltIn
 					.OrderBy( m => m, StringComparer.OrdinalIgnoreCase )
 					.Select( Describe );
 
+			if( !string.IsNullOrEmpty( _siteName ) )
+				text.AppendLine( $"Site      : {_siteName}" );
 			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
+			if( _sinceUtc is DateTime since )
+				text.AppendLine( $"Since     : {since.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for: each log from the last record of its length at or before then)" );
 			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
 			if( selection is not null )
 				text.AppendLine( "Selection : " + string.Join( Environment.NewLine + new string( ' ', 12 ), selection ) );
@@ -842,6 +898,19 @@ namespace Dirigent.Scripts.BuiltIn
 			text.AppendLine( string.IsNullOrWhiteSpace( comment ) ? "(no comment)" : comment.Trim() );
 
 			return text.ToString();
+		}
+
+		/// <summary>The archive's name without ".zip": the one asked for, or the title and the time.</summary>
+		public static string ArchiveBaseName( string? asked, string title )
+		{
+			if( !string.IsNullOrWhiteSpace( asked ) )
+			{
+				var name = asked.Trim();
+				if( name.EndsWith( ".zip", StringComparison.OrdinalIgnoreCase ) ) name = name.Substring( 0, name.Length - 4 );
+				return Tools.SanitizeFileName( name );
+			}
+
+			return Tools.SanitizeFileName( System.IO.Path.GetFileName( title ) ) + DateTime.Now.ToString( "_yyMMdd_HHmm" );
 		}
 
 		/// <summary>
@@ -949,6 +1018,8 @@ namespace Dirigent.Scripts.BuiltIn
 		/// The line saying that this archive holds one run rather than the whole history, or null if
 		/// no mark applied to any of the collected files.
 		/// </summary>
+		static string? WithoutLabel( string? line ) => line is null ? null : System.Text.RegularExpressions.Regex.Replace( line, @"^\w+\s*:\s*", "" );
+
 		string? MarkWindow()
 		{
 			var marks = ( from st in _slaveTasks

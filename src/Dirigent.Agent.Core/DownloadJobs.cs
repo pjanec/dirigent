@@ -25,6 +25,18 @@ namespace Dirigent
 		public string? app { get; set; }
 
 		public string? comment { get; set; }
+
+		/// <summary>The archive's file name (".zip" added); none for the name made of the title and the time.</summary>
+		public string? name { get; set; }
+
+		/// <summary>Whether to add _sitestate.json to the archive; true when not given.</summary>
+		public bool? siteState { get; set; }
+
+		/// <summary>
+		/// Collect what was written since this time instead of since the marks: each clearable file from the latest record
+		/// of its length at or before it (a mark, or a checkpoint of a plan's MarkInterval). ISO 8601; without an offset, UTC.
+		/// </summary>
+		public DateTime? since { get; set; }
 	}
 
 	/// <summary>What job.json holds.</summary>
@@ -174,6 +186,10 @@ namespace Dirigent
 			{
 				ToMachine = master.MachineId,
 				Comment = request.comment,
+				ArchiveName = request.name,
+				SiteName = master.SiteName,
+				SiteState = request.siteState ?? true,
+				SinceUtc = request.since is DateTime t ? ( t.Kind == DateTimeKind.Local ? t.ToUniversalTime() : DateTime.SpecifyKind( t, DateTimeKind.Utc ) ) : null,
 			};
 
 			// every item is looked up before anything starts, an unknown one named in the error

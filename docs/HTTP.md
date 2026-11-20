@@ -25,7 +25,7 @@ worth knowing:
 
 ## Conventions
 
-**Format.** Requests and answers are JSON (`application/json`), field names `lowerCamel`. The only exception is
+**Format.** Requests and answers are JSON (`application/json`, UTF-8 without a byte order mark), field names `lowerCamel`. The only exception is
 the archive download, which is `application/zip`, and the static page. Strings are double-quoted JSON; the
 examples below are real answers, shortened where they are long.
 
@@ -48,11 +48,14 @@ examples below are real answers, shortened where they are long.
 
 | Status | Means |
 | --- | --- |
-| 400 | The request is malformed: an id that cannot be parsed (`m1.`, a script id that is no guid), an unreadable body. |
-| 403 | Serving archives is switched off (`--serveArchives 0`), or the caller's address has been temporarily banned for sending too many requests (see [Limits](#Limits)). |
-| 404 | The application, plan, script, client, file definition or download does not exist - or, for a file definition, nothing matches the filters. |
-| 409 | The download job is still running; its archive is not there yet. |
+| 400 | The request is malformed: an id that cannot be parsed (`m1.`, a script or download id that is no guid), a filter value that does not exist (`?type=Nonsense`), an unreadable body, a file that is not a shared config. |
+| 403 | Serving archives is switched off (`--serveArchives 0`), or the caller's address is banned for 10 minutes for sending too many requests (see [Limits](#Limits)). |
+| 404 | The application, plan, script, client, machine, file definition or download does not exist - or, for a file definition, nothing matches the filters. The `error` names what is missing. |
+| 405 | The route exists, but not for this method (a `GET` on a `POST` route). |
+| 409 | The master declined: the operation is impossible as things stand - a download job still running, a machine that is not connected, an application that failed to start. |
 | 500 | An unexpected failure; the message is in `error`. |
+
+Everything under `/api` answers errors in this shape - including the ban and a path no route takes.
 
 **How long a call takes.** Three kinds:
 
@@ -72,25 +75,44 @@ examples below are real answers, shortened where they are long.
 ## Describing the site
 
 For a tool - or an AI agent - that has to find out what the site is before it does anything, this is the order of questions. Each answer says what to ask next.
+Knowing only the address is enough: `GET /` leads to [`GET /api`](#GET-api), which says all of this in JSON.
 
 | Ask | What it tells | Then |
 | --- | --- | --- |
+| [`GET /api`](#GET-api) | what answers here: version, master, shared config, where this manual is, the order of questions below, the limits, and **every route with a link to its section** | |
 | [`GET /api/status`](#GET-apistatus) | which Dirigent this is, which shared config it runs, how many machines, applications, plans, scripts and file definitions it defines, who is connected, whether a Kill All is going | |
 | [`GET /api/machinedefs`](#GET-apimachinedefs) | every machine: its address, whether it is online, its shares, its MAC addresses, which applications and file definitions belong to it. **The machines are the key to everything else** - applications, files and power all hang on a machine id | [`/api/machinedefs/{id}`](#GET-apimachinedefsid) for one |
 | [`GET /api/appdefs`](#GET-apiappdefs), [`/api/applocations`](#GET-apiapplocations) | the applications, and where their binaries and working folders are | [`/api/appstates`](#GET-apiappstates) for what they are doing now |
 | [`GET /api/plandefs`](#GET-apiplandefs) | the launch plans and the applications in them | [`/api/planstates`](#GET-apiplanstates) |
-| [`GET /api/filedefs`](#GET-apifiledefs) | what files there is to look at, collect or mark; `?type=FilePackage&group=component` for what to offer | [`POST /api/files/query`](#POST-apifilesquery) to see the files |
+| [`GET /api/filedefs`](#GET-apifiledefs) | what files there is to look at, collect or mark; `?type=FilePackage` for what to offer - a package's `component` says which component it stands for | [`POST /api/files/query`](#POST-apifilesquery) to see the files |
 | [`GET /api/scriptdefs`](#GET-apiscriptdefs) | the scripts the configuration defines | [`POST /api/scriptdefs/{id}/start`](#POST-apiscriptdefsidstart) to run one |
 
 Then act. The control calls are in [Controlling the system](#Controlling-the-system); how plans, applications and scripts behave is in [Plans](Plans.md), [Apps](Apps.md) and [Scripts](Scripts.md),
 and power and Wake-on-LAN in [Management](Mgmt.md).
+
+### GET /api
+
+The front door - what a tool or an agent that knows only the address asks first (`GET /` redirects here). `/api/` answers the same.
+
+```json
+{ "name": "Dirigent", "version": "Dirigent.Agent 3.1.19.24", "masterMachineId": "master1", "sharedConfig": "C:\\Dirigent\\SharedConfig.xml",
+  "help": "/api/help/HTTP.md",
+  "docs": [ "/api/help/CLI.md", "/api/help/Files.md", "/api/help/HTTP.md", "..." ],
+  "start": [ "GET /api/status - which Dirigent this is, what it runs, who is connected", "..." ],
+  "limits": "More than 50 requests in a second ban the address for 10 minutes - ...",
+  "routes": [ { "method": "GET", "path": "/api/status", "help": "/api/help/HTTP.md#GET-apistatus" }, ... ] }
+```
+
+`routes` is read from the master's own code, so it is exactly what this version answers; each `help` links to the route's section of
+this manual (the manual of the same version - [`/api/help`](#GET-apihelp)). `start` is the order of questions of
+[Describing the site](#Describing-the-site).
 
 ### GET /api/status
 
 What this master is and what it runs:
 
 ```json
-{ "version": "Dirigent.Agent 3.1.19.18", "masterMachineId": "master1", "masterIp": "10.0.0.5", "httpPort": 8877,
+{ "version": "Dirigent.Agent 3.1.19.18", "siteName": "Lab 2", "masterMachineId": "master1", "masterIp": "10.0.0.5", "httpPort": 8877,
   "startedAt": "2026-11-19T08:00:00Z",
   "sharedConfig": { "path": "C:\\Dirigent\\SharedConfig.xml", "loadedAt": "2026-11-19T08:00:01Z", "minDirigentVersion": "3.1.19",
                     "machines": 12, "apps": 40, "plans": 6, "scripts": 3, "fileDefs": 85 },
@@ -98,7 +120,7 @@ What this master is and what it runs:
   "connectedClients": [ "master1", "m1", "m2" ] }
 ```
 
-`version` is what `--version` prints. `minDirigentVersion` and `localConfigPath` are `null` when there is none. `connectedClients` are the agents and GUIs connected now.
+`version` is what `--version` prints. `siteName` is the shared config's [`<Shared Name="...">`](SharedConfig.md#Name), null when it gives none. `minDirigentVersion` and `localConfigPath` are `null` when there is none. `connectedClients` are the agents and GUIs connected now.
 
 ### GET /api/machinedefs
 
@@ -135,6 +157,7 @@ no MAC known (it never connected and SharedConfig gives none): 409 with the reas
 
 | Method | Route | Purpose | CLI twin |
 | --- | --- | --- | --- |
+| GET | [`/api`](#GET-api) | What answers here: version, the manual, where to begin, every route | |
 | GET | [`/api/status`](#GET-apistatus) | What this master is and runs | |
 | GET | [`/api/machinedefs`](#GET-apimachinedefs), [`/api/machinedefs/{id}`](#GET-apimachinedefsid) | The machines: address, online, shares, MACs, their applications and file definitions | [`GetAllClientsState`](CLI.md#GetAllClientsState) |
 | POST | [`/api/machinedefs/{id}/shutdown`](#POST-apimachinedefsidshutdown), [`/reboot`](#POST-apimachinedefsidreboot), [`/wakeup`](#POST-apimachinedefsidwakeup) | Power a machine off, restart it, or wake it | [`Shutdown`](CLI.md#Shutdown), [`WakeUp`](CLI.md#WakeUp) |
@@ -148,6 +171,7 @@ no MAC known (it never connected and SharedConfig gives none): 409 with the reas
 | GET | [`/api/appdefs/{id}`](#GET-apiappdefsid) | One application definition | |
 | GET | [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation) | Where the binary and working folder of an application are, as its agent resolves them | [`GetAppLocation`](CLI.md#GetAppLocation) |
 | GET | [`/api/applocations`](#GET-apiapplocations) | The same for all applications (`?machine=`) | [`GetAppLocations`](CLI.md#GetAppLocations) |
+| GET | [`/api/appversions`](#GET-apiappversions) | The versions of the applications, each listed once (`?machine=`) | [`GetAppVersions`](CLI.md#GetAppVersions) |
 | GET | [`/api/help`](#GET-apihelp), [`/api/help/{doc}`](#GET-apihelpdoc) | This documentation, from the running master | |
 | GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
 | GET | [`/api/appstates`](#GET-apiappstates) | State of all applications | [`GetAllAppsState`](CLI.md#GetAllAppsState) |
@@ -189,18 +213,18 @@ definition - see [An application Dirigent knows about but the config does not de
 All application definitions: the standalone applications and the ones in the default definition, not the plans' copies.
 
 ```json
-[{"id": "m1.camera","groups": "","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"},
- {"id": "m2.recorder","groups": "","machine": "m2","exeFullPath": "[cmd.command]","startupDir": "","cmdLineArgs": "echo hi"}]
+[{"id": "m1.camera","groups": "","component": "Camera","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"},
+ {"id": "m2.recorder","groups": "","component": null,"machine": "m2","exeFullPath": "[cmd.command]","startupDir": "","cmdLineArgs": "echo hi"}]
 ```
 
-`groups` is the `Groups` attribute of the application, `;`-separated. `exeFullPath`, `startupDir` and `cmdLineArgs` are
+`groups` is the `Groups` attribute of the application, `;`-separated - grouping for people. `component` is its [`Component`](SharedConfig.md#App-element), the software component it belongs to; null if it names none. `exeFullPath`, `startupDir` and `cmdLineArgs` are
 **exactly as the config declares them**: variables like `%APP_ID%` are not expanded and a relative path stays relative. What they
 become on the machine, and whether the file is there, is answered by [`/api/appdefs/{id}/location`](#GET-apiappdefsidlocation).
 The meaning of `ExeFullPath`, `StartupDir` and the reserved names like `[cmd]` is in [the `<App/>` element](SharedConfig.md#App-element).
 
 ### GET /api/appdefs/{id}
 
-One definition, as above: `{"id": "m1.camera","groups": "","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"}`.
+One definition, as above: `{"id": "m1.camera","groups": "","component": "Camera","machine": "m1","exeFullPath": "D:/apps/camera/camera.exe","startupDir": "D:/apps/camera","cmdLineArgs": "--id %APP_ID%"}`.
 A `@plan` suffix is accepted and ignored here. Unknown application: 404.
 
 ### GET /api/appdefs/{id}/location
@@ -216,10 +240,10 @@ starts the process from**: the same variables (environment, the app's own variab
 the shared config. A relative path is therefore reported as the launcher would make it absolute.
 
 ```json
-{"app": "m1.camera","plan": null,"planSource": "none","machine": "m1","kind": "process",
+{"app": "m1.camera","plan": null,"planSource": "none","machine": "m1","groups": "Camera","component": "Camera","kind": "process",
  "exe": {"declared": "bin/%TOOLS%/camera.exe","localPath": "D:/root/bin/v1/camera.exe",
          "uncPath": "//10.0.0.5/D/root/bin/v1/camera.exe","uncError": null,
-         "exists": true,"size": 1048576,"modified": "2026-11-19T09:58:03Z","fileVersion": "2.4.1.0"},
+         "exists": true,"size": 1048576,"modified": "2026-11-19T09:58:03Z","fileVersion": "2.4.1.0","versionSource": "resource"},
  "startupDir": {"declared": "work/%APP_ID%","localPath": "D:/root/work/camera","uncPath": "//10.0.0.5/D/root/work/camera",
                 "uncError": null,"exists": true},
  "cmdLineArgs": {"declared": "--id %APP_ID%","expanded": "--id camera"},
@@ -233,7 +257,12 @@ the shared config. A relative path is therefore reported as the launcher would m
   which runs no program: it has no `exe` or `startupDir` paths, only the expanded `cmdLineArgs`.
 * `cmdLineArgs.expanded` is the command line **exactly as the process would get it**, including the prefixes added for the reserved names
   (`/c ` for `[cmd.command]`).
-* `exists`, `size`, `modified` (UTC) and `fileVersion` (the file version resource; `null` if the file has none) are read on the machine.
+* `exists`, `size`, `modified` (UTC) and `fileVersion` are read on the machine. `fileVersion` is the version resource of the file
+  (`versionSource`: `"resource"`). Many executables have none - native C++ builds often do not - and are delivered with a text file instead:
+  then the first of `version.txt`, `versioninfo.txt`, `VersionStamp.txt`, any other `VersionStamp*.txt` (by name) found **next to the executable** (case does not matter) is read, and its whole text,
+  trimmed, is `fileVersion` - possibly several lines, joined with `
+` (escaped in the JSON, so a [CLI](CLI.md#GetAppLocation) answer stays
+  on one line); `versionSource` is then the full path of that file. Neither found: both `null`. A program that does not exist has neither.
   `uncPath` is the path through the machine's `<Share>` and `null` with the reason in `uncError` when no share covers it
   ([UNC paths and file shares](Files.md#UNC-paths-and-file-shares)).
 * A program named without any folder (`cmd.exe`) is looked for where the launcher looks - under the folder of the shared config - and, only if it
@@ -251,18 +280,59 @@ Unknown application or plan: 404; a malformed id: 400. This is a call that asks 
 ### GET /api/applocations
 
 The same for every application, or those of one machine with `?machine=m1`: an array of the entries above, ordered by machine and application.
+A machine that is neither declared nor named by any application: 404.
 Each application is described from the definition [the same way](#GET-apiappdefsidlocation): the plan it last ran in, else the default.
-All the machines are asked at once. (CLI: [`GetAppLocations`](CLI.md#GetAppLocations).)
+All the machines are asked at once. Each entry carries the application's `groups` and `component`, so that versions can be shown per component.
+(CLI: [`GetAppLocations`](CLI.md#GetAppLocations).)
+
+### GET /api/appversions
+
+**The versions on the site, each listed once**: the [locations](#GET-apiapplocations) of all the applications (or of one machine's,
+`?machine=m1`), grouped by `component`, version `source` and version text. Many applications share one version - the programs of a
+product next to one stamp file, the same build on several machines - so a site of 93 applications has about twenty entries, and a
+machine that was not updated shows up as a second entry of the same component.
+
+```json
+[ { "component": "Viewer", "source": "D:\\Apps\\Viewer\\VersionStamp.txt",
+    "version": [ "Viewer 2.4.0.337", "Built 2026-11-11 11:50", "Commit 4f1c2d9" ],
+    "missing": null, "machines": [ "m1", "m2", "m3" ], "apps": [ "m1.viewer", "m2.viewer", "m3.render" ] },
+  { "component": "Viewer", "source": null, "version": null, "missing": "the program is not there",
+    "machines": [ "m3" ], "apps": [ "m3.tools" ] } ]
+```
+
+* `component` is the applications' [`Component`](SharedConfig.md#App-element); applications naming none come last, with `null`.
+* `source` and `version` are what `fileVersion` and `versionSource` of the locations say: `"resource"` and the version resource, or the path
+  of the version file next to the programs and its text. **The text is not interpreted** - it is only split into lines; two entries differ
+  exactly when what is on the disk differs. Comparing and judging versions is the tool's business.
+* An application without a version is not left out: it is in an entry with `version: null` and the reason in `missing` - the program is
+  not there, it carries no version and has no version file, its machine did not answer, or it is a Dirigent command.
+
+Unknown machine: 404. It takes as long as the locations (about a second on a site of 90 applications). (CLI: [`GetAppVersions`](CLI.md#GetAppVersions).)
 
 ### GET /api/appstates
 
-The state of every application that has both a state and a definition, in the order the master keeps them.
+The state of every application that has both a state and a definition, in the order the master keeps them - **all of
+them in one call**: a tool showing the applications asks this, not `/api/appstates/{id}` for each row (see [Limits](#Limits)).
 (CLI: [`GetAllAppsState`](CLI.md#GetAllAppsState).)
 
 ```json
-[{"id": "m1.camera","state": {"code": "Running","flags": "SRI"}},
- {"id": "m1.tracker","state": {"code": "Not running","flags": ""}}]
+[{"id": "m1.camera@plan1","component": "Camera","state": {"code": "Running","flags": "SRI","plan": "plan1","pid": 7480,
+                                    "startedAt": "2026-11-20T13:20:07Z","endedAt": null,"exitCode": null,"restartsRemaining": null,
+                                    "cpu": 1.5,"gpu": 0,"memoryMB": 212.4,"reportAgeSeconds": 0.4,"offline": false}},
+ {"id": "m1.tracker","state": {"code": "Terminated (3)","flags": "S","plan": null,"pid": null,"exitCode": 3, ...}}]
 ```
+
+`component` is the application's `Component` (null for none). Besides the text `code` and the `flags`: `plan` the application was last started in (null for none); `pid` while it runs;
+`startedAt` - when its current or last process was started - and `endedAt` - when that process ended, null while it runs (both UTC, by the clock of its agent; null if it never ran); `exitCode`
+once it was started and has ended on its own (null while it runs, after a kill, or before any start); `restartsRemaining` before its agent
+gives up restarting it (-1 = without limit, null = not counted yet); `cpu` and `gpu` in percent and `memoryMB` of the process as its agent
+last measured; `reportAgeSeconds` since the agent last reported (null if it never has), and `offline` once that is over 3 s.
+
+**The `id` names the plan the state comes from.** An application can be defined differently in different plans, but an
+instance never runs twice at once, so it has one state - the state of its most recently used definition. The `id` is that
+definition: `m1.camera@plan1` when the application last ran in (or was last applied from) `plan1`, plain `m1.camera` when it
+has only its default definition. The id of `/api/appdefs` has no `@plan`; to put definitions and states side by side, compare
+the part before the `@`. A plain `m1.camera` in a request means the same: the application as last started in this run of the master.
 
 `code` is the text the GUI shows - `Not running`, `Planned`, `Initializing`, `Running`, `Dying`,
 `Restarting (2 remaining)`, `Killed`, `Terminated (<exit code>)`, `Failed to start` - and carries a suffix like
@@ -274,9 +344,11 @@ The state of every application that has both a state and a definition, in the or
 
 One state, as above: `{"id": "m1.camera","state": {"code": "Running","flags": "SRI"}}`. (CLI: [`GetAppState`](CLI.md#GetAppState).)
 With `m1.camera@plan1` the state is judged against that plan, which is what turns `Not running` into `Planned` while
-the plan is still starting its applications - see [Plan status](Plans.md#Plan-status).
+the plan is still starting its applications - see [Plan status](Plans.md#Plan-status). It is still the one state of the
+application, so the answer's `id` names the plan it last ran in, which need not be `plan1`.
 
-The older name [`/api/appstate/{id}`](#GET-apiappstateid) is also accepted. Unknown application, or one that has no state or no definition: 404.
+The older name [`/api/appstate/{id}`](#GET-apiappstateid) is also accepted. Unknown application or plan, or an application that has no state or no definition: 404;
+a malformed id (`m1.`): 400.
 
 `GET /api/appdefs/{id}/files` previews the actual files of one application instance; it belongs with the file calls and is
 described under [Files and downloads](#GET-apiappdefsidfiles).
@@ -293,10 +365,14 @@ A plan launches a set of applications in dependency order; see [Plans](Plans.md)
 ### GET /api/plandefs
 
 ```json
-[{"id": "plan1","appDefs": [{"id": "m1.a","groups": ""},{"id": "m2.b","groups": ""}],"groups": "Test1"}]
+[{"id": "plan1","appDefs": [{"id": "m1.a","groups": ""},{"id": "m2.b","groups": ""}],"groups": "Test1",
+  "markFiles": ["pkg.logs"],"clearFiles": [],"markTimeout": 60,"markInterval": 600}]
 ```
 
-`appDefs` are the plan's own copies of its applications; `groups` is the plan's `Groups` attribute.
+`appDefs` are the plan's own copies of its applications; `groups` is the plan's `Groups` attribute. `markFiles`, `clearFiles` and
+`markTimeout` are its `MarkFiles`, `ClearFiles` and `MarkTimeout` - which file definitions it [marks or clears when it starts](Plans.md#marking-or-clearing-files-when-a-plan-starts), and
+how many seconds that may take before the applications are started anyway; empty lists for a plan that marks nothing. `markInterval`
+is its `MarkInterval`: seconds between the [checkpoints](Plans.md#checkpoints-collecting-since-a-time) it takes of its `markFiles` while it runs, 0 for none.
 
 ### GET /api/plandefs/{id}
 
@@ -313,7 +389,8 @@ while it is killing - all explained in [Plan status](Plans.md#Plan-status). (CLI
 
 A plan that [marks files when it starts](Plans.md#marking-or-clearing-files-when-a-plan-starts) adds, inside `state`, only while it does or once it has:
 `phase` (e.g. `"Marking files (pkg.logs)"`, while the marking runs) and `markResult`
-(`{"marked":2,"cleared":0,"skipped":0,"failed":0,"timedOut":false,"cancelled":false,"errors":[]}`). Other plans have exactly the fields above.
+(`{"marked":2,"cleared":0,"skipped":0,"failed":0,"timedOut":false,"cancelled":false,"errors":[]}`); a plan with a `MarkInterval` also
+`lastCheckpoint` (UTC), when its last [checkpoint](Plans.md#checkpoints-collecting-since-a-time) finished. Other plans have exactly the fields above.
 
 ### GET /api/planstates/{id}
 
@@ -415,18 +492,18 @@ collected is what is marked:
 #### A tool with a checkbox per component
 
 ```
-GET  /api/filedefs?type=FilePackage&group=component      -> one checkbox per package: id, title, description
-POST /api/files/query     {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}]}   -> the files and the sizes, to show
-POST /api/downloads       {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"comment":"why"}   -> 202 {"id": "..."}
+GET  /api/filedefs?type=FilePackage                      -> one checkbox per package naming a component: id, title, description, component
+POST /api/files/query     {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}]}   -> the files and the sizes, to show
+POST /api/downloads       {"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}],"comment":"why"}   -> 202 {"id": "..."}
 GET  /api/downloads/{id}?wait=60                         -> poll; then GET the archive's url
-POST /api/marks           {"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}]}  -> before the next run
+POST /api/marks           {"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}]}  -> before the next run
 ```
 
-The `group` is one entry of the `Groups` of the file definition (`Groups="component;major"`) - see [Groups for tools](Files.md#groups-for-tools).
+The `group` is one entry of the `Groups` of the file definition - grouping for people ("Main components"); which component a package stands for is its `component` - see [Components and groups for tools](Files.md#components-and-groups-for-tools).
 
 ### POST /api/files/query
 
-Previews the files of a [selection](#The-selection). **Read-only**: nothing is marked, collected or changed. Body: the selection. `?content=false` skips scanning the folders.
+Previews the files of a [selection](#The-selection). **Read-only**: nothing is marked, collected or changed. Body: the selection. `?content=false` resolves the top-level definitions without scanning their folders ([what that means for a package](#GET-apiappdefsidfiles)).
 
 ```json
 { "items": [
@@ -455,9 +532,10 @@ The totals of a query are the sums of its items'; a file in two items is in the 
 
 #### Where a file came from
 
-Each previewed file has two more fields: `app`, the application it belongs to (null for a machine-level or global file), and `fileDefId`, the `id` of the file
-definition it came from - the one a package or an application referred to, carried down through folder scans and package members. A tool can show *component -> app ->
-files* and filter by kind (`log.*`, `cfg.*`) without reading the paths.
+Each previewed file has three more fields: `app`, the application it belongs to (null for a machine-level or global file); `fileDefId`, the `id` of the file
+definition it came from - the one a package or an application referred to, carried down through folder scans and package members; and `component` - its application's
+[`Component`](SharedConfig.md#App-element), else that of the nearest package or file definition around it that names one, null if none does. A tool can show
+*component -> app -> files* and filter by kind (`log.*`, `cfg.*`) without reading the paths.
 
 ### GET /api/appdefs/{id}/files
 
@@ -470,7 +548,11 @@ Which definition answers (the one whose file definitions - `<File>`, `<Folder>`,
 * `m1.a@plan1` - the definition in `plan1` (`planSource` is `requested`). Unknown plan, or an app not in it: 404.
 * `m1.a` - the plan the app last ran in, if it has one (`lastRun`); otherwise the default definition (`none`). Unknown app: 404.
 
-`?content=false` skips scanning the folders: only the file definitions themselves are resolved and `files` stays empty.
+`?content=false` asks *where* rather than *what*: each top-level file definition is resolved as itself - its path on its machine,
+the UNC path, `error` when the folder is not there or no share covers it - but a `<Folder>` is not scanned, so its `files` stay empty.
+That is cheap however big the folder, and is what a tool needs to open a log folder in a file manager, or to check that a definition
+resolves before offering it. It does not reach inside a container: a package or a virtual folder is the list of its members, so its
+members are always resolved with their files - `content=false` on a package lists the same files as without it.
 
 ```json
 { "app": "m1.a", "plan": "plan1", "planSource": "requested",
@@ -513,14 +595,14 @@ Each file carries its own `machine`. Also available as `POST /api/cli` with `Get
 
 lists the top-level file definitions (`<File>`, `<Folder>`, `<VFolder>`, `<FilePackage>`, `<FileRef>`) as declared in the shared config - what there is to collect. Nothing is
 looked up in any file system. Optional filters: `type` (`File`, `Folder`, `VFolder`, `FilePackage`,
-`FileRef`; case-insensitive), `id`, `machine`, `app` (the wildcards of the `ListVfsNodes` script: `*`
+`FileRef`; case-insensitive; anything else is a 400 naming these), `id`, `machine`, `app` (the wildcards of the `ListVfsNodes` script: `*`
 and `?`, empty means anything) and `group` - one entry of the `;`-separated `Groups` of the definition, compared case-insensitively, wildcards allowed
-(`group=component` finds `Groups="Component;major"`; see [Groups for tools](Files.md#groups-for-tools)). Example: `GET /api/filedefs?type=FilePackage&id=logs.*`
-or `GET /api/filedefs?type=FilePackage&group=component`.
+(`group=main*` finds `Groups="Main components;Back end"`; see [Components and groups for tools](Files.md#components-and-groups-for-tools)). Example: `GET /api/filedefs?type=FilePackage&id=logs.*`
+or `GET /api/filedefs?type=FilePackage&group=Main*`. Each definition also says the `component` it stands for (null if none).
 
 ```json
 [ { "id": "logs.all", "type": "FilePackage", "title": "Logs/All apps", "description": "...",
-    "groups": "", "machine": null, "app": null } ]
+    "groups": "", "component": null, "machine": null, "app": null } ]
 ```
 
 ### GET /api/filedefs/{id}
@@ -541,7 +623,12 @@ subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
 starts a collection. Body: `{"fileDef":{"id":"logs.all","machine":"m1","app":"a"}}` (a file definition or package, addressed
 like `/api/filedefs/{id}/files`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the file definitions of the
 application, from the definition picked as for `/api/appdefs/{id}/files`), or a [selection](#The-selection) of several - `{"fileDefs":[...],"apps":[...]}` -
-and an optional `"comment"` that goes into the archive's cover note. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan
+an optional `"comment"` that goes into the archive's cover note, `"since": "2026-11-20T12:00:00Z"` to collect what was written since that time
+instead of since the marks - each clearable file from the latest record of its length at or before it (see
+[Collecting since a time](MarkAndClear.md#collecting-since-a-time); without an offset the time is UTC; the previews do not apply it), `"siteState": false` to leave out the archive's
+`_sitestate.json` (the versions, machines, plans and applications at the time of the collection - in by default; see
+[the archive](Files.md#builtinsdownloadzippedcs---download-as-zip)), and an optional `"name"` for the archive - used as given (`"Bug 4711"` gives `Bug 4711.zip`;
+`.zip` may be included; characters a file name cannot hold become `_`; a name already taken gets a number). Without it the name is the title and the time. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan
 (the message names the item): 404; nothing selected: 400. All the items are looked up before the job starts. Old jobs are cleaned up first.
 
 **One zip, and its layout.** A job makes one archive however many items there are.
@@ -553,7 +640,7 @@ and an optional `"comment"` that goes into the archive's cover note. Answers `20
   `_comment.txt` lists the selection; `job.json` and the job's `request` echo it; what could not be collected is reported under the name of the item.
 
 ```json
-{"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"],"comment":"after the crash"}
+{"fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}],"apps":["m1.a"],"comment":"after the crash"}
 ```
 
 #### GET /api/downloads
@@ -573,6 +660,9 @@ lists the jobs on disk, newest first, each as below.
                "uncError": null } ],
   "errors": [], "notCollected": [] }
 ```
+
+**The size of the archive is known before it is downloaded**: `archives[].size` (bytes) is there as soon as the job is `Finished` - check it
+against an upload limit before fetching anything.
 
 `status` is `Running`, `Finished`, `Failed`, `Cancelled`, or `Orphaned` (the job was running when the master
 went away; nothing is left to finish it). While running, `progress` (0..1, or `null` when unknown) and `text`
@@ -618,7 +708,7 @@ with the reason. A file definition that has a mark is shown in the [previews](#G
 
 ### POST /api/marks
 
-One operation over a whole [selection](#The-selection): `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.ig"}],"apps":["m1.a"]}`.
+One operation over a whole [selection](#The-selection): `{"operation":"mark","fileDefs":[{"id":"pkg.comp.viewer"},{"id":"pkg.comp.broker"}],"apps":["m1.a"]}`.
 `operation` is `mark`, `clear` or `unmark`. The operation runs over the **union** of the selected files - a file reached through two items is marked once, because marks
 are per file - and answers in the shape above, with `selection` echoing the items. Marking works as ever: only `Clearable="1"` files, one helper per machine. Unknown
 item: 404 naming it; empty selection or an unknown `operation`: 400. `?waitSeconds=N` as above. (CLI: `MarkFiles a b c`, `ClearFiles a b`, `UnmarkFiles a b`, `MarkAppFiles x y` - several ids.)
@@ -690,7 +780,10 @@ Kills the plan's applications and starts it again. Optional `{"vars":{...}}`; `?
 ### POST /api/appdefs/{id}/start
 
 Starts the application, `m1.a` or `m1.a@plan1` (the definition of that plan, as the CLI's `StartApp`). Optional `{"vars":{...}}`. Answers the application state ([`/api/appstates/{id}`](#GET-apiappstatesid)): `202`, or with `?waitSeconds=N`
-`200` once it is running and initialized, `504` if not. Unknown application or plan: 404.
+`200` once it is running and initialized, `504` if not. Unknown application or plan: 404. The machine of the application not connected: `409`
+(there is nobody to tell - the same for kill and restart). A start that fails during the wait - the program is not there, say - is `409`
+`failed to start` at once rather than a `504` at the end of the wait; an application that had already failed before the call is the exception, as its
+old failure cannot be told from a new one, and is waited for as before.
 
 ### POST /api/appdefs/{id}/kill
 
@@ -728,7 +821,7 @@ a script that is already running: 409.
 ### POST /api/scripts
 
 Starts any script by name - [`StartScript`](CLI.md#StartScript) of the CLI. Body `{"name":"BuiltIns/ListVfsNodes.cs","args":{...},"machine":null,"id":"<guid>","title":"..."}`: `name` is needed; `machine` is `null` to run on the master or a
-machine id to run on that machine's agent (not connected: 409); `id` is the instance id (a new one when not given). `202 {"id"}`, or with `?waitSeconds=N` the end state as above. The state of a script that is still running is at
+machine id to run on that machine's agent (not connected: 409). A `name` the master has no script for - not a built-in one and no file of that name next to the shared config - is a 404 when it is to run on the master; on an agent, whose script files the master cannot see, the script starts and fails with `No script '...'`; `id` is the instance id (a new one when not given). `202 {"id"}`, or with `?waitSeconds=N` the end state as above. The state of a script that is still running is at
 [`/api/scriptstates/{id}`](#GET-apiscriptstatesid).
 
 ### POST /api/scripts/{id}/kill
@@ -741,7 +834,7 @@ Stops a running script - any instance, a config-defined script under its own gui
 
 Runs [CLI](CLI.md) commands. The body is **one line of plain text**: one command, or several separated by `;`, in the
 syntax of the CLI - for example `StartApp m1.a` or `StartPlan plan1 ; WaitForScript 2d5b3159-83c6-48d4-9c52-0ce1af92cbb2`. Only the
-first line of the body is read.
+first line of the body is read; an empty body is a 400.
 
 The call returns when the command has finished - for the commands that wait (`WaitForScript`, `GetAppFiles`, `DownloadPackage wait=1`,
 ...) that may be a long time, so give the HTTP client a generous timeout. The answer is the response the CLI would print, as **one JSON
@@ -758,7 +851,7 @@ POST /api/cli          body: GetAllPlansState
 200                    "PLAN:plan1:InProgress\nEND\n"
 ```
 
-A command that fails answers `200` with a line starting `ERROR:` inside the string; see [CLI](CLI.md) for what every command answers
+A command that fails - an unknown application included - answers `200` with a line starting `ERROR:` inside the string; see [CLI](CLI.md) for what every command answers
 and how its answer ends. Whatever the CLI offers - starting and killing apps and plans, running scripts, `SetVars`, `Shutdown`,
 `WakeUp`, `ReloadSharedConfig` - this endpoint offers too, which is why [the warning about access](#Web-API) matters.
 
@@ -789,16 +882,22 @@ the connection is accepted and kept, messages sent to it are ignored, and the pe
 
 ### GET /
 
-Everything that is not under `/api` or `/websock` is served from the `html` folder next to the master's executable:
-`index.html`, `favicon.ico`, `manifest.json`, `robots.txt`, `wstest.html` and the `static` folder with the scripts and styles of
-the web page (a small React application). Files are cached in memory. A path that does not exist is a 404 with
-EmbedIO's standard HTML page - the JSON error body is for `/api` only.
+**Redirects (302) to [`GET /api`](#GET-api)**, the description of the API - so that the address alone leads a tool, an agent or a person
+somewhere useful.
+
+Any other path that is not under `/api` or `/websock` is served from an `html` folder next to the master's executable, if there is one;
+releases ship none at present (the web page that used to be in the source tree spoke to routes that no longer exist). Files are cached
+in memory. A path that does not exist is a 404 with EmbedIO's standard HTML page - the JSON error body is for `/api` only.
 
 ## Limits
 
-* **Request rate.** The web server bans an address for a while (answering `403`) when it sends more than about 50 requests
-  per second. A tool that polls should wait between requests - `?wait=N` on a download job exists for that reason. Answers of
-  `404` and other errors do **not** count towards a ban; only the rate does.
-* **Concurrency.** State and definition calls are handled one after another on the master's own thread, so they are quick but
-  not parallel; file previews and downloads run on other threads and do not block them.
+* **Request rate.** An address that sends more than **50 requests within a second** is banned for **10 minutes**: every request
+  from it is answered `403` with `{"error": "This address sent more than 50 requests in a second and is banned for 10 minutes. ..."}`.
+  What gets a tool there is asking item by item - the state of each of 93 applications at once is 93 requests in a moment - so ask for
+  the lists (`/api/appstates`, `/api/planstates`, `/api/clients`, `/api/applocations`, a selection to `/api/files/query`) and poll
+  with a pause; `?wait=N` on a download job exists for that reason. Answers of `404` and other errors do **not** count towards a ban;
+  only the rate does.
+* **Concurrency.** State and definition calls are handled one after another on the master's own thread, in its tick (50 ms by
+  default): each takes about 60 ms, so a client asking one after another gets about 16 answers a second. File previews and
+  downloads run on other threads and do not block them.
 * **Archives are streamed**, never held in memory, so their size is limited by the disk only, not by the server.

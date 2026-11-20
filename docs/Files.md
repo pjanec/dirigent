@@ -394,10 +394,14 @@ cannot be delivered never costs you the rest.**
 | the folder of a `<Folder>` or a `<File Filter="Newest">` | the file definition is left out of the resolved tree |
 | the file of a plain `<File>` | the file definition resolves, and the collection finds nothing to add |
 | a whole machine (offline) | reported per machine, the others still collect |
+| any file definition at all, for a `<FileRef>` (a misspelt id, a machine without that definition) | the reference is left out, and says so: *No file definition matches it (id ..., machine ..., app ...)* |
 
 In every case the collection carries on, and what was named but not delivered is recorded in the
 archive - in **`_incomplete.txt`**, naming the file definition, the machine and the reason, so that an archive
-which lacks something says so, months later, to somebody who has only the zip.
+which lacks something says so, months later, to somebody who has only the zip. Each such note is written **once**, into
+the `_incomplete.txt` of the machine it is about (`<machine>/_incomplete.txt` in an archive of several machines); a
+note about no machine in particular, or about a machine that is not collecting (offline, or not a machine of the
+site), goes to the machine that collects the global files.
 
 The **closing message** gives the operator standing there the count and points at that file. It
 deliberately does not list them: an incident package over a large system names hundreds of things
@@ -441,11 +445,24 @@ with `Can't construct UNC path, No file share matching ...`.
 Dirigent expects these shares to need **no extra credentials**. If credentials are required,
 the user must have entered them beforehand so that Windows can reuse the cached ones.
 
-### Groups for tools
+### Components and groups for tools
 
-`Groups` on a file definition is the field a diagnostic tool sorts by. A tool that shows one checkbox per component asks for the packages of a group - `GET /api/filedefs?type=FilePackage&group=component`
-(CLI: `GetFileDefs type=FilePackage group=component`) - and gets each package's `id`, `title`, `description` and `groups`. The filter matches one entry of the `;`-separated list, ignoring
-letter case, with the wildcards of ids (`group=comp*`). The convention is yours; a common one is `component` for the packages offered as checkboxes and `major` or `minor` for how prominent:
+A diagnostic tool offers the software **components** of a site - "collect the logs of Viewer, IG and IOS" - and shows their
+versions. Which component something belongs to is said explicitly, with `Component`:
+
+* on an **application** (or its `<AppTemplate>`, inherited like other attributes; the application's own wins) - every
+  file definition declared under it belongs to that component, and its files say so (`component` in the previews);
+* on a **package** (or any file definition) that stands for a component - in particular one without an application of
+  its own, like the CycloneDDS or Dirigent logs.
+
+`Component` is a plain name, the same on the applications and on their packages, so that a tool puts the logs and the
+versions of "Viewer" side by side. Dirigent does not interpret it.
+
+`Groups` is something else: **grouping for people** - folders in the GUI, sections in a tool's list ("Main components",
+"Other components"). `GET /api/filedefs?type=FilePackage&group=...` filters by one entry of it (ignoring letter case,
+with the wildcards of ids), but no meaning is attached to any group name.
+
+A tool that offers a checkbox per component asks for the packages and keeps those that name a `component`:
 
 <!-- example: loads -->
 ```xml
@@ -453,18 +470,20 @@ letter case, with the wildcards of ids (`group=comp*`). The convention is yours;
     <Share Name="C" Path="C:\"/>
 </Machine>
 
-<AppTemplate Name="apps.viewer" ExeFullPath="C:\Viewer\viewer.exe" StartupDir="C:\Viewer">
+<AppTemplate Name="apps.viewer" Component="Viewer" ExeFullPath="C:\Viewer\viewer.exe" StartupDir="C:\Viewer">
     <File Id="log.viewer" Title="Log/Viewer" Path="%APP_STARTUPDIR%\logs" Mask="viewer*.log"/>
 </AppTemplate>
 <App AppIdTuple="m1.viewer" Template="apps.viewer"/>
 
-<FilePackage Id="pkg.comp.viewer" Title="Viewer" Description="Image generator logs" Groups="component;major">
+<FilePackage Id="pkg.comp.viewer" Title="Components/Viewer" Component="Viewer" Groups="Main components"
+             Description="Image generator logs">
     <FileRef Id="log.viewer" MachineId="*" AppId="*"/>
 </FilePackage>
 ```
 
-The tool then previews, collects and marks the ticked packages with one [selection](HTTP.md#The-selection) - see the
-[worked example](HTTP.md#A-tool-with-a-checkbox-per-component).
+`GET /api/filedefs?type=FilePackage` answers each package's `id`, `title`, `description`, `component` and `groups`. The tool then
+previews, collects and marks the ticked packages with one [selection](HTTP.md#The-selection) - see the
+[worked example](HTTP.md#A-tool-with-a-checkbox-per-component) and the [guide for diagnostic tools](DiagnosticTools.md).
 
 ### Reading the files from a diagnostic tool
 
@@ -493,7 +512,8 @@ master's machine in `--archiveFolder`, which should be under a file share - see
 | `AppId`     | Overrides the app association inherited from the declaration site. Empty string means *no app* and, in `<FileRef>`, *any app*.                                                                                            |
 | `AppIdTuple` | Shorthand setting both of the above at once, in the `"machineId.appId"` format. Without a dot it sets the app only, leaving the machine empty. `MachineId` / `AppId` given alongside it still win.                        |
 | `Icon`      | Icon image shown next to the menu item.                                                                                                                                                                                  |
-| `Groups`    | Semicolon-separated group paths, as elsewhere in the config. On a file definition it is also how a tool finds what to offer - see [Groups for tools](#groups-for-tools). |
+| `Groups`    | Semicolon-separated group paths, as elsewhere in the config: grouping for people (GUI folders, a tool's sections) - see [Components and groups for tools](#components-and-groups-for-tools). |
+| `Component` | The software component the file definition stands for (`Viewer`); optional. Files of an application belong to the application's `Component` anyway - this is for a package that stands for one, or a component without applications. See [Components and groups for tools](#components-and-groups-for-tools). |
 | `Clearable` | Whether **Clear** and **Mark** may touch the files this file definition yields. `0` (the default) means they never do, whatever any action or argument says - see [Collecting one test run](#collecting-one-test-run-clear-mark-and-unmark). |
 | `Description` | What this file definition is, in prose. Shown where the user has to decide something about it - see [Asking for a comment](#asking-for-a-comment). Being an attribute, a line break in it is written `&#10;`.                       |
 
@@ -1160,7 +1180,7 @@ What it does:
    file, or even a whole machine failing, does not abort the download. Confirming the dialog
    opens the containing folder in Explorer.
 
-The resulting archive is named `<Title>_<yyMMdd_HHmm>.zip` and is laid out like this:
+The resulting archive is named `<Title>_<yyMMdd_HHmm>.zip` (a download job may [name it](HTTP.md#POST-apidownloads)) and is laid out like this:
 
 ```
 Incident report_260827_1432.zip
@@ -1174,7 +1194,8 @@ Incident report_260827_1432.zip
       AppLogs/
          recorder/
             app.log
-   _comment.txt                   <- what was collected, from where, why, and since when
+   _comment.txt                   <- the site, what was collected, from where, why, and since when
+   _sitestate.json                <- the site at that moment: versions, machines, plans, applications
    _incomplete.txt                <- only when something was truncated or left out
 ```
 
@@ -1192,6 +1213,13 @@ Notable properties:
   incomplete collection can be told from a complete one long after the fact.
 * Each collected file keeps its own modification time, which the zip format stores to a resolution
   of two seconds.
+* `_sitestate.json` says what the site was like when the files were collected, for whoever reads the archive later - typically
+  attached to a bug report. It is written by a master (a collection run from a GUI's own host has none) and holds, indented
+  for a person to read: the site's name, the time, the comment and the selection, the time window of the logs when marks drew
+  one; then **`versions`** - the versions of the applications, each listed once as [`GET /api/appversions`](HTTP.md#GET-apiappversions)
+  lists them, the text in lines; `machines` (id, address, connected, which is the master); `plans` (state, and the marking of a
+  plan that marks); and `apps` (id, component, state, plan, process id, start and end times, exit code, program). It is a
+  record of facts, not a diagnosis: nothing in it is judged. A download job leaves it out with `"siteState": false`.
 * The files land in the download folder of the **machine the requestor runs on**. A GUI carries
   that machine in its client name (`<machineId>_gui_<guid>`); for a client named some other way,
   the agent connected from the same address is used instead.
@@ -1586,8 +1614,9 @@ verb, and the ImGui GUI does not render file definitions at all.
 `<Shared>`, `<Machine>`, `<App>` or `<AppTemplate>` can be found by a `<FileRef>`. See
 [Where file definitions can be declared](#where-file-definitions-can-be-declared).
 
-**Silent misses.** A file definition that resolves to nothing - an unmatched `<FileRef>`, a
-`Filter="Newest"` folder with no matching file - makes its menu item do nothing at all when
+**Silent misses.** A file definition that resolves to nothing - a `Filter="Newest"` folder with no
+matching file, or an unmatched `<FileRef>` used directly as a menu item (inside a package it leaves a
+note, see [When something is not there](#when-something-is-not-there)) - makes its menu item do nothing at all when
 clicked, without a message. The Files tab is the way to tell: its **Resolve** command reports
 `Not found` for the same file definition. *Download zipped* is the exception: it resolves the file definition itself and
 reports a file definition that yields nothing as a failed operation, visible in the status bar.

@@ -56,19 +56,28 @@ namespace Dirigent.Web
 		public string phase { get; set; } = string.Empty;
 		public PlanMarkResultDetails? markResult { get; set; }
 
+		/// <summary>When the plan last took a checkpoint of its MarkFiles (UTC); null if it has not.</summary>
+		public DateTime? lastCheckpoint { get; set; }
+
 		public PlanStateDetailsWithMarking() { }
 
 		public PlanStateDetailsWithMarking( Dirigent.PlanState ps ) : base( ps )
 		{
 			phase = ps.Phase;
 			markResult = ps.MarkResult is null ? null : new PlanMarkResultDetails( ps.MarkResult );
+			lastCheckpoint = ps.LastCheckpoint;
 		}
 	}
 
     public class PlanState
     {
         public string id { get; set; } = string.Empty;
-        public PlanStateDetails state { get; set; } = new();
+
+		/// <summary>
+		/// A PlanStateDetails - or, for a plan that marks, a PlanStateDetailsWithMarking. Declared as object because a JSON
+		/// serializer writes a property by its declared type: declared as the base, the marking fields were dropped.
+		/// </summary>
+        public object state { get; set; } = new PlanStateDetails();
 
 		public PlanState()
 		{
@@ -77,7 +86,7 @@ namespace Dirigent.Web
 		public PlanState( string id, Dirigent.PlanState ps )
 		{
 			this.id = id;
-			this.state = ps.Phase.Length > 0 || ps.MarkResult is not null ? new PlanStateDetailsWithMarking( ps ) : new PlanStateDetails( ps );
+			this.state = ps.Phase.Length > 0 || ps.MarkResult is not null || ps.LastCheckpoint is not null ? new PlanStateDetailsWithMarking( ps ) : new PlanStateDetails( ps );
 		}
     }
 
@@ -89,6 +98,18 @@ namespace Dirigent.Web
 
 		public string groups { get; set; } = string.Empty;
 
+		/// <summary>The file definition ids the plan marks when it starts (its MarkFiles), empty for none.</summary>
+		public List<string> markFiles { get; set; } = new();
+
+		/// <summary>The file definition ids the plan clears when it starts (its ClearFiles), empty for none.</summary>
+		public List<string> clearFiles { get; set; } = new();
+
+		/// <summary>Seconds the marking may take before the plan starts its applications anyway (its MarkTimeout).</summary>
+		public double markTimeout { get; set; }
+
+		/// <summary>Seconds between the checkpoints it takes of its markFiles while it runs (its MarkInterval); 0 for none.</summary>
+		public double markInterval { get; set; }
+
 		public PlanDef()
 		{
 		}
@@ -98,6 +119,10 @@ namespace Dirigent.Web
 			id = pd.Name;
 			appDefs = (from ad in pd.AppDefs select new AppDef( ad )).ToList();
 			groups = pd.Groups;
+			markFiles = pd.MarkFiles.ToList();
+			clearFiles = pd.ClearFiles.ToList();
+			markTimeout = pd.MarkTimeout;
+			markInterval = pd.MarkInterval;
 		}
 
     }
@@ -135,7 +160,7 @@ namespace Dirigent.Web
 				var pd = _master.GetPlanDef( id );
 
 				if( pd is null )
-					throw HttpException.NotFound();
+					throw HttpException.NotFound( $"No plan '{id}' is defined." );
 
 				res = new PlanDef( pd );
 			} );
@@ -156,7 +181,7 @@ namespace Dirigent.Web
 				var ps = _master.GetPlanState( id );
 
 				if( ps is null )
-					throw HttpException.NotFound();
+					throw HttpException.NotFound( $"No plan '{id}' is defined." );
 
 				res = new PlanState( id, ps );
 			} );

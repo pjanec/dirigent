@@ -49,7 +49,8 @@ namespace Dirigent.Tests
 					foreach( var attr in method.GetCustomAttributes<EmbedIO.Routing.RouteAttribute>() )
 					{
 						var verb = attr.Verb.ToString().ToUpperInvariant();
-						routes.Add( $"{verb} /api{attr.Route}" );
+						// the route "/" of the /api module is GET /api (/api/ answers the same), as the index names it
+						routes.Add( $"{verb} /api{( attr.Route == "/" ? "" : attr.Route )}" );
 					}
 				}
 			}

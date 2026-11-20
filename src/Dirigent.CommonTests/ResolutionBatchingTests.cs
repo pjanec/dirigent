@@ -403,5 +403,82 @@ namespace Dirigent.Tests
 			Assert.IsTrue( took < TimeSpan.FromMilliseconds( _roundTrip.TotalMilliseconds * 3 ),
 				$"{TotalNodes} references took {took.TotalMilliseconds:0} ms" );
 		}
+
+		static IEnumerable<VfsNodeDef> Leaves( VfsNodeDef node )
+			=> node.Children.Count == 0 ? new[] { node } : node.Children.SelectMany( Leaves );
+
+		[TestMethod()]
+		public async Task APackageOfAnotherMachineIsWalkedHereTest()
+		{
+			// A <FilePackage> in a <MachineTemplate> belongs to each machine using the template, and its
+			// members are references ("every log.* of this machine"). Only the master holds the registry the
+			// references are looked up in - an agent is never sent it - so a package handed whole to its
+			// machine came back empty, without a word. A package is a list and touches no disk: it is walked
+			// where the registry is, and only what it finds goes to the machine.
+			var nodes = new List<VfsNodeDef>();
+			foreach( var machine in _machines )
+				for( int i = 0; i < _nodesPerMachine; i++ )
+					nodes.Add( Node( machine, i ) );
+
+			var pkg = new FilePackageDef()
+			{
+				Guid = Guid.NewGuid(),
+				Id = "pkg.machine",
+				Title = "This machine",
+				MachineId = "m2",
+				IsContainer = true,
+			};
+			pkg.Children.Add( new FileRef() { Guid = Guid.NewGuid(), Id = "m2-log0*", MachineId = "m2" } );
+			pkg.Children.Add( new FileRef() { Guid = Guid.NewGuid(), Id = "m2-log07", MachineId = "m2" } );
+			nodes.Add( pkg );
+			_reg.SetVfsNodes( nodes );
+
+			var (tree, _) = await Resolve( pkg );
+
+			var found = Leaves( tree ).Select( n => n.Id ).ToList();
+			CollectionAssert.AreEquivalent(
+				Enumerable.Range( 0, _nodesPerMachine ).Select( i => NodeId( "m2", i ) )
+					.Concat( new[] { NodeId( "m2", 7 ) } ).ToList(),
+				found, $"every node the references name is in the package:\n{Report()}" );
+
+			Assert.IsNull( tree.Notes, $"nothing missing, nothing to say: {string.Join( " | ", tree.Notes ?? new() )}" );
+			Assert.AreEqual( 1, _site.Asks.Count, $"m2 is asked once:\n{Report()}" );
+			Assert.AreEqual( "m2", _site.Asks[0].MachineId );
+			Assert.IsFalse( _site.Asks[0].Nodes.Contains( "pkg.machine" ),
+				$"for the files, not for the package:\n{Report()}" );
+		}
+
+		[TestMethod()]
+		public async Task AReferenceMatchingNothingLeavesANoteTest()
+		{
+			// a misspelt id, or a machine without that definition, used to make the package quietly smaller
+			var nodes = new List<VfsNodeDef>() { Node( "m1", 0 ) };
+			_reg.SetVfsNodes( nodes );
+
+			var pkg = new FilePackageDef() { Guid = Guid.NewGuid(), Id = "pkg", Title = "Pkg", IsContainer = true };
+			pkg.Children.Add( new FileRef() { Guid = Guid.NewGuid(), Id = NodeId( "m1", 0 ), MachineId = "m1" } );
+			pkg.Children.Add( new FileRef() { Guid = Guid.NewGuid(), Id = "dump.*", MachineId = "m2" } );
+
+			var (tree, _) = await Resolve( pkg );
+
+			Assert.AreEqual( 1, Leaves( tree ).Count( n => n.Id == NodeId( "m1", 0 ) ), "the reference that matches is resolved" );
+			Assert.IsNotNull( tree.Notes, "and the one matching nothing is noted" );
+			Assert.AreEqual( 1, tree.Notes!.Count, string.Join( " | ", tree.Notes ) );
+			StringAssert.Contains( tree.Notes[0], "dump.*" );
+			StringAssert.Contains( tree.Notes[0], "No file definition matches" );
+			Assert.AreEqual( "m2", tree.NoteMachine( 0 ), "the note is about the machine the reference named" );
+		}
+
+		[TestMethod()]
+		public async Task ANoteKnowsWhichMachineItIsAboutTest()
+		{
+			// a download writes each note into the part of the archive of that machine only
+			_site.Broken.Add( NodeId( "m3", 4 ) );
+
+			var (tree, _) = await Resolve( Package() );
+
+			Assert.AreEqual( 1, tree.Notes!.Count );
+			Assert.AreEqual( "m3", tree.NoteMachine( 0 ) );
+		}
 	}
 }

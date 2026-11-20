@@ -18,6 +18,8 @@ namespace Dirigent.TestBed.Scenarios
 		public static XElement RenderToXml( ScenarioSpec spec, RenderContext ctx )
 		{
 			var root = new XElement( "Shared" );
+			if( !string.IsNullOrEmpty( spec.SiteName ) )
+				root.Add( new XAttribute( "Name", spec.SiteName ) );
 
 			foreach( var machine in spec.Machines )
 				root.Add( RenderMachine( machine, ctx ) );

@@ -59,6 +59,9 @@ namespace Dirigent.Scripts.BuiltIn
 			//[MessagePack.Key( 5 )]
 			public string? CoverNote;
 
+			// JSON to write into the archive as _sitestate.json; empty for none
+			public string? SiteState;
+
 			public override string ToString() => $"{Parts.Count} parts => {DestinationFile}";
 		};
 
@@ -125,10 +128,11 @@ namespace Dirigent.Scripts.BuiltIn
 					File.Move( singlePart, args.DestinationFile, true );
 
 					// nothing was repacked, so the note goes into the finished archive
-					if( !string.IsNullOrEmpty( args.CoverNote ) )
+					if( !string.IsNullOrEmpty( args.CoverNote ) || !string.IsNullOrEmpty( args.SiteState ) )
 					{
 						using var moved = ZipFile.Open( args.DestinationFile, ZipArchiveMode.Update );
-						WriteCoverNote( moved, args.CoverNote! );
+						if( !string.IsNullOrEmpty( args.CoverNote ) ) WriteCoverNote( moved, args.CoverNote! );
+						if( !string.IsNullOrEmpty( args.SiteState ) ) WriteEntry( moved, SiteStateEntry, args.SiteState! );
 					}
 
 					result.ZipFileName = Path.GetFileName( args.DestinationFile );
@@ -147,6 +151,8 @@ namespace Dirigent.Scripts.BuiltIn
 					// first, so that it is the first thing seen in the listing
 					if( !string.IsNullOrEmpty( args.CoverNote ) )
 						WriteCoverNote( dstZip, args.CoverNote! );
+					if( !string.IsNullOrEmpty( args.SiteState ) )
+						WriteEntry( dstZip, SiteStateEntry, args.SiteState! );
 
 					foreach( var part in args.Parts )
 					{
@@ -241,6 +247,17 @@ namespace Dirigent.Scripts.BuiltIn
 			var entry = zip.CreateEntry( "_comment.txt", CompressionLevel.Fastest );
 			using var stream = entry.Open();
 			using var writer = new StreamWriter( stream, Encoding.UTF8 );
+			writer.Write( text );
+		}
+
+		/// <summary>The entry holding the state of the site at the time of the collection.</summary>
+		public const string SiteStateEntry = "_sitestate.json";
+
+		static void WriteEntry( ZipArchive zip, string name, string text )
+		{
+			var entry = zip.CreateEntry( name, CompressionLevel.Fastest );
+			using var stream = entry.Open();
+			using var writer = new StreamWriter( stream, new UTF8Encoding( false ) ); // JSON: no byte order mark
 			writer.Write( text );
 		}
 

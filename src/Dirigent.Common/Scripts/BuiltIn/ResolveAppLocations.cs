@@ -45,6 +45,12 @@ namespace Dirigent.Scripts.BuiltIn
 			public DateTime? Modified;
 			public string? FileVersion;
 
+			/// <summary>
+			/// Where <see cref="FileVersion"/> came from: "resource" (the version resource of the executable), or the
+			/// full path of a version file next to it, whose whole text (possibly several lines) is then the version.
+			/// </summary>
+			public string? VersionSource;
+
 			/// <summary>The program was not where the launcher would look and was found on the agent's PATH instead.</summary>
 			public bool FoundOnPath;
 		}
@@ -76,20 +82,26 @@ namespace Dirigent.Scripts.BuiltIn
 			var args = Tools.Deserialize<TArgs>( Args ) ?? throw new NullReferenceException( "Args == null" );
 			var result = new TResult();
 
-			foreach( var app in args.Apps )
-			{
-				try
-				{
-					result.Entries.Add( new TEntry { Location = await Locate( app ) } );
-				}
-				catch( Exception e )
-				{
-					log.Warn( $"Could not locate {app.Id}: {e.Message}" );
-					result.Entries.Add( new TEntry { Error = Tools.JustFirstLine( e.Message ) } );
-				}
-			}
+			// All at once: the agent answers each launch spec on its next tick (500 ms by default), so asking
+			// one app after another cost a tick per app - 11 s for a machine of 21 apps on a real site.
+			// Asked together, they are all answered in the same tick.
+			var entries = await Task.WhenAll( args.Apps.Select( LocateGuarded ) );
+			result.Entries.AddRange( entries );
 
 			return Tools.Serialize( result );
+		}
+
+		async Task<TEntry> LocateGuarded( AppDef app )
+		{
+			try
+			{
+				return new TEntry { Location = await Locate( app ) };
+			}
+			catch( Exception e )
+			{
+				log.Warn( $"Could not locate {app.Id}: {e.Message}" );
+				return new TEntry { Error = Tools.JustFirstLine( e.Message ) };
+			}
 		}
 
 		async Task<TLocation> Locate( AppDef app )
@@ -156,12 +168,73 @@ namespace Dirigent.Scripts.BuiltIn
 				p.Modified = info.LastWriteTimeUtc;
 
 				var version = FileVersionInfo.GetVersionInfo( p.LocalPath ).FileVersion;
-				p.FileVersion = string.IsNullOrWhiteSpace( version ) ? null : version;
+				if( !string.IsNullOrWhiteSpace( version ) )
+				{
+					p.FileVersion = version;
+					p.VersionSource = "resource";
+				}
 			}
 			catch( Exception e )
 			{
 				log.Debug( $"Could not read the facts of {p.LocalPath}: {e.Message}" );
 			}
+
+			// Many of our executables carry no version resource (native builds) but are delivered with
+			// a text file saying what they are. Its whole text is the version - often several lines (version, commit,
+			// date); a JSON answer escapes the line breaks, so a one-line CLI answer stays one line.
+			if( p.FileVersion is null )
+			{
+				var file = FindVersionFile( Path.GetDirectoryName( p.LocalPath ) );
+				if( file is not null )
+				{
+					try
+					{
+						p.FileVersion = ReadVersionFile( file );
+						p.VersionSource = file;
+					}
+					catch( Exception e )
+					{
+						log.Debug( $"Could not read {file}: {e.Message}" );
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// The names of the version files tried next to an executable, in this order; case does not matter. After them, the
+		/// first (by name) of <see cref="VersionFilePrefix"/>*.txt - some builds stamp "VersionStamp.txt",
+		/// others "VersionStamp-<part>.txt".
+		/// </summary>
+		public static readonly string[] VersionFileNames = { "version.txt", "versioninfo.txt", "versionstamp.txt" };
+		public const string VersionFilePrefix = "versionstamp";
+
+		/// <summary>No version file is longer than this; a bigger one is cut, so a mistaken match cannot flood the answer.</summary>
+		const int _maxVersionFileChars = 4096;
+
+		static string? FindVersionFile( string? folder )
+		{
+			if( string.IsNullOrEmpty( folder ) || !Directory.Exists( folder ) ) return null;
+
+			// enumerated rather than File.Exists, so that "Version.TXT" is found on a case-sensitive file system too
+			var present = Directory.EnumerateFiles( folder, "*.txt" )
+							.ToDictionary( f => Path.GetFileName( f ), f => f, StringComparer.OrdinalIgnoreCase );
+
+			foreach( var name in VersionFileNames )
+				if( present.TryGetValue( name, out var path ) ) return path;
+
+			return present.Keys
+					.Where( n => n.StartsWith( VersionFilePrefix, StringComparison.OrdinalIgnoreCase ) )
+					.OrderBy( n => n, StringComparer.OrdinalIgnoreCase )
+					.Select( n => present[n] )
+					.FirstOrDefault();
+		}
+
+		static string? ReadVersionFile( string path )
+		{
+			var text = File.ReadAllText( path );
+			if( text.Length > _maxVersionFileChars ) text = text.Substring( 0, _maxVersionFileChars );
+			text = text.Replace( "\r\n", "\n" ).Trim();
+			return text.Length == 0 ? null : text;
 		}
 
 		/// <summary>The first match of a bare program name in the PATH, trying the PATHEXT extensions when it has none.</summary>

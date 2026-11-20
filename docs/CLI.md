@@ -30,6 +30,7 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetFileDefs](#GetFileDefs)          | Lists the file definitions declared in the shared config, in json single line format. |
 | [GetAppLocation](#GetAppLocation)    | Where the binary and working folder of an app are, as its agent resolves them, in json single line format. |
 | [GetAppLocations](#GetAppLocations)  | The same for all apps or those of one machine. |
+| [GetAppVersions](#GetAppVersions)  | The versions of the applications, each listed once. |
 | [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
 | [GetFiles](#GetFiles)                | Lists the files of a file definition or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
@@ -268,9 +269,13 @@ If you want to clear the variable specified before, you pass '::' as a varlist.
 
   `GetAppState <appName>`   returns the status of given app
 
+  An application the master does not know answers `ERROR:` (it used to answer an empty line).
+
 ##### Response text
 
-  `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>:<PlanName>`
+  `APP:<AppName>:<Flags>:<ExitCode>:<StatusAge>:<%CPU>:<%GPU>:<MemoryMB>:<PlanName>:<PID>:<StartedAt>:<EndedAt>`
+
+  Fields are only ever **added at the end**, so a script that splits the line by `:` and takes the fields by position keeps working.
 
 
 ###### Flags
@@ -319,11 +324,20 @@ Float number of MBytes od system RAM used
 
   The name of plan in whose context the app was most recently launched.
 
+###### PID
+
+  The process id, `-1` when the application does not run.
+
+###### StartedAt, EndedAt
+
+  When the current (or last) process of the application was started, and when it ended - UTC, by the clock of its agent, written
+  without `:` as `20261120T132007Z` so as not to split the line. `EndedAt` is empty while the process runs; both are empty if it never ran.
+
 ##### Example
 
   Request:   `GetAppState m1.a1`
 
-  Response:     `APP:m1.a:SIP:255:10.1:34.7:82.5:7623.7:plan1`
+  Response:     `APP:m1.a:SIP:255:10.1:34.7:82.5:7623.7:plan1:-1:20261120T132007Z:20261120T134215Z`
 
 
 
@@ -336,8 +350,8 @@ Float number of MBytes od system RAM used
 
 One line per application (see GetAppState command). The last line is "END\n"
 
-    APP:m1.a:SIP:1:0.45:20.1:0:7623.2:plan1
-    APP:m1.b::0:0:0:65.2:
+    APP:m1.a:SIRP:0:0.45:20.1:0:7623.2:plan1:7480:20261120T132007Z:
+    APP:m1.b::0:0:0:0:0::-1::
     END
 
 ### GetPlanState
@@ -552,6 +566,19 @@ The same for all applications.
 
   `END`
 
+### GetAppVersions
+
+The versions of the applications, each listed once with the machines and applications that have it - the answer of
+[`GET /api/appversions`](HTTP.md#GET-apiappversions).
+
+  `GetAppVersions [machine=m1]`
+
+##### Response text
+
+  `APPVERSIONS:<json array on one line>`
+
+  `END`
+
 ### GetAppFiles
 
 Lists the actual files of one application instance.
@@ -602,7 +629,7 @@ Lists the top-level file definitions as declared - the CLI twin of [`GET /api/fi
 
   `GetFileDefs [type=FilePackage] [id=logs.*] [machine=m1] [app=a] [group=component]`
 
-`group` is one entry of the `Groups` of the definition - see [Groups for tools](Files.md#groups-for-tools).
+`group` is one entry of the `Groups` of the definition - see [Components and groups for tools](Files.md#components-and-groups-for-tools).
 
 Answers once: `FILEDEFS:<json array>`.
 

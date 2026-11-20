@@ -16,6 +16,9 @@ namespace Dirigent.Web
 		public DateTime? modified { get; set; }
 		public string? fileVersion { get; set; }
 
+		/// <summary>"resource", or the path of the version file next to the exe that <see cref="fileVersion"/> was read from (its whole text, line breaks as "\n").</summary>
+		public string? versionSource { get; set; }
+
 		/// <summary>Set for the program when it is found on the agent's PATH rather than where the launcher looks.</summary>
 		public bool? foundOnPath { get; set; }
 	}
@@ -33,6 +36,12 @@ namespace Dirigent.Web
 		public string? plan { get; set; }
 		public string planSource { get; set; } = "none";
 		public string machine { get; set; } = string.Empty;
+
+		/// <summary>The Groups of the application (';'-separated) - the component it belongs to, so that versions can be shown per component.</summary>
+		public string groups { get; set; } = string.Empty;
+
+		/// <summary>The application's Component - what versions are listed by; null if it names none.</summary>
+		public string? component { get; set; }
 
 		/// <summary>"process", a reserved exe name ("cmd", "powershell.file", ...) or "dirigentCommand".</summary>
 		public string? kind { get; set; }
@@ -89,6 +98,8 @@ namespace Dirigent.Web
 				plan = a.Plan,
 				planSource = a.PlanSource,
 				machine = a.Def.Id.MachineId,
+				groups = a.Def.Groups ?? string.Empty,
+				component = string.IsNullOrEmpty( a.Def.Component ) ? null : a.Def.Component,
 				exe = { declared = a.Def.ExeFullPath },
 				startupDir = { declared = a.Def.StartupDir },
 				cmdLineArgs = { declared = a.Def.CmdLineArgs },
@@ -150,6 +161,7 @@ namespace Dirigent.Web
 			to.size = from.Size;
 			to.modified = from.Modified;
 			to.fileVersion = from.FileVersion;
+			to.versionSource = from.VersionSource;
 
 			if( string.IsNullOrEmpty( from.LocalPath ) ) return;
 

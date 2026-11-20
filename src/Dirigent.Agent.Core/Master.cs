@@ -60,6 +60,12 @@ namespace Dirigent
 		/// <summary>The MinDirigentVersion the shared config states; empty if it states none.</summary>
 		public string MinDirigentVersion { get; private set; } = string.Empty;
 
+		/// <summary>The name of the site, <c>&lt;Shared Name="..."&gt;</c>; empty if the shared config gives none.</summary>
+		public string SiteName { get; private set; } = string.Empty;
+
+		/// <summary>The site state for a collected archive - see <see cref="IDirig.ComposeSiteState"/>. Master thread only.</summary>
+		public Task<string?>? ComposeSiteState( SiteStateExtras extras ) => Web.SiteStateDocument.Start( this, extras );
+
 		/// <summary>True while a Kill All is still killing.</summary>
 		public bool KillAllInProgress => _killAllInProgress;
 
@@ -812,6 +818,13 @@ namespace Dirigent
 				var m = new Net.AppDefsMessage( appDefs, incremental: false );
 				_server.SendToSingle( m, ident.Name );
 			}
+
+			// the file definitions, so that an agent can look up a <FileRef> itself - anything it is asked to
+			// resolve (a script started on it, a node of its machine) may refer to other definitions by id
+			{
+				var m = new Net.VfsNodesMessage( _files.VfsNodes.Values );
+				_server.SendToSingle( m, ident.Name );
+			}
 		}
 
 
@@ -865,6 +878,7 @@ namespace Dirigent
 			_sharedConfigFileName = fileName;
 			SharedConfigLoadedAt = DateTime.UtcNow;
 			MinDirigentVersion = sharedConfig.MinDirigentVersion;
+			SiteName = sharedConfig.SiteName;
 			return sharedConfig;
 		}
 

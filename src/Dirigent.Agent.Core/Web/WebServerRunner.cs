@@ -61,6 +61,33 @@ namespace Dirigent.Web
             return SendJsonError( context, code, message );
         }
 
+        /// <summary>More requests than this from one address within a second ban it - see <see cref="BanMinutes"/>.</summary>
+        public const int MaxRequestsPerSecond = 50;
+
+        /// <summary>How long a banned address is answered 403.</summary>
+        public const int BanMinutes = 10;
+
+        static Task ServerHttpError( IHttpContext context, IHttpException exception )
+        {
+            if( !context.Request.Url.AbsolutePath.StartsWith( "/api", StringComparison.OrdinalIgnoreCase ) )
+                return HttpExceptionHandler.Default( context, exception );
+
+            // the ban says nothing of itself; the caller needs to know what happened and for how long
+            if( exception.StatusCode == 403 && string.IsNullOrEmpty( exception.Message ) )
+                return SendJsonError( context, 403, $"This address sent more than {MaxRequestsPerSecond} requests in a second and is"
+                    + $" banned for {BanMinutes} minutes. Ask for lists (GET /api/appstates, /api/planstates, ...) rather than one item at a time." );
+
+            return JsonHttpError( context, exception );
+        }
+
+        /// <summary>
+        /// What a route returns, as JSON - System.Text.Json, like the answers the file and download routes compose themselves.
+        /// EmbedIO's own serializer wrote a nullable number as a string and left line breaks in strings raw.
+        /// </summary>
+        static Task JsonResponse( IHttpContext context, object? data )
+            => context.SendStringAsync( System.Text.Json.JsonSerializer.Serialize( data, data?.GetType() ?? typeof( object ) ),
+                    "application/json", ApiOps.Utf8 );
+
         static Task JsonUnhandledError( IHttpContext context, Exception exception )
             => SendJsonError( context, 500, Tools.JustFirstLine( exception.Message ) );
 
@@ -68,7 +95,7 @@ namespace Dirigent.Web
         {
             context.Response.StatusCode = code;
             var json = System.Text.Json.JsonSerializer.Serialize( new { error = message, code } );
-            return context.SendStringAsync( json, "application/json", System.Text.Encoding.UTF8 );
+            return context.SendStringAsync( json, "application/json", ApiOps.Utf8 );
         }
 
         // Create and configure our web server.
@@ -84,7 +111,7 @@ namespace Dirigent.Web
                 // app that is not there, got itself banned (403 for ten minutes) by answers that are
                 // perfectly normal for an API.
                 .WithIPBanning(o => o
-                    .WithMaxRequestsPerSecond())
+                    .WithMaxRequestsPerSecond(MaxRequestsPerSecond), banMinutes: BanMinutes)
                 .WithLocalSessionManager()
                 //.WithCors(
                 //    "http://unosquare.github.io,http://run.plnkr.co", // Origins, separated by comma without last slash
@@ -96,7 +123,7 @@ namespace Dirigent.Web
                 //.WithModule(new WebSocketTerminalModule("/terminal"))
 
 
-                .WithWebApi("/api", m => m
+                .WithWebApi("/api", JsonResponse, m => m
                     .WithController( () => new PlanApiController( master ) )
                     .WithController( () => new AppApiController( master ) )
                     .WithController( () => new DownloadApiController( master ) )
@@ -107,16 +134,27 @@ namespace Dirigent.Web
                     .WithController( () => new ClientApiController( master ) )
                     .WithController( () => new MachineApiController( master ) )
                     .WithController( () => new ControlApiController( master ) )
+                    .WithController( () => new IndexApiController( master ) )
                     .HandleHttpException( JsonHttpError )
                     .HandleUnhandledException( JsonUnhandledError )
                 )
 
                 .WithModule(new WebSocketDirigentModule("/websock"))
 
+                // The root leads to the API's own description, GET /api - what a tool or an agent that knows only the
+                // address asks first. Only "/" itself: any other path is still served from the html folder, should a
+                // web page be put there again (the one there was spoke to routes that no longer exist).
+                .WithModule(new EmbedIO.Actions.RedirectModule("/", "/api",
+                    ctx => ctx.RequestedPath == "/" && ctx.Request.HttpVerb == HttpVerbs.Get))
+
                 .WithStaticFolder("/", htmlRootPath, true, m => m
                     .WithContentCaching(UseFileCache)) // Add static files after other modules to avoid conflicts
                 //.WithModule(new ActionModule("/", HttpVerb.Any, ctx => ctx.SendDataAsync(new { Message = "Error" })))
                 ;
+
+            // What is answered before any module - the ban above, a path no module takes (".." in it) - comes here.
+            // Under /api it is the JSON of every other API error; the static page keeps EmbedIO's HTML.
+            server.HandleHttpException( ServerHttpError );
 
             // Listen for state changes.
             server.StateChanged += (s, e) => log.Debug( $"WebServer New State - {e.NewState}" );
