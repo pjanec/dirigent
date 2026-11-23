@@ -134,7 +134,7 @@ namespace Dirigent.Web
 				result.crashes = listing;
 				result.totals.bytes += dumpBytes;
 				result.totals.bytesToCollect += dumpBytes;
-				result.totals.files += crashSelection.dumps ? listing.crashes.Count( e => e.dump is { exists: true } && ( crashSelection.maxDumpBytes is null || ( e.dump.size ?? 0 ) <= crashSelection.maxDumpBytes ) ) : 0;
+				result.totals.files += crashSelection.dumps ? Dirigent.Crashes.CrashSelection.DistinctDumps( listing.crashes.Where( e => e.dump is { exists: true } && ( crashSelection.maxDumpBytes is null || ( e.dump.size ?? 0 ) <= crashSelection.maxDumpBytes ) ) ).Count() : 0;
 			}
 
 			await SendJson( result.ToJson() );

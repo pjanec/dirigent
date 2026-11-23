@@ -30,7 +30,7 @@ namespace Dirigent.Web
 			{
 				try
 				{
-					query = CrashQuery.Prepare( _master, CrashFilterParser.Parse( q ), CrashFilterParser.IsTrue( q["details"] ) );
+					query = CrashQuery.Prepare( _master, CrashFilterParser.Parse( q ), CrashFilterParser.IsTrue( q["details"] ), CrashFilterParser.ParseTimeout( q["timeout"] ) );
 				}
 				catch( ArgumentException e )
 				{

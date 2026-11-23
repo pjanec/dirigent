@@ -81,7 +81,7 @@ namespace Dirigent.Gui.WinForms
 					switch( ac.Mode.ToLower() )
 					{
 						// just gui, no agent
-						case "remoteControlGui":  // for compatibility with Dirigent 1.x
+						case "remotecontrolgui":  // for compatibility with Dirigent 1.x
 						case "gui":  
 						{
 							runAgent = false;

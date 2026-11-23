@@ -120,10 +120,10 @@ namespace Dirigent.Web
 				if( !_connected.Contains( machine ) )
 					throw new Exception( $"Machine {machine} not connected." );
 
-				var result = await _master.RunScriptAsync<Scripts.BuiltIn.ResolveAppLocations.TArgs, Scripts.BuiltIn.ResolveAppLocations.TResult>(
+				var result = await AnswerTimeout.Within( _master.RunScriptAsync<Scripts.BuiltIn.ResolveAppLocations.TArgs, Scripts.BuiltIn.ResolveAppLocations.TResult>(
 					machine, Scripts.BuiltIn.ResolveAppLocations._Name, null,
 					new Scripts.BuiltIn.ResolveAppLocations.TArgs() { Apps = defs },
-					$"Locating {defs.Count} app(s) of {machine}", out _ );
+					$"Locating {defs.Count} app(s) of {machine}", out _ ), AnswerTimeout.Default );
 
 				if( result is null || result.Entries.Count != entries.Count )
 					throw new Exception( $"{machine} answered nothing sensible." );

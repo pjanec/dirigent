@@ -1021,7 +1021,8 @@ namespace Dirigent.Commands
 			Web.CrashQuery query;
 			try
 			{
-				query = Web.CrashQuery.Prepare( ctrl, Web.CrashFilterParser.Parse( options ), Tools.TryGetValueIgnoreKeyCase( options, "details", out var d ) && Web.CrashFilterParser.IsTrue( d ) );
+				query = Web.CrashQuery.Prepare( ctrl, Web.CrashFilterParser.Parse( options ), Tools.TryGetValueIgnoreKeyCase( options, "details", out var d ) && Web.CrashFilterParser.IsTrue( d ),
+					Tools.TryGetValueIgnoreKeyCase( options, "timeout", out var t ) ? Web.CrashFilterParser.ParseTimeout( t ) : null );
 			}
 			catch( ArgumentException e )
 			{

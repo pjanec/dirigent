@@ -41,6 +41,9 @@ namespace Dirigent.Crashes
 		public string? uncError { get; set; }
 		public bool exists { get; set; }
 		public long? size { get; set; }
+
+		/// <summary>Why there is no dump, when that is worth saying ("overwritten by a later crash").</summary>
+		public string? note { get; set; }
 	}
 
 	/// <summary>A file of the crashed program's folder.</summary>
@@ -53,6 +56,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>Only in what a download collects; the listing has no hashes.</summary>
 		public string? sha256 { get; set; }
+
+		/// <summary>Set (true) when the file was written after the crash: it is not what crashed. Only in what a download collects.</summary>
+		public bool? modifiedAfterCrash { get; set; }
 	}
 
 	/// <summary>Which build crashed: the exe's version and what lies beside it. No hashes here.</summary>
@@ -63,6 +69,11 @@ namespace Dirigent.Crashes
 
 		/// <summary>The DLLs of the exe's folder; the faulting module first.</summary>
 		public List<CrashFileVersion> files { get; set; } = new();
+
+		/// <summary>When the files were read (UTC): they are as they are then, not as at the crash. Only in what a download collects.</summary>
+		public DateTime? collectedAt { get; set; }
+
+		public string? note { get; set; }
 	}
 
 	public class CrashDisk
@@ -174,7 +185,11 @@ namespace Dirigent.Crashes
 
 		/// <summary>The bytes of dumps the selection would collect from the entries: only the dumps that are there, and not bigger than the limit.</summary>
 		public long DumpBytesOf( IEnumerable<CrashEntry> entries )
-			=> !dumps ? 0 : entries.Where( e => e.dump is { exists: true } && ( maxDumpBytes is null || ( e.dump.size ?? 0 ) <= maxDumpBytes ) ).Sum( e => e.dump!.size ?? 0 );
+			=> !dumps ? 0 : DistinctDumps( entries.Where( e => e.dump is { exists: true } && ( maxDumpBytes is null || ( e.dump.size ?? 0 ) <= maxDumpBytes ) ) ).Sum( d => d.size ?? 0 );
+
+		/// <summary>The dumps of the entries, a file once however many entries name it.</summary>
+		public static IEnumerable<CrashDump> DistinctDumps( IEnumerable<CrashEntry> entries )
+			=> entries.Where( e => e.dump is not null ).Select( e => e.dump! ).GroupBy( d => d.path, StringComparer.OrdinalIgnoreCase ).Select( g => g.First() );
 	}
 
 	/// <summary>How far back one machine's log reaches.</summary>
