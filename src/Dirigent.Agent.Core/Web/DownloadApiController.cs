@@ -104,14 +104,15 @@ namespace Dirigent.Web
 
 			// the items are looked up on the master thread, resolving them (which waits for the agents) is not
 			FileSelection? selection = null;
-			var op = _master.AddSynchronousOp( () => { selection = FileSelection.Parse( _master, request ); } );
+			FileWindow? window = null;
+			var op = _master.AddSynchronousOp( () => { window = request.ToWindow(); selection = FileSelection.Parse( _master, request ); } );
 			await op.WaitAsync();
 
 			if( op.Exception is AppFilesNotFoundException ) throw HttpException.NotFound( op.Exception.Message );
 			if( op.Exception is ArgumentException or ArgumentSyntaxErrorException ) throw HttpException.BadRequest( op.Exception.Message );
 			if( op.Exception != null ) throw op.Exception;
 
-			var result = await selection!.ResolveAsync( includeContent );
+			var result = await selection!.ResolveAsync( includeContent, window );
 			await SendJson( result.ToJson() );
 		}
 

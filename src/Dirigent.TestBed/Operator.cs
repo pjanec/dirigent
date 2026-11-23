@@ -143,12 +143,12 @@ namespace Dirigent.TestBed
 		/// Resolves a VFS node the way a context menu click would: variables expanded on the
 		/// machine that owns the node, folders scanned, references followed.
 		/// </summary>
-		public async Task<VfsNodeDef?> ResolveAsync( VfsNodeDef node, bool forceUNC = false, bool includeContent = true )
+		public async Task<VfsNodeDef?> ResolveAsync( VfsNodeDef node, bool forceUNC = false, bool includeContent = true, FileWindow? window = null )
 		{
 			// the resolution may itself await a script on another machine, so it must not run
 			// inside the tick - only the call that starts it is marshalled
 			var ctrl = await InTick( () => (IDirig) _states );
-			return await OffPump( ctrl.ResolveAsync( node, forceUNC, includeContent ) );
+			return await OffPump( ctrl.ResolveAsync( node, forceUNC, includeContent, window ) );
 		}
 
 		/// <summary>

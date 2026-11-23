@@ -727,5 +727,127 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( 0, strays.Count,
 				$"no application outlived the world: pids {string.Join( ", ", strays )}" );
 		}
+
+		[TestMethod()]
+		public void ACollectionOfATimeWindowIsCutOnBothSidesAndThePreviewListsTheSameFiles()
+		{
+			// the plan checkpoints the log every 10 s. A window starts after the first checkpoint and ends before the second:
+			// the file is cut from the first checkpoint to the second - what was written before the first, and after the second, is not in it
+			using var world = SystemWorld.Start( "CheckpointWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 120 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+			System.Text.Json.JsonElement Json( string text ) => System.Text.Json.JsonDocument.Parse( text ).RootElement.Clone();
+			System.Net.Http.StringContent Body( object o ) => new( System.Text.Json.JsonSerializer.Serialize( o ), Encoding.UTF8, "application/json" );
+
+			var logs = world.Files.Apps.Single( a => a.IdTuple == "m1.ticker" ).LogsDir;
+			Directory.CreateDirectory( logs );
+			var log = Path.Combine( logs, "run.log" );
+			File.WriteAllText( log, "before the run\n" );
+
+			// another log of the application, from yesterday: well inside the two days of the definition, outside the window
+			var yesterday = Path.Combine( logs, "yesterday.log" );
+			File.WriteAllText( yesterday, "yesterday's run\n" );
+			File.SetCreationTimeUtc( yesterday, DateTime.UtcNow.AddDays( -1 ) );
+			File.SetLastWriteTimeUtc( yesterday, DateTime.UtcNow.AddDays( -1 ).AddHours( 1 ) );
+
+			var started = http.PostAsync( $"{root}/plandefs/run/start?waitSeconds=60", null ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, started.StatusCode, started.Content.ReadAsStringAsync().GetAwaiter().GetResult() );
+
+			File.AppendAllText( log, "during the run, before the checkpoint\n" );
+
+			string? LastCheckpoint()
+			{
+				var state = Json( http.GetStringAsync( $"{root}/planstates/run" ).GetAwaiter().GetResult() ).GetProperty( "state" );
+				return state.TryGetProperty( "lastCheckpoint", out var lc ) && lc.ValueKind != System.Text.Json.JsonValueKind.Null ? lc.ToString() : null;
+			}
+
+			string WaitForCheckpointOtherThan( string? previous )
+			{
+				var clock = System.Diagnostics.Stopwatch.StartNew();
+				while( clock.Elapsed < TimeSpan.FromSeconds( 40 ) )
+				{
+					var now = LastCheckpoint();
+					if( now is not null && now != previous ) return now;
+					Thread.Sleep( 500 );
+				}
+				Assert.Fail( "a checkpoint within 40 s" );
+				return string.Empty;
+			}
+
+			var first = WaitForCheckpointOtherThan( null );
+
+			Thread.Sleep( 1500 );
+			var since = DateTime.UtcNow;
+			Thread.Sleep( 1500 );
+			File.AppendAllText( log, "inside the window\n" );
+			Thread.Sleep( 1500 );
+			var until = DateTime.UtcNow;
+			Thread.Sleep( 1500 );
+
+			WaitForCheckpointOtherThan( first ); // the second one: the first record at or after the end of the window
+			File.AppendAllText( log, "after the second checkpoint\n" );
+
+			var window = new { since = since.ToString( "o" ), until = until.ToString( "o" ) };
+
+			// the preview with the window: the file written in it, not the one of yesterday - and without it, both
+			var query = http.PostAsync( $"{root}/files/query", Body( new { fileDefs = new[] { new { id = "log" } }, window.since, window.until } ) ).GetAwaiter().GetResult();
+			var queryText = query.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.OK, query.StatusCode, queryText );
+			List<string> Previewed( string text )
+				=> Json( text ).GetProperty( "items" )[0].GetProperty( "fileDefs" )[0].GetProperty( "files" ).EnumerateArray()
+					.Select( f => Path.GetFileName( f.GetProperty( "localPath" ).GetString()! ) ).OrderBy( x => x ).ToList();
+			CollectionAssert.AreEqual( new[] { "run.log" }, Previewed( queryText ), queryText );
+
+			var queryAll = http.PostAsync( $"{root}/files/query", Body( new { fileDefs = new[] { new { id = "log" } } } ) ).GetAwaiter().GetResult();
+			CollectionAssert.AreEqual( new[] { "run.log", "yesterday.log" }, Previewed( queryAll.Content.ReadAsStringAsync().GetAwaiter().GetResult() ) );
+
+			// the collection
+			var post = http.PostAsync( $"{root}/downloads", Body( new { fileDef = new { id = "log" }, window.since, window.until } ) ).GetAwaiter().GetResult();
+			var postText = post.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Accepted, post.StatusCode, postText );
+			var id = Json( postText ).GetProperty( "id" ).GetString();
+			var job = Json( http.GetStringAsync( $"{root}/downloads/{id}?wait=60" ).GetAwaiter().GetResult() );
+			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), job.ToString() );
+
+			var bytes = http.GetByteArrayAsync( $"http://127.0.0.1:{world.HttpPort}{job.GetProperty( "archives" )[0].GetProperty( "url" ).GetString()}" ).GetAwaiter().GetResult();
+			using var zip = new System.IO.Compression.ZipArchive( new MemoryStream( bytes ) );
+
+			var files = zip.Entries.Where( e => !e.Name.StartsWith( "_" ) ).Select( e => e.Name ).OrderBy( x => x ).ToList();
+			CollectionAssert.AreEqual( new[] { "run.window.log" }, files, "the same files as the preview, and the cut one is named for what cut it: " + string.Join( ", ", zip.Entries.Select( e => e.FullName ) ) );
+
+			using var reader = new StreamReader( zip.Entries.Single( e => e.Name == "run.window.log" ).Open() );
+			var text = reader.ReadToEnd();
+			StringAssert.Contains( text, "inside the window", text );
+			Assert.IsFalse( text.Contains( "before the run" ), $"nothing from before the plan's mark: {text}" );
+			Assert.IsFalse( text.Contains( "before the checkpoint" ), $"nothing from before the first checkpoint: {text}" );
+			Assert.IsFalse( text.Contains( "after the second checkpoint" ), $"nothing from after the checkpoint the window ends at: {text}" );
+
+			using var comment = new StreamReader( zip.GetEntry( "_comment.txt" )!.Open() );
+			StringAssert.Contains( comment.ReadToEnd(), "Window    :", "the cover note says the window asked for" );
+		}
+
+		[TestMethod()]
+		public void AWindowThatEndsBeforeItStartsIsABadRequest()
+		{
+			using var world = SystemWorld.Start( "CheckpointWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 60 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+			System.Net.Http.StringContent Body( string s ) => new( s, Encoding.UTF8, "application/json" );
+
+			foreach( var (route, selection) in new[] { ( "downloads", "{\"fileDef\":{\"id\":\"log\"}" ), ( "files/query", "{\"fileDefs\":[{\"id\":\"log\"}]" ) } )
+			{
+				var r = http.PostAsync( $"{root}/{route}", Body( selection + ",\"since\":\"2026-11-21T15:00:00Z\",\"until\":\"2026-11-21T14:00:00Z\"}" ) ).GetAwaiter().GetResult();
+				var text = r.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, r.StatusCode, $"{route}: {text}" );
+				Assert.AreEqual( "application/json", r.Content.Headers.ContentType?.MediaType, route );
+				StringAssert.Contains( System.Text.Json.JsonDocument.Parse( text ).RootElement.GetProperty( "error" ).GetString(), "until", text );
+
+				// either end alone, or both in order, is accepted
+				var ok = http.PostAsync( $"{root}/{route}", Body( selection + ",\"until\":\"2026-11-21T14:00:00Z\"}" ) ).GetAwaiter().GetResult();
+				Assert.IsTrue( (int) ok.StatusCode < 300, $"{route}: {(int) ok.StatusCode} {ok.Content.ReadAsStringAsync().GetAwaiter().GetResult()}" );
+			}
+		}
 	}
 }

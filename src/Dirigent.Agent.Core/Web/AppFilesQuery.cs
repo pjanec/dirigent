@@ -238,9 +238,9 @@ namespace Dirigent.Web
 		/// Resolves every node of the app, all at once. A node that cannot be resolved carries its
 		/// own error and does not take the others with it. Not for the master thread.
 		/// </summary>
-		public async Task<AppFilesResult> ResolveAsync( bool includeContent )
+		public async Task<AppFilesResult> ResolveAsync( bool includeContent, FileWindow? window = null )
 		{
-			var nodes = await Task.WhenAll( _nodes.Select( n => ResolveFileDefAsync( n, includeContent ) ) );
+			var nodes = await Task.WhenAll( _nodes.Select( n => ResolveFileDefAsync( n, includeContent, window ) ) );
 
 			return new AppFilesResult()
 			{
@@ -252,14 +252,14 @@ namespace Dirigent.Web
 			};
 		}
 
-		Task<FileDefEntry> ResolveFileDefAsync( VfsNodeDef def, bool includeContent )
-			=> ResolveFileDefEntryAsync( _master, def, includeContent, Def.Id.AppId );
+		Task<FileDefEntry> ResolveFileDefAsync( VfsNodeDef def, bool includeContent, FileWindow? window )
+			=> ResolveFileDefEntryAsync( _master, def, includeContent, Def.Id.AppId, window );
 
 		/// <summary>
 		/// Resolves one node and describes it: the one implementation of a node entry, shared by the
 		/// application query and the node query. A failure is reported in the entry, never thrown.
 		/// </summary>
-		public static async Task<FileDefEntry> ResolveFileDefEntryAsync( Master master, VfsNodeDef def, bool includeContent, string? defaultApp = null )
+		public static async Task<FileDefEntry> ResolveFileDefEntryAsync( Master master, VfsNodeDef def, bool includeContent, string? defaultApp = null, FileWindow? window = null )
 		{
 			var info = new FileDefEntry()
 			{
@@ -272,7 +272,7 @@ namespace Dirigent.Web
 
 			try
 			{
-				var root = await master.ResolveAsync( def, forceUNC: false, includeContent );
+				var root = await master.ResolveAsync( def, forceUNC: false, includeContent, window );
 
 				if( root is null )
 				{
@@ -434,9 +434,9 @@ namespace Dirigent.Web
 			return new FileDefFilesQuery( master, selector, defs );
 		}
 
-		public async Task<FileDefFilesResult> ResolveAsync( bool includeContent )
+		public async Task<FileDefFilesResult> ResolveAsync( bool includeContent, FileWindow? window = null )
 		{
-			var entries = await Task.WhenAll( _defs.Select( d => AppFilesQuery.ResolveFileDefEntryAsync( _master, d, includeContent ) ) );
+			var entries = await Task.WhenAll( _defs.Select( d => AppFilesQuery.ResolveFileDefEntryAsync( _master, d, includeContent, null, window ) ) );
 
 			return new FileDefFilesResult()
 			{

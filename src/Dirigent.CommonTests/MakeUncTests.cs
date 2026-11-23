@@ -23,7 +23,7 @@ namespace Dirigent.Tests
 					string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 				=> throw new NotImplementedException();
 
-			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null )
 				=> throw new NotImplementedException();
 		}
 

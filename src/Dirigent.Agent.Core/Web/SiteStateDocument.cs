@@ -23,6 +23,7 @@ namespace Dirigent.Web
 			public string? comment { get; set; }
 			public List<string>? selection { get; set; }
 			public string? logsSince { get; set; }
+			public string? logsUntil { get; set; }
 			public string dirigent { get; set; } = string.Empty;
 			public List<AppVersionEntry> versions { get; set; } = new();
 			public List<Machine> machines { get; set; } = new();
@@ -71,6 +72,7 @@ namespace Dirigent.Web
 				comment = string.IsNullOrWhiteSpace( extras.Comment ) ? null : extras.Comment.Trim(),
 				selection = extras.Selection.Count > 0 ? extras.Selection.ToList() : null,
 				logsSince = string.IsNullOrWhiteSpace( extras.LogsSince ) ? null : extras.LogsSince.Trim(),
+				logsUntil = string.IsNullOrWhiteSpace( extras.LogsUntil ) ? null : extras.LogsUntil.Trim(),
 				dirigent = AppConfig.VersionText(),
 			};
 

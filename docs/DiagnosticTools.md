@@ -96,11 +96,11 @@ All three take **one selection** - the same object, so that what is previewed is
 1. **Preview** - `POST /api/files/query` with the selection: every file with `machine`, `localPath`, `uncPath`, `size`,
    `modified`, its `app`, `component` and the file definition it came from, and totals (`files`, `bytes`,
    `bytesToCollect` - what a collection from the marks would take, after `TailBytes`). Read-only; a second or so for a
-   whole site.
+   whole site. With a [time window](#7-which-part-of-the-logs) in the selection (`"since"`, `"until"`) it lists the files the window selects; `bytesToCollect` is then an upper bound (the cuts are not computed in a preview).
 2. **Collect** - `POST /api/downloads` with the selection, and optionally:
    * `"comment"` - goes into the archive's cover note and site state; put the bug id there;
    * `"name"` - the archive's file name, e.g. `"Bug 4711 - Lab 2"`;
-   * `"since"` - collect what was written since a time instead of since the marks (see 7);
+   * `"since"` and `"until"` - collect what was written in a time window instead of since the marks (see 7);
    * `"siteState": false` - leave out `_sitestate.json` (it is in by default).
 
    Answers `202 {"id"}`.
@@ -112,7 +112,7 @@ All three take **one selection** - the same object, so that what is previewed is
 
 The zip:
 
-* `_comment.txt` - site, time, selection, machines, Dirigent version, the comment, the time window of the logs;
+* `_comment.txt` - site, time, selection, machines, Dirigent version, the comment, the time window of the logs (`Window    : 2026-11-21 14:00:00 - 15:00:00 (local; ...)`);
 * **`_sitestate.json`** - the site at that moment, for whoever reads the bug: the versions (each once, as lines), the
   machines, the plans, and every application's state, start and end time and exit code - indented for a person, facts
   and no diagnosis;
@@ -130,17 +130,21 @@ config - so the tool can open or copy a single file without collecting anything.
 
 ## 7. Which part of the logs
 
-Logs grow across runs, so a collection takes **only what was written since a line**:
+Logs grow across runs, so a collection takes **only what was written since a line - or in a time window**:
 
 * **Since the mark** (the default). A mark records how long each clearable log is at a moment; a plan that starts the
   system usually marks its logs first (`markFiles` in `/api/plandefs`; `markResult` in `/api/planstates`). A tool can
   mark by hand before reproducing a problem: `POST /api/marks` `{"operation":"mark", ...selection}`; `"unmark"` takes
   the line away. Marks destroy nothing; `clear` empties files and is not for a production site.
-* **Since a time** - `"since": "2026-11-20T12:00:00Z"` on the download: each log from the latest record of its length
-  at or before that time. Records are made by every mark and - every `markInterval` seconds while it runs - by a plan
-  that has one (checkpoints; `lastCheckpoint` in its state). Without such a plan, "since" can only start at the last mark
-  before the time, or take the whole file. Wrong only towards too much; every cut entry says where it starts and why.
-  The previews do not apply `since`; the archive's size is known before it is downloaded.
+* **A time window** - `"since": "2026-11-21T14:00:00Z"` and/or `"until": "2026-11-21T15:00:00Z"` on the download (and on the preview): "the run on Tuesday between 14:00 and 15:00", often asked for days later.
+  Each log is taken **from the latest record of its length at or before `since` up to the first record at or after `until`**. Records are made by every mark and - every `markInterval`
+  seconds while it runs - by a plan that has one (checkpoints; `lastCheckpoint` in its state), and are kept for 31 days (thinned: every point for two days, then one per hour, from a week on one per six hours;
+  marks and clears always). Without such a plan, "since" can only start at the last mark before the time, or take the whole file, and "until" takes the file to its end. Wrong only towards too much;
+  every cut entry (named `<name>.window<ext>`) says where it starts and ends and why. `since` alone is up to now; `until` alone is from the marks up to `until`, the files chosen by the definitions' limits as if collected at `until`; `until` before `since` is a 400.
+  * **The window chooses the files of the `Clearable` definitions** (logs, dump folders): every file written within it, whatever the definition's `MaxFiles` and `MaxSeconds` say - the run on Tuesday is in a file that is not among
+    the newest three. **Configuration files (not `Clearable`) always come whole**, window or not: a package of logs and configs gives the logs of the window and the current configs. See
+    [Files](Files.md#a-time-window-chooses-the-files).
+  * The preview with the window lists the same files the archive gets; its `bytesToCollect` is an upper bound - the cuts are not computed in a preview. The archive's size is known before it is downloaded.
 
 On a real site a mark made the difference between 224 MB and 4 MB for the logs of one run.
 
@@ -153,8 +157,8 @@ GET  /api/machinedefs                             machines: online? shares?
 GET  /api/appversions                             the versions on the site, each once -> compatibility check
 GET  /api/appstates                               what runs, what ended and how (startedAt, endedAt, exitCode)
 GET  /api/filedefs?type=FilePackage               the checkboxes: packages with a component
-POST /api/files/query        {selection}          sizes for the ticked boxes
-POST /api/downloads          {selection, "comment":"Bug 4711", "name":"Bug 4711 - Lab 2"}
+POST /api/files/query        {selection, since, until}  the files and sizes for the ticked boxes (and the time window)
+POST /api/downloads          {selection, "comment":"Bug 4711", "name":"Bug 4711 - Lab 2", "since":"2026-11-21T14:00:00Z", "until":"2026-11-21T15:00:00Z"}
 GET  /api/downloads/{id}?wait=60                  until Finished; archives[0].size before fetching
 GET  /api/downloads/{id}/archives/{name}          the zip (with _sitestate.json) -> attach to the bug
 DELETE /api/downloads/{id}

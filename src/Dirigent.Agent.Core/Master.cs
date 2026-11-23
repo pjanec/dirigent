@@ -90,7 +90,7 @@ namespace Dirigent
 		}
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _reflScripts.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null )
 		{
 			//// if node not associated with any machine, resolve on master's machine
 			//if( string.IsNullOrEmpty(nodeDef.MachineId) )
@@ -98,7 +98,7 @@ namespace Dirigent
 			//	nodeDef = Tools.Clone( nodeDef )!;
 			//	nodeDef.MachineId = _machineId;	
 			//}
-			return _files.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
+			return _files.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null, window );
 		}
 					
 		#endregion

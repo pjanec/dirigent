@@ -45,6 +45,9 @@ public class ResolveVfsPath : Script
 		//[MessagePack.Key( 3 )]
 		public bool IncludeContent;
 
+		/// <summary>The time window choosing the files of Clearable definitions; null = none (the definitions' own limits choose).</summary>
+		public FileWindow? Window;
+
 		public override string ToString() => VfsNodes is not null ? $"{VfsNodes.Count} node(s)" : $"{VfsNode}";
 		public string Serialize() => Tools.Serialize( this );
 		public static TResult? Deserialize( string data ) => Tools.Deserialize<TResult>( data );
@@ -93,7 +96,7 @@ public class ResolveVfsPath : Script
 		if( vfsNode is null ) throw new ArgumentException( "Neither VfsNode nor Node given." );
 
 
-		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, args.ForceUNC, args.IncludeContent ) };
+		var result = new TResult { VfsNode = await Dirig.ResolveAsync( vfsNode, args.ForceUNC, args.IncludeContent, args.Window ) };
 		return result.Serialize();
 	}
 
@@ -107,7 +110,7 @@ public class ResolveVfsPath : Script
 			{
 				result.Nodes.Add( new TNodeResult
 				{
-					VfsNode = await Dirig.ResolveAsync( node, args.ForceUNC, args.IncludeContent )
+					VfsNode = await Dirig.ResolveAsync( node, args.ForceUNC, args.IncludeContent, args.Window )
 				} );
 			}
 			catch( Exception ex )

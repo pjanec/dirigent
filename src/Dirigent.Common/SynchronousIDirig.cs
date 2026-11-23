@@ -95,7 +95,7 @@ namespace Dirigent
 		public async Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync() => await GuardedFunc( () => _ctrl.GetAllVfsNodesDef().ToList() );
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _ctrl.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent );
+		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null ) => _ctrl.ResolveAsync( nodeDef, forceUNC, includeContent, window );
 		public async Task<AppLaunchSpec?> ResolveAppLaunchSpecAsync( AppDef appDef ) => await GuardedFunc( () => _ctrl.ResolveAppLaunchSpec( appDef ) );
 
 		// started on the master's thread, finished wherever the agents answer

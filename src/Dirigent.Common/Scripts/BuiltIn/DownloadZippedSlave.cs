@@ -69,6 +69,10 @@ namespace Dirigent.Scripts.BuiltIn
 			// latest recorded length at or before it - see FileMarkStore.WhereToStartSince. Null: from the mark, as ever.
 			public DateTime? SinceUtc;
 
+			// Where each clearable file ends: at the first recorded length at or after this time (UTC) - see
+			// FileMarkStore.WhereToEndUntil. Null: to the end of the file, as ever.
+			public DateTime? UntilUtc;
+
 			public override string ToString() => $"{Container} => {DestinationFolder}/{ZipFileBaseName}";
 		};
 
@@ -510,9 +514,10 @@ namespace Dirigent.Scripts.BuiltIn
 		/// <param name="DrawnBy">what drew it - "Mark", "Clear", "Checkpoint"</param>
 		record struct Start( long RawStart, bool ByMark, string? MarkNote, DateTime? DrawnAt, string? DrawnBy, bool Skip = false, string? SkipNote = null );
 
-		Start WhereToStart( VfsNodeDef node, FileInfo info )
+		Start WhereToStart( VfsNodeDef node, FileInfo info, long end )
 		{
-			var tailStart = FileTail.RawTailStart( info.Length, node.TailBytes );
+			// the tail is the last bytes before where the file ends - the end cut of a window, or its length
+			var tailStart = FileTail.RawTailStart( end, node.TailBytes );
 
 			// only a file the configuration allows to be marked can carry a mark; a stale one is
 			// dropped by the store itself, with a note saying so
@@ -543,13 +548,26 @@ namespace Dirigent.Scripts.BuiltIn
 		}
 
 		/// <summary>
+		/// Where a clearable file ends under an "until" time - null if there is none to apply (no until, not
+		/// clearable, no marks). Offset is the file's length when it is not cut.
+		/// </summary>
+		FileMarkStore.UntilEnd? WhereToEnd( VfsNodeDef node, FileInfo info )
+		{
+			if( MarkStore is null || !node.Clearable || _args!.UntilUtc is not DateTime until )
+				return null;
+
+			return MarkStore.WhereToEndUntil( node.Path!, info.Length, info.CreationTimeUtc, info.LastWriteTimeUtc, until );
+		}
+
+		/// <summary>
 		/// How much of a file will really be collected - what the progress should count.
 		/// </summary>
 		long EffectiveSize( VfsNodeDef node )
 		{
 			var info = new FileInfo( node.Path! );
-			var start = WhereToStart( node, info );
-			return start.Skip ? 0 : Math.Max( 0, info.Length - start.RawStart );
+			var end = WhereToEnd( node, info ) is { Cut: true } e ? Math.Min( e.Offset, info.Length ) : info.Length;
+			var start = WhereToStart( node, info, end );
+			return start.Skip ? 0 : Math.Max( 0, end - start.RawStart );
 		}
 
 		/// <summary>
@@ -562,7 +580,12 @@ namespace Dirigent.Scripts.BuiltIn
 			var filePath = node.Path!;
 			var info = new FileInfo( filePath );
 
-			var start = WhereToStart( node, info );
+			// where it ends: the first record at or after "until", if that was asked for (clearable files only)
+			var untilEnd = WhereToEnd( node, info );
+			var endCut = untilEnd is { Cut: true } && untilEnd.Offset < info.Length;
+			var end = endCut ? untilEnd!.Offset : info.Length;
+
+			var start = WhereToStart( node, info, end );
 			var (rawStart, byMark, markNote) = ( start.RawStart, start.ByMark, start.MarkNote );
 
 			// asked for what was written since a time, and nothing was: not in the archive, and the report says so
@@ -572,7 +595,10 @@ namespace Dirigent.Scripts.BuiltIn
 				return;
 			}
 
-			var truncate = rawStart > 0;
+			var truncate = rawStart > 0 || endCut;
+
+			// a file cut by a time window - from a record at or before "since", and/or at a record after "until"
+			var windowCut = ( byMark && _args!.SinceUtc is not null ) || endCut;
 
 			// The share flags are not optional here:
 			//  - ReadWrite, because a log file is typically held open for writing by the application
@@ -588,7 +614,7 @@ namespace Dirigent.Scripts.BuiltIn
 			// where the collection begins, and therefore how much of the file there is to collect
 			long startedAt = 0;
 			if( truncate ) startedAt = FileTail.SeekToStart( src, rawStart );
-			var taken = src.Length - startedAt;
+			var taken = ( endCut ? Math.Min( end, src.Length ) : src.Length ) - startedAt;
 
 			// what drew the line under this file, as a phrase for the notes: "the Clear of 15:21:05"
 			var drawnBy = byMark && start.DrawnAt is not null
@@ -599,19 +625,39 @@ namespace Dirigent.Scripts.BuiltIn
 			// entry. The entry would say nothing the note does not - and it would say it misleadingly,
 			// since an empty file in an archive reads as a file that is empty, not as one whose
 			// contents all predate the run.
+			if( endCut && taken <= 0 )
+			{
+				notes.Add( $"'{filePath}' is {src.Length} bytes, and nothing of it falls in the window"
+					+ $" ({untilEnd!.Note}) - so it is not in this archive at all." );
+				return;
+			}
+
 			if( truncate && byMark && taken <= 0 )
 			{
 				notes.Add( NothingNewNote( filePath, src.Length, drawnBy ) );
 				return;
 			}
 
+			// what the cut is, in words: where it starts (a mark or record) and where it ends (a record); a tail
+			// that limits a piece which ends at a record is said as well
+			var cutNote = markNote;
+			if( endCut )
+			{
+				cutNote = byMark && markNote is not null ? $"{markNote}; {untilEnd!.Note}" : untilEnd!.Note;
+				if( !byMark && rawStart > 0 )
+					cutNote += $", limited by TailBytes={node.TailBytes} to its last {taken} bytes";
+			}
+			var byMarkOrEnd = byMark || endCut;
+
 			// a partial file is named for what it holds, so that the archive listing alone shows
 			// which files are partial and what decided that
 			var fileName = !truncate
 							? Path.GetFileName( filePath )
-							: ( byMark
-								? FileTail.MarkedEntryNameFor( Path.GetFileName( filePath ) )
-								: FileTail.EntryNameFor( Path.GetFileName( filePath ), node.TailBytes ) );
+							: ( windowCut
+								? FileTail.WindowEntryNameFor( Path.GetFileName( filePath ) )
+								: byMark
+									? FileTail.MarkedEntryNameFor( Path.GetFileName( filePath ) )
+									: FileTail.EntryNameFor( Path.GetFileName( filePath ), node.TailBytes ) );
 
 			var entryName = MakeUniqueEntryName( entryPrefix + fileName, usedEntryNames );
 
@@ -638,12 +684,12 @@ namespace Dirigent.Scripts.BuiltIn
 			{
 				// the entry has to say what it is, for whoever opens the archive with no access
 				// to the configuration that made it
-				var header = Encoding.UTF8.GetBytes( byMark
-						? FileTail.PartialHeaderFor( filePath, src.Length, taken, DateTime.Now, markNote! )
+				var header = Encoding.UTF8.GetBytes( byMarkOrEnd
+						? FileTail.PartialHeaderFor( filePath, src.Length, taken, DateTime.Now, cutNote! )
 						: FileTail.HeaderFor( filePath, src.Length, taken, DateTime.Now ) );
 				dst.Write( header, 0, header.Length );
 
-				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMark, markNote, node ) );
+				notes.Add( NoteFor( filePath, src.Length, taken, entryName, byMarkOrEnd, cutNote, node ) );
 			}
 			else if( markNote is not null )
 			{
@@ -652,7 +698,11 @@ namespace Dirigent.Scripts.BuiltIn
 				notes.Add( $"'{filePath}' was collected in full - {markNote}." );
 			}
 
-			CopyWithProgress( src, dst, Path.GetFileName( filePath ) );
+			// "until" could not cut the file where it should: it ends where it ends, possibly holding more than the window
+			if( untilEnd is { Cut: false, Note: not null } )
+				notes.Add( $"'{filePath}' was collected {untilEnd.Note}." );
+
+			CopyWithProgress( src, dst, Path.GetFileName( filePath ), endCut ? taken : long.MaxValue );
 		}
 
 		/// <summary>
@@ -697,14 +747,16 @@ namespace Dirigent.Scripts.BuiltIn
 		/// Chunked rather than Stream.CopyTo for the sake of those two: a single copy call of a
 		/// 60 GB log would report nothing and ignore a cancel for the several minutes it takes.
 		/// </remarks>
-		void CopyWithProgress( Stream src, Stream dst, string fileName )
+		void CopyWithProgress( Stream src, Stream dst, string fileName, long limit = long.MaxValue )
 		{
 			var buffer = new byte[_copyBufferBytes];
 
 			int read;
-			while( ( read = src.Read( buffer, 0, buffer.Length ) ) > 0 )
+			while( limit > 0 && ( read = src.Read( buffer, 0, (int)Math.Min( buffer.Length, limit ) ) ) > 0 )
 			{
 				CancellationToken.ThrowIfCancellationRequested();
+
+				limit -= read;
 
 				dst.Write( buffer, 0, read );
 

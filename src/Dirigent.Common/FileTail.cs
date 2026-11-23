@@ -113,6 +113,16 @@ namespace Dirigent
 		}
 
 		/// <summary>
+		/// The name a partial file gets when a time window decided where it starts and/or ends.
+		/// </summary>
+		public static string WindowEntryNameFor( string fileName )
+		{
+			var stem = Path.GetFileNameWithoutExtension( fileName );
+			var ext = Path.GetExtension( fileName );
+			return $"{stem}.window{ext}";
+		}
+
+		/// <summary>
 		/// The line put at the top of a partial entry, saying which part of the file it is and why.
 		/// </summary>
 		public static string PartialHeaderFor( string filePath, long fileLength, long takenBytes,

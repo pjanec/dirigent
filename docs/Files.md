@@ -580,6 +580,9 @@ The shape of the result depends on `MaxFiles`:
 * `MaxFiles` greater than 1 - the file definition resolves to a **virtual folder** named after the file definition's
   `Title`, holding up to that many files, newest first.
 
+Under a [time window](#a-time-window-chooses-the-files) a `Clearable` definition ignores `MaxFiles` and `MaxSeconds`: it
+yields every file written within the window (a single file when only one falls in it, a virtual folder otherwise).
+
 ### `<Folder>`
 
 A physical folder, resolved into a subtree of its content.
@@ -611,7 +614,38 @@ the matching files, and contains no folders that ended up empty.
 When a count or size limit applies, the **newest** files are kept - the limits are there to keep
 a growing log folder from producing an unbounded download. Note that `MaxSeconds` on a `<Folder>`
 filters the files it contributes; to pick just the few newest files of one folder, use
-[`<File Filter="Newest">`](#file-filternewest) instead.
+[`<File Filter="Newest">`](#file-filternewest) instead. Under a [time window](#a-time-window-chooses-the-files) a
+`Clearable` folder ignores `MaxSeconds` and `MaxFiles` as well (`MaxTotalBytes` and `TailBytes` still apply).
+
+### A time window chooses the files
+
+A collection (and a preview) asked for a time window - `since` and/or `until`, see
+[`POST /api/downloads`](HTTP.md#POST-apidownloads) - takes the files of the **`Clearable`** definitions (logs, dump folders)
+by the window instead of by their own limits:
+
+* a file is in when its **written span overlaps the window**: its last write is not before `since`, its creation is not after
+  `until` (an end that is not given does not count);
+* `MaxFiles` and `MaxSeconds` do **not** apply to it - on `<File Filter="Newest">` and on `<Folder>`, and a plain `<File>`
+  that was not written in the window is left out like a missing one. **`until` alone** is the exception: it has no start of
+  its own (the collection starts at the marks), so the limits still choose - as if the collection ran at `until`: the newest
+  `MaxFiles` files created by then, `MaxSeconds` counted back from `until`. Without that, every file ever written before
+  `until` would be in, and whole. `TailBytes` and `MaxTotalBytes` still do: they are
+  size caps, not the selection;
+* a definition that is **not** `Clearable` - a configuration file - is not windowed at all: it is chosen by its own limits
+  and collected whole, window or not. The rule is per definition, not per package: a package that mixes logs and
+  configs gives the windowed logs and the current configs;
+* without a window nothing changes.
+
+An application that starts a new log file per run (`Name_2026-11-23_12-56-13.log`) has last Tuesday's run in a file that is not
+among the newest three; with a window around that run the definition yields that file, and the collector then cuts it to the
+window (see [Collecting since a time](MarkAndClear.md#collecting-since-a-time)).
+
+The window travels to the machine that owns the files: every machine selects the files of its own definitions.
+
+*A remark on creation times.* On NTFS the creation time of a file that is deleted and recreated under the same name within
+about fifteen seconds - which is what a rotating logger does - can stay the **older**, original one (file-system tunnelling).
+Such a file may then be taken for a window it does not belong to. That errs towards taking too much, which is the allowed
+direction; the cut at the records still limits what is collected of it.
 
 ### Files too big to collect whole
 
@@ -790,7 +824,8 @@ A file with **nothing** after the line is left out of the archive altogether, an
 says so: an empty entry would read as a log that is empty, rather than as one whose contents all
 predate the run.
 
-A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - and its first line
+A partial entry is named `<name>.since-mark<ext>` - `app.since-mark.log` - (`app.window.log` when a
+[time window](#a-time-window-chooses-the-files) cut it) and its first line
 states the offset and the time and operation the line was drawn by, exactly as a `TailBytes` entry
 states its own reason. `_comment.txt` gains a line naming the beginning of the window:
 

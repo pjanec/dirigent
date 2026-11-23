@@ -31,7 +31,7 @@ namespace Dirigent.Tests
 					string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 				=> throw new NotImplementedException();
 
-			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null )
 				=> throw new NotImplementedException();
 
 			// the one app the mask tests refer to; what the registry asks for to build the variables
@@ -416,6 +416,110 @@ namespace Dirigent.Tests
 			Assert.AreEqual( Path.Combine( _root, "app.log" ), resolved.Path );
 			Assert.AreEqual( _machineId, resolved.MachineId, "the file keeps the machine it really lives on" );
 			Assert.AreEqual( "camera", resolved.AppId );
+		}
+
+		// ---- a time window chooses the files of the Clearable definitions ----
+
+		static readonly DateTime _runsAt = new DateTime( 2026, 11, 21, 12, 0, 0, DateTimeKind.Utc );
+
+		/// <summary>Three runs of an application, each its own log: 12:00-13:00, 14:00-15:00 and 16:00-17:00.</summary>
+		void MakeThreeRuns()
+		{
+			for( int i = 0; i < 3; i++ )
+			{
+				var p = Path.Combine( _root, $"run{i + 1}.log" );
+				File.WriteAllText( p, "x" );
+				File.SetCreationTimeUtc( p, _runsAt.AddHours( 2 * i ) );
+				File.SetLastWriteTimeUtc( p, _runsAt.AddHours( 2 * i + 1 ) );
+			}
+		}
+
+		FileDef NewestRunLog( bool clearable, int maxFiles = 1 ) => new FileDef()
+		{
+			Id = "log", Title = "Logs", MachineId = _machineId, AppId = "camera", Path = _root, Filter = "Newest",
+			Xml = $@"<File Mask=""run*.log"" MaxFiles=""{maxFiles}"" MaxSeconds=""172800""/>", Clearable = clearable,
+		};
+
+		VfsNodeDef? ResolveIn( VfsNodeDef def, FileWindow? window )
+			=> _reg.ResolveAsync( null!, def, false, true, null, window ).GetAwaiter().GetResult();
+
+		// 14:10 - 14:50, inside the second run only
+		static readonly FileWindow _middleRun = new FileWindow() { SinceUtc = _runsAt.AddMinutes( 2 * 60 + 10 ), UntilUtc = _runsAt.AddMinutes( 2 * 60 + 50 ) };
+
+		[TestMethod()]
+		public void TheWindowChoosesTheFileOfAClearableNewestDefinitionTest()
+		{
+			MakeThreeRuns();
+
+			var resolved = ResolveIn( NewestRunLog( clearable: true ), _middleRun );
+
+			Assert.IsNotNull( resolved );
+			Assert.IsFalse( resolved!.IsContainer, "one file, as MaxFiles=1 says" );
+			Assert.AreEqual( Path.Combine( _root, "run2.log" ), resolved.Path, "the one the window falls in, not the newest" );
+		}
+
+		[TestMethod()]
+		public void TheWindowOverridesMaxFilesWhenSeveralFilesFallInItTest()
+		{
+			MakeThreeRuns();
+
+			// the afternoon of the 21st: two runs, though only one file is asked for
+			var window = new FileWindow() { SinceUtc = _runsAt.AddHours( 2 ), UntilUtc = _runsAt.AddHours( 7 ) };
+			var resolved = ResolveIn( NewestRunLog( clearable: true ), window );
+
+			Assert.IsTrue( resolved!.IsContainer );
+			CollectionAssert.AreEquivalent( new[] { "run2.log", "run3.log" }, resolved.Children.Select( x => Path.GetFileName( x.Path! ) ).ToList() );
+
+			// a window that holds no file: nothing
+			Assert.IsNull( ResolveIn( NewestRunLog( clearable: true ),
+				new FileWindow() { SinceUtc = _runsAt.AddDays( 3 ), UntilUtc = _runsAt.AddDays( 4 ) } ) );
+		}
+
+		[TestMethod()]
+		public void TheWindowDoesNotTouchANonClearableDefinitionTest()
+		{
+			MakeThreeRuns();
+
+			// a config is whatever its own limits say it is, window or not
+			Assert.AreEqual( Path.Combine( _root, "run3.log" ), ResolveIn( NewestRunLog( clearable: false ), _middleRun )!.Path );
+		}
+
+		[TestMethod()]
+		public void WithoutAWindowTheLimitsChooseAsEverTest()
+		{
+			MakeThreeRuns();
+
+			Assert.AreEqual( Path.Combine( _root, "run3.log" ), ResolveIn( NewestRunLog( clearable: true ), null )!.Path );
+		}
+
+		[TestMethod()]
+		public void TheWindowChoosesTheFilesOfAClearableFolderTest()
+		{
+			MakeThreeRuns();
+
+			FolderDef Folder( bool clearable ) => new FolderDef()
+			{
+				Id = "dir", Title = "Dir", MachineId = _machineId, Path = _root, Mask = "run*.log", MaxFiles = 1, Clearable = clearable,
+			};
+
+			CollectionAssert.AreEqual( new[] { "run2.log" }, ResolveIn( Folder( true ), _middleRun )!.Children.Select( x => Path.GetFileName( x.Path! ) ).ToList() );
+			CollectionAssert.AreEqual( new[] { "run3.log" }, ResolveIn( Folder( false ), _middleRun )!.Children.Select( x => Path.GetFileName( x.Path! ) ).ToList(), "a non-clearable folder is not windowed" );
+		}
+
+		[TestMethod()]
+		public void APlainClearableFileOutsideTheWindowIsLeftOutTest()
+		{
+			MakeThreeRuns();
+
+			FileDef Plain( string name, bool clearable ) => new FileDef()
+			{
+				Id = "f", Title = "F", MachineId = _machineId, Path = Path.Combine( _root, name ), Clearable = clearable,
+			};
+
+			Assert.IsNotNull( ResolveIn( Plain( "run2.log", true ), _middleRun ) );
+			Assert.IsNull( ResolveIn( Plain( "run1.log", true ), _middleRun ), "written before the window: out, like a missing file" );
+			Assert.IsNotNull( ResolveIn( Plain( "run1.log", false ), _middleRun ), "a non-clearable file is always there" );
+			Assert.IsNotNull( ResolveIn( Plain( "run1.log", true ), null ), "and without a window nothing changes" );
 		}
 	}
 }

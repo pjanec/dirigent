@@ -64,10 +64,11 @@ namespace Dirigent.Tests
 				public List<string> Nodes = new List<string>();
 				public bool Batched;
 				public bool IncludeContent;
+				public FileWindow? Window;
 			}
 
 			// the registry does its own resolving; it never asks the control for it
-			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
+			public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null )
 				=> throw new NotImplementedException();
 
 			public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName,
@@ -88,6 +89,7 @@ namespace Dirigent.Tests
 						Nodes = asked.Select( n => n.Id ?? string.Empty ).ToList(),
 						Batched = ask.VfsNodes is not null,
 						IncludeContent = ask.IncludeContent,
+						Window = ask.Window,
 					} );
 
 					_inFlight++;
@@ -479,6 +481,31 @@ namespace Dirigent.Tests
 
 			Assert.AreEqual( 1, tree.Notes!.Count );
 			Assert.AreEqual( "m3", tree.NoteMachine( 0 ) );
+		}
+
+		[TestMethod()]
+		public async Task TheWindowIsAskedOfEveryMachineTest()
+		{
+			var window = new FileWindow() { SinceUtc = new DateTime( 2026, 11, 21, 14, 0, 0, DateTimeKind.Utc ), UntilUtc = new DateTime( 2026, 11, 21, 15, 0, 0, DateTimeKind.Utc ) };
+
+			var tree = await _reg.ResolveAsync( _dirig, Package(), false, true, null, window );
+
+			Assert.IsNotNull( tree );
+			Assert.AreEqual( _machines.Length, _site.Asks.Count );
+			foreach( var ask in _site.Asks )
+			{
+				Assert.IsNotNull( ask.Window, $"{ask.MachineId} was not told the window - its definitions would choose by their own limits" );
+				Assert.AreEqual( window.SinceUtc, ask.Window!.SinceUtc );
+				Assert.AreEqual( window.UntilUtc, ask.Window.UntilUtc );
+			}
+		}
+
+		[TestMethod()]
+		public async Task WithoutAWindowNoneIsAskedTest()
+		{
+			await Resolve( Package() );
+
+			Assert.IsTrue( _site.Asks.All( a => a.Window is null ), "nothing to tell: the machines choose as ever" );
 		}
 	}
 }

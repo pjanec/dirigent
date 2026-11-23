@@ -153,8 +153,8 @@ headed after whichever of the two was binding. Each is a ceiling on what can be 
 inside the tail leaves the tail's start standing, because the bytes before it cannot be transferred
 at all.
 
-A partial entry is named for what it is - `app.since-mark.log` - and its first line states the
-offset and the mark's time. `_comment.txt` gains a `Since` line naming the beginning of the window,
+A partial entry is named for what it is - `app.since-mark.log` for a cut at a mark, `app.window.log` for a cut by a
+[time window](#collecting-since-a-time) - and its first line states the offset and the mark's time. `_comment.txt` gains a `Since` line naming the beginning of the window,
 which is the difference between "these are the logs" and "these are the logs of one run".
 
 Collecting does **not** clear the mark. Two collections after one mark give the same window, which
@@ -294,11 +294,38 @@ Every way of being wrong is towards too much, never too little. The entry of a f
 `_comment.txt` names the time asked for, and the same rules about rotation as for a mark apply (see below). Files that are
 not `Clearable` are never cut, as ever.
 
-Records are kept beside the marks, a week at most and 2000 per file, and forgotten with the file. An **unmark** removes the
-mark and keeps the history; a **clear** that empties a file makes its records useless, which the length check notices.
+Records are kept beside the marks for **31 days**, 2000 per file at most, and forgotten with the file - and **thinned** as they age:
+every point is kept for 2 days, from 2 to 7 days at most one checkpoint per file per hour, older than 7 days at most one per six
+hours. Marks and clears are never thinned, only dropped after 31 days. An **unmark** removes the mark and keeps the history; a
+**clear** that empties a file makes its records useless, which the length check notices.
 
-The previews (`POST /api/files/query`) do not take `since` into account yet: their `bytesToCollect` is from the mark. The
-size of the archive is known once the job has finished, before it is downloaded.
+### Until a time: where a file ends
+
+`"until": "<time>"` adds the end of the window. Each clearable file ends where the history says it was at or just after that
+time:
+
+| The file | Collected up to |
+| --- | --- |
+| not written after the time (its last write is not later) | its end |
+| with a record (mark, clear or checkpoint) at or after the time, still the same file | the **first** such record - so it holds everything written until then, and at most one interval more |
+| replaced, truncated or rotated since that record, or its length dropped between the records | its end, noting that it may hold more than the window |
+| with no record at or after the time | its end, noting that it may hold more than the window |
+
+Too much is fine, too little is not. A file whose start and end meet - nothing of it falls in the window - is left out, and
+`_incomplete.txt` says so. `TailBytes` counts back from the end of the cut, not from the end of the file: the tail of the part
+before the end. With only `until` given, each file starts where it would without a window (at its mark). The entry is named
+`app.window.log` and says where it starts and ends and by which records. The cover note's `Since` line is then a `Window` line:
+
+```
+Window    : 2026-11-21 14:00:00 - 15:00:00 (local; asked for: each log from the last record at or before the start to the first record at or after the end)
+```
+
+An open start is written as "the marks", an open end as "now". `_sitestate.json` has `logsSince` and `logsUntil`.
+
+The window also **chooses the files** of the clearable definitions - see [Files](Files.md#a-time-window-chooses-the-files).
+
+The previews (`POST /api/files/query`) take the window and list the files it selects; their `bytesToCollect` is an upper bound,
+as the cuts are not computed in a preview. The size of the archive is known once the job has finished, before it is downloaded.
 
 ## What this refuses to do
 

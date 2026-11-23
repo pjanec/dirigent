@@ -155,7 +155,7 @@ namespace Dirigent
 		IEnumerable<VfsNodeDef> GetAllVfsNodesDef() { return new List<VfsNodeDef>(); }
 
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
-		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
+		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null );
 
 		/// <summary>
 		/// How the given app would be launched by the agent of THIS machine: its variables, program,
@@ -179,6 +179,9 @@ namespace Dirigent
 
 		/// <summary>The time window of the collected logs, when marks drew it ("since 2026-11-20 13:20:05 (the mark of ...)").</summary>
 		public string? LogsSince;
+
+		/// <summary>The end of the time window of the collected logs, when one was asked for.</summary>
+		public string? LogsUntil;
 
 		/// <summary>What was asked to be collected, as the cover note names it.</summary>
 		public List<string> Selection = new();
@@ -280,7 +283,7 @@ namespace Dirigent
 		Task<VfsNodeDef?> GetVfsNodeDefAsync( Guid guid );
 		Task<IEnumerable<VfsNodeDef>> GetAllVfsNodesDefAsync();
 		Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance );
-		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent );
+		Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null );
 		Task<AppLaunchSpec?> ResolveAppLaunchSpecAsync( AppDef appDef );
 
 		/// <summary>See <see cref="IDirig.ComposeSiteState"/>; null where it cannot be composed.</summary>

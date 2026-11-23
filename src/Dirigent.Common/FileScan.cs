@@ -39,6 +39,11 @@ namespace Dirigent
 		/// If set, only the last this many bytes of a bigger file get collected, so that is what the
 		/// size budget counts for it. 0 = whole files.
 		/// </param>
+		/// <param name="window">
+		/// If given, the files are chosen by overlap of their written span with the window. With a start (since),
+		/// <paramref name="maxAgeSeconds"/> and <paramref name="maxFiles"/> are ignored; with 'until' alone they still
+		/// apply, as of 'until' (the age counts from it). The byte limits always apply.
+		/// </param>
 		public static Result FindMatchingFiles(
 			string folderName,
 			string? mask,
@@ -46,7 +51,8 @@ namespace Dirigent
 			int maxFiles,
 			long maxTotalBytes,
 			bool recursive = true,
-			long tailBytes = 0
+			long tailBytes = 0,
+			FileWindow? window = null
 		)
 		{
 			if( string.IsNullOrEmpty( folderName ) ) folderName = Directory.GetCurrentDirectory();
@@ -78,7 +84,20 @@ namespace Dirigent
 				if( !Glob.IsMatchAny( relPath, patterns ) )
 					continue;
 
-				if( maxAgeSeconds > 0 )
+				if( window != null )
+				{
+					if( !window.Overlaps( info.CreationTimeUtc, info.LastWriteTimeUtc ) ) continue;
+
+					// 'until' alone: the limits choose as if the collection ran at 'until' - the age counts from
+					// then. Without that, every file ever created before 'until' would be in, each of them whole
+					// (an open start means "from the marks", and the old files have none).
+					if( window.SinceUtc is null && window.UntilUtc is DateTime until && maxAgeSeconds > 0 )
+					{
+						var age = ( until - info.LastWriteTimeUtc ).TotalSeconds;
+						if( age > maxAgeSeconds ) continue;
+					}
+				}
+				else if( maxAgeSeconds > 0 )
 				{
 					var age = ( DateTime.UtcNow - info.LastWriteTimeUtc ).TotalSeconds;
 					if( age > maxAgeSeconds ) continue;
@@ -91,6 +110,9 @@ namespace Dirigent
 			matching.Sort( (x, y) => y.Info.LastWriteTimeUtc.CompareTo( x.Info.LastWriteTimeUtc ) );
 
 			var res = new Result();
+
+			// a window with a start chooses by itself; 'until' alone keeps the count limit, counted among the files as of then
+			if( window?.SinceUtc is not null ) maxFiles = 0;
 
 			if( maxFiles <= 0 && maxTotalBytes <= 0 )
 			{

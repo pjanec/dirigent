@@ -518,6 +518,11 @@ Previews the files of a [selection](#The-selection). **Read-only**: nothing is m
 Every file carries what the single routes give, and `app` and `fileDefId` (see below). The `totals` of the answer are the sum of the totals of the items.
 Unknown item: 404; empty selection: 400.
 
+The body may also hold a **time window**, `"since"` and/or `"until"` (ISO 8601; without an offset UTC), exactly as [`POST /api/downloads`](#POST-apidownloads) takes it: the preview then lists **the files the window selects** -
+for the `Clearable` definitions every file written within it, instead of what their `MaxFiles` and `MaxSeconds` give; the other definitions are previewed as ever - so the preview and the collection agree on the files.
+`until` earlier than `since`: 400. **`bytesToCollect` stays an upper bound** under a window: the cuts at the records (where each file would start and end) are not computed in a preview, so it counts a file from its mark, as without a window; the
+archive holds the same or less.
+
 #### Totals
 
 Every preview answer - the single routes and the query - has `totals` at the top (and on each file definition entry):
@@ -623,13 +628,21 @@ subfolder per job, and kept for `--archiveRetentionHours` (24 by default).
 starts a collection. Body: `{"fileDef":{"id":"logs.all","machine":"m1","app":"a"}}` (a file definition or package, addressed
 like `/api/filedefs/{id}/files`; machine and app optional) or `{"app":"m1.a@plan1"}` (all the file definitions of the
 application, from the definition picked as for `/api/appdefs/{id}/files`), or a [selection](#The-selection) of several - `{"fileDefs":[...],"apps":[...]}` -
-an optional `"comment"` that goes into the archive's cover note, `"since": "2026-11-20T12:00:00Z"` to collect what was written since that time
-instead of since the marks - each clearable file from the latest record of its length at or before it (see
-[Collecting since a time](MarkAndClear.md#collecting-since-a-time); without an offset the time is UTC; the previews do not apply it), `"siteState": false` to leave out the archive's
+an optional `"comment"` that goes into the archive's cover note, a **time window** - `"since": "2026-11-20T12:00:00Z"` and/or `"until": "2026-11-20T13:00:00Z"` (ISO 8601; without an offset the time is UTC) -
+to collect what was written in it instead of since the marks: each clearable file from the latest record of its length at or before `since`, up to the first record at or after `until`
+(see [Collecting since a time](MarkAndClear.md#collecting-since-a-time)), `"siteState": false` to leave out the archive's
 `_sitestate.json` (the versions, machines, plans and applications at the time of the collection - in by default; see
 [the archive](Files.md#builtinsdownloadzippedcs---download-as-zip)), and an optional `"name"` for the archive - used as given (`"Bug 4711"` gives `Bug 4711.zip`;
 `.zip` may be included; characters a file name cannot hold become `_`; a name already taken gets a number). Without it the name is the title and the time. Answers `202 {"id":"<job guid>"}`; unknown file definition, app or plan
-(the message names the item): 404; nothing selected: 400. All the items are looked up before the job starts. Old jobs are cleaned up first.
+(the message names the item): 404; nothing selected: 400; `until` earlier than `since`: 400 (`{"error": "'until' is earlier than 'since'."}`). All the items are looked up before the job starts. Old jobs are cleaned up first.
+
+**A time window chooses the files, too - but only of the file definitions that are `Clearable`** (logs, dump folders): with `since` and/or `until` a `Clearable` definition yields **every file
+written within the window** - a file counts when its written span overlaps it, that is its last write is not before `since` and its creation is not after `until` - and its own `MaxFiles` and `MaxSeconds` do
+not apply (`TailBytes` and `MaxTotalBytes` still do). The application that starts a new log file per run has last Tuesday's run in a file that is not among the newest three; the window finds it.
+A definition that is **not** `Clearable` (a configuration file) is chosen by its own limits and collected whole, window or not - so a package of logs and configs gives the windowed logs and the
+current configs. Either end may be given alone: `since` only is up to now, `until` only is from the marks (the default start) up to `until`, and then `MaxFiles`/`MaxSeconds` still choose, as if collected at `until`. An entry cut by a window is named `<name>.window<ext>`
+(`app.window.log`). See [Files](Files.md#a-time-window-chooses-the-files) for how a window selects, including a remark on the creation time of a recreated file. The archive's `_comment.txt` has a
+`Window` line, `_sitestate.json` has `logsSince` and `logsUntil`.
 
 **One zip, and its layout.** A job makes one archive however many items there are.
 

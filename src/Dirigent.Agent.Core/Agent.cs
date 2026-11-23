@@ -24,8 +24,8 @@ namespace Dirigent
 		public void Send( Net.Message msg ) { _client.Send( msg ); }
 		public Task<TResult?> RunScriptAsync<TArgs, TResult>( string clientId, string scriptName, string? sourceCode, TArgs? args, string title, out Guid scriptInstance )
 			=> _reflStates.ScriptReg.RunScriptAsync<TArgs, TResult>( clientId, scriptName, sourceCode, args, title, out scriptInstance );
-		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent )
-			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null );
+		public Task<VfsNodeDef?> ResolveAsync( VfsNodeDef nodeDef, bool forceUNC, bool includeContent, FileWindow? window = null )
+			=> _reflStates.FileReg.ResolveAsync( _syncIDirig, nodeDef, forceUNC, includeContent, null, window );
 
 		/// <summary>How this agent would launch the app: the very code the launcher starts it from.</summary>
 		public AppLaunchSpec? ResolveAppLaunchSpec( AppDef appDef )

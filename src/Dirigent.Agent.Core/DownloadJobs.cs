@@ -32,11 +32,6 @@ namespace Dirigent
 		/// <summary>Whether to add _sitestate.json to the archive; true when not given.</summary>
 		public bool? siteState { get; set; }
 
-		/// <summary>
-		/// Collect what was written since this time instead of since the marks: each clearable file from the latest record
-		/// of its length at or before it (a mark, or a checkpoint of a plan's MarkInterval). ISO 8601; without an offset, UTC.
-		/// </summary>
-		public DateTime? since { get; set; }
 	}
 
 	/// <summary>What job.json holds.</summary>
@@ -189,8 +184,13 @@ namespace Dirigent
 				ArchiveName = request.name,
 				SiteName = master.SiteName,
 				SiteState = request.siteState ?? true,
-				SinceUtc = request.since is DateTime t ? ( t.Kind == DateTimeKind.Local ? t.ToUniversalTime() : DateTime.SpecifyKind( t, DateTimeKind.Utc ) ) : null,
+				// a time window: each clearable file from the latest record of its length at or before 'since' (a mark, or
+				// a checkpoint of a plan's MarkInterval), up to the first record at or after 'until'
+				SinceUtc = request.SinceUtc,
+				UntilUtc = request.UntilUtc,
 			};
+
+			request.ToWindow(); // an 'until' before the 'since' is the caller's mistake: a 400
 
 			// every item is looked up before anything starts, an unknown one named in the error
 			FileSelection selection;

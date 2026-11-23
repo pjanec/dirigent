@@ -90,9 +90,18 @@ namespace Dirigent
 			public byte[]? Fingerprint;
 		}
 
-		/// <summary>How long the points are kept, and how many per file at most - the newest win.</summary>
-		public static TimeSpan HistoryKeptFor = TimeSpan.FromDays( 7 );
+		/// <summary>
+		/// How long the points are kept, and how many per file at most - the newest win.
+		/// Testers report bugs weeks later, so it is a month; the older the points, the thinner - see <see cref="Thin"/>.
+		/// </summary>
+		public static TimeSpan HistoryKeptFor = TimeSpan.FromDays( 31 );
 		public const int MaxPointsPerFile = 2000;
+
+		/// <summary>Every point is kept this long; after that the checkpoints get thinned to one per hour.</summary>
+		public static TimeSpan HistoryFullFor = TimeSpan.FromDays( 2 );
+
+		/// <summary>After this long the checkpoints get thinned further, to one per six hours.</summary>
+		public static TimeSpan HistoryHourlyFor = TimeSpan.FromDays( 7 );
 
 		class Content
 		{
@@ -244,10 +253,36 @@ namespace Dirigent
 			Trim( h );
 		}
 
-		static void Trim( List<Point> h )
+		static void Trim( List<Point> h ) => Thin( h, DateTime.UtcNow );
+
+		/// <summary>
+		/// Drops what is too old and thins the rest of a file's points (oldest first), as of the given time:
+		/// every point is kept while younger than <see cref="HistoryFullFor"/>; older than that, at most one checkpoint
+		/// per hour; older than <see cref="HistoryHourlyFor"/>, at most one per six hours. Marks and clears are never
+		/// thinned - they are what the operator drew - only dropped with the rest after <see cref="HistoryKeptFor"/>.
+		/// <see cref="MaxPointsPerFile"/> stays the hard cap.
+		/// </summary>
+		public static void Thin( List<Point> h, DateTime nowUtc )
 		{
-			var oldest = DateTime.UtcNow - HistoryKeptFor;
+			var oldest = nowUtc - HistoryKeptFor;
 			h.RemoveAll( p => p.AtUtc < oldest );
+
+			var seen = new HashSet<long>();
+			h.RemoveAll( p =>
+			{
+				if( p.MadeBy != "Checkpoint" ) return false;
+
+				var age = nowUtc - p.AtUtc;
+				if( age < HistoryFullFor ) return false;
+
+				var bucket = age < HistoryHourlyFor ? TimeSpan.FromHours( 1 ) : TimeSpan.FromHours( 6 );
+
+				// the first checkpoint of a bucket stays; the bucket id also says which kind of bucket it is,
+				// so a point does not collide with one of the other width
+				var id = ( p.AtUtc.Ticks / bucket.Ticks ) * 2 + ( bucket.Ticks == TimeSpan.TicksPerHour ? 0 : 1 );
+				return !seen.Add( id );
+			} );
+
 			if( h.Count > MaxPointsPerFile ) h.RemoveRange( 0, h.Count - MaxPointsPerFile );
 		}
 
@@ -442,6 +477,61 @@ namespace Dirigent
 			if( mark.Offset <= 0 ) return ( 0, null );
 
 			return ( mark.Offset, $"written after the {drawn} (byte {mark.Offset})" );
+		}
+
+		/// <summary>Where a collection "until a time" ends in a file, and what decided it.</summary>
+		public class UntilEnd
+		{
+			/// <summary>Where to end (exclusive); the file's length when it is not cut.</summary>
+			public long Offset;
+
+			/// <summary>True if the file is cut at a record rather than taken to its end.</summary>
+			public bool Cut;
+
+			/// <summary>The record the collection ends at - its time and kind - or null for the file's end.</summary>
+			public Point? To;
+
+			/// <summary>For the archive: what this end is, or why the file may hold more than the window.</summary>
+			public string? Note;
+		}
+
+		/// <summary>
+		/// Where a collection of this file "until" the given time should end: at the first recorded length at or after
+		/// that time - a mark, a clear or a checkpoint - so that it holds everything written until then, and a little after at most.
+		/// </summary>
+		/// <remarks>
+		/// The mirror of <see cref="WhereToStartSince"/>, wrong only in the same safe direction: a file that cannot be cut
+		/// where it should is taken to its end, with a note saying it may hold more than the window. Too much is fine, too little is not.
+		/// </remarks>
+		public UntilEnd WhereToEndUntil( string path, long currentLength, DateTime currentCreatedUtc, DateTime lastWriteUtc, DateTime untilUtc )
+		{
+			var at = $"{untilUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+			if( lastWriteUtc <= untilUtc )
+				return new UntilEnd() { Offset = currentLength };
+
+			Point? to, before;
+			lock( _lock )
+			{
+				var h = _history.TryGetValue( path, out var list ) ? list : null;
+				to = h?.FirstOrDefault( p => p.AtUtc >= untilUtc );
+				before = h?.LastOrDefault( p => p.AtUtc < untilUtc );
+			}
+
+			if( to is null )
+				return new UntilEnd() { Offset = currentLength, Note = $"to the end of the file, which may hold more than the window: there is no record of its length at or after {at}" };
+
+			var drawn = $"{to.MadeBy} of {to.AtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+			// the same checks as for a mark - see WhereToStart; a length that dropped between the records
+			// means the offsets of the file before and after are not the same offsets
+			if( to.CreatedUtc != currentCreatedUtc || currentLength < to.Offset
+				|| ( before is not null && before.CreatedUtc == to.CreatedUtc && before.Offset > to.Offset )
+				|| !FingerprintMatches( path, new Mark() { Offset = to.Offset, Fingerprint = to.Fingerprint } ) )
+				return new UntilEnd() { Offset = currentLength, Note = $"to the end of the file, which may hold more than the window: it was replaced, truncated or rotated around the {drawn}" };
+
+			return new UntilEnd() { Offset = to.Offset, Cut = true, To = to,
+									Note = $"written up to the {drawn} (byte {to.Offset}), the first record at or after {at}" };
 		}
 
 		/// <summary>Where a collection "since a time" starts in a file, and what decided it.</summary>

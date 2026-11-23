@@ -480,7 +480,7 @@ namespace Dirigent
 		///  Folders - VFolder will have just the Title (vfolder name).
 		/// Files will have the Title and Path (link to physical file).
 		/// </returns>
-		public async Task<VfsNodeDef?> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids )
+		public async Task<VfsNodeDef?> ResolveAsync( IDirigAsync iDirig, VfsNodeDef nodeDef, bool forceUNC, bool includeContent, List<Guid>? usedGuids, FileWindow? window = null )
 		{
 			if (nodeDef is null)
 				throw new ArgumentNullException( nameof( nodeDef ) );
@@ -489,11 +489,11 @@ namespace Dirigent
 
 			// everything this machine can work out on its own, with a stub left standing wherever
 			// another machine has to be asked
-			var root = ResolveLocally( nodeDef, forceUNC, includeContent, usedGuids, pending, null );
+			var root = ResolveLocally( nodeDef, forceUNC, includeContent, usedGuids, pending, null, window );
 
 			if( pending.Count > 0 )
 			{
-				await AskTheMachines( iDirig, pending, forceUNC );
+				await AskTheMachines( iDirig, pending, forceUNC, window );
 
 				foreach( var stub in pending )
 					root = PutInPlace( stub, root );
@@ -546,7 +546,7 @@ namespace Dirigent
 		/// </summary>
 		/// <param name="parent">the container the result will be put into; null for the root</param>
 		VfsNodeDef? ResolveLocally( VfsNodeDef nodeDef, bool forceUNC, bool includeContent,
-				List<Guid>? usedGuids, List<RemoteStub> pending, VfsNodeDef? parent )
+				List<Guid>? usedGuids, List<RemoteStub> pending, VfsNodeDef? parent, FileWindow? window = null )
 		{
 			// usedGuids holds the ANCESTORS of the node, the definitions on the branch being walked: meeting one of
 			// them again is a real cycle and is refused. A definition reached a second time on another branch (two
@@ -561,7 +561,7 @@ namespace Dirigent
 			usedGuids.Add( nodeDef.Guid );
 			try
 			{
-				var resolved = ResolveLocallyNotCircular( nodeDef, forceUNC, includeContent, usedGuids, pending, parent );
+				var resolved = ResolveLocallyNotCircular( nodeDef, forceUNC, includeContent, usedGuids, pending, parent, window );
 
 				// where a file came from, for whoever lists the files: stamped from the inside out, so the
 				// definition nearest to the file keeps it
@@ -587,7 +587,7 @@ namespace Dirigent
 		}
 
 		VfsNodeDef? ResolveLocallyNotCircular( VfsNodeDef nodeDef, bool forceUNC, bool includeContent,
-				List<Guid> usedGuids, List<RemoteStub> pending, VfsNodeDef? parent )
+				List<Guid> usedGuids, List<RemoteStub> pending, VfsNodeDef? parent, FileWindow? window )
 		{
 
 			// non-local stuff to be always resolved on machine where local - via remote script call
@@ -623,27 +623,27 @@ namespace Dirigent
 
 			if( nodeDef is FileDef fileDef )
 			{
-				return ResolveFileDef( forceUNC, fileDef );
+				return ResolveFileDef( forceUNC, fileDef, window );
 			}
 			else
 			if( nodeDef is FileRef fref )
 			{
-				return ResolveFileRef( forceUNC, includeContent, usedGuids, fref, pending, parent );
+				return ResolveFileRef( forceUNC, includeContent, usedGuids, fref, pending, parent, window );
 			}
 			else
 			if (nodeDef is VFolderDef vfolderDef)
 			{
-				return ResolveVFolder( vfolderDef, forceUNC, usedGuids, pending );
+				return ResolveVFolder( vfolderDef, forceUNC, usedGuids, pending, window );
 			}
 			else
 			if( nodeDef is FolderDef folderDef )
 			{
-				return ResolveFolder( folderDef, forceUNC, includeContent );
+				return ResolveFolder( folderDef, forceUNC, includeContent, window );
 			}
 			else
 			if( nodeDef is FilePackageDef fpdef )
 			{
-				return ResolveVFolder( fpdef, forceUNC, usedGuids, pending );
+				return ResolveVFolder( fpdef, forceUNC, usedGuids, pending, window );
 			}
 			else
 			{
@@ -659,7 +659,7 @@ namespace Dirigent
 		/// precise about what it now costs: one round trip, however many machines and however many
 		/// nodes - where it used to be one round trip per node, in sequence.
 		/// </remarks>
-		async Task AskTheMachines( IDirigAsync iDirig, List<RemoteStub> pending, bool forceUNC )
+		async Task AskTheMachines( IDirigAsync iDirig, List<RemoteStub> pending, bool forceUNC, FileWindow? window )
 		{
 			// Grouped in the order the machines first appear, so that what goes on the wire is as
 			// predictable as what the walk produced. Nodes wanted without their content travel
@@ -683,10 +683,10 @@ namespace Dirigent
 
 			log.Debug( $"Resolving {pending.Count} node(s) in {byMachine.Count} call(s)" );
 
-			await Task.WhenAll( byMachine.Select( group => AskOneMachine( iDirig, group, forceUNC ) ) );
+			await Task.WhenAll( byMachine.Select( group => AskOneMachine( iDirig, group, forceUNC, window ) ) );
 		}
 
-		async Task AskOneMachine( IDirigAsync iDirig, List<RemoteStub> stubs, bool forceUNC )
+		async Task AskOneMachine( IDirigAsync iDirig, List<RemoteStub> stubs, bool forceUNC, FileWindow? window )
 		{
 			var machineId = stubs[0].Request.MachineId ?? string.Empty;
 
@@ -696,7 +696,8 @@ namespace Dirigent
 				{
 					VfsNodes = stubs.Select( x => x.Request ).ToList(),
 					ForceUNC = forceUNC,
-					IncludeContent = stubs[0].IncludeContent
+					IncludeContent = stubs[0].IncludeContent,
+					Window = window,
 				};
 
 				var title = stubs.Count == 1
@@ -778,7 +779,7 @@ namespace Dirigent
 		}
 
 		private VfsNodeDef? ResolveFileRef( bool forceUNC, bool includeContent, List<Guid>? usedGuids,
-				FileRef fref, List<RemoteStub> pending, VfsNodeDef? parent )
+				FileRef fref, List<RemoteStub> pending, VfsNodeDef? parent, FileWindow? window )
 		{
 			var defs = FindById( fref.Id, fref.MachineId, fref.AppId );
 
@@ -801,7 +802,7 @@ namespace Dirigent
 				single.IsContainer = true;
 
 				var resolvedSingle = ResolveChild( defs[0], forceUNC, usedGuids, pending,
-						parent: parent, fallback: single );
+						parent: parent, window: window, fallback: single );
 
 				// the pack exists only to carry a note; when there is none, the node stands alone as
 				// it always did
@@ -818,7 +819,7 @@ namespace Dirigent
 				// across two machines must not be lost to one of them - see ResolveChild
 				foreach( var def in defs )
 				{
-					var resolved = ResolveChild( def, forceUNC, usedGuids, pending, parent: pack );
+					var resolved = ResolveChild( def, forceUNC, usedGuids, pending, parent: pack, window: window );
 					if( resolved is not null )
 						pack.Children.Add( resolved );
 				}
@@ -866,7 +867,7 @@ namespace Dirigent
 			}
 		}
 
-		private VfsNodeDef? ResolveFileDef( bool forceUNC, FileDef fileDef )
+		private VfsNodeDef? ResolveFileDef( bool forceUNC, FileDef fileDef, FileWindow? window = null )
 		{
 			if (string.IsNullOrEmpty( fileDef.Path )) throw new Exception( $"FileDef.Path is empty. {fileDef.Xml}" );
 
@@ -879,7 +880,13 @@ namespace Dirigent
 				r.IsContainer = false;
 				r.Guid = fileDef.Guid;
 				r.Path = ResolveFilePath( fileDef, forceUNC );
-				if( r.Path is null ) return null; FillFileFacts( r );
+				if( r.Path is null ) return null;
+
+				// under a window a Clearable file that was not written in it is left out, like a missing one
+				// (NTFS tunnelling can make the creation time older than real: errs towards too much, which is allowed)
+				if( window != null && fileDef.Clearable && !FileOverlaps( r.Path, window ) ) return null;
+
+				FillFileFacts( r );
 				return r;
 			}
 
@@ -900,10 +907,13 @@ namespace Dirigent
 				if (maxFiles < 1) maxFiles = 1;
 				double maxSeconds = X.getDoubleAttr( xml, "MaxSeconds", double.MaxValue ); // by default whatever age
 
-				var newestFiles = GetNewestFilesInFolder( folder, mask, maxFiles, maxSeconds );
+				// the window of a Clearable definition overrides MaxFiles/MaxSeconds: every overlapping file is taken
+				var win = fileDef.Clearable ? window : null;
+				var newestFiles = GetNewestFilesInFolder( folder, mask, maxFiles, maxSeconds, win );
 
 				// if just one single file requested, return FileDef
-				if( maxFiles <= 1 )
+				// (with a window, one file is still one FileDef - however many were allowed to be asked for)
+				if( maxFiles <= 1 && ( win == null || newestFiles.Count <= 1 ) )
 				{
 					if( newestFiles.Count == 0 )
 					{
@@ -937,7 +947,7 @@ namespace Dirigent
 			throw new Exception( $"Unsupported filter. {fileDef.Xml}" );
 		}
 
-		VfsNodeDef ResolveVFolder( VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids, List<RemoteStub> pending )
+		VfsNodeDef ResolveVFolder( VfsNodeDef folderDef, bool forceUNC, List<Guid>? usedGuids, List<RemoteStub> pending, FileWindow? window = null )
 		{
 			var rootNode = EmptyFrom<ResolvedVfsNodeDef>( folderDef ); // this produces Iscontainer=false (ResolvedVfsNode does not say if it is a container or not)
 			rootNode.IsContainer = true;
@@ -946,7 +956,7 @@ namespace Dirigent
 			// one call per machine - see RemoteStub
 			foreach ( var child in folderDef.Children )
 			{
-				var resolved = ResolveChild( child, forceUNC, usedGuids, pending, parent: rootNode );
+				var resolved = ResolveChild( child, forceUNC, usedGuids, pending, parent: rootNode, window: window );
 				if( resolved is not null )
 				{
 					rootNode.Children.Add( resolved );
@@ -982,11 +992,11 @@ namespace Dirigent
 		/// Null means the child is simply left out and the note goes to the container.
 		/// </param>
 		VfsNodeDef? ResolveChild( VfsNodeDef child, bool forceUNC, List<Guid>? usedGuids,
-				List<RemoteStub> pending, VfsNodeDef? parent, VfsNodeDef? fallback = null )
+				List<RemoteStub> pending, VfsNodeDef? parent, FileWindow? window = null, VfsNodeDef? fallback = null )
 		{
 			try
 			{
-				var resolved = ResolveLocally( child, forceUNC, true, usedGuids, pending, parent );
+				var resolved = ResolveLocally( child, forceUNC, true, usedGuids, pending, parent, window );
 
 				if( resolved is RemoteStub stub )
 					stub.Fallback = fallback;
@@ -1032,7 +1042,7 @@ namespace Dirigent
 			return $"'{name}'{where}";
 		}
 
-		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent )
+		VfsNodeDef? ResolveFolder( FolderDef folderDef, bool forceUNC, bool includeContent, FileWindow? window = null )
 		{
 			var rootNode = EmptyFrom<VFolderDef>( folderDef );
 			rootNode.Path = ResolveFilePath( folderDef, forceUNC );
@@ -1053,7 +1063,9 @@ namespace Dirigent
 					folderDef.MaxFiles,
 					folderDef.MaxTotalBytes,
 					recursive: true,
-					tailBytes: folderDef.TailBytes
+					tailBytes: folderDef.TailBytes,
+					// the window chooses the files of a Clearable folder (logs, dumps); configs are not windowed
+					window: folderDef.Clearable ? window : null
 				);
 			}
 			catch( Exception ex ) // folder not exists or not accessible?
@@ -1141,10 +1153,24 @@ namespace Dirigent
 			return current;
 		}
 
-		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds )
+		static bool FileOverlaps( string path, FileWindow window )
+		{
+			try
+			{
+				var info = new System.IO.FileInfo( path );
+				if( !info.Exists ) return true; // a missing file is dealt with as before
+				return window.Overlaps( info.CreationTimeUtc, info.LastWriteTimeUtc );
+			}
+			catch( Exception )
+			{
+				return true; // unreadable: too much is fine, too little is not
+			}
+		}
+
+		List<string> GetNewestFilesInFolder( string folderName, string mask, int maxFiles, double maxAgeSeconds, FileWindow? window = null )
 		{
 			// the mask of the 'Newest' filter applies to the files in the given folder only, never to subfolders
-			var scan = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false );
+			var scan = FileScan.FindMatchingFiles( folderName, mask, maxAgeSeconds, maxFiles, 0, recursive: false, window: window );
 
 			return ( from x in scan.Files select x.Info.FullName ).ToList();
 		}

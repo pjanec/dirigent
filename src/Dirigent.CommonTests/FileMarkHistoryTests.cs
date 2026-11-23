@@ -183,5 +183,133 @@ namespace Dirigent.Tests
 				FileMarkStore.HistoryKeptFor = keep;
 			}
 		}
+
+		// ---- where a file ends under an "until" time ----
+
+		static FileMarkStore.UntilEnd Until( FileMarkStore store, string path, DateTime untilUtc )
+		{
+			var info = new FileInfo( path );
+			return store.WhereToEndUntil( path, info.Length, info.CreationTimeUtc, info.LastWriteTimeUtc, untilUtc );
+		}
+
+		[TestMethod()]
+		public void UntilEndsAtTheFirstRecordAfterTheTimeTest()
+		{
+			var path = WriteFile( "app.log", "run one\n" );   // 8 bytes
+			var store = Store();
+			store.Checkpoint( path );
+			File.AppendAllText( path, "before\n" );          // 15
+			var until = Between();
+			File.AppendAllText( path, "after\n" );           // 21
+			var after = store.Checkpoint( path );
+			File.AppendAllText( path, "much later\n" );      // 32
+			store.Checkpoint( path );
+			File.AppendAllText( path, "unrecorded\n" );
+
+			var end = Until( store, path, until );
+
+			Assert.IsTrue( end.Cut );
+			Assert.AreEqual( after!.Offset, end.Offset, "at the first record at or after the time, not a later one" );
+			Assert.AreEqual( "Checkpoint", end.To!.MadeBy );
+			StringAssert.Contains( end.Note, "Checkpoint of" );
+		}
+
+		[TestMethod()]
+		public void UntilWithNoRecordAfterItTakesTheWholeFileAndSaysSoTest()
+		{
+			var path = WriteFile( "app.log", "run one\n" );
+			var store = Store();
+			store.Checkpoint( path );
+			var until = Between();
+			File.AppendAllText( path, "written after the time, never recorded\n" );
+
+			var end = Until( store, path, until );
+
+			Assert.IsFalse( end.Cut );
+			Assert.AreEqual( new FileInfo( path ).Length, end.Offset );
+			StringAssert.Contains( end.Note, "may hold more than the window" );
+		}
+
+		[TestMethod()]
+		public void UntilWithAFileThatWasTruncatedAfterTheRecordTakesTheWholeFileTest()
+		{
+			var path = WriteFile( "app.log", "run one, quite a long line\n" );
+			var store = Store();
+			var until = Between();
+			File.AppendAllText( path, "more of the run\n" );
+			store.Checkpoint( path );                    // a long file at this record
+			File.WriteAllText( path, "short\n" );        // then cleared and written again
+
+			var end = Until( store, path, until );
+
+			Assert.IsFalse( end.Cut, "a record that no longer fits the file does not cut it" );
+			Assert.AreEqual( new FileInfo( path ).Length, end.Offset );
+			StringAssert.Contains( end.Note, "may hold more than the window" );
+		}
+
+		[TestMethod()]
+		public void UntilForAFileNotWrittenAfterItIsNotCutTest()
+		{
+			var path = WriteFile( "app.log", "run one\n" );
+			var store = Store();
+			store.Checkpoint( path );
+			File.AppendAllText( path, "more\n" );
+			store.Checkpoint( path );
+
+			// the file was last written before this time, whatever records it has after it
+			var end = Until( store, path, DateTime.UtcNow.AddHours( 1 ) );
+
+			Assert.IsFalse( end.Cut );
+			Assert.AreEqual( new FileInfo( path ).Length, end.Offset );
+			Assert.IsNull( end.Note, "nothing to explain: the file is simply all there is until then" );
+		}
+
+		// ---- how long the history is kept, and how thin ----
+
+		static readonly DateTime _now = new DateTime( 2026, 11, 23, 12, 0, 0, DateTimeKind.Utc );
+
+		static System.Collections.Generic.List<FileMarkStore.Point> CheckpointsEvery10MinutesFor( int days )
+		{
+			var points = new System.Collections.Generic.List<FileMarkStore.Point>();
+			for( var at = _now.AddDays( -days ); at < _now; at = at.AddMinutes( 10 ) )
+				points.Add( new FileMarkStore.Point() { AtUtc = at, MadeBy = "Checkpoint", Offset = points.Count } );
+			return points;
+		}
+
+		[TestMethod()]
+		public void TheHistoryIsThinnedTheOlderItGetsTest()
+		{
+			Assert.AreEqual( TimeSpan.FromDays( 31 ), FileMarkStore.HistoryKeptFor );
+
+			var points = CheckpointsEvery10MinutesFor( 40 );
+			points.Add( new FileMarkStore.Point() { AtUtc = _now.AddDays( -40 ), MadeBy = "Mark" } );   // too old
+			var oldMark = new FileMarkStore.Point() { AtUtc = _now.AddDays( -20 ).AddMinutes( 3 ), MadeBy = "Mark" };
+			var oldClear = new FileMarkStore.Point() { AtUtc = _now.AddDays( -5 ).AddMinutes( 3 ), MadeBy = "Clear" };
+			points.Add( oldMark );
+			points.Add( oldClear );
+			points = points.OrderBy( p => p.AtUtc ).ToList();
+
+			FileMarkStore.Thin( points, _now );
+
+			Assert.IsTrue( points.All( p => p.AtUtc >= _now.AddDays( -31 ) ), "nothing older than the retention stays" );
+
+			var young = points.Where( p => p.MadeBy == "Checkpoint" && p.AtUtc > _now.AddDays( -2 ) ).ToList();
+			Assert.AreEqual( 2 * 144 - 1, young.Count, "every point of the last two days stays" );
+
+			var middle = points.Where( p => p.MadeBy == "Checkpoint" && p.AtUtc <= _now.AddDays( -2 ) && p.AtUtc > _now.AddDays( -7 ) ).ToList();
+			Assert.IsTrue( middle.Count >= 5 * 24 - 2, "an hourly one is kept" );
+			Assert.IsTrue( middle.GroupBy( p => p.AtUtc.Ticks / TimeSpan.TicksPerHour ).All( g => g.Count() == 1 ), "at most one per hour" );
+
+			var old = points.Where( p => p.MadeBy == "Checkpoint" && p.AtUtc <= _now.AddDays( -7 ) ).ToList();
+			Assert.IsTrue( old.Count >= 24 * 4 - 2, "one per six hours is kept" );
+			Assert.IsTrue( old.GroupBy( p => p.AtUtc.Ticks / ( 6 * TimeSpan.TicksPerHour ) ).All( g => g.Count() == 1 ), "at most one per six hours" );
+
+			Assert.IsTrue( points.Contains( oldMark ) && points.Contains( oldClear ), "marks and clears are never thinned" );
+			Assert.IsTrue( points.Count <= FileMarkStore.MaxPointsPerFile );
+
+			var count = points.Count;
+			FileMarkStore.Thin( points, _now );
+			Assert.AreEqual( count, points.Count, "thinning what is thin changes nothing" );
+		}
 	}
 }

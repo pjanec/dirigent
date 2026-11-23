@@ -161,5 +161,49 @@ namespace Dirigent.IntegrationTests
 			StringAssert.Contains( result.Nodes[1].Error!, "neverExisted",
 				$"and the reason names what was missing; got '{result.Nodes[1].Error}'" );
 		}
+
+		[TestMethod()]
+		public async Task AnAgentChoosesTheFilesOfAClearableDefinitionByTheWindowItWasSentTest()
+		{
+			// The window travels in the arguments of the resolve script, as JSON, to the machine owning the files.
+			// There the definition's MaxFiles=1 would give the newest file; the window picks the one it falls in.
+			using var bed = await StartBed();
+
+			var folder = Path.Combine( _root, "runs" );
+			Directory.CreateDirectory( folder );
+			var runsAt = new DateTime( 2026, 11, 21, 12, 0, 0, DateTimeKind.Utc );
+			for( int i = 0; i < 3; i++ )
+			{
+				var p = Path.Combine( folder, $"run{i + 1}.log" );
+				File.WriteAllText( p, "x" );
+				File.SetCreationTimeUtc( p, runsAt.AddHours( 2 * i ) );
+				File.SetLastWriteTimeUtc( p, runsAt.AddHours( 2 * i + 1 ) );
+			}
+
+			FileDef Def( bool clearable ) => new FileDef()
+			{
+				Guid = Guid.NewGuid(), Id = "log", Title = "Log", MachineId = bed.MachineIds["m2"], Path = folder,
+				Filter = "Newest", Xml = @"<File Mask=""run*.log"" MaxFiles=""1""/>", Clearable = clearable,
+			};
+
+			async Task<string> Asked( bool clearable, FileWindow? window )
+			{
+				var result = await bed.Operator.RunScriptAsync<
+						Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
+					Scripts.BuiltIn.ResolveVfsPath._Name,
+					new Scripts.BuiltIn.ResolveVfsPath.TArgs() { VfsNodes = new List<VfsNodeDef>() { Def( clearable ) }, IncludeContent = true, Window = window },
+					hostId: bed.MachineIds["m2"], timeout: Timeout );
+
+				Assert.IsNull( result!.Nodes![0].Error, result.Nodes[0].Error );
+				return Path.GetFileName( result.Nodes[0].VfsNode!.Path! );
+			}
+
+			// 14:10 - 14:50, inside the second run
+			var window = new FileWindow() { SinceUtc = runsAt.AddMinutes( 130 ), UntilUtc = runsAt.AddMinutes( 170 ) };
+
+			Assert.AreEqual( "run2.log", await Asked( clearable: true, window ), "the window chose the file on the agent" );
+			Assert.AreEqual( "run3.log", await Asked( clearable: true, null ), "no window: the definition's own limit chooses" );
+			Assert.AreEqual( "run3.log", await Asked( clearable: false, window ), "a definition that is not Clearable is never windowed" );
+		}
 	}
 }

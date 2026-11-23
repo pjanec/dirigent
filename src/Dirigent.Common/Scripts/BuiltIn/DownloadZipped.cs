@@ -67,6 +67,9 @@ namespace Dirigent.Scripts.BuiltIn
 			/// <summary>Collect what was written since this time (UTC) instead of since the marks - see DownloadZippedSlave.TArgs.SinceUtc.</summary>
 			public DateTime? SinceUtc;
 
+			/// <summary>Collect what was written until this time (UTC): each clearable file ends at the first record at or after it - see DownloadZippedSlave.TArgs.UntilUtc.</summary>
+			public DateTime? UntilUtc;
+
 
 		};
 
@@ -153,6 +156,10 @@ namespace Dirigent.Scripts.BuiltIn
 		// for the cover note - see TArgs.SiteName, TArgs.SinceUtc
 		string? _siteName;
 		DateTime? _sinceUtc;
+		DateTime? _untilUtc;
+
+		/// <summary>The time window the collection was asked for, or null when neither end was given.</summary>
+		FileWindow? Window => _sinceUtc is null && _untilUtc is null ? null : new FileWindow() { SinceUtc = _sinceUtc, UntilUtc = _untilUtc };
 
 		protected async override Task<string?> Run()
 		{
@@ -160,6 +167,7 @@ namespace Dirigent.Scripts.BuiltIn
 			if( args is null ) throw new NullReferenceException("Args is null");
 			_siteName = args.SiteName;
 			_sinceUtc = args.SinceUtc;
+			_untilUtc = args.UntilUtc;
 
 			var result = new TResult();
 
@@ -195,13 +203,13 @@ namespace Dirigent.Scripts.BuiltIn
 					if( args.Node is null )
 						throw new ArgumentException( "Neither VfsNode nor Node given - nothing to download." );
 
-					vfsNode = await Dirig.ResolveAsync( args.Node.ToFileRef(), false, true );
+					vfsNode = await Dirig.ResolveAsync( args.Node.ToFileRef(), false, true, Window );
 					if( vfsNode is null )
 						throw new Exception( $"No VFS node matching {args.Node}." );
 				}
 				else if( args.VfsNodeNeedsResolving )
 				{
-					vfsNode = await Dirig.ResolveAsync( vfsNode, false, true );
+					vfsNode = await Dirig.ResolveAsync( vfsNode, false, true, Window );
 					if( vfsNode is null )
 						throw new Exception( $"Nothing found for {args.VfsNode.Id ?? args.VfsNode.Title}." );
 				}
@@ -369,6 +377,7 @@ namespace Dirigent.Scripts.BuiltIn
 						IncludeGlobals = !globalsAssigned, // the first machine to run does the global files
 						CollectingMachines = collecting,
 						SinceUtc = args.SinceUtc,
+						UntilUtc = args.UntilUtc,
 					};
 					globalsAssigned = true;
 
@@ -438,6 +447,7 @@ namespace Dirigent.Scripts.BuiltIn
 								LogsSince = _sinceUtc is DateTime since
 									? $"{since.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for); {WithoutLabel( MarkWindow() )}"
 									: WithoutLabel( MarkWindow() ),
+								LogsUntil = _untilUtc is DateTime until ? $"{until.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for)" : null,
 								Selection = selectionLabels?.ToList() ?? new List<string>() { title },
 							} );
 						}
@@ -872,8 +882,8 @@ namespace Dirigent.Scripts.BuiltIn
 			if( !string.IsNullOrEmpty( _siteName ) )
 				text.AppendLine( $"Site      : {_siteName}" );
 			text.AppendLine( $"Collected : {DateTime.Now:yyyy-MM-dd HH:mm:ss}" );
-			if( _sinceUtc is DateTime since )
-				text.AppendLine( $"Since     : {since.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for: each log from the last record of its length at or before then)" );
+			if( _sinceUtc is not null || _untilUtc is not null )
+				text.AppendLine( WindowLine() );
 			text.AppendLine( $"Package   : {title}" + ( string.IsNullOrEmpty( packageId ) ? "" : $"   [{packageId}]" ) );
 			if( selection is not null )
 				text.AppendLine( "Selection : " + string.Join( Environment.NewLine + new string( ' ', 12 ), selection ) );
@@ -1019,6 +1029,21 @@ namespace Dirigent.Scripts.BuiltIn
 		/// no mark applied to any of the collected files.
 		/// </summary>
 		static string? WithoutLabel( string? line ) => line is null ? null : System.Text.RegularExpressions.Regex.Replace( line, @"^\w+\s*:\s*", "" );
+
+		/// <summary>The cover note's line for a window: an open start is "the marks", an open end is "now".</summary>
+		string WindowLine()
+		{
+			var from = _sinceUtc?.ToLocalTime();
+			var to = _untilUtc?.ToLocalTime();
+
+			var fromText = from is DateTime f ? $"{f:yyyy-MM-dd HH:mm:ss}" : "the marks";
+			var toText = to is DateTime t
+					? ( from is DateTime f2 && f2.Date == t.Date ? $"{t:HH:mm:ss}" : $"{t:yyyy-MM-dd HH:mm:ss}" )
+					: "now";
+
+			return $"Window    : {fromText} - {toText} (local; asked for: each log from the last record at or before the start"
+				+ " to the first record at or after the end)";
+		}
 
 		string? MarkWindow()
 		{
@@ -1185,10 +1210,10 @@ namespace Dirigent.Scripts.BuiltIn
 				try
 				{
 					if( item.Node is not null )
-						node = await Dirig.ResolveAsync( item.Node.ToFileRef(), false, true );
+						node = await Dirig.ResolveAsync( item.Node.ToFileRef(), false, true, Window );
 					else
 					if( item.VfsNode is not null )
-						node = item.VfsNodeNeedsResolving ? await Dirig.ResolveAsync( item.VfsNode, false, true ) : item.VfsNode;
+						node = item.VfsNodeNeedsResolving ? await Dirig.ResolveAsync( item.VfsNode, false, true, Window ) : item.VfsNode;
 				}
 				catch( Exception e ) when ( e is not OperationCanceledException )
 				{

@@ -20,6 +20,37 @@ namespace Dirigent.Web
 		/// <summary>The applications: "m1.a" or "m1.a@plan".</summary>
 		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull )]
 		public List<string>? apps { get; set; }
+
+		/// <summary>
+		/// The start of a time window (ISO 8601; without an offset, UTC). With a window the files of the Clearable
+		/// definitions (logs, dumps) are chosen by it - every file written within it - instead of by their own limits;
+		/// the others (configs) are not affected. Read by the download and the preview; ignored by the marking.
+		/// </summary>
+		public DateTime? since { get; set; }
+
+		/// <summary>The end of the time window - see <see cref="since"/>.</summary>
+		public DateTime? until { get; set; }
+
+		static DateTime? Utc( DateTime? t )
+			=> t is DateTime x ? ( x.Kind == DateTimeKind.Local ? x.ToUniversalTime() : DateTime.SpecifyKind( x, DateTimeKind.Utc ) ) : null;
+
+		[JsonIgnore]
+		public DateTime? SinceUtc => Utc( since );
+
+		[JsonIgnore]
+		public DateTime? UntilUtc => Utc( until );
+
+		/// <summary>The window asked for, or null when neither end was given.</summary>
+		/// <exception cref="ArgumentException">until is earlier than since</exception>
+		public FileWindow? ToWindow()
+		{
+			if( since is null && until is null ) return null;
+
+			if( SinceUtc is DateTime s && UntilUtc is DateTime u && u < s )
+				throw new ArgumentException( "'until' is earlier than 'since'." );
+
+			return new FileWindow() { SinceUtc = SinceUtc, UntilUtc = UntilUtc };
+		}
 	}
 
 	/// <summary>The answer of POST /api/files/query: the preview of each item, and the totals of all of them.</summary>
@@ -133,11 +164,11 @@ namespace Dirigent.Web
 		}
 
 		/// <summary>Previews every item, all at once. Not for the master thread.</summary>
-		public async Task<FilesQueryResult> ResolveAsync( bool includeContent )
+		public async Task<FilesQueryResult> ResolveAsync( bool includeContent, FileWindow? window = null )
 		{
 			var results = await Task.WhenAll( Items.Select( async i =>
-				i.IsApp ? (object) await i.AppQuery!.ResolveAsync( includeContent )
-						: await i.FileDefQuery!.ResolveAsync( includeContent ) ) );
+				i.IsApp ? (object) await i.AppQuery!.ResolveAsync( includeContent, window )
+						: await i.FileDefQuery!.ResolveAsync( includeContent, window ) ) );
 
 			return new FilesQueryResult()
 			{
