@@ -30,10 +30,14 @@ namespace Dirigent.Net
 		private bool _autoRecon = false;
 		private bool _isDisposing = false;
 
-		public MessageClient( string address, int port, bool autoRecon ) : base( address, port )
+		private readonly TrafficStats _traffic;
+
+		public MessageClient( string address, int port, bool autoRecon, TrafficStats? traffic = null ) : base( address, port )
 		{
 			_autoRecon = autoRecon;
+			_traffic = traffic ?? TrafficStats.Default;
 			_msgCodec = new MsgPackCodec();
+			_msgCodec.Traffic = _traffic;
 			_msgCodec.MessageReceived = OnMessageReceived;
 		}
 
@@ -130,6 +134,7 @@ namespace Dirigent.Net
 			var ms = new System.IO.MemoryStream();
 			MsgPackCodec.Serialize( ms, msg );
 			SendAsync( ms.GetBuffer(), 0, ms.Position );
+			_traffic.Sent( msg.GetType(), ms.Position );
 		}
 
 		//public void SendText( string text )

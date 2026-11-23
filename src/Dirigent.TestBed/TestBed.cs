@@ -37,6 +37,15 @@ namespace Dirigent.TestBed
 		/// <summary>Pump period. Short, because tests should not wait on Dirigent's own pacing.</summary>
 		public int TickPeriodMs = 20;
 
+		/// <summary>
+		/// The period of the agents' (and the extra GUIs') ticks, when it is not the pump's. 0 = they tick with every pump tick,
+		/// as ever. A measurement of idle traffic sets the pump to the master's period and this to the agents' - 50 and 500 ms in production.
+		/// </summary>
+		public int AgentTickPeriodMs;
+
+		/// <summary>Besides the operator, one more GUI client (an <see cref="Operator"/>) per machine, as every machine of a real site runs one.</summary>
+		public bool GuiPerMachine;
+
 		/// <summary>Keep the temporary folder behind for inspection.</summary>
 		public bool KeepTempRoot;
 
@@ -82,6 +91,9 @@ namespace Dirigent.TestBed
 		/// <summary>Guards the agent list against a test taking one down while the pump ticks it.</summary>
 		readonly object _agentsLock = new();
 		readonly List<Agent> _agents = new();
+		readonly List<Operator> _extraGuis = new();
+		readonly Stopwatch _slowTickClock = Stopwatch.StartNew();
+		long _nextSlowTickMs;
 		readonly Dictionary<string, AppConfig> _agentConfigs = new();
 		readonly Thread _pump;
 		readonly CancellationTokenSource _stop = new();
@@ -147,6 +159,12 @@ namespace Dirigent.TestBed
 			OperatorMachine = _machineIds.Values.First();
 			Operator = new Operator( $"{OperatorMachine}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot );
 
+			if( opts.GuiPerMachine )
+			{
+				foreach( var machineId in _machineIds.Values.Skip( 1 ) )
+					_extraGuis.Add( new Operator( $"{machineId}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot ) );
+			}
+
 			_pump = new Thread( PumpLoop ) { IsBackground = true, Name = $"dirigent-testbed-{RunTag}" };
 			_pump.Start();
 		}
@@ -207,6 +225,7 @@ namespace Dirigent.TestBed
 			}
 
 			Operator.Dispose();
+			foreach( var gui in _extraGuis ) SafeDispose( gui );
 			foreach( var agent in Agents() ) SafeDispose( agent );
 			SafeDispose( _master );
 
@@ -480,13 +499,22 @@ namespace Dirigent.TestBed
 				{
 					_pumpStage = "master";
 					_master.Tick();
-					_pumpStage = "agents";
-					foreach( var agent in Agents() ) agent.Tick();
+					// on a schedule of its own, so that the pump's sleeps (a timer tick or two late each) do not stretch the period
+					var elapsedMs = _slowTickClock.ElapsedMilliseconds;
+					var slowDue = _opts.AgentTickPeriodMs <= 0 || elapsedMs >= _nextSlowTickMs;
+					if( slowDue )
+					{
+						_nextSlowTickMs += _opts.AgentTickPeriodMs;
+						if( _nextSlowTickMs <= elapsedMs ) _nextSlowTickMs = elapsedMs + _opts.AgentTickPeriodMs; // far behind: do not catch up in a burst
+						_pumpStage = "agents";
+						foreach( var agent in Agents() ) agent.Tick();
 
-					_pumpStage = "pids";
-					NoteRunningProcesses();
-					_pumpStage = "operator";
-					Operator.Tick();
+						_pumpStage = "pids";
+						NoteRunningProcesses();
+						_pumpStage = "operator";
+						Operator.Tick();
+						foreach( var gui in _extraGuis ) gui.Tick();
+					}
 					_pumpStage = "idle";
 					Interlocked.Increment( ref _ticks );
 				}
@@ -607,7 +635,7 @@ namespace Dirigent.TestBed
 				RootForRelativePaths = TempRoot,
 				AgentStatusFolder = AgentStatusFolder,
 				DownloadFolder = DownloadFolder,
-				TickPeriod = _opts.TickPeriodMs,
+				TickPeriod = _opts.AgentTickPeriodMs > 0 ? _opts.AgentTickPeriodMs : _opts.TickPeriodMs,
 				MasterTickPeriod = _opts.TickPeriodMs,
 				LogFileName = "",
 				StartupPlan = "",

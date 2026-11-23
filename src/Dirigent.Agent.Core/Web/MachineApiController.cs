@@ -77,6 +77,9 @@ namespace Dirigent.Web
 		public string archiveFolder { get; set; } = string.Empty;
 		public bool killAllInProgress { get; set; }
 
+		/// <summary>What the master's server sent and received since it started (or since the last reset), by message type, the biggest first.</summary>
+		public Net.TrafficStats.Report traffic { get; set; } = new();
+
 		/// <summary>The ids of the clients (agents, GUIs) connected now.</summary>
 		public List<string> connectedClients { get; set; } = new();
 	}
@@ -205,6 +208,7 @@ namespace Dirigent.Web
 			localConfigPath = NullIfEmpty( _master.LocalConfigFile ),
 			archiveFolder = _master.DownloadJobs.ArchiveFolder,
 			killAllInProgress = _master.KillAllInProgress,
+			traffic = _master.Traffic.Snapshot(),
 			connectedClients = _master.GetAllClientsState().Where( kv => kv.Value.Connected ).Select( kv => kv.Key ).OrderBy( x => x ).ToList(),
 		};
 

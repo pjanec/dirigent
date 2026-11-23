@@ -91,6 +91,11 @@ namespace Dirigent.IntegrationTests
 			Assert.IsFalse( s.killAllInProgress );
 			Assert.AreEqual( bed.Master.DownloadJobs.ArchiveFolder, s.archiveFolder );
 			CollectionAssert.IsSubsetOf( new[] { "m1", "m2" }, s.connectedClients );
+
+			// the master has been talking and listening: the clients identified themselves, and the states went round
+			Assert.IsTrue( s.traffic.received.Any( t => t.type == nameof( Net.ClientIdent ) && t.messages >= 2 ), "two clients said who they are" );
+			Assert.IsTrue( s.traffic.sentTotal.bytes > 0 && s.traffic.receivedTotal.bytes > 0 );
+			Assert.AreEqual( s.traffic.sent.Max( t => t.bytes ), s.traffic.sent[0].bytes, "the biggest first" );
 		}
 
 		[TestMethod()]

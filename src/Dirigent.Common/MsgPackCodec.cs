@@ -10,6 +10,9 @@ namespace Dirigent.Net
 
 		public Action<Net.Message>? MessageReceived;
 
+		/// <summary>Where the messages taken off the wire are counted; null = not counted.</summary>
+		public TrafficStats? Traffic;
+
 		private MessageCodec _msgCodec = new MessageCodec();
 
 		public MsgPackCodec()
@@ -27,6 +30,7 @@ namespace Dirigent.Net
 		{
 			var instance = Deserialize<Net.Message>( data, offset, size );
 			if( instance == null ) return;
+			Traffic?.Received( instance.GetType(), MessageCodec.HeaderLen + size );
 			MessageReceived?.Invoke( instance );
 		}
 

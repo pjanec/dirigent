@@ -38,6 +38,7 @@ namespace Dirigent.Net
 		{
 			_server = server;
 			_msgCodec = new MsgPackCodec();
+			_msgCodec.Traffic = server.Traffic;
 			_msgCodec.MessageReceived = OnMessageReceived;
 		}
 
@@ -159,9 +160,14 @@ namespace Dirigent.Net
 		/// <summary>Messages received since last <see cref="Tick"/> from all connected client. Filled & read synchronously from <see cref="Tick"/></summary>
 		private ConcurrentQueue<Message> _messagesReceived = new();
 
-		public Server( int port )
+		/// <summary>What this server sent and received, by message type.</summary>
+		public TrafficStats Traffic { get; }
+
+		/// <param name="traffic">where to count the traffic; the process-wide <see cref="TrafficStats.Default"/> if not given</param>
+		public Server( int port, TrafficStats? traffic = null )
 			: base( IPAddress.Any, port )
 		{
+			Traffic = traffic ?? TrafficStats.Default;
 			this._port = port;
 			_msgCodec = new MsgPackCodec();
 
@@ -287,6 +293,7 @@ namespace Dirigent.Net
 				if( s.WantsReceiveMessage( msgCategoryMask ) )
 				{
 					s.SendAsync( ms.GetBuffer(), 0, ms.Position );
+					Traffic.Sent( msg.GetType(), ms.Position );
 				}
 			}
 		}
@@ -304,6 +311,7 @@ namespace Dirigent.Net
 				var ms = new System.IO.MemoryStream();
 				MsgPackCodec.Serialize( ms, msg );
 				session.SendAsync( ms.GetBuffer(), 0, ms.Position );
+				Traffic.Sent( msg.GetType(), ms.Position );
 			}
 		}
 

@@ -53,13 +53,14 @@ namespace Dirigent.Net
 		/// </summary>
 		/// <param name="ident">if Name is empty, will be assigned a GUID matching the one from NetCoreServer's client instance</param>
 		/// <param name="autoConn">If autoConn==false, connects once and throws if failed. autoConn==true, try to connect until succeedes; and reconnects if connection is lost; never throws .</param>
-		public Client( Net.ClientIdent ident, string masterIP, int masterPort, bool autoConn = false )
+		/// <param name="traffic">where to count the traffic; the process-wide <see cref="TrafficStats.Default"/> if not given</param>
+		public Client( Net.ClientIdent ident, string masterIP, int masterPort, bool autoConn = false, TrafficStats? traffic = null )
 		{
 			_ident = ident;
 			_masterIP = masterIP;
 			_masterPort = masterPort;
 
-			_messageClient = new MessageClient( _masterIP, _masterPort, autoConn );
+			_messageClient = new MessageClient( _masterIP, _masterPort, autoConn, traffic );
 
 			if( string.IsNullOrEmpty( _ident.Name ) )
 			{

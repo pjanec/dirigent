@@ -126,6 +126,9 @@ namespace Dirigent
 		private string _localIpAddr;
 		private int _port;
         private Server _server;
+
+		/// <summary>What the master's server sent and received, by message type (<c>GET /api/status</c>). Its own instance, so that a process holding several masters or clients counts them apart.</summary>
+		public Net.TrafficStats Traffic { get; } = new();
 		private CLIProcessor _cliProc;
         private TelnetServer _telnetServer;
 		private AllClientStateRegistry _allClientStates;
@@ -173,7 +176,7 @@ namespace Dirigent
             InitializeCommon( ac, rootForRelativePaths );
 
             // Production server
-            _server = new Server( ac.MasterPort );
+            _server = new Server( ac.MasterPort, Traffic );
 
             // Telnet/CLI
             log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);

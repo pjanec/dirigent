@@ -117,10 +117,15 @@ What this master is and what it runs:
   "sharedConfig": { "path": "C:\\Dirigent\\SharedConfig.xml", "loadedAt": "2026-11-19T08:00:01Z", "minDirigentVersion": "3.1.19",
                     "machines": 12, "apps": 40, "plans": 6, "scripts": 3, "fileDefs": 85 },
   "localConfigPath": null, "archiveFolder": "C:\\ProgramData\\Dirigent\\Archives", "killAllInProgress": false,
+  "traffic": { "seconds": 3600.2,
+               "sent": [ { "type": "AppsStateMessage", "messages": 7200, "bytes": 83000000, "bytesPerSecond": 23055.1 }, ... ],
+               "received": [ { "type": "AppsStateMessage", "messages": 7200, "bytes": 21000000, "bytesPerSecond": 5832.9 }, ... ],
+               "sentTotal": { "messages": 40000, "bytes": 90000000, "bytesPerSecond": 25000.0 },
+               "receivedTotal": { "messages": 30000, "bytes": 30000000, "bytesPerSecond": 8333.3 } },
   "connectedClients": [ "master1", "m1", "m2" ] }
 ```
 
-`version` is what `--version` prints. `siteName` is the shared config's [`<Shared Name="...">`](SharedConfig.md#Name), null when it gives none. `minDirigentVersion` and `localConfigPath` are `null` when there is none. `connectedClients` are the agents and GUIs connected now.
+`version` is what `--version` prints. `siteName` is the shared config's [`<Shared Name="...">`](SharedConfig.md#Name), null when it gives none. `minDirigentVersion` and `localConfigPath` are `null` when there is none. `connectedClients` are the agents and GUIs connected now. `traffic` is what the master's server put on the wire (`sent`) and took off it (`received`) since it started, per message type, the type with the most bytes first: `messages`, `bytes` (the framed bytes - header and body - so what the application sends, not counting TCP and IP headers) and `bytesPerSecond` (over `seconds`), and the sums of each direction. It is how the idle load of a large site is read: when nothing is going on, the traffic is the states of the applications and machines published to everybody.
 
 ### GET /api/machinedefs
 
