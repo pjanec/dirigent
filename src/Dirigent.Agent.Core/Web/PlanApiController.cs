@@ -137,6 +137,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all plans defs.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/plandefs" )]
 		public async Task<IEnumerable<PlanDef>> GetAllPlansDef()
 		{
@@ -151,6 +152,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets single plan def.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/plandefs/{id}" )]
 		public async Task<PlanDef> GetPlanDef( string id )
 		{
@@ -170,6 +172,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets one concrete plans state.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/planstates/{id}" )]
 		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/planstate/{id}" )]
@@ -191,6 +194,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all plans states.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/planstates" )]
 		public async Task<IEnumerable<PlanState>> GetAllPlansState()
 		{

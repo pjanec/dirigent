@@ -103,6 +103,9 @@ namespace Dirigent
 		[Option( "siteSecretFile", Required = false, Default = "", HelpText = "File holding the site secret (at least 32 characters). Default: site.secret in the folder of the LocalConfig.xml, then in the folder of the executable." )]
 		public string SiteSecretFile { get; set; } = string.Empty;
 
+		[Option( "tokenAudience", Required = false, Default = "", HelpText = "If set, the web API accepts only tokens whose aud claim contains this. Keeps tokens made for other applications away from Dirigent." )]
+		public string TokenAudience { get; set; } = string.Empty;
+
 		[Option( "tokenPublicKeyFile", Required = false, Default = "", HelpText = "File holding the public key that checks REST tokens. Default: remoting-public.pem next to the LocalConfig.xml, then next to the executable." )]
 		public string TokenPublicKeyFile { get; set; } = string.Empty;
 
@@ -162,6 +165,12 @@ namespace Dirigent
 		public string SiteSecretFile = "";
 		public string TokenPublicKeyFile = "";
 
+		/// <summary>The audience a token of the web API must name; empty = not checked.</summary>
+		public string TokenAudience = "";
+
+		/// <summary>This process runs the master: by --isMaster, or as the master-only mode.</summary>
+		public bool RunsMaster => string.Equals( Mode, "master", StringComparison.OrdinalIgnoreCase ) || Tools.BoolFromString( IsMaster );
+
 		/// <summary>Set up by <see cref="LoadSecurity"/>, or given in memory (the test bed). Null until then: nothing is secured.</summary>
 		public SecuritySettings? SecuritySettings;
 
@@ -181,7 +190,9 @@ namespace Dirigent
 		/// <exception cref="SecurityConfigException">the setting is not off|audit|on, or the secret is missing, unreadable or too short</exception>
 		public SecuritySettings LoadSecurity()
 		{
-			SecuritySettings ??= Dirigent.SecuritySettings.Load( Dirigent.SecuritySettings.ParseMode( Security ), SiteSecretFile, TokenPublicKeyFile, LocalCfgFileName, AppContext.BaseDirectory );
+			// a master with a web server checks the tokens of its API against the public key, so it must have it
+			SecuritySettings ??= Dirigent.SecuritySettings.Load( Dirigent.SecuritySettings.ParseMode( Security ), SiteSecretFile, TokenPublicKeyFile, LocalCfgFileName, AppContext.BaseDirectory,
+				needTokenKey: RunsMaster && HttpPort > 0, tokenAudience: TokenAudience );
 			return SecuritySettings;
 		}
 		public int HttpPort = 8877;
@@ -307,6 +318,7 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.Security != "" ) Security = Common.Properties.Settings.Default.Security;
 			if( Common.Properties.Settings.Default.SiteSecretFile != "" ) SiteSecretFile = Common.Properties.Settings.Default.SiteSecretFile;
 			if( Common.Properties.Settings.Default.TokenPublicKeyFile != "" ) TokenPublicKeyFile = Common.Properties.Settings.Default.TokenPublicKeyFile;
+			if( Common.Properties.Settings.Default.TokenAudience != "" ) TokenAudience = Common.Properties.Settings.Default.TokenAudience;
 			if( Common.Properties.Settings.Default.HttpPort != 0 ) HttpPort = Common.Properties.Settings.Default.HttpPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
 			if( Common.Properties.Settings.Default.MasterTickPeriod != 0 ) MasterTickPeriod = Common.Properties.Settings.Default.MasterTickPeriod;
@@ -365,6 +377,7 @@ namespace Dirigent
 				if( options.Security != "" ) Security = options.Security;
 				if( options.SiteSecretFile != "" ) SiteSecretFile = options.SiteSecretFile;
 				if( options.TokenPublicKeyFile != "" ) TokenPublicKeyFile = options.TokenPublicKeyFile;
+				if( options.TokenAudience != "" ) TokenAudience = options.TokenAudience;
 				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
 				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;

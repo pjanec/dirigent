@@ -36,6 +36,7 @@ namespace Dirigent.Web
 					.ToArray();
 
 		// the start page, as /api/help/HTTP.md so that its relative links lead to the other pages
+		[Scope( ScopeAttribute.Open )]
 		[Route( HttpVerbs.Get, "/help" )]
 		public Task GetHelp()
 		{
@@ -44,6 +45,7 @@ namespace Dirigent.Web
 		}
 
 		// one page of the documentation, by file name (case does not matter)
+		[Scope( ScopeAttribute.Open )]
 		[Route( HttpVerbs.Get, "/help/{doc}" )]
 		public async Task GetHelpPage( string doc )
 		{

@@ -133,6 +133,9 @@ namespace Dirigent
 		public Crashes.ExitHistory ExitHistory { get; } = new();
 
 		public bool WantsQuit { get; set; }
+
+		/// <summary>How the master port and the web API are secured; <see cref="SecuritySettings.Off"/> for neither.</summary>
+		public SecuritySettings Security { get; private set; } = SecuritySettings.Off;
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 
 		public TickableCollection Tickers => _tickers;
@@ -214,6 +217,7 @@ namespace Dirigent
 
             // Production server: plain TCP, or TLS and the site secret when security is on (see docs/Security.md)
             var security = ac.LoadSecurity();
+            Security = security;
             log.Info( security.Secured ? $"The master port is secured (Security={security.Mode})." : "The master port is not secured (Security=off)." );
             _server = new Server( ac.MasterPort, Traffic, security );
 

@@ -70,6 +70,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all scripts defs.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/scriptdefs" )]
 		public async Task<IEnumerable<ScriptDef>> GetAllScriptsDef()
 		{
@@ -84,6 +85,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets single script def.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/scriptdefs/{id}" )]
 		public async Task<ScriptDef> GetScriptDef( string id )
 		{
@@ -103,6 +105,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets one concrete script state.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/scriptstates/{id}" )]
 		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/scriptstate/{id}" )]
@@ -124,6 +127,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all scripts states.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/scriptstates" )]
 		public async Task<IEnumerable<ScriptState>> GetAllScriptsState()
 		{

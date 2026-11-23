@@ -20,6 +20,9 @@ namespace Dirigent.Web
 
 		/// <summary>The section of the manual describing the route; the manual itself if it has none.</summary>
 		public string help { get; set; } = string.Empty;
+
+		/// <summary>The scopes a token must allow, all of them: read, control, sim - or open for a route that needs no token.</summary>
+		public string scope { get; set; } = string.Empty;
 	}
 
 	/// <summary>What GET /api answers: what this is, where to begin, and every route there is.</summary>
@@ -33,6 +36,12 @@ namespace Dirigent.Web
 
 		/// <summary>The reference of this API, as Markdown.</summary>
 		public string help { get; set; } = string.Empty;
+
+		/// <summary>
+		/// Whether the API asks for a token: <c>off</c> (open), <c>audit</c> (checked and logged, nothing refused) or <c>on</c>.
+		/// With audit or on, <c>Authorization: Bearer &lt;JWT&gt;</c> (ES256) and each route says in <c>scope</c> what the token must allow.
+		/// </summary>
+		public string authentication { get; set; } = "off";
 
 		/// <summary>Every page of the manual of this version.</summary>
 		public List<string> docs { get; set; } = new();
@@ -64,6 +73,7 @@ namespace Dirigent.Web
 
 		const string Manual = "/api/help/HTTP.md";
 
+		[Scope( ScopeAttribute.Open )]
 		[Route( HttpVerbs.Get, "/" )]
 		public async Task GetIndex()
 		{
@@ -76,6 +86,7 @@ namespace Dirigent.Web
 			} );
 
 			index.help = Manual;
+			index.authentication = _master.Security.Mode.ToString().ToLowerInvariant();
 			index.docs = HelpApiController.Pages.Select( p => "/api/help/" + p ).ToList();
 			index.start = new()
 			{
@@ -88,7 +99,9 @@ namespace Dirigent.Web
 			};
 			index.limits = $"More than {WebServerRunner.MaxRequestsPerSecond} requests in a second ban the address for "
 				+ $"{WebServerRunner.BanMinutes} minutes - ask for lists (/api/appstates, ...), not one item at a time. "
-				+ "No authentication: anyone reaching this port can control the site.";
+				+ ( _master.Security.Mode == ESecurityMode.Off
+					? "No authentication: anyone reaching this port can control the site."
+					: "Every call but this index and the manual needs a token: Authorization: Bearer <JWT> (ES256), with the scope the route lists - see /api/help/Security.md." );
 			index.routes = Routes();
 
 			await HttpContext.SendStringAsync( AppFilesResult.ToJson( index ), "application/json", ApiOps.Utf8 );
@@ -105,8 +118,9 @@ namespace Dirigent.Web
 					 from attr in method.GetCustomAttributes<RouteAttribute>()
 					 let path = "/api" + ( attr.Route == "/" ? "" : attr.Route )
 					 let verb = attr.Verb.ToString().ToUpperInvariant()
+					 let scopeAttr = method.GetCustomAttribute<ScopeAttribute>()
 					 orderby path, verb
-					 select new ApiRoute() { method = verb, path = path, help = HelpFor( verb, path, headings ) } ).ToList();
+					 select new ApiRoute() { method = verb, path = path, help = HelpFor( verb, path, headings ), scope = scopeAttr is null ? ScopeAttribute.Control : string.Join( " ", scopeAttr.Required ) } ).ToList();
 		}
 
 		/// <summary>The headings of HTTP.md that describe a route: "GET /api/downloads/{id}?wait=N" and the like.</summary>

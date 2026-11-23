@@ -51,12 +51,23 @@ namespace Dirigent
 		/// <summary>Where the public key that checks REST tokens was found; null if it was not looked for or does not exist (a step of its own needs it).</summary>
 		public string? TokenPublicKeyPath { get; }
 
+		/// <summary>Checks the tokens of the web API; set on a master that runs a web server while security is on or audit, otherwise null.</summary>
+		public TokenValidator? Tokens { get; private init; }
+
+		/// <summary>The audience a token must name, if one is required.</summary>
+		public string? TokenAudience => _tokenAudience;
+		string? _tokenAudience;
+
+		/// <summary>The same settings with the web API's tokens checked against this public key (PEM) - for tests, without a file.</summary>
+		public SecuritySettings WithTokens( string publicKeyPem, string? audience = null )
+			=> new SecuritySettings( Mode, SiteSecret, SiteSecretSource, TokenPublicKeyPath ) { HandshakeTimeout = HandshakeTimeout, Tokens = new TokenValidator( publicKeyPem, audience ), _tokenAudience = audience };
+
 		/// <summary>How long a connection to the master may take to be proved, TLS included, before it is closed.</summary>
 		public TimeSpan HandshakeTimeout { get; init; } = TimeSpan.FromSeconds( 10 );
 
 		/// <summary>The same settings with another time allowed for the handshake - for tests that wait for it to run out.</summary>
 		public SecuritySettings WithHandshakeTimeout( TimeSpan timeout )
-			=> new SecuritySettings( Mode, SiteSecret, SiteSecretSource, TokenPublicKeyPath ) { HandshakeTimeout = timeout };
+			=> new SecuritySettings( Mode, SiteSecret, SiteSecretSource, TokenPublicKeyPath ) { HandshakeTimeout = timeout, Tokens = Tokens, _tokenAudience = _tokenAudience };
 
 		SecuritySettings( ESecurityMode mode, byte[] secret, string source, string? tokenKeyPath )
 		{
@@ -97,7 +108,7 @@ namespace Dirigent
 		/// <param name="explicitTokenKeyFile">--tokenPublicKeyFile or the setting</param>
 		/// <param name="localConfigFile">the LocalConfig.xml in use, whose folder is looked in next; empty if none</param>
 		/// <param name="exeFolder">the folder of the executable, the last place</param>
-		public static SecuritySettings Load( ESecurityMode mode, string? explicitSecretFile, string? explicitTokenKeyFile, string? localConfigFile, string exeFolder )
+		public static SecuritySettings Load( ESecurityMode mode, string? explicitSecretFile, string? explicitTokenKeyFile, string? localConfigFile, string exeFolder, bool needTokenKey = false, string? tokenAudience = null )
 		{
 			if( mode == ESecurityMode.Off ) return Off;
 
@@ -111,7 +122,19 @@ namespace Dirigent
 			else
 				keyPath = TryLocate( TokenPublicKeyFileName, localConfigFile, exeFolder );
 
-			return new SecuritySettings( mode, secret, secretPath, keyPath );
+			// the master that runs a web server checks its tokens against the key: no key, no start - never an open API by accident
+			TokenValidator? tokens = null;
+			if( needTokenKey )
+			{
+				keyPath ??= Locate( TokenPublicKeyFileName, "--tokenPublicKeyFile", null, localConfigFile, exeFolder, "the token public key (the web API needs it while security is on)" );
+				string pem;
+				try { pem = File.ReadAllText( keyPath ); }
+				catch( Exception ex ) { throw new SecurityConfigException( $"The token public key file '{keyPath}' could not be read: {ex.Message}" ); }
+				try { tokens = new TokenValidator( pem, tokenAudience ); }
+				catch( SecurityConfigException ex ) { throw new SecurityConfigException( $"{ex.Message} (file '{keyPath}')" ); }
+			}
+
+			return new SecuritySettings( mode, secret, secretPath, keyPath ) { Tokens = tokens, _tokenAudience = string.IsNullOrWhiteSpace( tokenAudience ) ? null : tokenAudience.Trim() };
 		}
 
 		/// <summary>The places a file is looked for, in order, as (path, what it is).</summary>

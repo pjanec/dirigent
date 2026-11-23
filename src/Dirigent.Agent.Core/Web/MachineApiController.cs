@@ -122,6 +122,7 @@ namespace Dirigent.Web
 			return info;
 		}
 
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/machinedefs" )]
 		public async Task GetMachineDefs()
 		{
@@ -129,6 +130,7 @@ namespace Dirigent.Web
 			await SendJson( AppFilesResult.ToJson( list ) );
 		}
 
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/machinedefs/{id}" )]
 		public async Task GetMachineDef( string id )
 		{
@@ -140,9 +142,11 @@ namespace Dirigent.Web
 			await SendJson( AppFilesResult.ToJson( info ) );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/machinedefs/{id}/shutdown" )]
 		public Task Shutdown( string id ) => Power( id, "shut down", EShutdownMode.PowerOff );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/machinedefs/{id}/reboot" )]
 		public Task Reboot( string id ) => Power( id, "reboot", EShutdownMode.Reboot );
 
@@ -163,6 +167,7 @@ namespace Dirigent.Web
 			await Accepted( $"Machine {id} was told to {what}." );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/machinedefs/{id}/wakeup" )]
 		public async Task WakeUp( string id )
 		{
@@ -214,6 +219,7 @@ namespace Dirigent.Web
 			connectedClients = _master.GetAllClientsState().Where( kv => kv.Value.Connected ).Select( kv => kv.Key ).OrderBy( x => x ).ToList(),
 		};
 
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/status" )]
 		public async Task GetStatus()
 		{

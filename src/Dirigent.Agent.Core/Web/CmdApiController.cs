@@ -37,6 +37,7 @@ namespace Dirigent.Web
 
 
 		// POST api/cli   data: "StartApp m1.a@plan1"
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/cli" )]
 		public async Task PostCliCmd()
 		{

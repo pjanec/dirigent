@@ -4,21 +4,19 @@ Dirigent starts and kills programs, reboots machines and runs scripts on every m
 default - `Security=off` - it does what it always did: anybody who reaches the master's ports can do all of that. Security closes the
 master port; the other two doors, the web API and the telnet CLI, are described at the end.
 
-*This page describes what is built in 3.1.20 so far: the master port and the telnet CLI. The web API gets token checks in a later step.*
-
 ### What is protected, and what is not
 
 | | Off (default) | On or audit |
 |---|---|---|
 | **The master port** (agents and GUIs to the master, 5045) | plain TCP | TLS, and a handshake that proves the site secret both ways before anything else is accepted |
 | **The telnet CLI** (5050) | runs | **off**, unless a port is named; if it is named it still asks nobody anything |
-| **The web API** (8877) | open | open (tokens follow in a later step) |
+| **The web API** (8877) | open | a token on every call but the index and the manual; plain HTTP |
 
 What the secret means: whoever holds `site.secret` is trusted with the whole site - agents and GUIs alike, as every machine that runs a
 GUI holds it. There is one secret per site; separate ones for operators and agents are not planned for 3.1.20. The traffic on the master port is
-encrypted, but the web API and the CLI port are plain: anything read off them can be reused.
+encrypted, but the web API and the CLI port are plain: anything read off them can be reused (a token, until it expires).
 
-`audit` differs from `on` only for the web API (checked and logged, nothing refused), which is a later step; for the master port, and for every
+`audit` differs from `on` only for the web API (checked and logged, nothing refused); for the master port, and for every
 process of the site, it means the same as `on`. There is no half-secured mode of the master port: a TLS port cannot also speak plain TCP.
 
 ### Setting it up
@@ -42,7 +40,7 @@ All machines of a site run the same version and the same setting. Do it everywhe
 4. **Restart** the master first, then the agents and GUIs. A program that cannot find or read the secret does not start (below).
 
 Where `site.secret` is searched for, in order: the file named by `--siteSecretFile`; the folder of the LocalConfig.xml in use; the folder of the executable.
-The same order is used for `remoting-public.pem`, which a later step uses to check web API tokens (`--tokenPublicKeyFile`).
+The same order is used for `remoting-public.pem`, which the master of a site with a web API needs to check its tokens (`--tokenPublicKeyFile`; see below).
 
 ### If the secret is not there
 
@@ -84,6 +82,30 @@ certificate, is what tells a client it is talking to the master and the master t
 warning that it asks nobody anything. Scripts and tools that use the CLI have to be given a port then; the web API is the other way in. (A `.config` that was shipped with
 `CLIPort` set to 5050 still has it on; empty that setting.) `--CLIPort 0` still means "the default" and does not name a port.
 
-### Later steps
+### The web API
 
-Tokens for the web API (`remoting-public.pem`, scopes, audit mode) are the next step; `/api/cli` and the rest of the web API are open until then.
+With security on or audit the web API (and its web socket and static page) checks a token on every call but the index and the manual (`GET /api`, `/api/help`). The master needs
+`remoting-public.pem`, the public half of the ES256 key pair whoever issues tokens holds: it is looked for like `site.secret` (`--tokenPublicKeyFile`, then the folder of the LocalConfig.xml, then the
+folder of the executable), and a master with a web server (`--httpPort` above 0) that cannot find or read it **does not start** - exit code 5, with every place it looked. Agents and GUIs do not need it.
+
+**How a tool gets in.** It sends `Authorization: Bearer <token>`, a JWT signed with ES256. Dirigent issues nothing; whoever holds the private key makes tokens, with a short life (`exp` is required, 60 seconds of clock
+difference are tolerated) and the scopes the tool needs:
+
+| scope | allows |
+|---|---|
+| `read` | every `GET`, `POST /api/files/query`, the web socket and the static page |
+| `control` | everything that acts - plans, apps, scripts, kill all, reload, variables, machine power, marks, downloads, `POST /api/cli` |
+| `sim` | clearing files (with `control` too, for `POST /api/marks`) |
+
+Scopes add up, and `control` does not include `read`: a tool that looks and acts has `"scope": "read control"`. `GET /api` lists every route with its scope, so a tool or an agent sees what it needs. A route nobody described needs `control`.
+See [Web API](HTTP.md#Authentication) for the refusals (401 and 403) and the claims.
+
+**The audience.** Tokens signed with the site's key work on every application that trusts that key. To keep tokens made for another application away from Dirigent, start the master with `--tokenAudience dirigent-lab` (or `TokenAudience` in the `.config`): then a token
+must carry `"aud": "dirigent-lab"` (or an array containing it). Unset, `aud` is not looked at.
+
+**Rolling it out.** `Security=audit` secures the master port like `on` but only *checks* the web API: every call that would have been refused is logged
+(`audit: 10.0.0.7 POST /api/plandefs/all/start would be refused (401): no token ...`) and let through. Run a while in audit, give every tool its token, then switch to `on`.
+
+**What is logged.** Every call that changes something - everything but `GET` - is logged by the master with the token's `sub`: `ci-runner POST /api/plandefs/all/start from 10.0.0.7`. A refusal is logged with the address, the route and the reason.
+
+**What is still open.** The web API is plain HTTP: a token can be read off the wire and reused until it expires, which is why tokens should be short-lived. HTTPS is a later, separate option.

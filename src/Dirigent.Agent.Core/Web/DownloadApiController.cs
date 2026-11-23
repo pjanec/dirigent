@@ -26,6 +26,7 @@ namespace Dirigent.Web
 		}
 
 		// the type is compared case-insensitively; the other filters take the wildcards of ListVfsNodes
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/filedefs" )]
 		public async Task GetFileDefs()
 		{
@@ -44,6 +45,7 @@ namespace Dirigent.Web
 		}
 
 		// the definitions with this id (wildcards allowed), narrowed by ?machine= and ?app=; the listing shape
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/filedefs/{id}" )]
 		public async Task GetFileDef( string id )
 		{
@@ -64,6 +66,7 @@ namespace Dirigent.Web
 		}
 
 		// body: {"fileDef":{"id":"logs","machine":"m1","app":"a"}} or {"app":"m1.a@plan"}, optional "comment"
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/downloads" )]
 		public async Task StartDownload()
 		{
@@ -89,6 +92,7 @@ namespace Dirigent.Web
 
 		// The preview of a selection: {"fileDefs":[{"id":"pkg.a","machine":"m1"}],"apps":["m1.a"]}; changes nothing.
 		// ?content=false skips scanning the folders.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Post, "/files/query" )]
 		public async Task QueryFiles()
 		{
@@ -140,6 +144,7 @@ namespace Dirigent.Web
 			await SendJson( result.ToJson() );
 		}
 
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/downloads" )]
 		public async Task ListDownloads()
 		{
@@ -147,6 +152,7 @@ namespace Dirigent.Web
 		}
 
 		// ?wait=N holds the answer until the job has ended, at most N seconds (max 120)
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/downloads/{id}" )]
 		public async Task GetDownload( string id )
 		{
@@ -166,6 +172,7 @@ namespace Dirigent.Web
 			await SendJson( view.ToJson() );
 		}
 
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/downloads/{id}/archives/{name}" )]
 		public async Task GetDownloadFile( string id, string name )
 		{
@@ -196,6 +203,7 @@ namespace Dirigent.Web
 		}
 
 		// stops the job if it runs and removes it
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Delete, "/downloads/{id}" )]
 		public async Task DeleteDownload( string id )
 		{

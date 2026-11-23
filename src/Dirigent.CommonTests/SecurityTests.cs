@@ -169,6 +169,43 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod]
+		public void AMasterWithAWebServerMustHaveTheTokenKeyAndItIsReadAndChecked()
+		{
+			using var p = new Places();
+			p.Put( p.Exe, Good );
+
+			var ex = Assert.ThrowsException<SecurityConfigException>( () => SecuritySettings.Load( ESecurityMode.On, null, null, p.LocalConfigFile, p.Exe, needTokenKey: true ) );
+			StringAssert.Contains( ex.Message, "remoting-public.pem" );
+			StringAssert.Contains( ex.Message, Path.Combine( p.Local, "remoting-public.pem" ) );
+			StringAssert.Contains( ex.Message, Path.Combine( p.Exe, "remoting-public.pem" ) );
+
+			// not a key
+			p.Put( p.Local, "this is not a key", "remoting-public.pem" );
+			var bad = Assert.ThrowsException<SecurityConfigException>( () => SecuritySettings.Load( ESecurityMode.On, null, null, p.LocalConfigFile, p.Exe, needTokenKey: true ) );
+			StringAssert.Contains( bad.Message, Path.Combine( p.Local, "remoting-public.pem" ) );
+
+			// a key, found like the secret; the audience goes with it
+			using var mint = new Dirigent.TestBed.TokenMint();
+			p.Put( p.Local, mint.PublicKeyPem, "remoting-public.pem" );
+			var s = SecuritySettings.Load( ESecurityMode.On, null, null, p.LocalConfigFile, p.Exe, needTokenKey: true, tokenAudience: "lab" );
+			Assert.IsNotNull( s.Tokens );
+			Assert.AreEqual( "lab", s.TokenAudience );
+			Assert.IsTrue( s.Tokens!.Validate( mint.Mint( "read", "x", audience: "lab" ) ).Ok );
+
+			// not needed (no web server, or an agent): not required
+			Assert.IsNull( SecuritySettings.Load( ESecurityMode.On, null, null, p.LocalConfigFile, p.Exe ).Tokens );
+			Assert.IsNull( SecuritySettings.Load( ESecurityMode.Off, null, null, p.LocalConfigFile, p.Exe, needTokenKey: true ).Tokens, "security off: nothing is read" );
+		}
+
+		[TestMethod]
+		public void TheTokenAudienceAndRunsMasterComeFromTheConfig()
+		{
+			Assert.IsTrue( new AppConfig() { Mode = "master" }.RunsMaster );
+			Assert.IsTrue( new AppConfig() { IsMaster = "1" }.RunsMaster );
+			Assert.IsFalse( new AppConfig() { Mode = "daemon", IsMaster = "0" }.RunsMaster );
+		}
+
+		[TestMethod]
 		public void TheModeIsReadStrictly()
 		{
 			Assert.AreEqual( ESecurityMode.Off, SecuritySettings.ParseMode( "" ) );

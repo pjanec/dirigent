@@ -55,6 +55,7 @@ namespace Dirigent.Web
         }
 
         // Gets all clients states
+        [Scope( ScopeAttribute.Read )]
         [Route( HttpVerbs.Get, "/clients" )]
         public async Task<IEnumerable<ClientState>> GetAllClientsState()
         {
@@ -74,6 +75,7 @@ namespace Dirigent.Web
         }
 
         // Gets one concrete client state
+        [Scope( ScopeAttribute.Read )]
         [Route( HttpVerbs.Get, "/clients/{id}" )]
         public async Task<ClientState> GetClientState( string id )
         {

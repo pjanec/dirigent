@@ -64,7 +64,9 @@ The options can be specified either on the command line (prefixed with double da
 
  `--siteSecretFile site.secret` ... the file holding the site secret (at least 32 characters). Default: `site.secret` in the folder of the LocalConfig.xml, then in the folder of the executable. Also `SiteSecretFile` in the `.config`.
 
- `--tokenPublicKeyFile remoting-public.pem` ... the public key that checks REST tokens (a later step uses it). Default: `remoting-public.pem`, searched like the secret.
+ `--tokenPublicKeyFile remoting-public.pem` ... the public key that checks the tokens of the web API. Default: `remoting-public.pem`, searched like the secret. A master with a web server needs it while security is on or audit.
+
+ `--tokenAudience name` ... if set, the web API accepts only tokens whose `aud` claim contains it. Also `TokenAudience` in the `.config`. See [Security](Security.md).
 
  `--httpPort 8877` ... Web API port number. -1 to disable the web api. Passed to the master process when `--IsMaster 1` is used.
 

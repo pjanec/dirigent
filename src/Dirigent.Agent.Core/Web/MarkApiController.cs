@@ -28,26 +28,33 @@ namespace Dirigent.Web
 		}
 
 		// ?machine= and ?app= narrow the selection; {id} may be a wildcard (* = every clearable file)
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/filedefs/{id}/mark" )]
 		public Task MarkFileDefs( string id ) => RunFileDefs( MarkOperation.EKind.Mark, id );
 
+		[Scope( ScopeAttribute.Sim )]
 		[Route( HttpVerbs.Post, "/filedefs/{id}/clear" )]
 		public Task ClearFileDefs( string id ) => RunFileDefs( MarkOperation.EKind.Clear, id );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/filedefs/{id}/unmark" )]
 		public Task UnmarkFileDefs( string id ) => RunFileDefs( MarkOperation.EKind.Unmark, id );
 
 		// {id} is m1.a or m1.a@plan; the plan is picked as for the file previews
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/mark" )]
 		public Task MarkApp( string id ) => RunApp( MarkOperation.EKind.Mark, id );
 
+		[Scope( ScopeAttribute.Sim )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/clear" )]
 		public Task ClearApp( string id ) => RunApp( MarkOperation.EKind.Clear, id );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/unmark" )]
 		public Task UnmarkApp( string id ) => RunApp( MarkOperation.EKind.Unmark, id );
 
 		// body: {"operation":"mark|clear|unmark","fileDefs":[{"id":"pkg.a"}],"apps":["m1.a"]} - one operation over the union
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/marks" )]
 		public async Task MarkSelection()
 		{
@@ -66,6 +73,9 @@ namespace Dirigent.Web
 				case "unmark": kind = MarkOperation.EKind.Unmark; break;
 				default: throw HttpException.BadRequest( "'operation' must be mark, clear or unmark." );
 			}
+
+			// the route needs control; clearing destroys files, which is a scope of its own
+			if( kind == MarkOperation.EKind.Clear ) TokenAccess.Require( HttpContext, ScopeAttribute.Sim );
 
 			await Run( () => MarkOperation.StartForSelection( _master, kind, FileSelection.Parse( _master, request ) ) );
 		}

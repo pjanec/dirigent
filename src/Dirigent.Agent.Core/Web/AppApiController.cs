@@ -139,6 +139,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all apps defs.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appdefs" )]
 		public async Task<IEnumerable<AppDef>> GetAllAppsDef()
 		{
@@ -153,6 +154,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets single app def.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appdefs/{id}" )]
 		public async Task<AppDef> GetAppDef( string id )
 		{
@@ -175,6 +177,7 @@ namespace Dirigent.Web
 
 		// Where the binary and the working folder of an app are, as its agent resolves them.
 		// id is "m1.a" or "m1.a@plan1", the definition picked as for the files.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appdefs/{id}/location" )]
 		public async Task GetAppLocation( string id )
 		{
@@ -193,6 +196,7 @@ namespace Dirigent.Web
 		}
 
 		// The same for all the apps, or those of one machine (?machine=m1).
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/applocations" )]
 		public async Task GetAppLocations()
 		{
@@ -216,6 +220,7 @@ namespace Dirigent.Web
 		}
 
 		// The versions of the applications, each listed once with the machines and apps that have it (?machine=m1).
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appversions" )]
 		public async Task GetAppVersions()
 		{
@@ -239,6 +244,7 @@ namespace Dirigent.Web
 
 		// Gets the actual files of one app instance, with local and UNC paths.
 		// id is "m1.a" or "m1.a@plan1"; ?content=false skips scanning the folders.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appdefs/{id}/files" )]
 		public async Task GetAppFiles( string id )
 		{
@@ -268,6 +274,7 @@ namespace Dirigent.Web
 
 		// Gets the files of any top-level VFS node (a file package, typically), addressed as scripts do.
 		// ?machine=m1&app=a narrow the selection; ?content=false skips scanning the folders.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/filedefs/{id}/files" )]
 		public async Task GetFiles( string id )
 		{
@@ -306,6 +313,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets one concrete app state.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appstates/{id}" )]
 		// the plural is the name documented; the singular is the older one and stays
 		[Route( HttpVerbs.Get, "/appstate/{id}" )]
@@ -322,6 +330,7 @@ namespace Dirigent.Web
 		}
 
 		// Gets all plans states.
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/appstates" )]
 		public async Task<IEnumerable<AppState>> GetAllAppsState()
 		{

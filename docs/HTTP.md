@@ -18,10 +18,37 @@ worth knowing:
 * No URL reservation or elevation is needed. The server listens on its own socket rather than
   through the Windows HTTP stack.
 
-> **There is no authentication and no encryption.** Anyone who can reach the port can read everything below
+> **With security off (the default) there is no authentication and no encryption.** Anyone who can reach the port can read everything below
 > and, through [`POST /api/cli`](#POST-apicli), control Dirigent: start and kill applications, run scripts,
 > shut machines down. Run it on a trusted LAN only, never expose it to an untrusted network, and put it behind
-> a firewall rule or switch it off (`--httpPort -1`) where the API is not needed.
+> a firewall rule or switch it off (`--httpPort -1`) where the API is not needed. With security on or audit every call needs a token -
+> see [Authentication](#Authentication). There is still no encryption: the port is plain HTTP.
+
+## Authentication
+
+`GET /api` says what this master does: `"authentication": "off"`, `"audit"` or `"on"`, and lists every route with the scope it needs.
+The rest of this section is for a master that runs with `--security on` or `audit`; see [Security](Security.md) for how a site is set up.
+
+* **Open without a token:** `GET /api`, `GET /api/help` and `GET /api/help/{doc}` (this manual), and the redirect of `/` to `/api`.
+* **Everything else needs** `Authorization: Bearer <token>`, a JWT signed with ES256 (ECDSA P-256) by the key whose public half is in the master's
+  `remoting-public.pem`. Dirigent issues no tokens and stores none; whoever holds the private key makes them. The token needs `exp`; `nbf` is honoured; the clocks may differ by 60 seconds.
+  `sub` is written to the master's log with every call that changes anything. `aud` must name this Dirigent if the master was started with `--tokenAudience`.
+* **Scopes** (the claim `scope`, a space-separated string, or `scp`, a string or an array). They add up - `control` does not include `read`, so a tool that does both needs both:
+
+  | scope | allows |
+  |---|---|
+  | `read` | every `GET`, and `POST /api/files/query`; also the web socket `/websock` and the static page |
+  | `control` | everything that acts: plans, apps, scripts, kill all, shared config reload, variables, machine power, mark and unmark, downloads and deleting them, and `POST /api/cli` as a whole |
+  | `sim` | clearing files: `POST /api/filedefs/{id}/clear`, `POST /api/appdefs/{id}/clear`; and `POST /api/marks` with `"operation":"clear"` needs `sim` on top of `control` |
+
+* **Refusals** are the usual JSON error with a `WWW-Authenticate: Bearer` header: **401** for no token, a malformed one, a bad signature, an expired one ("expired at ..."), one not valid yet, or the wrong audience; **403** when the token is good but lacks the scope ("this route needs the scope control; the token has read"). A route this page does not describe needs `control`.
+* **Audit mode** checks all of it and refuses nothing: each call that would have been refused is written to the master's log with the reason, the route and the address - for finding out what would break before security is turned on.
+
+A token for a tool that watches and controls, as the claims of the JWT:
+
+```json
+{ "sub": "ci-runner", "scope": "read control", "exp": 1795000000, "aud": "dirigent-lab" }
+```
 
 ## Conventions
 
@@ -96,13 +123,15 @@ and power and Wake-on-LAN in [Management](Mgmt.md).
 The front door - what a tool or an agent that knows only the address asks first (`GET /` redirects here). `/api/` answers the same.
 
 ```json
-{ "name": "Dirigent", "version": "Dirigent.Agent 3.1.19.24", "masterMachineId": "master1", "sharedConfig": "C:\\Dirigent\\SharedConfig.xml",
+{ "name": "Dirigent", "version": "Dirigent.Agent 3.1.19.24", "authentication": "off", "masterMachineId": "master1", "sharedConfig": "C:\\Dirigent\\SharedConfig.xml",
   "help": "/api/help/HTTP.md",
   "docs": [ "/api/help/CLI.md", "/api/help/Files.md", "/api/help/HTTP.md", "..." ],
   "start": [ "GET /api/status - which Dirigent this is, what it runs, who is connected", "..." ],
   "limits": "More than 50 requests in a second ban the address for 10 minutes - ...",
-  "routes": [ { "method": "GET", "path": "/api/status", "help": "/api/help/HTTP.md#GET-apistatus" }, ... ] }
+  "routes": [ { "method": "GET", "path": "/api/status", "help": "/api/help/HTTP.md#GET-apistatus", "scope": "read" }, ... ] }
 ```
+
+`authentication` is `off`, `audit` or `on` (see [Authentication](#Authentication)); each route says in `scope` what a token must allow - `read`, `control`, `sim`, or `open` for the routes that need no token. With security off the scopes are informative only.
 
 `routes` is read from the master's own code, so it is exactly what this version answers; each `help` links to the route's section of
 this manual (the manual of the same version - [`/api/help`](#GET-apihelp)). `start` is the order of questions of

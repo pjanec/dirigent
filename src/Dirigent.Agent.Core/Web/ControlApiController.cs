@@ -93,15 +93,19 @@ namespace Dirigent.Web
 
 		// ---- plans ------------------------------------------------------------------------------------
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/plandefs/{id}/start" )]
 		public Task<PlanState> StartPlan( string id ) => PlanOp( id, "start" );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/plandefs/{id}/stop" )]
 		public Task<PlanState> StopPlan( string id ) => PlanOp( id, "stop" );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/plandefs/{id}/kill" )]
 		public Task<PlanState> KillPlan( string id ) => PlanOp( id, "kill" );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/plandefs/{id}/restart" )]
 		public Task<PlanState> RestartPlan( string id ) => PlanOp( id, "restart" );
 
@@ -161,12 +165,15 @@ namespace Dirigent.Web
 
 		// ---- applications -----------------------------------------------------------------------------
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/start" )]
 		public Task<AppState> StartApp( string id ) => AppOp( id, "start" );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/kill" )]
 		public Task<AppState> KillApp( string id ) => AppOp( id, "kill" );
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/appdefs/{id}/restart" )]
 		public Task<AppState> RestartApp( string id ) => AppOp( id, "restart" );
 
@@ -261,6 +268,7 @@ namespace Dirigent.Web
 
 		// ---- the system -------------------------------------------------------------------------------
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/killall" )]
 		public async Task KillAll()
 		{
@@ -278,6 +286,7 @@ namespace Dirigent.Web
 			await Accepted( new { message = string.IsNullOrEmpty( machine ) ? "Kill All was issued." : $"Kill All was issued for machine {machine}." } );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/sharedconfig/reload" )]
 		public async Task ReloadSharedConfig()
 		{
@@ -304,6 +313,7 @@ namespace Dirigent.Web
 			await Json( new { message = "The shared config was reloaded.", path = _master.SharedConfigFile, loadedAt = _master.SharedConfigLoadedAt } );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/vars" )]
 		public async Task SetVars()
 		{
@@ -332,6 +342,7 @@ namespace Dirigent.Web
 			=> Guid.TryParse( text, out var g ) ? g : throw HttpException.BadRequest( $"'{text}' is not a {what} guid." );
 
 		// the same operation under two names: scriptdefs/{id}/start is of a piece with plandefs and appdefs, scripts/{id}/start pairs with scripts/{id}/kill
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/scriptdefs/{id}/start" )]
 		[Route( HttpVerbs.Post, "/scripts/{id}/start" )]
 		public async Task StartScriptDef( string id )
@@ -350,6 +361,7 @@ namespace Dirigent.Web
 			await AnswerScript( guid, wait );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/scripts" )]
 		public async Task StartScript()
 		{
@@ -422,6 +434,7 @@ namespace Dirigent.Web
 			await Json( res );
 		}
 
+		[Scope( ScopeAttribute.Control )]
 		[Route( HttpVerbs.Post, "/scripts/{id}/kill" )]
 		public async Task KillScript( string id )
 		{

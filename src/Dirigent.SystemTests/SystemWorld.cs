@@ -43,6 +43,19 @@ namespace Dirigent.SystemTests
 		/// <summary>The world runs with <c>--security on</c>: TLS and the site secret in the file beside LocalConfig.xml.</summary>
 		public bool Secured { get; private set; }
 
+		/// <summary>The security mode of a secured world: on, or audit.</summary>
+		public string SecurityMode { get; private set; } = "on";
+
+		/// <summary>The key pair whose public half the master checks the tokens of its web API against - set when the world was started with tokens.</summary>
+		public Dirigent.TestBed.TokenMint? Tokens { get; private set; }
+
+		/// <summary>The audience the master requires of a token, if it was started with one.</summary>
+		public string? Audience { get; private set; }
+
+		/// <summary>A token for the web API, signed by the key the master trusts.</summary>
+		public string Token( string scope, TimeSpan? lifetime = null )
+			=> Tokens!.Mint( scope, "system-test", lifetime, audience: Audience );
+
 		/// <summary>The site secret of a secured world.</summary>
 		public string Secret { get; private set; } = "";
 
@@ -97,9 +110,12 @@ namespace Dirigent.SystemTests
 		/// <param name="secured">start every process with <c>--security on</c>; the secret is in site.secret beside the LocalConfig.xml, where they find it</param>
 		/// <param name="cliNamed">when secured: whether the master is given <c>--CLIPort</c>. Without it the CLI is off, and the world is driven over HTTP.</param>
 		public static SystemWorld Start( string scenario = "LoggingWorld", bool withHttp = false,
-				bool visible = false, bool secured = false, bool cliNamed = true )
+				bool visible = false, bool secured = false, bool cliNamed = true,
+				bool tokens = false, string securityMode = "on", string? audience = null )
 		{
 			if( secured && !cliNamed ) withHttp = true; // the only way left to look at it
+			if( tokens ) withHttp = true;
+			if( secured && withHttp ) tokens = true; // a master with a web server needs the key that checks its tokens, or it does not start
 			var root = Path.Combine( Path.GetTempPath(), "DirigentTier3",
 					Guid.NewGuid().ToString( "N" ).Substring( 0, 6 ) );
 
@@ -110,11 +126,20 @@ namespace Dirigent.SystemTests
 					httpPort: withHttp ? FreePort() : -1 );
 
 			world.Secured = secured;
+			world.SecurityMode = securityMode;
+			world.Audience = audience;
 			world.CliNamed = cliNamed;
 			if( secured )
 			{
 				world.Secret = Guid.NewGuid().ToString( "N" ) + Guid.NewGuid().ToString( "N" );
 				File.WriteAllText( Path.Combine( Path.GetDirectoryName( files.LocalConfig )!, "site.secret" ), world.Secret );
+
+				// the key the master's web API checks tokens against, where it looks: beside the LocalConfig.xml
+				if( tokens )
+				{
+					world.Tokens = new Dirigent.TestBed.TokenMint();
+					File.WriteAllText( Path.Combine( Path.GetDirectoryName( files.LocalConfig )!, "remoting-public.pem" ), world.Tokens.PublicKeyPem );
+				}
 			}
 
 			try
@@ -140,6 +165,7 @@ namespace Dirigent.SystemTests
 		public HashSet<string> ConnectedClientsOverHttp()
 		{
 			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 5 ) };
+			if( Tokens is not null ) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue( "Bearer", Token( "read" ) );
 			var json = http.GetStringAsync( $"http://127.0.0.1:{HttpPort}/api/clients" ).GetAwaiter().GetResult();
 			using var doc = System.Text.Json.JsonDocument.Parse( json );
 			return doc.RootElement.EnumerateArray()
@@ -167,7 +193,7 @@ namespace Dirigent.SystemTests
 				"--rootForRelativePaths", Files.Root,
 				"--isMaster", "0",
 			};
-			if( Secured ) args.AddRange( new[] { "--security", "on" } );
+			if( Secured ) args.AddRange( new[] { "--security", SecurityMode } );
 			if( secretFile is not null ) args.AddRange( new[] { "--siteSecretFile", secretFile } );
 
 			var process = StartProcess( Tool( "Dirigent.Agent.Console", "Dirigent.Agent.exe" ), args, Files.Root, visible: false );
@@ -196,10 +222,11 @@ namespace Dirigent.SystemTests
 					"--isMaster", isMaster ? "1" : "0",
 				};
 
-				if( Secured ) args.AddRange( new[] { "--security", "on" } );
+				if( Secured ) args.AddRange( new[] { "--security", SecurityMode } );
 
 				if( isMaster )
 				{
+					if( Audience is not null ) args.AddRange( new[] { "--tokenAudience", Audience } );
 					if( CliNamed ) args.AddRange( new[] { "--CLIPort", CliPort.ToString() } );
 					args.AddRange( new[] { "--httpPort", HttpPort.ToString() } );
 				}

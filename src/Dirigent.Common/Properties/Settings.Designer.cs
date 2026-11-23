@@ -264,6 +264,17 @@ namespace Dirigent.Common.Properties
 
 		[global::System.Configuration.ApplicationScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string TokenAudience
+		{
+			get
+			{
+				return ( ( string )( this["TokenAudience"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute( "8877" )]
 		public int HttpPort
 		{

@@ -44,6 +44,9 @@
     <Setting Name="TokenPublicKeyFile" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="TokenAudience" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
     <Setting Name="StartPlanHotKey" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control + Shift + Alt + S</Value>
     </Setting>

@@ -51,6 +51,14 @@ namespace Dirigent.Web
             }
         }
 
+        /// <summary>Does nothing: what stands in the place of the door when security is off, so that the chain of modules reads the same either way.</summary>
+        sealed class PassThroughModule : EmbedIO.WebModuleBase
+        {
+            public PassThroughModule() : base( "/" ) {}
+            public override bool IsFinalHandler => false;
+            protected override Task OnRequestAsync( IHttpContext context ) => Task.CompletedTask;
+        }
+
         /// <summary>Every error of the API is a small JSON document, not EmbedIO's HTML page.</summary>
         static Task JsonHttpError( IHttpContext context, IHttpException exception )
         {
@@ -113,6 +121,10 @@ namespace Dirigent.Web
                 .WithIPBanning(o => o
                     .WithMaxRequestsPerSecond(MaxRequestsPerSecond), banMinutes: BanMinutes)
                 .WithLocalSessionManager()
+
+                // With security on or audit nothing below is reached before the token has been looked at: the API, the web socket and the static folder alike.
+                // (With security off the door is not there at all: the open API of before.)
+                .WithModule( master.Security.Secured ? new TokenAuthModule( master.Security ) : new PassThroughModule() )
                 //.WithCors(
                 //    "http://unosquare.github.io,http://run.plnkr.co", // Origins, separated by comma without last slash
                 //    "content-type, accept", // Allowed headers

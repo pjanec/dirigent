@@ -20,6 +20,7 @@ namespace Dirigent.Web
 		}
 
 		// ?since=&until=&component=&app=&machine=&kind=&id=&newestPerApp=&details=1 - lists repeated or comma-separated
+		[Scope( ScopeAttribute.Read )]
 		[Route( HttpVerbs.Get, "/crashes" )]
 		public async Task GetCrashes()
 		{
