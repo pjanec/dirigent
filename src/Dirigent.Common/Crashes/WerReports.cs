@@ -14,6 +14,9 @@ namespace Dirigent.Crashes
 		public string? AppName;
 		public string? AppPath;
 
+		/// <summary>NsAppName of a packaged program.</summary>
+		public string? NsAppName;
+
 		/// <summary>The application name of the signature (Sig[0] when it is the "Application Name").</summary>
 		public string? SigExe;
 	}
@@ -51,6 +54,7 @@ namespace Dirigent.Crashes
 							catch( ArgumentOutOfRangeException ) { }
 						}
 						break;
+					case "NsAppName": info.NsAppName ??= value; break;
 					case "AppName": info.AppName ??= value; break;
 					case "AppPath": info.AppPath ??= value; break;
 					case "Sig[0].Name": sig0Name = value; break;
@@ -80,7 +84,7 @@ namespace Dirigent.Crashes
 
 				var name = exeName ?? NameOf( path );
 				if( name is null ) return false;
-				return new[] { r.AppName, r.SigExe, NameOf( r.AppPath ) }.Any( n => n is not null && string.Equals( n, name, StringComparison.OrdinalIgnoreCase ) );
+				return new[] { NameOf( r.AppPath ), r.NsAppName, r.AppName, r.SigExe }.Any( n => n is not null && string.Equals( n, name, StringComparison.OrdinalIgnoreCase ) );
 			}
 
 			return reports.Where( r => r.EventTimeUtc is DateTime t && ( t - crashTimeUtc ).Duration() <= TimeTolerance && SameProgram( r ) )
@@ -101,29 +105,41 @@ namespace Dirigent.Crashes
 			}
 		}
 
-		/// <summary>Looks in the report folders of this machine: the folders named for the program are read and matched.</summary>
-		public static string? Find( string? exeName, string? exePath, DateTime crashTimeUtc )
+		/// <summary>The reports read so far by one lookup session (an agent query), by file: reading a Report.wer is the cost.</summary>
+		public class Cache
 		{
-			var name = exeName ?? NameOf( exePath );
-			if( name is null ) return null;
+			public readonly Dictionary<string, WerReportInfo?> Reports = new( StringComparer.OrdinalIgnoreCase );
+		}
 
+		/// <summary>
+		/// Looks in the report folders for the report of the crash. Windows truncates the names of the folders ("AppCrash_ConsoleAp_...",
+		/// "AppCrash_ConsoleApp.e_..."), so they are not matched by the program: the AppCrash_ and AppHang_ folders written within a day of the crash
+		/// are read, and each Report.wer says by itself what it is.
+		/// </summary>
+		public static string? Find( string? exeName, string? exePath, DateTime crashTimeUtc, IEnumerable<string>? roots = null, Cache? cache = null )
+		{
+			cache ??= new Cache();
 			var reports = new List<WerReportInfo>();
-			foreach( var root in ReportRoots() )
+
+			foreach( var root in roots ?? ReportRoots() )
 			{
 				try
 				{
 					if( !Directory.Exists( root ) ) continue;
 
-					// AppCrash_<exe>_<hash>..., AppHang_<exe>_...: the folder name carries the program, so only those are read
-					foreach( var dir in Directory.EnumerateDirectories( root ) )
+					foreach( var dirInfo in new DirectoryInfo( root ).EnumerateDirectories() )
 					{
-						var folderName = System.IO.Path.GetFileName( dir );
-						if( !folderName.Contains( name, StringComparison.OrdinalIgnoreCase ) ) continue;
+						if( !dirInfo.Name.StartsWith( "AppCrash_", StringComparison.OrdinalIgnoreCase ) && !dirInfo.Name.StartsWith( "AppHang_", StringComparison.OrdinalIgnoreCase ) ) continue;
+						if( ( dirInfo.LastWriteTimeUtc - crashTimeUtc ).Duration() > TimeSpan.FromDays( 1 ) ) continue;
 
-						var file = System.IO.Path.Combine( dir, "Report.wer" );
-						if( !File.Exists( file ) ) continue;
-						try { reports.Add( Parse( File.ReadAllText( file ), file ) ); }
-						catch( Exception ) { } // a report we cannot read is none
+						var file = System.IO.Path.Combine( dirInfo.FullName, "Report.wer" );
+						if( !cache.Reports.TryGetValue( file, out var info ) )
+						{
+							try { info = File.Exists( file ) ? Parse( File.ReadAllText( file ), file ) : null; }
+							catch( Exception ) { info = null; } // a report we cannot read is none
+							cache.Reports[file] = info;
+						}
+						if( info is not null ) reports.Add( info );
 					}
 				}
 				catch( Exception )

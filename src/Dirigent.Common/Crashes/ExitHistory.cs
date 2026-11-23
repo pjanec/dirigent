@@ -14,11 +14,12 @@ namespace Dirigent.Crashes
 		public DateTime? startedAt { get; set; }
 		public string? plan { get; set; }
 
-		/// <summary>The application is set to start again (a restarter was waiting for the exit).</summary>
-		public bool willRestart { get; set; }
-
-		/// <summary>Restarts left when it ended (-1 = without limit); null when not counted.</summary>
+		/// <summary>Restarts left at the moment it ended (-1 = without limit); null when not known then - it is not guessed.</summary>
 		public int? restartsRemaining { get; set; }
+
+		/// <summary>When the master saw the application start again after this exit (UTC, by the clock of its agent), and the new process; null while it has not.</summary>
+		public DateTime? restartedAt { get; set; }
+		public int? restartedPid { get; set; }
 	}
 
 	/// <summary>
@@ -48,6 +49,20 @@ namespace Dirigent.Crashes
 		/// <returns>the exit recorded, or null</returns>
 		public AppExit? Observe( AppIdTuple id, AppState? before, AppState after, DateTime nowUtc )
 		{
+			// the application started again: the exit before it is followed by a restart - a fact seen, not a guess made at the exit
+			if( after.Running && after.PID > 0 && ( before is null || !before.Running || before.PID != after.PID ) )
+			{
+				lock( _lock )
+				{
+					var open = _exits.TryGetValue( id, out var prior ) ? prior.LastOrDefault( x => x.restartedAt is null ) : null;
+					if( open is not null )
+					{
+						open.restartedAt = after.StartedAt is DateTime st ? Utc( st ) : nowUtc;
+						open.restartedPid = after.PID;
+					}
+				}
+			}
+
 			if( !IsUnexpectedExit( before, after ) ) return null;
 
 			var exit = new AppExit
@@ -57,7 +72,6 @@ namespace Dirigent.Crashes
 				pid = before!.PID > 0 ? before.PID : null,
 				startedAt = ( after.StartedAt ?? before.StartedAt ) is DateTime s ? Utc( s ) : null,
 				plan = string.IsNullOrEmpty( after.PlanName ) ? ( string.IsNullOrEmpty( before.PlanName ) ? null : before.PlanName ) : after.PlanName,
-				willRestart = after.Restarting || before.Restarting,
 				restartsRemaining = after.RestartsRemaining == AppState.RESTARTS_UNITIALIZED ? null : after.RestartsRemaining,
 			};
 
