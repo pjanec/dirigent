@@ -123,6 +123,10 @@ namespace Dirigent.Crashes
 		public string? exe { get; set; }
 		public string? exeVersion { get; set; }
 
+		/// <summary>What the event said, when <see cref="exeVersion"/> is the file's (Windows writes each part of a version in 16 bits: 1.2.2.218787 is 1.2.2.22179 there).</summary>
+		public string? eventExeVersion { get; set; }
+		public string? exeVersionNote { get; set; }
+
 		/// <summary>UTC.</summary>
 		public DateTime time { get; set; }
 
@@ -132,6 +136,13 @@ namespace Dirigent.Crashes
 		public string? exceptionText { get; set; }
 		public string? faultingModule { get; set; }
 		public string? faultingModuleVersion { get; set; }
+		public string? eventFaultingModuleVersion { get; set; }
+
+		/// <summary>Where the event says the module is. Not listed.</summary>
+		[JsonIgnore]
+		[Newtonsoft.Json.JsonIgnore]
+		public string? faultingModulePath { get; set; }
+		public string? faultingModuleVersionNote { get; set; }
 		public string? faultingOffset { get; set; }
 
 		/// <summary>exe file name|module|code|offset (module-relative; zeros trimmed) - the same bug has the same signature.</summary>

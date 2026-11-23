@@ -31,6 +31,9 @@ namespace Dirigent.Crashes
 		/// <summary>The report of a crash found by what it says (program, event time): exe name, exe path, crash time (UTC). Null when none.</summary>
 		public Func<string?, string?, DateTime, string?> FindWerReport = ( _, _, _ ) => null;
 
+		/// <summary>The FileVersion string of a file, or null when it has none or is not there.</summary>
+		public Func<string, string?> FileVersion = _ => null;
+
 		/// <summary>When a file was last written (UTC), or null when there is no such file.</summary>
 		public Func<string, DateTime?> FileWritten = _ => null;
 
@@ -279,6 +282,7 @@ namespace Dirigent.Crashes
 				e.exeVersion = Clean( ev.D( 1 ) );
 				e.faultingModule = Clean( ev.D( 3 ) );
 				e.faultingModuleVersion = Clean( ev.D( 4 ) );
+				e.faultingModulePath = CrashAppTable.NormalizePath( ev.D( 11 ) );
 				e.exceptionCode = NormalizeCode( ev.D( 6 ) );
 				var offset = NormalizeCode( ev.D( 7 ) );
 				e.faultingOffset = offset;
@@ -327,6 +331,21 @@ namespace Dirigent.Crashes
 			e.exe = path ?? owner.Candidates.Select( a => a.ExePath ).FirstOrDefault( p => p is not null ) ?? name;
 
 			e.id = CrashEntry.MakeId( ctx.Machine, e.time, e.processId?.ToString( CultureInfo.InvariantCulture ) ?? "0" );
+
+			// Windows writes each part of a version in 16 bits; the file says it right, if it is the file that crashed
+			var crashedExe = path ?? owner.Candidates.Select( a => a.ExePath ).FirstOrDefault( p => p is not null );
+			if( crashedExe is not null )
+			{
+				ChooseVersion( ctx, crashedExe, e.time, e.exeVersion, out var exeV, out var exeEv, out var exeNote );
+				e.exeVersion = exeV; e.eventExeVersion = exeEv; e.exeVersionNote = exeNote;
+
+				if( e.faultingModule is not null )
+				{
+					var moduleFile = e.faultingModulePath ?? System.IO.Path.Combine( System.IO.Path.GetDirectoryName( crashedExe ) ?? "", e.faultingModule );
+					ChooseVersion( ctx, moduleFile, e.time, e.faultingModuleVersion, out var modV, out var modEv, out var modNote );
+					e.faultingModuleVersion = modV; e.eventFaultingModuleVersion = modEv; e.faultingModuleVersionNote = modNote;
+				}
+			}
 
 			// The report of the crash: found by what it says - its event time and its program - and not by the 1001, which Windows logs
 			// again, days later, for the reports it kept queued.
@@ -397,6 +416,35 @@ namespace Dirigent.Crashes
 			}
 			var picked = PickDump( files, exeName, pid, crashTime );
 			return picked is null ? null : new CrashDump { path = picked.Value.path, exists = true, size = picked.Value.size };
+		}
+
+		/// <summary>
+		/// The version of a crashed file: the file's own FileVersion when the file has not been written since the crash, with what the event said
+		/// kept when it differs; the event's when the file has changed (and a note saying so), or when there is no file to ask.
+		/// </summary>
+		public static void ChooseVersion( CrashContext ctx, string file, DateTime crashUtc, string? eventVersion, out string? version, out string? eventValue, out string? note )
+			=> ChooseVersion( eventVersion, ctx.FileVersion( file ), ctx.FileWritten( file ), crashUtc, out version, out eventValue, out note );
+
+		/// <summary>Pure.</summary>
+		public static void ChooseVersion( string? eventVersion, string? fileVersion, DateTime? fileWrittenUtc, DateTime crashUtc, out string? version, out string? eventValue, out string? note )
+		{
+			version = eventVersion;
+			eventValue = null;
+			note = null;
+
+			if( fileWrittenUtc is not DateTime written ) return; // no file: the event is all there is
+
+			if( written > crashUtc )
+			{
+				note = "as Windows recorded it (16 bits per part); the file has changed since the crash";
+				return;
+			}
+
+			if( !string.IsNullOrWhiteSpace( fileVersion ) )
+			{
+				version = fileVersion!.Trim();
+				if( !string.Equals( version, eventVersion, StringComparison.Ordinal ) ) eventValue = eventVersion;
+			}
 		}
 
 		/// <summary>Pure: which of the files is the dump of the crash.</summary>

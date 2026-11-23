@@ -154,7 +154,7 @@ namespace Dirigent.Web
 					{
 						e.machineInfo = result.Machine;
 						if( e.exe is not null && versions.TryGetValue( e.exe, out var v ) )
-							e.versions = FaultingFirst( v, e.faultingModule );
+							e.versions = CrashCollector.MarkChanged( FaultingFirst( v, e.faultingModule ), e.time, DateTime.UtcNow ); // sha256 stays with the downloads
 					}
 				}
 

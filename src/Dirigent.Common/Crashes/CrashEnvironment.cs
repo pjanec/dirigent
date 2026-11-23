@@ -21,9 +21,13 @@ namespace Dirigent.Crashes
 		public Func<string, long?> FileSize { get; set; } = CrashFacts.FileSize;
 		public Func<string, IReadOnlyList<string>> LocalDumpFolders { get; set; } = CrashFacts.LocalDumpFolders;
 		/// <summary>The Report.wer of a crash: program name, program path, crash time (UTC).</summary>
-		public Func<string?, string?, DateTime, string?> FindWerReport { get; set; } = WerReports.Find;
+		public Func<string?, string?, DateTime, string?> FindWerReport { get; set; }
+
+		readonly WerReports.Cache _werCache = new(); // one environment is one query: the reports are read once
 
 		public Func<string, DateTime?> FileWritten { get; set; } = CrashFacts.FileWritten;
+
+		public Func<string, string?> FileVersion { get; set; } = CrashFacts.FileVersion;
 
 		public Func<string, DateTime, string?> FindMiniDump { get; set; } = CrashFacts.FindMiniDump;
 		/// <summary>The dump files of a folder, as a listing: path, time written (UTC), size.</summary>
@@ -41,6 +45,11 @@ namespace Dirigent.Crashes
 		public Func<string, CrashVersions?> ReadVersionsWithHashes { get; set; } = path => CrashFacts.ReadVersions( path, true );
 
 		public Func<CrashMachineInfo> ReadMachineInfo { get; set; } = CrashFacts.ReadMachineInfo;
+
+		public CrashEnvironment()
+		{
+			FindWerReport = ( name, path, time ) => WerReports.Find( name, path, time, null, _werCache );
+		}
 
 		public static CrashEnvironment Real()
 		{
@@ -61,6 +70,7 @@ namespace Dirigent.Crashes
 				FindMiniDump = t => FindMiniDump( WindowsDir, t ),
 				FindWerReport = FindWerReport,
 				FileWritten = FileWritten,
+				FileVersion = FileVersion,
 				ListDumps = ListDumps,
 				WindowsDir = WindowsDir,
 			};
@@ -75,6 +85,18 @@ namespace Dirigent.Crashes
 			{
 				var f = new FileInfo( path );
 				return f.Exists ? f.Length : null;
+			}
+			catch( Exception )
+			{
+				return null;
+			}
+		}
+
+		public static string? FileVersion( string path )
+		{
+			try
+			{
+				return File.Exists( path ) ? FileVersionInfo.GetVersionInfo( path ).FileVersion : null;
 			}
 			catch( Exception )
 			{

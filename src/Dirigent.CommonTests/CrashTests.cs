@@ -511,8 +511,34 @@ namespace Dirigent.Tests
 			Assert.AreEqual( 77, exit.pid );
 			Assert.AreEqual( T0.AddHours( -1 ), exit.startedAt );
 			Assert.AreEqual( "p1", exit.plan );
-			Assert.IsTrue( exit.willRestart );
+			Assert.IsNull( exit.restartedAt, "no restart is guessed at the exit" );
+			Assert.IsNull( exit.restartsRemaining, "not known then: not said" );
 			Assert.AreEqual( 1, h.Of( id ).Count );
+		}
+
+		[TestMethod()]
+		public void WhenTheAppIsSeenStartingAgainItsLastExitSaysWhenAndWhichProcess()
+		{
+			var h = new ExitHistory();
+			var id = new AppIdTuple( "m1.a" );
+			var before = Running( pid: 77 );
+			var ended = Ended( before, exitCode: 9 );
+			h.Observe( id, before, ended, T0.AddSeconds( 2 ) );
+
+			// a message that changes nothing about the process is no restart
+			h.Observe( id, ended, ended.Clone(), T0.AddSeconds( 3 ) );
+			Assert.IsNull( h.Of( id )[0].restartedAt );
+
+			var again = Running( pid: 88, startedAt: T0.AddSeconds( 3 ) );
+			h.Observe( id, ended, again, T0.AddSeconds( 4 ) );
+
+			var exit = h.Of( id ).Single();
+			Assert.AreEqual( T0.AddSeconds( 3 ), exit.restartedAt );
+			Assert.AreEqual( 88, exit.restartedPid );
+
+			// a later start does not rewrite it
+			h.Observe( id, Ended( again ), Running( pid: 99, startedAt: T0.AddHours( 1 ) ), T0.AddHours( 1 ) );
+			Assert.AreEqual( 88, h.Of( id ).Single().restartedPid );
 		}
 
 		[TestMethod()]
