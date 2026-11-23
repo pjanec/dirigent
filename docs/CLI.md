@@ -31,6 +31,7 @@ Commands are received by Dirigent master agent. The master then asks dirigent ag
 | [GetAppLocation](#GetAppLocation)    | Where the binary and working folder of an app are, as its agent resolves them, in json single line format. |
 | [GetAppLocations](#GetAppLocations)  | The same for all apps or those of one machine. |
 | [GetAppVersions](#GetAppVersions)  | The versions of the applications, each listed once. |
+| [GetCrashes](#GetCrashes)            | The crashes of the site's programs from the event logs, in json single line format. |
 | [GetAppFiles](#GetAppFiles)          | Lists the files of one application instance with local and UNC paths, in json single line format. |
 | [GetFiles](#GetFiles)                | Lists the files of a file definition or file package addressed by id. |
 | [GetClientState](#GetClientState)    | Returns the status of a client/machine. |
@@ -576,6 +577,21 @@ The versions of the applications, each listed once with the machines and applica
 ##### Response text
 
   `APPVERSIONS:<json array on one line>`
+
+  `END`
+
+### GetCrashes
+
+The crashes, hangs, unexpected exits, reboots, blue screens and display driver resets of the programs of the site, from the event log of
+each machine - the answer of [`GET /api/crashes`](HTTP.md#GET-apicrashes), with the same filters (lists are comma-separated, times are ISO 8601).
+
+  `GetCrashes [since=<time>] [until=<time>] [component=A,B] [app=m1.*] [machine=m1] [kind=crash,managed] [id=...] [newestPerApp=1] [details=1]`
+
+Without `since` and `until`: the last 7 days. `until` before `since`, or a time that is none, is an error.
+
+##### Response text
+
+  `CRASHES:<json object on one line>`
 
   `END`
 

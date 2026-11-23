@@ -71,12 +71,20 @@ namespace Dirigent.Web
 		public string? component { get; set; }
         public AppStateDetails state { get; set; } = new();
 
+		/// <summary>
+		/// The last unexpected exits of the application (it ended and Dirigent had not killed it), newest first, at most 10 -
+		/// kept by the master in memory, so lost when it restarts. Null where the route does not tell.
+		/// </summary>
+		[System.Text.Json.Serialization.JsonIgnore( Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull )]
+		public List<Dirigent.Crashes.AppExit>? lastExits { get; set; }
+
 		public AppState()
 		{
 		}
 
-		public AppState( Dirigent.AppDef appDef, Dirigent.PlanState? planState, Dirigent.AppState appState )
+		public AppState( Dirigent.AppDef appDef, Dirigent.PlanState? planState, Dirigent.AppState appState, List<Dirigent.Crashes.AppExit>? lastExits = null )
 		{
+			this.lastExits = lastExits;
 			this.id = appDef.ToString();
 			this.component = string.IsNullOrEmpty( appDef.Component ) ? null : appDef.Component;
 			this.state = new AppStateDetails( appDef, planState, appState );
@@ -294,7 +302,7 @@ namespace Dirigent.Web
 			var planState = _master.GetPlanState( planName ?? "" );
 			var appState = _master.GetAppState( appIdTuple ) ?? throw HttpException.NotFound( $"Application '{appIdTuple}' has no state." );
 
-			return new AppState( appDef, planState, appState );
+			return new AppState( appDef, planState, appState, _master.ExitHistory.Of( appIdTuple ) );
 		}
 
 		// Gets one concrete app state.

@@ -93,7 +93,7 @@ namespace Dirigent.Web
 						   let def = master.GetAppDef( kv.Key )
 						   where def is not null
 						   orderby kv.Key.MachineId, kv.Key.AppId
-						   select new AppState( def, null, kv.Value ) ).ToList();
+						   select new AppState( def, null, kv.Value, master.ExitHistory.Of( kv.Key ) ) ).ToList();
 
 			var query = AppLocationQuery.PrepareAll( master, null );
 

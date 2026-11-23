@@ -30,6 +30,8 @@ namespace Dirigent.TestApp
   --spawn-children <n>       start n idle copies of itself (to exercise kill tree)
   --children-file <path>     write the pids of the spawned children here
   --parent-pid <pid>         give up if this process is gone (children use this)
+  --crash <native|managed>   really crash: an access violation, or an unhandled .NET exception
+  --crash-after <seconds>    when to crash (default 1)
   --help                     print this
 ";
 
@@ -99,6 +101,11 @@ namespace Dirigent.TestApp
 					lastLogWrite = now;
 				}
 
+				if( opts.CrashMode is not null && now.TotalSeconds >= opts.CrashAfterSeconds )
+				{
+					Crash( opts.CrashMode );
+				}
+
 				if( opts.ExitAfterSeconds.HasValue && now.TotalSeconds >= opts.ExitAfterSeconds.Value )
 				{
 					Log( $"exiting with code {opts.ExitCode}" );
@@ -129,6 +136,29 @@ namespace Dirigent.TestApp
 
 				Thread.Sleep( 50 );
 			}
+		}
+
+		[System.Runtime.InteropServices.DllImport( "ntdll.dll" )]
+		static extern void RtlFillMemory( IntPtr destination, UIntPtr length, byte fill );
+
+		[System.Runtime.InteropServices.DllImport( "wer.dll" )]
+		static extern int WerSetFlags( int flags );
+
+		/// <summary>
+		/// Crashes for real, so that Windows writes its events for it. The "has stopped working" window is switched off for this
+		/// process (WER_FAULT_REPORTING_NO_UI): reporting still happens, but nobody has to click anything for the process to end.
+		/// </summary>
+		static void Crash( string mode )
+		{
+			try { WerSetFlags( 0x20 ); } catch( Exception ) { }
+
+			Log( $"crashing ({mode})" );
+
+			if( mode == "managed" )
+				throw new InvalidOperationException( "TestApp crashes on purpose" );
+
+			// an access violation in native code: a write to address 1 (done in managed code, the runtime would turn it into an exception)
+			RtlFillMemory( (IntPtr) 1, (UIntPtr) 4, 0 );
 		}
 
 		/// <param name="childrenFile">
@@ -257,6 +287,8 @@ namespace Dirigent.TestApp
 			public int SpawnChildren;
 			public string? ChildrenFile;
 			public int ParentPid = 0;
+			public string? CrashMode;
+			public double CrashAfterSeconds = 1;
 
 			public static Options Parse( string[] args )
 			{
@@ -288,6 +320,8 @@ namespace Dirigent.TestApp
 						case "--spawn-children": o.SpawnChildren = int.Parse( Next( "--spawn-children" ) ); break;
 						case "--children-file": o.ChildrenFile = Next( "--children-file" ); break;
 						case "--parent-pid": o.ParentPid = int.Parse( Next( "--parent-pid" ) ); break;
+						case "--crash":       o.CrashMode = Next( "--crash" ).ToLowerInvariant(); break;
+						case "--crash-after": o.CrashAfterSeconds = double.Parse( Next( "--crash-after" ), System.Globalization.CultureInfo.InvariantCulture ); break;
 						default:
 							Console.WriteLine( $"[testapp] ignoring unknown argument '{args[i]}'" );
 							break;
