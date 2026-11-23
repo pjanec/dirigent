@@ -99,6 +99,8 @@ namespace Dirigent.Gui.WinForms
 
 			_core.Client.MessageReceived += OnMessage;
 
+			VisibleChanged += frmMain_VisibleChanged;
+
 			UpdateMainMenu(); // initial menus
 
 		}
@@ -609,8 +611,21 @@ namespace Dirigent.Gui.WinForms
 			btnRestartPlan.Enabled = startOpsEnabled;
 		}
 
+		/// <summary>
+		/// Tells the master whether this window is being looked at, so that it sends the states of everything only while it is: a window
+		/// that is hidden or minimised needs none of them, and gets the full picture when it is shown again.
+		/// </summary>
+		void UpdateFeedWanted()
+		{
+			if( IsDisposed ) return;
+			_core.SetFeedWanted( Visible && WindowState != FormWindowState.Minimized );
+		}
+
+		private void frmMain_VisibleChanged( object? sender, EventArgs e ) => UpdateFeedWanted();
+
 		private void frmMain_Resize( object sender, EventArgs e )
 		{
+			UpdateFeedWanted();
 			//if (FormWindowState.Minimized == this.WindowState)
 			//{
 			//    _callbacks.onMinimizeDeleg();

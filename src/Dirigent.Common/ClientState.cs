@@ -89,6 +89,22 @@ namespace Dirigent
 			_lastChange = DateTime.UtcNow;
 		}
 
+		/// <summary>A copy to remember what was sent. The identity is shared: a new one replaces it, it is never edited.</summary>
+		public ClientState Clone() => (ClientState) MemberwiseClone();
+
+		/// <summary>
+		/// Whether this state differs from the one <paramref name="sent"/> last time in anything but the time of its last change,
+		/// which is renewed by every heartbeat: connected or not, who and where it is, what it has selected.
+		/// </summary>
+		public bool DiffersForFeed( ClientState? sent )
+		{
+			if( sent is null ) return true;
+			return _flags != sent._flags
+				|| IP != sent.IP
+				|| _selectedPlanName != sent._selectedPlanName
+				|| !( Ident is null ? sent.Ident is null : Ident.SameAs( sent.Ident ) );
+		}
+
 		public static ClientState GetDefault()
 		{
 			return new ClientState()

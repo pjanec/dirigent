@@ -42,6 +42,32 @@ namespace Dirigent.Net
 		/// <summary>What the master last said when it refused this client; null if it has not.</summary>
 		public string? RejectedReason { get; private set; }
 
+		bool _feedWanted = true;
+
+		/// <summary>
+		/// Whether this client wants the master's state feed. A GUI sets it false while its window is hidden or minimised, and true
+		/// when it shows again; the master sends the full states then. Said again after every reconnect.
+		/// </summary>
+		public bool FeedWanted
+		{
+			get => _feedWanted;
+			set
+			{
+				if( _feedWanted == value ) return;
+				_feedWanted = value;
+				if( IsConnected ) SendFeedRequest();
+			}
+		}
+
+		void SendFeedRequest()
+		{
+			_messageClient.SendMessage( new Net.FeedRequestMessage( _feedWanted ) { Sender = _ident.Sender } );
+		}
+
+		/// <summary>How many times the connection to the master has been made; a client that sends changes only starts again with everything when it grows.</summary>
+		public int ConnectionCount => _connectionCount;
+		volatile int _connectionCount;
+
 		public string MasterIP => _masterIP;
 		public int MasterPort => _masterPort;
 		public Net.ClientIdent Ident => _ident;
@@ -90,6 +116,10 @@ namespace Dirigent.Net
 			_messageClient.Connected = () =>
 			{
 				_messageClient.SendMessage( _ident );
+				_connectionCount++;
+
+				// a GUI whose window is hidden says so at once; the master takes a client that says nothing to want the feed
+				if( !_feedWanted ) SendFeedRequest();
 			};
 
 			if( autoConn ) // if we want autoconnecting, do not wait for it...

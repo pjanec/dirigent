@@ -49,7 +49,7 @@ namespace Dirigent.IntegrationTests
 		// ---- the simulated site ------------------------------------------------------------------------------------
 
 		/// <summary>What the master did in the measured seconds.</summary>
-		record Measured( int Machines, TrafficStats.Report Traffic, double Seconds );
+		record Measured( int Machines, TrafficStats.Report Traffic, double Seconds, bool GuisWantFeed = true );
 
 		static Scenario Site( int machines )
 		{
@@ -61,7 +61,7 @@ namespace Dirigent.IntegrationTests
 			return scenario;
 		}
 
-		static async Task<Measured> MeasureAsync( int machines, TimeSpan settle, TimeSpan measure )
+		static async Task<Measured> MeasureAsync( int machines, TimeSpan settle, TimeSpan measure, bool guisWantFeed = true )
 		{
 			var options = new TestBedOptions()
 			{
@@ -73,6 +73,9 @@ namespace Dirigent.IntegrationTests
 
 			using var bed = await TestBed.TestBed.StartAsync( options );
 
+			// the common case of a site: every GUI is minimised, nobody looks
+			if( !guisWantFeed ) await bed.SetGuisFeedWantedAsync( false );
+
 			await Task.Delay( settle );
 			bed.Master.Traffic.Reset();
 
@@ -81,13 +84,13 @@ namespace Dirigent.IntegrationTests
 			var report = bed.Master.Traffic.Snapshot();
 			clock.Stop();
 
-			return new Measured( machines, report, clock.Elapsed.TotalSeconds );
+			return new Measured( machines, report, clock.Elapsed.TotalSeconds, guisWantFeed );
 		}
 
 		static void Print( Measured m )
 		{
 			Say();
-			Say( $"=== {m.Machines} machines x {AppsPerMachine} apps, {m.Machines} agents, {m.Machines} GUIs; master, {m.Traffic.seconds:0.0} s ===" );
+			Say( $"=== {m.Machines} machines x {AppsPerMachine} apps, {m.Machines} agents, {m.Machines} GUIs ({( m.GuisWantFeed ? "all want the feed" : "none wants the feed: all minimised" )}); master, {m.Traffic.seconds:0.0} s ===" );
 
 			void Table( string title, List<TrafficStats.TypeTraffic> rows, TrafficStats.DirectionTraffic total )
 			{
@@ -188,26 +191,40 @@ namespace Dirigent.IntegrationTests
 
 			Say( $"Idle traffic of the master, {DateTime.Now:yyyy-MM-dd HH:mm}, production timing: agents and GUIs 500 ms, master tick 50 ms, client refresh 1 s." );
 
-			var runs = new List<Measured>();
-			foreach( var n in sizes )
+			// DIRIGENT_MEASURE_FEED: on = the GUIs look at the feed, off = they are all minimised, both (default) = one run of each
+			var feedModes = ( Environment.GetEnvironmentVariable( "DIRIGENT_MEASURE_FEED" ) ?? "both" ).ToLowerInvariant() switch
 			{
-				try
+				"on" => new[] { true },
+				"off" => new[] { false },
+				_ => new[] { false, true },
+			};
+
+			foreach( var wantFeed in feedModes )
+			{
+				var runs = new List<Measured>();
+				foreach( var n in sizes )
 				{
-					var m = await MeasureAsync( n, TimeSpan.FromSeconds( 5 ), TimeSpan.FromSeconds( 30 ) );
-					runs.Add( m );
-					Print( m );
-				}
-				catch( Exception e )
-				{
-					Say( $"=== {n} machines: did not run - {e.GetType().Name}: {Tools.JustFirstLine( e.Message )}" );
+					try
+					{
+						var m = await MeasureAsync( n, TimeSpan.FromSeconds( 5 ), TimeSpan.FromSeconds( 30 ), wantFeed );
+						runs.Add( m );
+						Print( m );
+					}
+					catch( Exception e )
+					{
+						Say( $"=== {n} machines: did not run - {e.GetType().Name}: {Tools.JustFirstLine( e.Message )}" );
+						Save();
+						break; // a bigger one will not do better
+					}
 					Save();
-					break; // a bigger one will not do better
 				}
+
+				Say();
+				Say( wantFeed ? "--- growth, GUIs looking at the feed ---" : "--- growth, all GUIs minimised ---" );
+				PrintGrowth( runs );
 				Save();
 			}
 
-			PrintGrowth( runs );
-			Save();
 			Say( $"(report in {OutFile})" );
 		}
 

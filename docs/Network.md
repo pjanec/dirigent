@@ -33,3 +33,40 @@ A site runs one version of Dirigent, and what a mismatch looks like is:
   - once per address per 10 minutes - and closes the session. The older client sees only that the connection drops.
 
 In both cases the fix is the same: update the machine to the version of the master.
+
+### What is sent to whom, and when
+
+The states of everything - apps, plans, clients, machines, scripts - are the *feed*. Idle traffic used to grow with the
+square of the number of machines because every state was sent to every GUI all the time; now a state is sent when it
+changes, and only to the GUIs that look at it.
+
+| What | Agent to master | Master to GUIs | Master to agents |
+|---|---|---|---|
+| app states | the ones that changed, every agent tick (500 ms); all of them every 10 s | the ones that changed, once a second; all of them every 30 s | - |
+| plan states | - | the ones that changed, once a second; all of them every 30 s | - |
+| client states | every second (the heartbeat) | on change (connected or not, address, who it is) | on change, and all of them every 30 s |
+| machine state (CPU, memory) | every 2 s | the agent's, as it arrives (every 2 s) | - |
+| script states | as the script runs | without the result data | only to the agent that asked for the script |
+
+"Changed" for an app is any status flag, exit code, PID, plan, restarts, start or end time - at once; its CPU, GPU and memory
+only when they moved by 1 percentage point or 10 MB since they were last sent, or with the periodic full send. The time of
+the last change is never a change. The comparison is `AppState.DiffersForFeed` (and the same for plans and clients).
+
+**The feed request.** A GUI sends `FeedRequestMessage { Wanted }`: false when its window is hidden or minimised to the
+tray, true when it is shown again, and - if its window is not shown - right after it connects. A GUI that says nothing wants
+the feed. While a GUI does not want it, it receives no app, plan, client, machine or script states at all; what is addressed
+to it still arrives: notifications, the results of scripts it started, and definitions (apps, plans, files, menus, scripts) after
+a configuration reload. When it wants the feed again the master sends it everything - clients, plans, apps, scripts - before the
+changes, because the changes it missed are gone. Hidden-to-tray GUIs are why a site's idle traffic is mostly a function of the
+number of *open* GUIs, not of machines.
+
+**Script results.** The state of a script carries its data - the progress or result, which can be large. The master sends the whole
+state to whoever started the script and the state without data to the GUIs that look at the feed; a script a GUI did not start
+shows its status and text there, not its result. Scripts of the master itself (started from REST, the CLI, a startup script or another script)
+are read at the master with their data.
+
+**Freshness.** An app's state is sent when it changes, so a GUI cannot tell from its age whether the agent is still there. The
+master does: whatever an agent says - the client state every second at the least - keeps the states of its apps fresh, and when the agent
+disconnects or is silent for 3 seconds the master marks its apps `Offline`, which is a change and goes to the GUIs like any other.
+`AppState.IsOffline` is that flag (or: the app has never been reported); GUIs and the REST `offline` field use it, and the "offline for N sec"
+of a GUI counts from the last news of the agent. A client state shows "offline for N sec" only once the client is not connected.

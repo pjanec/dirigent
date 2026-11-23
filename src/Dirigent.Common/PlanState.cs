@@ -100,6 +100,42 @@ namespace Dirigent
 		[MessagePack.Key( 9 )]
 		public DateTime? LastCheckpoint;
 
+		/// <summary>A copy that shares nothing with this one, to remember what was sent while the original goes on changing.</summary>
+		public PlanState CloneDeep()
+		{
+			var c = (PlanState)this.MemberwiseClone();
+			if( PlanAppStates is not null )
+			{
+				c.PlanAppStates = new Dictionary<AppIdTuple, PlanAppState>( PlanAppStates.Count );
+				foreach( var (id, st) in PlanAppStates ) c.PlanAppStates[id] = new PlanAppState() { PlanApplied = st.PlanApplied };
+			}
+			if( MarkResult is not null )
+			{
+				var r = MarkResult;
+				c.MarkResult = new PlanMarkResult() { Marked = r.Marked, Cleared = r.Cleared, Skipped = r.Skipped, Failed = r.Failed,
+					TimedOut = r.TimedOut, Cancelled = r.Cancelled, Errors = new List<string>( r.Errors ) };
+			}
+			return c;
+		}
+
+		/// <summary>
+		/// Whether anything a GUI shows differs from the state <paramref name="sent"/> last time. Unlike <see cref="Equals(PlanState?)"/>
+		/// this looks at everything: the times, and the state of every app of the plan.
+		/// </summary>
+		public bool DiffersForFeed( PlanState? sent )
+		{
+			if( sent is null ) return true;
+			if( !Equals( sent ) ) return true;
+			if( TimeStarted != sent.TimeStarted || MarkStarted != sent.MarkStarted || LastCheckpoint != sent.LastCheckpoint ) return true;
+
+			var a = PlanAppStates; var b = sent.PlanAppStates;
+			if( a is null || b is null ) return a is null != b is null;
+			if( a.Count != b.Count ) return true;
+			foreach( var (id, st) in a )
+				if( !b.TryGetValue( id, out var other ) || other.PlanApplied != st.PlanApplied ) return true;
+			return false;
+		}
+
 		// Add this Clone method
 		public PlanState Clone()
 		{

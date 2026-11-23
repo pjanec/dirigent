@@ -56,6 +56,7 @@ namespace Dirigent.Net
 	[MessagePack.Union( 142, typeof( KillAllStatus ) )]
 	[MessagePack.Union( 143, typeof( WakeUpMessage ) )]
 	[MessagePack.Union( 144, typeof( RejectedMessage ) )]
+	[MessagePack.Union( 145, typeof( FeedRequestMessage ) )]
 
 
 
@@ -132,10 +133,18 @@ namespace Dirigent.Net
 		[MaybeNull]
 		public Dictionary<string, PlanState> PlansState;
 
+		/// <summary>
+		/// True: these are all the plans, and the receiver forgets any other. False: only the plans that changed, to be
+		/// merged into what the receiver has.
+		/// </summary>
+		[MessagePack.Key( 2 )]
+		public bool Full = true;
+
 		public PlansStateMessage() {}
-		public PlansStateMessage( Dictionary<string, PlanState> plansState )
+		public PlansStateMessage( Dictionary<string, PlanState> plansState, bool full = true )
 		{
 			this.PlansState = new Dictionary<string, PlanState>( plansState );
+			this.Full = full;
 		}
 	}
 
@@ -649,6 +658,25 @@ namespace Dirigent.Net
 	}
 
 	/// <summary>
+	/// A GUI tells the master whether it wants the state feed - the states of apps, plans, clients, machines and scripts, which
+	/// it only needs while somebody looks at them: Wanted=false when its window is hidden or minimised, true when it is
+	/// shown again, whereupon the master sends it the full picture before the changes. What is addressed to the GUI (notifications,
+	/// the results of scripts it started, definitions) arrives either way. A GUI that says nothing wants the feed.
+	/// </summary>
+	[MessagePack.MessagePackObject]
+	public class FeedRequestMessage : Message
+	{
+		[MessagePack.Key( 1 )]
+		public bool Wanted;
+
+		[MessagePack.SerializationConstructor]   // else the one constructor whose parameter matches a member is taken, and Sender is not set
+		public FeedRequestMessage() {}
+		public FeedRequestMessage( bool wanted ) { Wanted = wanted; }
+
+		public override string ToString() => $"FeedRequest wanted={Wanted}";
+	}
+
+	/// <summary>
 	/// Someone asking the Master to reinstall the Dirigent. Master resends to all.
 	/// </summary>
 	[MessagePack.MessagePackObject]
@@ -746,6 +774,11 @@ namespace Dirigent.Net
 			Name = name;
 			SubscribedTo = subscription;
 		}
+
+		/// <summary>Whether the other says the same about its client, in every respect.</summary>
+		public bool SameAs( ClientIdent? o )
+			=> o is not null && Sender == o.Sender && SubscribedTo == o.SubscribedTo && ProtocolVersion == o.ProtocolVersion
+				&& LocalAddresses.SequenceEqual( o.LocalAddresses ) && Nics.SequenceEqual( o.Nics );
 
 		public override string ToString()
 		{

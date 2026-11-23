@@ -95,6 +95,10 @@ namespace Dirigent.TestBed
 
 		internal bool IsConnected => _client.IsConnected;
 
+		/// <summary>Says whether this GUI wants the master's state feed, as a real GUI does when its window is hidden or shown.</summary>
+		public Task SetFeedWantedAsync( bool wanted )
+			=> InTick( () => { _client.FeedWanted = wanted; return true; } );
+
 		// ---- observation -------------------------------------------------------------
 
 		public Task<IReadOnlyList<KeyValuePair<AppIdTuple, AppState>>> GetAllAppsStateAsync()

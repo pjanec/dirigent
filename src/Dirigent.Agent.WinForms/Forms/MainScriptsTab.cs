@@ -180,8 +180,8 @@ namespace Dirigent.Gui.WinForms
 					else
 					if (scriptState.Status == EScriptStatus.Failed)
 					{
-						var scriptExcept = Tools.Deserialize<SerializedException>( scriptState.Data );
-						textStr = scriptExcept.Message;
+						var scriptExcept = scriptState.Data is null ? null : Tools.Deserialize<SerializedException>( scriptState.Data ); // no data: not our script, the master does not send it
+						textStr = scriptExcept?.Message ?? scriptState.Text ?? "";
 					}
 					else
 					if (scriptState.Status == EScriptStatus.Finished)

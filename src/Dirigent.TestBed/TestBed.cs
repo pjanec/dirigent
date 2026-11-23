@@ -170,6 +170,35 @@ namespace Dirigent.TestBed
 		}
 
 		/// <summary>
+		/// The state of a script as the master has it, with its data - what the operator does not get of a script somebody else asked
+		/// for: the data goes to the requestor only.
+		/// </summary>
+		public async Task<ScriptState?> MasterScriptStateAsync( Guid instance )
+		{
+			ScriptState? result = null;
+			await Master.AddSynchronousOp( () => result = Master.GetScriptState( instance )?.Clone() ).WaitAsync();
+			return result;
+		}
+
+		/// <summary>The states of all the scripts the master knows of, with their data.</summary>
+		public async Task<IReadOnlyList<KeyValuePair<Guid, ScriptState>>> MasterAllScriptsStateAsync()
+		{
+			List<KeyValuePair<Guid, ScriptState>>? result = null;
+			await Master.AddSynchronousOp( () => result = Master.GetAllScriptsState().Select( kv => new KeyValuePair<Guid, ScriptState>( kv.Key, kv.Value.Clone() ) ).ToList() ).WaitAsync();
+			return result!;
+		}
+
+		/// <summary>
+		/// Tells the master whether the operator and the GUIs of the other machines want the state feed (see <see cref="Net.FeedRequestMessage"/>) -
+		/// the common case of a site is that nobody looks.
+		/// </summary>
+		public async Task SetGuisFeedWantedAsync( bool wanted )
+		{
+			await Operator.SetFeedWantedAsync( wanted );
+			foreach( var gui in _extraGuis ) await gui.SetFeedWantedAsync( wanted );
+		}
+
+		/// <summary>
 		/// Brings up the world and returns once the master, every agent and the operator are
 		/// connected and the app definitions have reached the operator.
 		/// </summary>

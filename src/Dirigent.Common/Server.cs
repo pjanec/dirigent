@@ -104,6 +104,11 @@ namespace Dirigent.Net
 			Disconnect();
 		}
 
+		/// <summary>
+		/// Whether the client wants the state feed (see <see cref="FeedRequestMessage"/>). A client that has not said wants it.
+		/// </summary>
+		public volatile bool WantsFeed = true;
+
 		public bool WantsReceiveMessage( EMsgRecipCateg msgCategory )
 		{
 			return ( msgCategory & Ident?.SubscribedTo ) != 0;
@@ -378,6 +383,49 @@ namespace Dirigent.Net
 				}
 			}
 		}
+
+		/// <summary>
+		/// Sends a message of the state feed: to the identified clients of the category that want it - agents always do, a GUI
+		/// unless it has asked for it not to be sent - except the one named in <paramref name="except"/>, which gets its own.
+		/// </summary>
+		public void SendToFeed( Net.Message msg, EMsgRecipCateg msgCategoryMask, string? except = null )
+		{
+			var ms = new System.IO.MemoryStream();
+			MsgPackCodec.Serialize( ms, msg );
+
+			if( !msg.IsFrequent )
+			{
+				log.Debug( $"[master] => [feed]: {Tools.SafeToString( msg )}" );
+			}
+
+			foreach( var s in _identifiedClients.Values )
+			{
+				if( !s.WantsFeed || !s.WantsReceiveMessage( msgCategoryMask ) ) continue;
+				if( except is not null && s.Name == except ) continue;
+				s.SendAsync( ms.GetBuffer(), 0, ms.Position );
+				Traffic.Sent( msg.GetType(), ms.Position );
+			}
+		}
+
+		/// <summary>
+		/// Records whether a client wants the state feed.
+		/// </summary>
+		/// <returns>true if it did not want it and now does: it has to be sent the full picture</returns>
+		public bool SetFeedWanted( string clientName, bool wanted )
+		{
+			bool turnedOn = false;
+			foreach( var s in _identifiedClients.Values )
+			{
+				if( s.Name != clientName ) continue;
+				if( wanted && !s.WantsFeed ) turnedOn = true;
+				s.WantsFeed = wanted;
+			}
+			return turnedOn;
+		}
+
+		/// <summary>Whether the named client wants the feed; true for one that is not connected.</summary>
+		public bool WantsFeed( string clientName )
+			=> _identifiedClients.Values.Where( x => x.Name == clientName ).All( x => x.WantsFeed );
 
 		/// <summary>
 		/// Send message to given client only

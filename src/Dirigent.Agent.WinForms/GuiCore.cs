@@ -190,6 +190,12 @@ namespace Dirigent.Gui.WinForms
 			_toolsReg?.Tick();
 		}
 
+		/// <summary>Whether the main window is being looked at: the master sends the state feed only to a GUI that wants it.</summary>
+		public void SetFeedWanted( bool wanted )
+		{
+			if( Client is not null ) Client.FeedWanted = wanted;
+		}
+
 		public void SelectPlan( string planName )
 		{
 			CurrentPlan = Ctrl.GetPlanDef( planName );

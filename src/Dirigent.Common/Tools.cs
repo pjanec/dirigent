@@ -177,8 +177,10 @@ namespace Dirigent
 					stCode = "Online";
 				}
 
+				// a state is sent when it changes, so its age says nothing while the client is connected: it is the time of the
+				// last change, and from the last heartbeat on, if it is not connected any more
 				var statusInfoAge = DateTime.UtcNow - st.LastChange;
-				if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
+				if( !st.Connected && statusInfoAge > TimeSpan.FromSeconds( 3 ) )
 				{
 					stCode = string.Format( "Offline for {0:0} sec", statusInfoAge.TotalSeconds );
 				}
@@ -245,13 +247,13 @@ namespace Dirigent
 			{
 				stCode += string.Format( " (Offline)" );
 			}
-			else
+			else if( st.Offline )
 			{
+				// the master says so; the time of the last change is then that of the last news from its agent
 				var statusInfoAge = DateTime.UtcNow - st.LastChange;
-				if( statusInfoAge > TimeSpan.FromSeconds( 3 ) )
-				{
-					stCode += string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds );
-				}
+				stCode += statusInfoAge > TimeSpan.FromSeconds( 3 )
+					? string.Format( " (Offline for {0:0} sec)", statusInfoAge.TotalSeconds )
+					: " (Offline)";
 			}
 
 			return stCode;

@@ -96,6 +96,8 @@ namespace Dirigent
 
 			if( !string.IsNullOrEmpty( target ) )
 				_server.SendToSingle( msg, target );
+			else if( msg is ScriptStateMessage ss )
+				RouteScriptState( ss );
 			else
 				// send to everyone else
 				_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
@@ -163,6 +165,24 @@ namespace Dirigent
 		private List<ActionDef> _killAllExtras = new List<ActionDef>();
 		private Dictionary<AppIdTuple, AppDef> _defaultAppDefs;
 		const float CLIENT_REFRESH_PERIOD = 1.0f;
+
+		/// <summary>How often everything is sent again, whatever has or has not changed: a safety net under the changes-only feed.</summary>
+		const double FULL_FEED_PERIOD = 30.0;
+
+		/// <summary>An agent not heard from for this long is taken to be gone, and its apps offline.</summary>
+		static readonly TimeSpan AGENT_SILENCE_LIMIT = TimeSpan.FromSeconds( 3 );
+
+		// what was last sent to the feed, to send what has changed since
+		private readonly Dictionary<AppIdTuple, AppState> _feedSentApps = new();
+		private readonly Dictionary<string, PlanState> _feedSentPlans = new();
+		private readonly Dictionary<string, ClientState> _feedSentClients = new();
+		private DateTime _lastFullFeed = DateTime.UtcNow;
+
+		/// <summary>When each client was last heard from (any message), by client name.</summary>
+		private readonly Dictionary<string, DateTime> _lastHeard = new();
+
+		/// <summary>Who asked for each script that is running: its full state, with the result data, goes to nobody else.</summary>
+		private readonly Dictionary<Guid, string> _scriptRequestors = new();
 		private Stopwatch _swClientRefresh;
 		private TickableCollection _tickers;
 		private string _sharedConfigFileName = string.Empty;
@@ -340,6 +360,8 @@ namespace Dirigent
 
 			HandleDisconnectedClients();
 
+			UpdateAppsFreshness();
+
 			// periodically refresh intrested clients
 			if( _swClientRefresh.Elapsed.TotalSeconds > CLIENT_REFRESH_PERIOD )
 			{
@@ -383,6 +405,42 @@ namespace Dirigent
 			}
 		}
 
+		/// <summary>
+		/// Keeps the states of the apps honest about their agent. Agents send an app's state when it changes, so the time of its last
+		/// change says nothing about whether the agent is there; the master knows that, from the connection and the heartbeat
+		/// (the client state every agent sends each second, and anything else it says). The apps of an agent that is connected and heard
+		/// from are refreshed to the time it was last heard; those of one that is gone or silent are marked offline - which is a change,
+		/// and goes to the GUIs like any other.
+		/// </summary>
+		void UpdateAppsFreshness()
+		{
+			var now = DateTime.UtcNow;
+			HashSet<string>? alive = null;
+
+			foreach( var (id, state) in _allAppStates.AppStates )
+			{
+				// declared but never reported: stays offline until its agent says something about it
+				if( state.LastChange.Ticks == 0 ) continue;
+
+				if( alive is null )
+				{
+					alive = new HashSet<string>();
+					foreach( var cl in _server.Clients )
+						if( _lastHeard.TryGetValue( cl.Name, out var heard ) && now - heard < AGENT_SILENCE_LIMIT ) alive.Add( cl.Name );
+				}
+
+				if( alive.Contains( id.MachineId ) )
+				{
+					state.LastChange = _lastHeard[id.MachineId];
+					state.Offline = false;
+				}
+				else
+				{
+					state.Offline = true; // the time of the last change stays: it is that of the last news
+				}
+			}
+		}
+
 		void HandleDisconnectedClients()
 		{
 			// build a dict of all connected clients
@@ -405,6 +463,9 @@ namespace Dirigent
 		void ProcessIncomingMessage( Message msg )
 		{
 			Type t = msg.GetType();
+
+			// whatever a client says is a sign of life, and what keeps the apps of an agent fresh
+			if( !string.IsNullOrEmpty( msg.Sender ) ) _lastHeard[msg.Sender] = DateTime.UtcNow;
 
 			//if( t != typeof(AppsStateMessage)) // do not log frequent messages; UPDATE: this msg is optionally replaced by UDP so should be rare or non-existing
 			//{
@@ -571,6 +632,7 @@ namespace Dirigent
 
 				case StartScriptMessage m:
 				{
+					NoteScriptRequestor( m.Instance, !string.IsNullOrEmpty( m.Requestor ) ? m.Requestor : m.Sender );
 					if( string.IsNullOrEmpty(m.HostClientId) ) // request for us (master)
 					{
 						if( string.IsNullOrEmpty(m.ScriptName) ) // is it a ScriptDef based single-instance script?
@@ -643,21 +705,33 @@ namespace Dirigent
 				case ScriptStateMessage m:
 				{
 					_reflScripts.UpdateScriptState( m.Instance, m.State );
-						
-					// forward to others (if it was sent from non-master)
+
+					// forward to those who care (if it was sent from non-master; a state of the master's own was routed by Send)
 					if( m.Sender != "" )
 					{
-						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+						RouteScriptState( m );
 					}
 					break;
 				}
 
 				case MachineStateMessage m:
 				{
-					// forward to others (if it was sent from non-master)
+					// forward to the GUIs that look at it (if it was sent from non-master); nothing on an agent reads another machine's
 					if( m.Sender != "" )
 					{
-						_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+						_server.SendToFeed( m, EMsgRecipCateg.Gui );
+					}
+					break;
+				}
+
+				case FeedRequestMessage m:
+				{
+					// only a GUI has a window to hide
+					var ident = _server.Clients.FirstOrDefault( c => c.Name == m.Sender );
+					if( ident is not null && ident.IsGui && _server.SetFeedWanted( m.Sender, m.Wanted ) )
+					{
+						// it was not looking, and now it is: the changes it missed are lost, so it gets everything first
+						FeedGuiStates( ident );
 					}
 					break;
 				}
@@ -770,14 +844,10 @@ namespace Dirigent
 
 		void FeedGui( ClientIdent ident )
 		{
-			// send the full list of clients
-			{
-				foreach( (var id, var state) in _allClientStates.ClientStates )
-				{
-					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
-					_server.SendToSingle( m, ident.Name );
-				}
-			}
+			// the states, to a GUI that wants them
+			bool feed = _server.WantsFeed( ident.Name );
+
+			if( feed ) FeedClientStates( ident );
 
 			// send the full list of plans
 			{
@@ -785,17 +855,7 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
-			// send the full list of plan states
-			{
-				var m = new Net.PlansStateMessage( _plans.PlanStates );
-				_server.SendToSingle( m, ident.Name );
-			}
-
-			// send the full list of app states
-			{
-				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
-				_server.SendToSingle( m, ident.Name );
-			}
+			if( feed ) FeedPlanAndAppStates( ident );
 
 			// send the full list of app defs
 			{
@@ -809,14 +869,7 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
-			// send the full list of script states
-			{
-				foreach (var (inst, state) in _localScripts.ScriptCachedStates)
-				{
-					var m = new Net.ScriptStateMessage( inst, state );
-					_server.SendToSingle( m, ident.Name );
-				}
-			}
+			if( feed ) FeedScriptStates( ident );
 
 			// send full list of VFS nodes
 			{
@@ -830,6 +883,38 @@ namespace Dirigent
 				_server.SendToSingle( m, ident.Name );
 			}
 
+		}
+
+		/// <summary>The states of everything - clients, plans, apps, scripts - to one GUI: what it gets when it connects and when it starts to look again.</summary>
+		void FeedGuiStates( ClientIdent ident )
+		{
+			FeedClientStates( ident );
+			FeedPlanAndAppStates( ident );
+			FeedScriptStates( ident );
+		}
+
+		void FeedClientStates( ClientIdent ident )
+		{
+			foreach( (var id, var state) in _allClientStates.ClientStates )
+			{
+				var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
+				_server.SendToSingle( m, ident.Name );
+			}
+		}
+
+		void FeedPlanAndAppStates( ClientIdent ident )
+		{
+			_server.SendToSingle( new Net.PlansStateMessage( _plans.PlanStates, full: true ), ident.Name );
+			_server.SendToSingle( new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow ), ident.Name );
+		}
+
+		/// <summary>The cached states of the scripts, without their data: that goes to whoever asked for the script.</summary>
+		void FeedScriptStates( ClientIdent ident )
+		{
+			foreach (var (inst, state) in _localScripts.ScriptCachedStates)
+			{
+				_server.SendToSingle( new Net.ScriptStateMessage( inst, WithoutData( state ) ), ident.Name );
+			}
 		}
 
 		void FeedAgent( ClientIdent ident )
@@ -853,40 +938,109 @@ namespace Dirigent
 
 
 		/// <summary>
-		/// Sends current runtime status of apps and plans to subcribed clients
+		/// Sends what changed in the runtime status of clients, apps and plans since the last time, to those who want it
+		/// (and all of it now and then, in case something went astray).
 		/// </summary>
 		void RefreshClients()
 		{
-			// clients
+			var now = DateTime.UtcNow;
+			bool full = ( now - _lastFullFeed ).TotalSeconds >= FULL_FEED_PERIOD;
+			if( full ) _lastFullFeed = now;
+
+			// clients: a change goes to everyone who looks, an agent gets all of them now and then (scripts on an agent read them)
+			foreach( (var id, var state) in _allClientStates.ClientStates )
 			{
-				foreach( (var id, var state) in _allClientStates.ClientStates )
+				_feedSentClients.TryGetValue( id, out var sent );
+				if( state.DiffersForFeed( sent ) )
 				{
-					var m = new Net.ClientStateMessage(DateTime.UtcNow, state);
-					_server.SendToAllSubscribed( m, EMsgRecipCateg.All );
+					_server.SendToFeed( new Net.ClientStateMessage( now, state ), EMsgRecipCateg.All );
+					_feedSentClients[id] = state.Clone();
+				}
+				else if( full )
+				{
+					_server.SendToAllSubscribed( new Net.ClientStateMessage( now, state ), EMsgRecipCateg.Agent );
 				}
 			}
 
 			// apps
 			{
-				var m = new Net.AppsStateMessage( _allAppStates.AppStates, DateTime.UtcNow );
-				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				var delta = new Dictionary<AppIdTuple, AppState>();
+				foreach( (var id, var state) in _allAppStates.AppStates )
+				{
+					_feedSentApps.TryGetValue( id, out var sent );
+					if( full || state.DiffersForFeed( sent ) )
+					{
+						delta[id] = state;
+						_feedSentApps[id] = state.Clone();
+					}
+				}
+
+				if( delta.Count > 0 )
+				{
+					_server.SendToFeed( new Net.AppsStateMessage( delta, now ), EMsgRecipCateg.Gui );
+				}
 			}
 
 			// plans
 			{
-				var m = new Net.PlansStateMessage( _plans.PlanStates );
-				_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
+				var delta = new Dictionary<string, PlanState>();
+				foreach( (var name, var state) in _plans.PlanStates )
+				{
+					_feedSentPlans.TryGetValue( name, out var sent );
+					if( full || state.DiffersForFeed( sent ) )
+					{
+						delta[name] = state;
+						_feedSentPlans[name] = state.CloneDeep();
+					}
+				}
+
+				if( full )
+				{
+					// all of them, and the receiver forgets any other
+					_server.SendToFeed( new Net.PlansStateMessage( _plans.PlanStates, full: true ), EMsgRecipCateg.Gui );
+				}
+				else if( delta.Count > 0 )
+				{
+					_server.SendToFeed( new Net.PlansStateMessage( delta, full: false ), EMsgRecipCateg.Gui );
+				}
 			}
 
 			// we are sending script state on change only, from the async script execution
-			//// scripts
-			//{
-			//	foreach (var (inst, state) in _localScripts.ScriptStates)
-			//	{
-			//		var m = new Net.ScriptStateMessage( inst, state );
-			//		_server.SendToAllSubscribed( m, EMsgRecipCateg.Gui );
-			//	}
-			//}
+		}
+
+		/// <summary>Remembers who asked for a script, to send its result to nobody else.</summary>
+		void NoteScriptRequestor( Guid instance, string? requestor )
+		{
+			if( instance == Guid.Empty || string.IsNullOrEmpty( requestor ) ) return;
+			lock( _scriptRequestors ) _scriptRequestors[instance] = requestor;
+		}
+
+		static ScriptState WithoutData( ScriptState state )
+		{
+			var c = state.Clone();
+			c.Data = null;
+			return c;
+		}
+
+		/// <summary>
+		/// A state of a script, as it goes to the others: in full to whoever asked for the script - its data is the result, or
+		/// the progress, which can be big - and without the data to the GUIs that look at the feed. Nobody else needs it.
+		/// </summary>
+		void RouteScriptState( ScriptStateMessage m )
+		{
+			string? requestor;
+			lock( _scriptRequestors )
+			{
+				_scriptRequestors.TryGetValue( m.Instance, out requestor );
+				if( m.State.Status is EScriptStatus.Finished or EScriptStatus.Failed or EScriptStatus.Cancelled )
+					_scriptRequestors.Remove( m.Instance ); // the last word on it
+			}
+
+			bool toRequestor = !string.IsNullOrEmpty( requestor );
+			if( toRequestor ) _server.SendToSingle( m, requestor! );
+
+			var lean = new ScriptStateMessage( m.Instance, WithoutData( m.State ) ) { Sender = m.Sender };
+			_server.SendToFeed( lean, EMsgRecipCateg.Gui, except: toRequestor ? requestor : null );
 		}
 
 		SharedConfig LoadSharedConfig( string fileName )
@@ -942,6 +1096,10 @@ namespace Dirigent
 			_machineDefs = sharedConfig.Machines;
 			_menuItemDefs = sharedConfig.MainMenuItems;
 			_killAllExtras = sharedConfig.KillAllExtras;
+
+			// what the clients were sent is void after the reset; they are fed everything below
+			_feedSentApps.Clear();
+			_feedSentPlans.Clear();
 
 			// reset
 			var m = new Net.ResetMessage();
@@ -1267,6 +1425,7 @@ namespace Dirigent
 			if( state is null || !state.Connected )
 				throw new Exception( $"Machine {machineId} is not connected." );
 
+			NoteScriptRequestor( id, requestorId );
 			var msg = new Net.StartScriptMessage( requestorId, id, scriptName, null, args, title, machineId );
 			_server.SendToSingle( msg, machineId );
 		}

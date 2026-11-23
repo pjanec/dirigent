@@ -243,8 +243,47 @@ namespace Dirigent
 			_lastChange = DateTime.UtcNow;
 		}
 
+		/// <summary>
+		/// Set by the master when the agent that owns the app is disconnected or has gone silent. It is a flag that
+		/// travels, not a thing to work out from <see cref="LastChange"/>: with the states sent on change only, a copy
+		/// held by a GUI or an agent is not refreshed between changes, so its age says nothing.
+		/// </summary>
+		[MessagePack.Key( 15 )]
+		public bool Offline;
+
+		/// <summary>
+		/// The app's agent is not heard from - or never has been (the default state of a declared app, whose time of last change is unset).
+		/// </summary>
 		[MessagePack.IgnoreMember]
-		public bool IsOffline => DateTime.UtcNow - _lastChange  > TimeSpan.FromSeconds(3); 
+		public bool IsOffline => Offline || _lastChange.Ticks == 0;
+
+		/// <summary>A CPU or GPU load that moved by less than this many percentage points is not worth a message.</summary>
+		public const float FeedCpuThreshold = 1.0f;
+
+		/// <summary>A memory use that moved by less than this many MB is not worth a message.</summary>
+		public const float FeedMemoryThresholdMB = 10.0f;
+
+		/// <summary>
+		/// Whether this state is different enough from the one <paramref name="sent"/> last time to be sent again:
+		/// any status field at once; the performance values only when they moved by a threshold; never the time of the
+		/// last change, which moves all the time. Compare against what was last sent, not against the previous reading,
+		/// so that a slow drift adds up.
+		/// </summary>
+		public bool DiffersForFeed( AppState? sent )
+		{
+			if( sent is null ) return true;
+			return _flags != sent._flags
+				|| ExitCode != sent.ExitCode
+				|| PID != sent.PID
+				|| PlanName != sent.PlanName
+				|| RestartsRemaining != sent.RestartsRemaining
+				|| StartedAt != sent.StartedAt
+				|| EndedAt != sent.EndedAt
+				|| Offline != sent.Offline
+				|| Math.Abs( CPU - sent.CPU ) >= FeedCpuThreshold
+				|| Math.Abs( GPU - sent.GPU ) >= FeedCpuThreshold
+				|| Math.Abs( Memory - sent.Memory ) >= FeedMemoryThresholdMB;
+		}
 
 		public static AppState GetDefault( AppDef ad )
 		{

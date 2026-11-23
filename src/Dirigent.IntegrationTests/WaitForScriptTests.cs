@@ -54,7 +54,7 @@ namespace Dirigent.IntegrationTests
 			CollectionAssert.AreEqual( new List<string>() { "ACK", "ACK", "END" }, lines.ToList(),
 				$"the start acknowledges, the wait acknowledges, and END says it is over: {Describe( lines )}" );
 
-			var state = await bed.Operator.GetScriptStateAsync( instance );
+			var state = await bed.MasterScriptStateAsync( instance ); // the data of a script goes to its requestor; the CLI is not the operator
 			Assert.AreEqual( EScriptStatus.Finished, state?.Status,
 				"the script must already be finished when the command answers" );
 

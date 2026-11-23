@@ -182,12 +182,42 @@ namespace Dirigent
 			#endif
 		}
 
+		/// <summary>How often the agent says it is alive - and what the master takes as proof of it.</summary>
+		static readonly TimeSpan CLIENT_STATE_PERIOD = TimeSpan.FromSeconds( 1 );
+
+		static readonly TimeSpan MACHINE_STATE_PERIOD = TimeSpan.FromSeconds( 2 );
+
+		/// <summary>How often all the apps are sent, changed or not.</summary>
+		static readonly TimeSpan FULL_APPS_PERIOD = TimeSpan.FromSeconds( 10 );
+
+		DateTime _lastClientStateAt = DateTime.MinValue;
+		DateTime _lastMachineStateAt = DateTime.MinValue;
+		DateTime _lastFullAppsAt = DateTime.MinValue;
+
+		/// <summary>The states of the apps as the master was last told, to tell it what has changed since.</summary>
+		readonly Dictionary<AppIdTuple, AppState> _sentAppStates = new();
+
+		int _publishedOnConnection;
+
 		void PublishAgentState()
 		{
+			if( !_client.IsConnected ) return;
+
 			var now = DateTime.UtcNow;
 
-			// send client's state
+			// a new connection (the master may be a new one): it knows nothing, tell it everything again
+			var connection = _client.ConnectionCount;
+			if( connection != _publishedOnConnection )
 			{
+				_publishedOnConnection = connection;
+				ForgetPublishedState();
+			}
+
+			// send client's state: the heartbeat
+			if( now - _lastClientStateAt >= CLIENT_STATE_PERIOD )
+			{
+				_lastClientStateAt = now;
+
 				var clientState = new ClientState();
 				clientState.Ident = _clientIdent;
 				clientState.LastChange = now;
@@ -196,27 +226,48 @@ namespace Dirigent
 				_client.Send( msg );
 			}
 
-			// send the state of all local apps
-
-			var states = new Dictionary<AppIdTuple, AppState>();
-			foreach( var li in _localApps.Apps.Values )
+			// send the state of the local apps that changed (all of them now and then)
 			{
-				states[li.Id] = li.AppState;
-			}
+				bool full = now - _lastFullAppsAt >= FULL_APPS_PERIOD;
+				if( full ) _lastFullAppsAt = now;
 
-			if( states.Count > 0 )
-			{
-				var msg = new Net.AppsStateMessage( states, DateTime.UtcNow );
-				_client.Send( msg );
+				var states = new Dictionary<AppIdTuple, AppState>();
+				foreach( var li in _localApps.Apps.Values )
+				{
+					_sentAppStates.TryGetValue( li.Id, out var sent );
+					if( full || li.AppState.DiffersForFeed( sent ) )
+					{
+						states[li.Id] = li.AppState;
+						_sentAppStates[li.Id] = li.AppState.Clone();
+					}
+				}
+
+				if( states.Count > 0 )
+				{
+					var msg = new Net.AppsStateMessage( states, DateTime.UtcNow );
+					_client.Send( msg );
+				}
 			}
 
 			// state of the machine
+			if( now - _lastMachineStateAt >= MACHINE_STATE_PERIOD )
 			{
+				_lastMachineStateAt = now;
+
 				var machineState = GetMachineState();
 
 				var msg = new Net.MachineStateMessage( _clientIdent.Name, now, machineState );
 				_client.Send( msg );
 			}
+		}
+
+		/// <summary>The next publishing sends everything.</summary>
+		void ForgetPublishedState()
+		{
+			_sentAppStates.Clear();
+			_lastFullAppsAt = DateTime.MinValue;
+			_lastClientStateAt = DateTime.MinValue;
+			_lastMachineStateAt = DateTime.MinValue;
 		}
 
 
@@ -278,6 +329,7 @@ namespace Dirigent
 				case Net.ResetMessage m:
 				{
 					_localApps.Clear();
+					ForgetPublishedState(); // the apps come anew, and the master has reset its picture of them
 					break;
 				}
 

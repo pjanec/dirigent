@@ -98,7 +98,7 @@ namespace Dirigent.IntegrationTests
 				},
 				Timeout, "the restarted script runs with its new arguments and fails on the unknown plan" );
 
-			var failed = await bed.Operator.GetScriptStateAsync( instance );
+			var failed = await bed.MasterScriptStateAsync( instance ); // with its data, which the operator is not sent: it did not ask for the script
 			StringAssert.Contains( failed!.Data ?? "", "no.such.plan",
 				"the failure is the new run's, not the old one's" );
 

@@ -99,7 +99,7 @@ namespace Dirigent.IntegrationTests
 			await bed.WaitUntilAsync(
 				async () =>
 				{
-					foreach( var (_, state) in await bed.Operator.GetAllScriptsStateAsync() )
+					foreach( var (_, state) in await bed.MasterAllScriptsStateAsync() ) // the master has the data of the slaves' scripts; nobody else is sent it
 					{
 						var progress = Tools.Deserialize<DownloadZippedSlave.TProgress>( state.Data );
 						if( progress is not null && progress.BytesTotal > 0 ) reports.Add( progress );

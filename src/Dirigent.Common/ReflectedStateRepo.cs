@@ -156,7 +156,14 @@ namespace Dirigent
 				case Net.PlansStateMessage m:
 				{
 					//Debug.Assert( m.PlansState != null );
-					_planStates = m.PlansState ?? new Dictionary<string, PlanState>();
+					if( m.Full )
+					{
+						_planStates = m.PlansState ?? new Dictionary<string, PlanState>();
+					}
+					else if( m.PlansState is not null ) // only the plans that changed
+					{
+						foreach( var (name, state) in m.PlansState ) _planStates[name] = state;
+					}
 					break;
 				}
 
