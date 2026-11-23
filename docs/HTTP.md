@@ -407,6 +407,7 @@ the values of one filter OR.**
 | `id` | exactly these entries, as listed before |
 | `newestPerApp` | only the newest N entries of each application (entries without an application are all kept) |
 | `details=1` | adds `versions` and `machineInfo` to each entry - see below |
+| `timeout` | seconds one machine may take to answer, 1 to 3600; default 60 |
 
 An entry without a component is dropped only by `component`; every other filter lists it - nothing vanishes silently.
 
@@ -418,7 +419,7 @@ An entry without a component is dropped only by `component`; every other filter 
 | `managed` | `.NET Runtime` 1026 (exception type and the first lines, at most 5) with the 1000 of the same process within seconds - **one entry** | |
 | `hang` | `Application Hang` 1002 | |
 | `reboot` | `System`: Kernel-Power 41 / EventLog 6008 (one entry per reboot) | no application |
-| `bugcheck` | `System`: BugCheck 1001; `dump` says whether `MEMORY.DMP` or a minidump exists | no application |
+| `bugcheck` | `System`: BugCheck 1001. Its dump is the minidump of `Windows\Minidump` - or `MEMORY.DMP` - **written within minutes of the bugcheck**; `MEMORY.DMP` is the dump of the last bugcheck only, so for an older one `dump` says `exists: false`, `note: "overwritten by a later crash"`. A dump file is counted once in `totals.dumpBytes` and collected once | no application |
 | `gpuReset` | `System`: Display 4101 - the display driver stopped responding and recovered | no application |
 | `exit` | **no event**: Dirigent saw the process end without having killed it - see below | `exitCode` |
 
@@ -428,7 +429,7 @@ same signature. **`app` is the application the exe belongs to; when several appl
 and `apps` lists all candidates - Dirigent never guesses.** (If Dirigent started the process, the pid settles it.) `component` is the application's
 `Component`; `null` when there is no application or the candidates' components differ. `dump` is the dump Windows Error Reporting names, or else the
 file `<exe>.<pid>.dmp` in the folder the `LocalDumps` setting of Windows Error Reporting names (read from the registry, never changed); the
-master adds `unc` through the machine's share, as the file listings do. `werReport` is the path of `Report.wer`. Where a dump is expected and is not
+master adds `unc` through the machine's share, as the file listings do. `werReport` is the path of `Report.wer`, found in the report queue and archive of Windows Error Reporting (the machine's and the agent's user's) by what the report says - its event time within seconds of the crash and its program - not by the 1001 event, which Windows logs again days later for queued reports. Where a dump is expected and is not
 there, `exists` is `false`. `time` is UTC.
 
 **Uptime and plan at the crash.** When the process is one Dirigent launched - found by its pid in the history of exits below, or in the state of the
@@ -441,7 +442,9 @@ being killed), the last 10 per application: time, exit code, pid, start time, pl
 is listed here as `kind: "exit"` - this covers a process that exits with an error code, is killed from outside or leaves no event. **The history is
 kept in the master's memory: it is lost when the master restarts.**
 
-**`machines`** says what each machine answered: `status` is `ok`, `not connected`, `not supported` (not Windows) or `error: ...`.
+**`machines`** says what each machine answered: `status` is `ok`, `not connected`, `not supported` (not Windows), `no answer within N s` (the machine did not answer in `timeout` seconds - the others are returned all the same) or `error: ...`.
+The machine is asked under the name its agent connected with, found without regard to case; Dirigent compares machine ids exactly everywhere else, so an application whose id says `srv1.a` for a machine `SRV1` is
+not given to that machine's agent at all - the master logs a warning naming both when it loads such a shared config.
 `coverage.oldestEvent` is how far back the machine's Application log reaches - the log is a ring buffer, so a busy machine may have lost last month's
 crashes; "no crash recorded" and "no record kept" are told apart by it. At most 500 entries are read per machine and the reading is bounded in time;
 `cut: true` says a limit was hit (the newest entries are the ones kept).
@@ -761,8 +764,8 @@ The agents look the crashes up again - the same code and filters as [`GET /api/c
 * with `crashes`: **a folder per crash**, `<machine>/crashes/<local time yyyy-MM-dd_HH-mm-ss>_<app or exe>/` with
   * the dump, whole - **never cut**. A dump bigger than `maxDumpBytes` is left out, and `_crashes.json` (`notes`) and the cover note say which and why;
   * `crash.json` - the entry, with uptime and plan, and what Dirigent knew of the process: start time, restarts left, the exit code it saw, `RestartOnCrash`;
-  * `versions.json` - the exe's file and product version and every DLL of its folder (version, size, time, SHA-256), the faulting module first; Dirigent's own version; the application's version as [`/api/appversions`](#GET-apiappversions) reports it;
-  * `launch.json` - how it was started: program, working folder, command line (declared and expanded), the plan's variables and **only the environment variables the shared config sets for the application**
+  * `versions.json` - the exe's file and product version and every DLL of its folder (version, size, time, SHA-256), the faulting module first, each file written after the crash flagged `"modifiedAfterCrash": true`, and `collectedAt` and a `note` ("N files changed after the crash") - **the files are described as they are at the collection, not at the crash**; Dirigent's own version; the application's version as [`/api/appversions`](#GET-apiappversions) reports it;
+  * `launch.json` - how it was started (`"asOf": "collection"`, with `collectedAt`: it is the configuration as it is now, not necessarily as it was at the crash): program, working folder, command line (declared and expanded), the plan's variables and **only the environment variables the shared config sets for the application**
     (`<Env>`, `<Local>`) - never the inherited environment. **The value of a variable whose name contains `SECRET`, `TOKEN`, `PASSWORD` or `KEY`, or ends with `_PAT`, in any case, is written as `"***"`**;
   * `Report.wer` of that crash, when Windows wrote one;
   * `events.txt` - the events of the crash, and the other errors and warnings of the `Application` and `System` logs in the 2 minutes before it;

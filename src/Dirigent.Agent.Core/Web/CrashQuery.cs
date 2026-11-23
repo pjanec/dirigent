@@ -21,7 +21,8 @@ namespace Dirigent.Web
 		readonly CrashFilter _filter;
 		readonly bool _details;
 		readonly List<string> _machines;
-		readonly HashSet<string> _connected;
+		readonly Dictionary<string, string> _connected; // machine, by any case -> the name the client connected with
+		readonly TimeSpan _timeout;
 		readonly CrashMerger _merger;
 		readonly List<Dirigent.AppDef> _defs;
 
@@ -41,8 +42,9 @@ namespace Dirigent.Web
 			return merger;
 		}
 
-		CrashQuery( Master master, CrashFilter filter, bool details )
+		CrashQuery( Master master, CrashFilter filter, bool details, TimeSpan timeout )
 		{
+			_timeout = timeout;
 			_master = master;
 			_filter = filter;
 			_details = details;
@@ -51,19 +53,23 @@ namespace Dirigent.Web
 			var apps = master.GetAllAppsDef().ToList();
 			_defs = apps.Select( kv => kv.Value ).ToList();
 
-			_machines = apps.Select( kv => kv.Key.MachineId ).Concat( master.GetAllMachinesDef().Select( m => m.Id ) )
+			_machines = master.GetAllMachinesDef().Select( m => m.Id ).Concat( apps.Select( kv => kv.Key.MachineId ) )
 						.Where( m => !string.IsNullOrEmpty( m ) )
 						.Distinct( StringComparer.OrdinalIgnoreCase )
 						.Where( m => filter.machines.Count == 0 || filter.machines.Any( p => Scripts.BuiltIn.ListVfsNodes.IsMatch( p.Trim(), m ) ) )
 						.OrderBy( m => m, StringComparer.OrdinalIgnoreCase ).ToList();
 
-			_connected = ( from kv in master.GetAllClientsState() where kv.Value.Connected select kv.Key ).ToHashSet( StringComparer.OrdinalIgnoreCase );
+			// Machine ids are exact everywhere else, but an application written with another case than its machine ("srv1" for "SRV1") must not
+			// send the script to a name no client answers to: it goes to the machine as the connected client spells it.
+			_connected = new( StringComparer.OrdinalIgnoreCase );
+			foreach( var kv in master.GetAllClientsState() )
+				if( kv.Value.Connected ) _connected[kv.Key] = kv.Key;
 		}
 
 		/// <summary>Master thread only.</summary>
 		/// <exception cref="ArgumentException">until is earlier than since</exception>
-		public static CrashQuery Prepare( Master master, CrashFilter filter, bool details )
-			=> new( master, filter.Resolve( DateTime.UtcNow ), details );
+		public static CrashQuery Prepare( Master master, CrashFilter filter, bool details, TimeSpan? timeout = null )
+			=> new( master, filter.Resolve( DateTime.UtcNow ), details, timeout ?? AnswerTimeout.Default );
 
 		Dictionary<string, List<string>> _dumpFolders = new();
 
@@ -73,7 +79,7 @@ namespace Dirigent.Web
 			Dictionary<string, List<string>> dumpFolders;
 			try
 			{
-				dumpFolders = await CrashDumpFolders.ResolveAsync( _defs.Where( d => _connected.Contains( d.Id.MachineId ) ), node => _master.ResolveAsync( node, false, false ) );
+				dumpFolders = await CrashDumpFolders.ResolveAsync( _defs.Where( d => _connected.ContainsKey( d.Id.MachineId ) ), node => _master.ResolveAsync( node, false, false ) );
 			}
 			catch( Exception )
 			{
@@ -99,7 +105,7 @@ namespace Dirigent.Web
 
 			listing.crashes = shown;
 			listing.totals.crashes = shown.Count;
-			listing.totals.dumpBytes = shown.Where( e => e.dump is { exists: true } ).Sum( e => e.dump!.size ?? 0 );
+			listing.totals.dumpBytes = CrashSelection.DistinctDumps( shown ).Where( d => d.exists ).Sum( d => d.size ?? 0 );
 			return listing;
 		}
 
@@ -107,7 +113,7 @@ namespace Dirigent.Web
 		{
 			var status = new CrashMachineStatus { machine = machine };
 
-			if( !_connected.Contains( machine ) )
+			if( !_connected.TryGetValue( machine, out var clientName ) )
 			{
 				status.status = "not connected";
 				return (status, new());
@@ -115,15 +121,15 @@ namespace Dirigent.Web
 
 			try
 			{
-				var result = await _master.RunScriptAsync<Scripts.BuiltIn.QueryCrashes.TArgs, Scripts.BuiltIn.QueryCrashes.TResult>(
-					machine, Scripts.BuiltIn.QueryCrashes._Name, null,
+				var result = await AnswerTimeout.Within( _master.RunScriptAsync<Scripts.BuiltIn.QueryCrashes.TArgs, Scripts.BuiltIn.QueryCrashes.TResult>(
+					clientName, Scripts.BuiltIn.QueryCrashes._Name, null,
 					new Scripts.BuiltIn.QueryCrashes.TArgs()
 					{
 						Filter = _filter,
 						Details = _details,
 						DumpFolders = _dumpFolders.Where( kv => kv.Key.StartsWith( machine + ".", StringComparison.OrdinalIgnoreCase ) ).ToDictionary( kv => kv.Key, kv => kv.Value ),
 					},
-					$"Reading the crashes of {machine}", out _ );
+					$"Reading the crashes of {machine}", out _ ), _timeout );
 
 				if( result is null ) throw new Exception( $"{machine} answered nothing sensible." );
 
@@ -153,6 +159,11 @@ namespace Dirigent.Web
 				}
 
 				return (status, result.Entries);
+			}
+			catch( TimeoutException e )
+			{
+				status.status = e.Message; // "no answer within N s"
+				return (status, new());
 			}
 			catch( Exception e )
 			{
@@ -186,6 +197,16 @@ namespace Dirigent.Web
 			if( !DateTimeOffset.TryParse( text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var t ) )
 				throw new ArgumentException( $"'{name}' is not a time (ISO 8601): '{text}'." );
 			return t.UtcDateTime;
+		}
+
+		/// <summary>The seconds one machine may take (<c>?timeout=</c>); null when not given - the default applies.</summary>
+		/// <exception cref="ArgumentException">not a positive number</exception>
+		public static TimeSpan? ParseTimeout( string? text )
+		{
+			if( string.IsNullOrWhiteSpace( text ) ) return null;
+			if( !double.TryParse( text, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds ) || seconds <= 0 || seconds > 3600 )
+				throw new ArgumentException( $"'timeout' is not a number of seconds (1 to 3600): '{text}'." );
+			return TimeSpan.FromSeconds( seconds );
 		}
 
 		public static bool IsTrue( string? v ) => v is not null && ( v == "1" || v.Equals( "true", StringComparison.OrdinalIgnoreCase ) || v.Equals( "yes", StringComparison.OrdinalIgnoreCase ) );

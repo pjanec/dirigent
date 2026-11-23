@@ -230,6 +230,46 @@ namespace Dirigent.IntegrationTests
 		}
 
 		[TestMethod()]
+		public async Task AMachineThatDoesNotAnswerInTimeIsSaidAndTheOthersAreReturned()
+		{
+			// m2 is connected but takes longer than the timeout to read its log
+			var release = new System.Threading.ManualResetEventSlim();
+			QueryCrashes.EnvironmentFactory = machine =>
+			{
+				if( machine == "m2" ) release.Wait( TimeSpan.FromSeconds( 20 ) );
+				return new CrashEnvironment { Source = machine == "m1" ? _m1Log : new FakeSource() };
+			};
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = World() } );
+			_m1Log.Events.Add( E1000( DateTime.UtcNow.AddMinutes( -5 ), bed.TestAppPath, 4321 ) );
+
+			var started = DateTime.UtcNow;
+			var list = await Ask( bed, "kind=crash timeout=2" );
+			release.Set();
+
+			Assert.IsTrue( DateTime.UtcNow - started < TimeSpan.FromSeconds( 15 ), "it did not wait for the machine that does not answer" );
+			Assert.AreEqual( "ok", list.machines.Single( m => m.machine == "m1" ).status );
+			Assert.AreEqual( "no answer within 2 s", list.machines.Single( m => m.machine == "m2" ).status );
+			Assert.AreEqual( 1, list.crashes.Count, "what m1 said is there" );
+		}
+
+		[TestMethod()]
+		public async Task AnApplicationWrittenWithAnotherCaseThanItsMachineStillGetsItsMachineAsked()
+		{
+			// the machine is "M1"; its application is written "m1.render": the script goes to the client as it is spelled, "M1"
+			var scenario = Scenario.Empty().Machines( "M1" )
+				.RawXml( "<App AppIdTuple='m1.render' ExeFullPath='{testapp}' CmdLineArgs='--run-forever'/>" );
+			QueryCrashes.EnvironmentFactory = machine => new CrashEnvironment { Source = _m1Log };
+
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = scenario } );
+
+			var list = await Ask( bed, "timeout=10" );
+
+			CollectionAssert.AreEqual( new[] { "M1" }, list.machines.Select( m => m.machine ).ToArray(), "one machine, in the spelling of its definition" );
+			Assert.AreEqual( "ok", list.machines[0].status );
+		}
+
+		[TestMethod()]
 		public async Task AnUntilBeforeSinceIsAnError()
 		{
 			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = World() } );

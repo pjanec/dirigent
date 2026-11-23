@@ -940,6 +940,10 @@ namespace Dirigent
 			_files.SetMachines( sharedConfig.Machines );
 
 			_machineDefs = sharedConfig.Machines;
+
+			foreach( var warning in ConfigChecks.MachineIdCaseMismatches( _machineDefs.Select( m => m.Id ), allAppDefs.Keys ) )
+				log.Warn( warning );
+
 			_menuItemDefs = sharedConfig.MainMenuItems;
 			_killAllExtras = sharedConfig.KillAllExtras;
 

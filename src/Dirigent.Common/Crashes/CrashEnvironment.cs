@@ -20,6 +20,11 @@ namespace Dirigent.Crashes
 
 		public Func<string, long?> FileSize { get; set; } = CrashFacts.FileSize;
 		public Func<string, IReadOnlyList<string>> LocalDumpFolders { get; set; } = CrashFacts.LocalDumpFolders;
+		/// <summary>The Report.wer of a crash: program name, program path, crash time (UTC).</summary>
+		public Func<string?, string?, DateTime, string?> FindWerReport { get; set; } = WerReports.Find;
+
+		public Func<string, DateTime?> FileWritten { get; set; } = CrashFacts.FileWritten;
+
 		public Func<string, DateTime, string?> FindMiniDump { get; set; } = CrashFacts.FindMiniDump;
 		/// <summary>The dump files of a folder, as a listing: path, time written (UTC), size.</summary>
 		public Func<string, IEnumerable<(string path, DateTime writtenUtc, long size)>> ListDumps { get; set; } = CrashFacts.ListDumps;
@@ -54,6 +59,8 @@ namespace Dirigent.Crashes
 				FileSize = FileSize,
 				LocalDumpFolders = LocalDumpFolders,
 				FindMiniDump = t => FindMiniDump( WindowsDir, t ),
+				FindWerReport = FindWerReport,
+				FileWritten = FileWritten,
 				ListDumps = ListDumps,
 				WindowsDir = WindowsDir,
 			};
@@ -68,6 +75,19 @@ namespace Dirigent.Crashes
 			{
 				var f = new FileInfo( path );
 				return f.Exists ? f.Length : null;
+			}
+			catch( Exception )
+			{
+				return null;
+			}
+		}
+
+		public static DateTime? FileWritten( string path )
+		{
+			try
+			{
+				var f = new FileInfo( path );
+				return f.Exists ? f.LastWriteTimeUtc : null;
 			}
 			catch( Exception )
 			{
@@ -114,7 +134,7 @@ namespace Dirigent.Crashes
 				if( !Directory.Exists( dir ) ) return null;
 
 				return new DirectoryInfo( dir ).GetFiles( "*.dmp" )
-					.Where( f => ( f.LastWriteTimeUtc - utc ).Duration() <= TimeSpan.FromMinutes( 15 ) )
+					.Where( f => ( f.LastWriteTimeUtc - utc ).Duration() <= CrashBuilder.BugCheckDumpWindow )
 					.OrderBy( f => ( f.LastWriteTimeUtc - utc ).Duration() )
 					.Select( f => f.FullName ).FirstOrDefault();
 			}

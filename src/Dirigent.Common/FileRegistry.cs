@@ -686,6 +686,9 @@ namespace Dirigent
 			await Task.WhenAll( byMachine.Select( group => AskOneMachine( iDirig, group, forceUNC, window ) ) );
 		}
 
+		/// <summary>How long one machine may take to resolve its nodes (a big file system takes its time).</summary>
+		public static TimeSpan ResolveAnswerTimeout = TimeSpan.FromMinutes( 3 );
+
 		async Task AskOneMachine( IDirigAsync iDirig, List<RemoteStub> stubs, bool forceUNC, FileWindow? window )
 		{
 			var machineId = stubs[0].Request.MachineId ?? string.Empty;
@@ -704,14 +707,15 @@ namespace Dirigent
 						? $"Resolve {stubs[0].Request.Xml}"
 						: $"Resolve {stubs.Count} nodes of {machineId}";
 
-				var result = await iDirig.RunScriptAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
+				// a machine that never answers (no agent under that name) must not hold the others' nodes for ever
+				var result = await AnswerTimeout.Within( iDirig.RunScriptAsync<Scripts.BuiltIn.ResolveVfsPath.TArgs, Scripts.BuiltIn.ResolveVfsPath.TResult>(
 						machineId,
 						Scripts.BuiltIn.ResolveVfsPath._Name,
 						"",	// sourceCode
 						args,
 						title,
 						out var instance
-					);
+					), ResolveAnswerTimeout );
 
 				var answers = result?.Nodes;
 				if( answers is null || answers.Count != stubs.Count )

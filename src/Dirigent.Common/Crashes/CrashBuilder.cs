@@ -28,6 +28,12 @@ namespace Dirigent.Crashes
 		/// <summary>The dump files of a folder: path, time written (UTC), size.</summary>
 		public Func<string, IEnumerable<(string path, DateTime writtenUtc, long size)>> ListDumps = _ => Array.Empty<(string, DateTime, long)>();
 
+		/// <summary>The report of a crash found by what it says (program, event time): exe name, exe path, crash time (UTC). Null when none.</summary>
+		public Func<string?, string?, DateTime, string?> FindWerReport = ( _, _, _ ) => null;
+
+		/// <summary>When a file was last written (UTC), or null when there is no such file.</summary>
+		public Func<string, DateTime?> FileWritten = _ => null;
+
 		/// <summary>The Windows folder - where MEMORY.DMP is.</summary>
 		public string WindowsDir = @"C:\Windows";
 	}
@@ -62,6 +68,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>A dump with no name of the crash is the one written within this after it.</summary>
 		public static readonly TimeSpan DumpAfterCrash = TimeSpan.FromMinutes( 1 );
+
+		/// <summary>A bugcheck's dump was written within this of the bugcheck event.</summary>
+		public static readonly TimeSpan BugCheckDumpWindow = TimeSpan.FromMinutes( 5 );
 
 		public const int MaxExceptionLines = 5;
 		const int _maxLineChars = 300;
@@ -319,6 +328,11 @@ namespace Dirigent.Crashes
 
 			e.id = CrashEntry.MakeId( ctx.Machine, e.time, e.processId?.ToString( CultureInfo.InvariantCulture ) ?? "0" );
 
+			// The report of the crash: found by what it says - its event time and its program - and not by the 1001, which Windows logs
+			// again, days later, for the reports it kept queued.
+			var foundReport = ctx.FindWerReport( name, path ?? owner.Candidates.Select( a => a.ExePath ).FirstOrDefault( p => p is not null ), e.time );
+			if( foundReport is not null ) e.werReport = foundReport;
+
 			// the dump: from the report when it names one, else the file LocalDumps would write
 			string? dumpPath = null;
 			if( c.Wer is not null )
@@ -332,7 +346,7 @@ namespace Dirigent.Crashes
 					var folder = CrashAppTable.NormalizePath( c.Wer.D( 15 ) );
 					if( folder is not null ) report = folder.EndsWith( ".wer", StringComparison.OrdinalIgnoreCase ) ? folder : folder + @"\Report.wer";
 				}
-				e.werReport = report;
+				e.werReport ??= report;
 			}
 
 			if( dumpPath is not null )
@@ -450,24 +464,25 @@ namespace Dirigent.Crashes
 			e.id = CrashEntry.MakeId( ctx.Machine, ev.TimeUtc, CrashKind.BugCheck );
 			e.signature = $"{CrashKind.BugCheck}||{e.exceptionCode}|";
 
+			// MEMORY.DMP is the dump of the LAST bugcheck. A file is this bugcheck's only when it was written within minutes of it: the
+			// dump the event names, a minidump, or MEMORY.DMP - else a later crash has overwritten it.
 			var named = CrashAppTable.NormalizePath( ev.D( 1 ) );
+			var memory = Path.Combine( ctx.WindowsDir, "MEMORY.DMP" );
 			var paths = new List<string>();
-			if( named is not null && named.Contains( '\\' ) ) paths.Add( named );
-			paths.Add( Path.Combine( ctx.WindowsDir, "MEMORY.DMP" ) );
+			if( named is not null && named.IndexOf( (char) 92 ) >= 0 ) paths.Add( named );
+			if( !paths.Contains( memory, StringComparer.OrdinalIgnoreCase ) ) paths.Add( memory );
 
-			foreach( var p in paths )
-			{
-				if( ctx.FileSize( p ) is long size )
-				{
-					e.dump = new CrashDump { path = p, exists = true, size = size };
-					break;
-				}
-			}
+			bool IsOfThisBugCheck( string p )
+				=> ctx.FileWritten( p ) is DateTime written && ( written - ev.TimeUtc ).Duration() <= BugCheckDumpWindow;
 
-			if( e.dump is null && ctx.FindMiniDump( ev.TimeUtc ) is string mini && ctx.FileSize( mini ) is long msize )
-				e.dump = new CrashDump { path = mini, exists = true, size = msize };
+			var mini = ctx.FindMiniDump( ev.TimeUtc );
+			var candidates = ( mini is null ? paths : new[] { mini }.Concat( paths ) ).Where( IsOfThisBugCheck ).ToList();
 
-			e.dump ??= new CrashDump { path = paths[0], exists = false };
+			if( candidates.Count > 0 && ctx.FileSize( candidates[0] ) is long size )
+				e.dump = new CrashDump { path = candidates[0], exists = true, size = size };
+			else
+				e.dump = new CrashDump { path = paths[0], exists = false, note = ctx.FileSize( paths[0] ) is null ? "no dump file" : "overwritten by a later crash" };
+
 			return e;
 		}
 

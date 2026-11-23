@@ -248,6 +248,7 @@ namespace Dirigent.Tests
 
 			var ctx = Ctx(); // no apps at all: machine-level events are always kept
 			ctx.FileSize = p => p == @"C:\Windows\MEMORY.DMP" ? 1000000 : null;
+			ctx.FileWritten = p => p == @"C:\Windows\MEMORY.DMP" ? T0.AddHours( 3 ).AddMinutes( 1 ) : null;
 
 			var entries = CrashBuilder.Build( new[] { power, elog, bugcheck, gpu }, ctx );
 

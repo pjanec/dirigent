@@ -185,6 +185,9 @@ namespace Dirigent.Crashes
 			if( asked.context && records.Count > 0 )
 				around = ReadAround( env, records.Min( e => e.time ).AddMinutes( -2 ), records.Max( e => e.time ) );
 
+			// one file is one dump: it goes into the archive, and into the totals, once
+			var dumpTakenBy = new Dictionary<string, string>( StringComparer.OrdinalIgnoreCase );
+
 			var specs = new Dictionary<string, AppLaunchSpec?>( StringComparer.OrdinalIgnoreCase );
 			var versions = new Dictionary<string, CrashVersions?>( StringComparer.OrdinalIgnoreCase );
 
@@ -198,8 +201,14 @@ namespace Dirigent.Crashes
 					var (path, missing, tooBig) = ChooseDump( e, asked );
 					if( missing is not null ) folder.Missing.Add( missing );
 					if( tooBig ) notes.Add( $"{e.id}: {missing}" );
+					if( path is not null && dumpTakenBy.TryGetValue( path, out var firstFolder ) )
+					{
+						folder.Missing.Add( $"dump {path} is the one of {firstFolder}: it is in the archive once" );
+						path = null;
+					}
 					if( path is not null )
 					{
+						dumpTakenBy[path] = folder.Name;
 						folder.DumpPath = path;
 						folder.DumpSize = e.dump!.size ?? 0;
 						plan.Report.DumpBytes += folder.DumpSize;
@@ -230,7 +239,7 @@ namespace Dirigent.Crashes
 			if( e.dump is null )
 				return (null, "no dump: Windows recorded none and none is in the application's dump folders", false);
 			if( !e.dump.exists )
-				return (null, $"no dump: {e.dump.path} is not there", false);
+				return (null, e.dump.note is null ? $"no dump: {e.dump.path} is not there" : $"no dump: {e.dump.path} - {e.dump.note}", false);
 			if( asked.maxDumpBytes is long max && ( e.dump.size ?? 0 ) > max )
 				return (null, $"dump {e.dump.path} left out: {Size( e.dump.size ?? 0 )} is more than the limit of {Size( max )}", true);
 			return (e.dump.path, null, false);
@@ -270,7 +279,7 @@ namespace Dirigent.Crashes
 					{
 						dirigent = AppConfig.VersionText(),
 						app = e.app is null ? null : new { id = e.app, version = loc.FileVersion?.Split( '\n' ).Select( x => x.TrimEnd( '\r' ) ).ToList(), source = loc.VersionSource },
-						exe = CrashQueryHelpers.FaultingFirst( v, e.faultingModule ),
+						exe = MarkChanged( CrashQueryHelpers.FaultingFirst( v, e.faultingModule ), e.time, DateTime.UtcNow ),
 					} );
 				}
 				else folder.Missing.Add( "no versions.json: the program is not there any more" );
@@ -284,6 +293,9 @@ namespace Dirigent.Crashes
 				var pe = spec?.ParseExe();
 				folder.Texts["launch.json"] = ToJson( new
 				{
+					asOf = "collection",
+					collectedAt = DateTime.UtcNow,
+					note = "This is the configuration as it is now, at the collection - not necessarily as it was at the crash.",
 					app = e.app,
 					plan = e.plan ?? def.PlanName,
 					exe = new { declared = def.ExeFullPath, expanded = spec is null || pe is null ? null : spec.GetFileName( pe.Value ) },
@@ -301,6 +313,29 @@ namespace Dirigent.Crashes
 
 			if( e.werReport is not null && File.Exists( e.werReport ) ) folder.ReportPath = e.werReport;
 			else if( e.kind is CrashKind.Crash or CrashKind.Managed or CrashKind.Hang ) folder.Missing.Add( "no Report.wer: Windows Error Reporting wrote none" );
+		}
+
+		/// <summary>
+		/// The versions as they are at the collection, each file flagged when it was written after the crash - such a file is not what
+		/// crashed - and a note saying how many.
+		/// </summary>
+		public static CrashVersions MarkChanged( CrashVersions v, DateTime crashUtc, DateTime nowUtc )
+		{
+			var files = v.files.Select( f => new CrashFileVersion
+			{
+				name = f.name, version = f.version, size = f.size, modified = f.modified, sha256 = f.sha256,
+				modifiedAfterCrash = f.modified.ToUniversalTime() > crashUtc ? true : null,
+			} ).ToList();
+
+			var changed = files.Count( f => f.modifiedAfterCrash == true );
+			return new CrashVersions
+			{
+				exeFileVersion = v.exeFileVersion,
+				exeProductVersion = v.exeProductVersion,
+				files = files,
+				collectedAt = nowUtc,
+				note = $"{changed} file{( changed == 1 ? "" : "s" )} changed after the crash. The files are described as they are at the collection, not at the crash.",
+			};
 		}
 
 		static async Task<AppLaunchSpec?> SafeSpec( IDirigAsync dirig, AppDef def )

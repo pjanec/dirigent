@@ -124,7 +124,9 @@ namespace Dirigent.Tests
 		[TestMethod()]
 		public void TheDumpBytesOfAPreviewCountOnlyTheDumpsThatWouldBeCollected()
 		{
-			var list = new[] { WithDump( 500 ), WithDump( 5000 ), WithDump( null, exists: false ), Entry( "m1.b" ) };
+			var big = WithDump( 5000 );
+			big.dump!.path = @"C:\Dumps.dmp";
+			var list = new[] { WithDump( 500 ), big, WithDump( null, exists: false ), Entry( "m1.b" ) };
 
 			Assert.AreEqual( 5500L, new CrashSelection().DumpBytesOf( list ) );
 			Assert.AreEqual( 500L, new CrashSelection { maxDumpBytes = 1000 }.DumpBytesOf( list ) );
