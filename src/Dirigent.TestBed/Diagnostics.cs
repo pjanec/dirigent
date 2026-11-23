@@ -52,6 +52,15 @@ namespace Dirigent.TestBed
 			}
 		}
 
+		/// <summary>The rendered text of everything Dirigent logged since the last <see cref="ClearLog"/>.</summary>
+		public static System.Collections.Generic.List<string> LogMessages()
+		{
+			lock( _lock )
+			{
+				return _appender is null ? new() : _appender.GetEvents().Select( e => e.RenderedMessage ).ToList();
+			}
+		}
+
 		/// <summary>Drops the captured events so one test's failure report is not another's.</summary>
 		public static void ClearLog()
 		{

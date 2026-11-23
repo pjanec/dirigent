@@ -47,8 +47,21 @@ namespace Dirigent.Net
 			base.Dispose(disposingManagedResources);
 		}
 
+		/// <summary>Why the master refused this client; null while it has not. Shapes the reconnect rate.</summary>
+		private volatile string? _refusal;
+
 		void OnMessageReceived( Net.Message instance )
 		{
+			if( instance is RejectedMessage rej )
+			{
+				_refusal = rej.Reason;
+				log.Error( $"The master refused this client: {rej.Reason}" );
+			}
+			else
+			{
+				_refusal = null; // the master talks to us again
+			}
+
 			lock( _msgReceived )
 			{
 				_msgReceived.Add( instance );
@@ -91,11 +104,12 @@ namespace Dirigent.Net
 
 			if( _autoRecon && !_isDisposing )
 			{
-				// Wait for a while...
-				Thread.Sleep( 1000 );
+				// Wait for a while... - much longer after a refusal: asking again at the usual rate would only fill the master's log
+				var refused = _refusal is not null;
+				Thread.Sleep( refused ? (int) Protocol.RefusedRetryInterval.TotalMilliseconds : 1000 );
 
 				// Try to connect again
-				if( !_stop )
+				if( !_stop && !_isDisposing )
 				{
 					while(true)	// loop to retry the connect call if exception happens
 					{

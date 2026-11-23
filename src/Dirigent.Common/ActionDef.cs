@@ -12,7 +12,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of an action associated with some dirigent item (app, file, machine..)
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	[MessagePack.Union( 201, typeof( ToolActionDef ) )]
 	[MessagePack.Union( 202, typeof( ScriptActionDef ) )]
 	[MessagePack.Union( 203, typeof( ScriptDef ) )]
@@ -20,22 +20,23 @@ namespace Dirigent
 	{
 		/// Name in the library of scripts, tools etc.
 		/// </summary>
-		//[MessagePack.Key( 21 )]
+		[MessagePack.Key( 10 )]
 		public string Name = string.Empty;
 
 		/// <summary>
 		/// Args to pass to the action (tool, script etc.)
 		/// </summary>
-		//[MessagePack.Key( 22 )]
+		[MessagePack.Key( 11 )]
 		public string Args = string.Empty;
 
 		/// <summary>
 		/// On which node (client/agent/master) to run this script/action. empty=master. Null = not set.
 		/// </summary>
-		//[MessagePack.Key( 23 )]
+		[MessagePack.Key( 12 )]
 		public string? HostId;
 
 		// overrides startup folder for a tool action
+		[MessagePack.Key( 13 )]
 		public string? StartupDir;
 
 
@@ -60,7 +61,7 @@ namespace Dirigent
 		public override int GetHashCode() => Id.GetHashCode();
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class ToolActionDef : ActionDef, IEquatable<ToolActionDef>
 	{
 		public override string ToString() =>$"[ToolAction] {base.ToString()}";
@@ -71,7 +72,7 @@ namespace Dirigent
 		public override int GetHashCode() => base.GetHashCode();
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class ScriptActionDef : ActionDef, IEquatable<ScriptActionDef>
 	{
 		/// <summary>
@@ -86,7 +87,7 @@ namespace Dirigent
 		/// Only the WinForms GUI can ask. Anything else - a CLI or REST caller, another script -
 		/// passes the comment itself if it has one, so this is simply ignored there.
 		/// </remarks>
-		//[MessagePack.Key( 30 )]
+		[MessagePack.Key( 14 )]
 		public bool AskComment = false;
 
 		public override string ToString() =>$"[ScriptAction] {base.ToString()}";

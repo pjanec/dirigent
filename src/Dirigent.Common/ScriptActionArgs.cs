@@ -9,25 +9,25 @@ namespace Dirigent
 	/// <summary>
 	/// Arguments passed to the script called as a result of user clicking the script-based action menu item.
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class ScriptActionArgs
 	{
 		/// <summary>
 		/// Generic string arguments as defined by the ScriptActionDef.Args.
 		/// </summary>
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public string? Args;
 		
 		/// <summary>
 		/// Variables associated with the item (file, app, etc.)
 		/// </summary>
-		//[MessagePack.Key( 2 )]
+		[MessagePack.Key( 2 )]
 		public Dictionary<string, string>? Vars;
 
 		/// <summary>
 		/// The vfs node this script action is boound to (null of none)
 		/// </summary>
-		//[MessagePack.Key( 3 )]
+		[MessagePack.Key( 3 )]
 		public VfsNodeDef? VfsNode;
 
 		/// <summary>
@@ -38,7 +38,7 @@ namespace Dirigent
 		/// Asking is the GUI's business - a script cannot show a dialog, and a CLI or REST caller has
 		/// nobody to ask - so this always arrives already written, or empty.
 		/// </remarks>
-		//[MessagePack.Key( 5 )]
+		[MessagePack.Key( 5 )]
 		public string? Comment;
 
 		/// <summary>
@@ -56,7 +56,7 @@ namespace Dirigent
 		/// Tool actions cannot use this: their FILE_PATH is built by walking the resolved tree, so
 		/// they still need it resolved up front.
 		/// </remarks>
-		//[MessagePack.Key( 4 )]
+		[MessagePack.Key( 4 )]
 		public bool VfsNodeNeedsResolving;
 	}
 

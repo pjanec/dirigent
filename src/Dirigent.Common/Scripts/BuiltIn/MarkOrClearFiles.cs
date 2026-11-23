@@ -22,7 +22,7 @@ namespace Dirigent.Scripts.BuiltIn
 	{
 		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TArgs : ScriptActionArgs
 		{
 			/// <summary>
@@ -38,7 +38,7 @@ namespace Dirigent.Scripts.BuiltIn
 			public bool PlanOwned;
 		}
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TResult
 		{
 			public int Cleared;

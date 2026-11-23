@@ -40,12 +40,68 @@ namespace Dirigent.Net
 			_msgCodec = new MsgPackCodec();
 			_msgCodec.Traffic = server.Traffic;
 			_msgCodec.MessageReceived = OnMessageReceived;
+			_msgCodec.DecodeFailed = OnDecodeFailed;
+		}
+
+		/// <summary>Whether any message of this session has been decoded yet.</summary>
+		private volatile bool _decodedAny;
+
+		/// <summary>The master has refused this client; whatever else it sends is dropped.</summary>
+		private bool _refused;
+
+		private bool _unreadableHandled;
+
+		/// <summary>The address the client connected from, for the log.</summary>
+		public string RemoteAddress
+		{
+			get
+			{
+				try { return ( Socket.RemoteEndPoint as IPEndPoint )?.Address.ToString() ?? "?"; }
+				catch { return "?"; }
+			}
 		}
 
 		// Async!
 		void OnMessageReceived( Net.Message instance )
 		{
+			_decodedAny = true;
 			_msgsReceived.Enqueue( instance );
+		}
+
+		// Async!
+		// A client of an older Dirigent speaks an encoding this master cannot decode, and says so by its very first message
+		// being unreadable. Say that once, rather than an error per message, and hang up.
+		void OnDecodeFailed( Exception error )
+		{
+			if( _decodedAny )
+			{
+				log.Error( $"Deserialize<{typeof( Net.Message ).FullName}> failed: {error.Message} {error.InnerException}" );
+				return;
+			}
+
+			if( _unreadableHandled ) return;
+			_unreadableHandled = true;
+
+			_server.OnFirstMessageUnreadable( RemoteAddress );
+			Disconnect();
+		}
+
+		/// <summary>Tells the client why it is not wanted and hangs up.</summary>
+		void Refuse( string reason )
+		{
+			_refused = true;
+			try
+			{
+				var ms = new System.IO.MemoryStream();
+				MsgPackCodec.Serialize<Net.Message>( ms, new RejectedMessage( reason ) );
+				Send( ms.GetBuffer(), 0, ms.Position ); // synchronous, so that it is out before the connection closes
+				_server.Traffic.Sent( typeof( RejectedMessage ), ms.Position );
+			}
+			catch( Exception ex )
+			{
+				log.Warn( $"Could not tell {RemoteAddress} that it is refused: {ex.Message}" );
+			}
+			Disconnect();
 		}
 
 		public bool WantsReceiveMessage( EMsgRecipCateg msgCategory )
@@ -60,6 +116,8 @@ namespace Dirigent.Net
 			{
 				if( _msgsReceived.TryDequeue( out var m ) )
 				{
+					if( _refused ) continue;
+
 					var msg = m as Message;
 					if( msg != null )
 					{
@@ -67,6 +125,13 @@ namespace Dirigent.Net
 						var ident = msg as Net.ClientIdent;
 						if( ident != null )
 						{
+							if( ident.ProtocolVersion != Protocol.Version )
+							{
+								var reason = $"{ident.Sender} at {RemoteAddress} speaks protocol {ident.ProtocolVersion}, this master {Protocol.Version} - update it to {Protocol.ProductVersion}";
+								log.Warn( reason );
+								Refuse( reason );
+								continue;
+							}
 							SetIdent( ident );
 						}
 
@@ -203,6 +268,22 @@ namespace Dirigent.Net
 		public void BufferMessageReceived( Message msg )
 		{
 			_messagesReceived.Enqueue( msg );
+		}
+
+		private readonly Dictionary<string, DateTime> _unreadableLogged = new();
+
+		// async!
+		// once per address and UnreadableClientLogInterval: a client that retries every second would otherwise fill the log
+		internal void OnFirstMessageUnreadable( string address )
+		{
+			lock( _unreadableLogged )
+			{
+				var now = DateTime.UtcNow;
+				if( _unreadableLogged.TryGetValue( address, out var last ) && now - last < Protocol.UnreadableClientLogInterval ) return;
+				_unreadableLogged[address] = now;
+			}
+
+			log.Warn( $"a client at {address} sent a message this master cannot read - it probably runs an older Dirigent than {Protocol.ProductVersion}; update it" );
 		}
 
 		// called synchronously from session's Poll()

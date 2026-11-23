@@ -61,6 +61,8 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Architecture](docs/Architecture.md)
 
+[Network protocol](docs/Network.md)
+
 [Design notes (not up to date)](docs/Design-notes.md)
 
 [Test harness](docs/TestHarness.md)

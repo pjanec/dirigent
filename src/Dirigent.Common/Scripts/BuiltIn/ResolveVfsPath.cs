@@ -15,17 +15,17 @@ public class ResolveVfsPath : Script
 
 	public static readonly string _Name = "BuiltIns/ResolveVfsPath.cs";
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class TArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
 		/// <summary>
 		/// The node to resolve, named by its config id. Used when VfsNode is not given, which is the
 		/// case for every caller but a GUI.
 		/// </summary>
-		//[MessagePack.Key( 4 )]
+		[MessagePack.Key( 4 )]
 		public VfsNodeSelector? Node;
 
 		/// <summary>
@@ -39,10 +39,10 @@ public class ResolveVfsPath : Script
 		/// </remarks>
 		public List<VfsNodeDef>? VfsNodes;
 
-		//[MessagePack.Key( 2 )]
+		[MessagePack.Key( 2 )]
 		public bool ForceUNC;
 
-		//[MessagePack.Key( 3 )]
+		[MessagePack.Key( 3 )]
 		public bool IncludeContent;
 
 		/// <summary>The time window choosing the files of Clearable definitions; null = none (the definitions' own limits choose).</summary>
@@ -69,10 +69,10 @@ public class ResolveVfsPath : Script
 		public string? Error;
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class TResult
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public VfsNodeDef? VfsNode;
 
 		/// <summary>One entry per node of <see cref="TArgs.VfsNodes"/>, in the order asked.</summary>

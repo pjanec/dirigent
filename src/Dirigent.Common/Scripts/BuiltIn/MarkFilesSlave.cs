@@ -40,7 +40,7 @@ namespace Dirigent.Scripts.BuiltIn
 			Checkpoint = 3,
 		}
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TArgs
 		{
 			/// <summary>The resolved tree to act on; only the leaf nodes matter.</summary>
@@ -56,7 +56,7 @@ namespace Dirigent.Scripts.BuiltIn
 			public override string ToString() => $"{Operation} {Container}";
 		}
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TResult
 		{
 			/// <summary>Files emptied - deleted, or truncated where the deletion was refused.</summary>

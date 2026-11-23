@@ -27,36 +27,36 @@ namespace Dirigent.Scripts.BuiltIn
 
 		public static readonly string _Name = "BuiltIns/DownloadZippedSlave.cs";
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TArgs
 		{
 			// vfsnode contained (package, folder, virtual folder..); only the child nodes matter
-			//[MessagePack.Key( 1 )]
+			[MessagePack.Key( 1 )]
 			public VfsNodeDef? Container;
 
 			// Where to upload the zip file, as seen from a machine that does not own the folder,
 			// i.e. a UNC path. Empty if no file share covers the folder - then only a machine
 			// owning the folder can upload.
-			//[MessagePack.Key( 2 )]
+			[MessagePack.Key( 2 )]
 			public string? DestinationFolder;
 
 			// The very same folder as a local path on the machine that owns it. Used in preference
 			// to the UNC path by a slave running on that machine - copying to our own disk through
 			// a share is pointless work, and without a share it is not even possible.
-			//[MessagePack.Key( 5 )]
+			[MessagePack.Key( 5 )]
 			public string? LocalDestinationFolder;
 
 			// Whether this slave runs on the machine owning the destination folder, i.e. whether
 			// LocalDestinationFolder is a path this slave can use.
-			//[MessagePack.Key( 6 )]
+			[MessagePack.Key( 6 )]
 			public bool DestinationIsLocal;
 
 			// Name of the zip file to create in the destination folder, excluding extension
-			//[MessagePack.Key( 3 )]
+			[MessagePack.Key( 3 )]
 			public string? ZipFileBaseName;
 
 			// zip also files that are not associated with any machine (one of machine needs to do it)
-			//[MessagePack.Key( 4 )]
+			[MessagePack.Key( 4 )]
 			public bool IncludeGlobals;
 
 			// The machines collecting in this download. A note the resolution left in the tree is written by
@@ -76,20 +76,20 @@ namespace Dirigent.Scripts.BuiltIn
 			public override string ToString() => $"{Container} => {DestinationFolder}/{ZipFileBaseName}";
 		};
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TResult
 		{
-			//[MessagePack.Key( 1 )]
+			[MessagePack.Key( 1 )]
 			public string ZipFileName = "";
 
-			//[MessagePack.Key( 2 )]
+			[MessagePack.Key( 2 )]
 			public List<SerializedException> Exceptions = new();
 
 			/// <summary>
 			/// Things this machine was asked for and does not have. Kept apart from the exceptions
 			/// because they are not failures of the collection - see where they are collected.
 			/// </summary>
-			//[MessagePack.Key( 5 )]
+			[MessagePack.Key( 5 )]
 			public List<string> NotCollected = new();
 
 			/// <summary>
@@ -106,20 +106,20 @@ namespace Dirigent.Scripts.BuiltIn
 			public int FilesCollected;
 
 			/// <summary>How many files were cut at a mark rather than collected whole.</summary>
-			//[MessagePack.Key( 3 )]
+			[MessagePack.Key( 3 )]
 			public int MarkedFileCount;
 
 			/// <summary>
 			/// The oldest mark any of them was cut at - the beginning of the window this archive covers.
 			/// </summary>
-			//[MessagePack.Key( 4 )]
+			[MessagePack.Key( 4 )]
 			public DateTime? EarliestMark;
 
 			/// <summary>
 			/// What drew those lines - "Clear" or "Mark" - or empty if the files disagree, which
 			/// happens when somebody marked, then cleared only part of the system.
 			/// </summary>
-			//[MessagePack.Key( 5 )]
+			[MessagePack.Key( 5 )]
 			public string MarkedBy = string.Empty;
 		}
 

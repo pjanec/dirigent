@@ -15,7 +15,7 @@ namespace Dirigent
 	///   - a link to a real file
 	///   - a virtual folder than can contain other file links or other vfolders.
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	[MessagePack.Union( 101, typeof( FileDef ) )]
 	[MessagePack.Union( 102, typeof( FileRef ) )]
 	[MessagePack.Union( 103, typeof( FolderDef ) )]
@@ -29,31 +29,31 @@ namespace Dirigent
 		/// Paths is already resolved, not containing any macros.
 		/// Empty for virtual folders having no counterpart in the real file system.
 		/// </summary>
-		//[MessagePack.Key( 26 )]
+		[MessagePack.Key( 10 )]
 		public string? Path = null;
 
 		/// <summary>
 		/// Is the node a container for another vfs nodes? False = leaf
 		/// </summary>
-		//[MessagePack.Key( 27 )]
+		[MessagePack.Key( 11 )]
 		public bool IsContainer;
 
 		/// <summary>
 		/// Sub-items. Used for folders only.
 		/// </summary>
-		//[MessagePack.Key( 28 )]
+		[MessagePack.Key( 12 )]
 		public List<VfsNodeDef> Children = new List<VfsNodeDef>();
 
 		/// <summary>
 		/// Name of the filter script to resolve this item 
 		/// </summary>
-		//[MessagePack.Key( 30 )]
+		[MessagePack.Key( 13 )]
 		public string? Filter;
 
 		/// <summary>
 		/// Xml node with attributes passed to filter scripts
 		/// </summary>
-		//[MessagePack.Key( 31 )]
+		[MessagePack.Key( 14 )]
 		public string? Xml;
 
 		/// <summary>
@@ -64,7 +64,7 @@ namespace Dirigent
 		/// For the log files a never-rotating logger grows to tens of gigabytes: the end of such a
 		/// file is what an investigation needs, and the whole of it is not transferable at all.
 		/// </remarks>
-		//[MessagePack.Key( 33 )]
+		[MessagePack.Key( 15 )]
 		public long TailBytes = 0;
 
 		/// <summary>
@@ -80,7 +80,7 @@ namespace Dirigent
 		/// Off by default, so that a configuration file is safe from any action, argument or package
 		/// that names it. Set on a &lt;Folder&gt;, it applies to every file the folder yields.
 		/// </remarks>
-		//[MessagePack.Key( 34 )]
+		[MessagePack.Key( 16 )]
 		public bool Clearable = false;
 
 		/// <summary>
@@ -92,7 +92,7 @@ namespace Dirigent
 		/// A download writes these into the archive, so that whoever opens it later can tell an
 		/// incomplete collection from a complete one.
 		/// </remarks>
-		//[MessagePack.Key( 32 )]
+		[MessagePack.Key( 17 )]
 		public List<string>? Notes;
 
 		/// <summary>
@@ -100,6 +100,7 @@ namespace Dirigent
 		/// machine. A download writes a note into the part of the archive of that machine only - the tree goes to
 		/// every machine, and each used to write every note.
 		/// </summary>
+		[MessagePack.Key( 18 )]
 		public List<string?>? NoteMachines;
 
 		/// <summary>Adds a note about the given machine (null = no machine in particular).</summary>
@@ -123,27 +124,33 @@ namespace Dirigent
 		/// (on the machine that owns it). Null in a definition, for a folder, and where the file
 		/// could not be read.
 		/// </summary>
+		[MessagePack.Key( 19 )]
 		public long? Size;
 
 		/// <summary>Last write time (UTC) of the file, found together with <see cref="Size"/>.</summary>
+		[MessagePack.Key( 20 )]
 		public DateTime? Modified;
 
 		/// <summary>When a line was drawn under the file (UTC), if one was - see the file marks.</summary>
+		[MessagePack.Key( 21 )]
 		public DateTime? MarkedAt;
 
 		/// <summary>Where the line is: the length of the file when it was marked.</summary>
+		[MessagePack.Key( 22 )]
 		public long? MarkedAtBytes;
 
 		/// <summary>
 		/// On a resolved file: the id of the file definition it came from - the innermost one that has an id, so the
 		/// definition a package or an application referred to, not the package. Filled in during resolution.
 		/// </summary>
+		[MessagePack.Key( 23 )]
 		public string? OriginId;
 
 		/// <summary>
 		/// The software component this file definition stands for, as its &lt;... Component="..."&gt; says; empty if it says none
 		/// (a file of an application then belongs to the application's component).
 		/// </summary>
+		[MessagePack.Key( 24 )]
 		public string Component = string.Empty;
 
 		/// <summary>
@@ -198,7 +205,7 @@ namespace Dirigent
 	}
 
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class ResolvedVfsNodeDef : VfsNodeDef, IEquatable<ResolvedVfsNodeDef>
 	{
 		public bool ThisEquals( ResolvedVfsNodeDef other ) =>
@@ -224,7 +231,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of a non-virtual file
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class FileDef : VfsNodeDef, IEquatable<FileDef>
 	{
 		///// <summary>
@@ -244,7 +251,7 @@ namespace Dirigent
 	/// <summary>
 	/// Reference to a file. Path not used, just the Id, MachineId, AppId.
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class FileRef : VfsNodeDef, IEquatable<FileRef>
 	{
 		public override string ToString() =>$"[FileRef] {base.ToString()}";
@@ -259,33 +266,33 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of folder or virtual associated with a machine, with an application on a machine or with no association (a global file)
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class FolderDef : VfsNodeDef, IEquatable<FolderDef>
 	{
 		/// <summary>
 		/// File name mask in Glob style (allowing stuff like "**/*.{jpg,png}".
 		/// </summary>
-		//[MessagePack.Key( 51 )]
+		[MessagePack.Key( 25 )]
 		public string? Mask = String.Empty;
 
 		/// <summary>
 		/// Maximum number of files to include. 0 = unlimited.
 		/// The newest files are preferred if the limit applies.
 		/// </summary>
-		//[MessagePack.Key( 52 )]
+		[MessagePack.Key( 26 )]
 		public int MaxFiles = 0;
 
 		/// <summary>
 		/// Maximum age of the files to include, in seconds, based on the last write time. 0 = whatever age.
 		/// </summary>
-		//[MessagePack.Key( 53 )]
+		[MessagePack.Key( 27 )]
 		public double MaxSeconds = 0;
 
 		/// <summary>
 		/// Maximum total size of the included files, in bytes. 0 = unlimited.
 		/// The newest files are preferred if the limit applies. At least one file is always included.
 		/// </summary>
-		//[MessagePack.Key( 54 )]
+		[MessagePack.Key( 28 )]
 		public long MaxTotalBytes = 0;
 
 		public override string ToString() =>$"[Folder] {base.ToString()}";
@@ -310,7 +317,7 @@ namespace Dirigent
 	/// Title is used as a name of the folder.
 	/// Path field is ignored.
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class VFolderDef : VfsNodeDef, IEquatable<VFolderDef>
 	{
 		public override string ToString() => $"[VFolder] {$"{Title}@{MachineId}.{AppId}"}";
@@ -326,7 +333,7 @@ namespace Dirigent
 	/// <summary>
 	/// Definition of file package associated with a machine, with an application on a machine or with no association (a global file package)
 	/// </summary>
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public class FilePackageDef : VfsNodeDef, IEquatable<FilePackageDef>
 	{
 		public override string ToString() =>$"[FilePackage] {$"{Title}@{MachineId}.{AppId}"}";

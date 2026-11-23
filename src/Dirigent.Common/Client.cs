@@ -36,6 +36,12 @@ namespace Dirigent.Net
 	{
 		public Action<Net.Message>? MessageReceived;
 
+		/// <summary>Called from <see cref="Tick"/> with the reason when the master refuses this client (a protocol version it does not speak, say).</summary>
+		public Action<string>? Rejected;
+
+		/// <summary>What the master last said when it refused this client; null if it has not.</summary>
+		public string? RejectedReason { get; private set; }
+
 		public string MasterIP => _masterIP;
 		public int MasterPort => _masterPort;
 		public Net.ClientIdent Ident => _ident;
@@ -121,8 +127,16 @@ namespace Dirigent.Net
 			foreach( var m in _messagesReceived )
 			{
 				var msg = m as Message;
+				if( msg is RejectedMessage rejected )
+				{
+					// the connection logs it and slows its reconnects (MessageClient); not a message for the application
+					RejectedReason = rejected.Reason;
+					Rejected?.Invoke( rejected.Reason );
+					continue;
+				}
 				if( msg != null )
 				{
+					RejectedReason = null;
 					if( !msg.IsFrequent )
 					{
 						log.Debug( $"[{_ident.Name}] <= [master]: {Tools.SafeToString( msg )}" );

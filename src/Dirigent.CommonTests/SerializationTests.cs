@@ -15,7 +15,7 @@ namespace Dirigent.Tests
 	/// <remarks>
 	/// Two different codecs are involved:
 	///  - script arguments and results travel as JSON (Tools.Serialize, TypeNameHandling.Auto)
-	///  - the state and definitions travel as MessagePack (contractless resolver)
+	///  - the state and definitions travel as MessagePack (integer keys, LZ4)
 	/// </remarks>
 	[TestClass()]
 	public class SerializationTests
@@ -30,7 +30,7 @@ namespace Dirigent.Tests
 
 		static T RoundTripMsgPack<T>( T value )
 		{
-			var opts = MessagePack.Resolvers.ContractlessStandardResolver.Options;
+			var opts = Dirigent.Net.MsgPackCodec.Options;
 			var bytes = MessagePack.MessagePackSerializer.Serialize<T>( value, opts );
 			var back = MessagePack.MessagePackSerializer.Deserialize<T>( bytes, opts );
 			Assert.IsNotNull( back, "MessagePack round trip returned null" );

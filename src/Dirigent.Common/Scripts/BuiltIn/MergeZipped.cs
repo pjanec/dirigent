@@ -22,41 +22,41 @@ namespace Dirigent.Scripts.BuiltIn
 
 		public static readonly string _Name = "BuiltIns/MergeZipped.cs";
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TPart
 		{
 			// name of the zip file within the staging folder
-			//[MessagePack.Key( 1 )]
+			[MessagePack.Key( 1 )]
 			public string FileName = "";
 
 			// machine the archive came from
-			//[MessagePack.Key( 2 )]
+			[MessagePack.Key( 2 )]
 			public string MachineName = "";
 
 			public override string ToString() => $"{FileName} ({MachineName})";
 		}
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TArgs
 		{
 			// folder holding the archives to merge; local to the machine running this script
-			//[MessagePack.Key( 1 )]
+			[MessagePack.Key( 1 )]
 			public string? StagingFolder;
 
 			// full path of the archive to produce; local to the machine running this script
-			//[MessagePack.Key( 2 )]
+			[MessagePack.Key( 2 )]
 			public string? DestinationFile;
 
 			// what archives to merge, in the order they should appear in the result
-			//[MessagePack.Key( 3 )]
+			[MessagePack.Key( 3 )]
 			public List<TPart> Parts = new();
 
 			// put the content of each archive into a folder named after the machine it came from
-			//[MessagePack.Key( 4 )]
+			[MessagePack.Key( 4 )]
 			public bool PrefixWithMachine = true;
 
 			// text to write into the archive as _comment.txt; empty for none
-			//[MessagePack.Key( 5 )]
+			[MessagePack.Key( 5 )]
 			public string? CoverNote;
 
 			// JSON to write into the archive as _sitestate.json; empty for none
@@ -65,17 +65,17 @@ namespace Dirigent.Scripts.BuiltIn
 			public override string ToString() => $"{Parts.Count} parts => {DestinationFile}";
 		};
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TResult
 		{
 			// name of the resulting archive, empty if there was nothing to merge
-			//[MessagePack.Key( 1 )]
+			[MessagePack.Key( 1 )]
 			public string ZipFileName = "";
 
-			//[MessagePack.Key( 2 )]
+			[MessagePack.Key( 2 )]
 			public int FileCount;
 
-			//[MessagePack.Key( 3 )]
+			[MessagePack.Key( 3 )]
 			public List<SerializedException> Exceptions = new();
 		}
 

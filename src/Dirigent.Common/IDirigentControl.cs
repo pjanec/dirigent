@@ -9,10 +9,10 @@ using System.Threading;
 
 namespace Dirigent
 {
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public struct KillAllArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public string MachineId; // where to kill the apps; null or empty means everywhere
 	}
 
@@ -22,17 +22,17 @@ namespace Dirigent
 		Reboot = 1
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public struct ShutdownArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public EShutdownMode Mode;
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public struct TerminateArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before terminating
 	}
 
@@ -41,23 +41,24 @@ namespace Dirigent
 		Manual = 0,  // shows a dialog offering to restart the dirigent once the dirigent binaries have been manually overwritten
 	}
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public struct ReinstallArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public EDownloadMode DownloadMode;
 
-		//[MessagePack.Key( 2 )]
+		[MessagePack.Key( 2 )]
 		public string Url;
 	}
 
 
-	//[MessagePack.MessagePackObject]
+	[MessagePack.MessagePackObject]
 	public struct ReloadSharedConfigArgs
 	{
-		//[MessagePack.Key( 1 )]
+		[MessagePack.Key( 1 )]
 		public bool KillApps;  // kill all local apps before reloading
 
+		[MessagePack.Key( 2 )]
 		public string FileName;
 	}
 

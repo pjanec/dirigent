@@ -22,7 +22,7 @@ namespace Dirigent.Scripts.BuiltIn
 
 		public static readonly string _Name = "BuiltIns/DownloadZipped.cs";
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TArgs : ScriptActionArgs
 		{
 			/// <summary>
@@ -83,7 +83,7 @@ namespace Dirigent.Scripts.BuiltIn
 			public bool VfsNodeNeedsResolving;
 		}
 
-		//[MessagePack.MessagePackObject]
+		[MessagePack.MessagePackObject]
 		public class TResult
 		{
 			/// <summary>Full paths of the archives produced, on the machine they were downloaded to.</summary>

@@ -224,8 +224,9 @@ namespace Dirigent.IntegrationTests
 
 			_ = new MsgPackCodec(); // sets the options the product uses
 
-			var plain = MessagePack.Resolvers.ContractlessStandardResolver.Options;
-			var lz4 = plain.WithCompression( MessagePack.MessagePackCompression.Lz4BlockArray );
+			// the same integer-keyed encoding without and with the compression the product applies
+			var plain = MessagePack.MessagePackSerializerOptions.Standard;
+			var lz4 = MsgPackCodec.Options;
 
 			var now = DateTime.UtcNow;
 			var states = new Dictionary<AppIdTuple, AppState>();
@@ -272,17 +273,17 @@ namespace Dirigent.IntegrationTests
 			};
 
 			Say();
-			Say( "=== sizes of the messages, serialized by the product's codec (contractless MessagePack), framed with the 4-byte header ===" );
-			Say( $"    {"message",-58} {"contractless",13} {"LZ4",8} {"ratio",7} {"B/item",8} {"LZ4 B/item",11}" );
+			Say( "=== sizes of the messages, serialized by the product's codec (integer keys, LZ4), framed with the 4-byte header ===" );
+			Say( $"    {"message",-58} {"keys",13} {"keys+LZ4",8} {"ratio",7} {"B/item",8} {"LZ4 B/item",11}" );
 			foreach( var (name, msg, count) in messages )
 			{
 				var ms = new MemoryStream();
 				MsgPackCodec.Serialize( ms, msg );
-				var framed = ms.Position;
-				var lz = Size( lz4, msg ) + MessageCodec.HeaderLen;
+				var lz = ms.Position; // what the product sends
+				var framed = Size( plain, msg ) + MessageCodec.HeaderLen;
 				Say( $"    {name,-58} {framed,13:#,##0} {lz,8:#,##0} {lz / (double) framed,7:0.00} {framed / (double) count,8:0.0} {lz / (double) count,11:0.0}" );
 			}
-			Say( "  (LZ4 = MessagePackCompression.Lz4BlockArray on the same options; it compresses bodies over 64 bytes, smaller ones are as they were)" );
+			Say( "  (keys+LZ4 = MessagePackCompression.Lz4BlockArray on the same options; it compresses bodies over 64 bytes, smaller ones are as they were)" );
 			Save();
 		}
 	}
