@@ -107,7 +107,8 @@ namespace Dirigent.Web
 
 		async Task<PlanState> PlanOp( string id, string what )
 		{
-			var body = what is "start" or "restart" ? await ApiOps.ReadBody<VarsBody>( HttpContext ) : null;
+			VarsBody? body = null;
+			if( what is "start" or "restart" ) body = await ApiOps.ReadBody<VarsBody>( HttpContext ); else await ApiOps.DiscardBody( HttpContext );
 			var vars = ApiOps.CheckVars( body?.vars );
 			var wait = ApiOps.WaitSeconds( HttpContext );
 
@@ -179,7 +180,8 @@ namespace Dirigent.Web
 
 		async Task<AppState> AppOp( string id, string what )
 		{
-			var body = what is "start" or "restart" ? await ApiOps.ReadBody<VarsBody>( HttpContext ) : null;
+			VarsBody? body = null;
+			if( what is "start" or "restart" ) body = await ApiOps.ReadBody<VarsBody>( HttpContext ); else await ApiOps.DiscardBody( HttpContext );
 			var vars = ApiOps.CheckVars( body?.vars );
 			var wait = ApiOps.WaitSeconds( HttpContext );
 
@@ -423,6 +425,7 @@ namespace Dirigent.Web
 		[Route( HttpVerbs.Post, "/scripts/{id}/kill" )]
 		public async Task KillScript( string id )
 		{
+			await ApiOps.DiscardBody( HttpContext );
 			var guid = ParseGuid( id, "script" );
 
 			await ApiOps.OnMaster( _master, () =>

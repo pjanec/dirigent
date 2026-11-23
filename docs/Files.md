@@ -830,7 +830,7 @@ states the offset and the time and operation the line was drawn by, exactly as a
 states its own reason. `_comment.txt` gains a line naming the beginning of the window:
 
 ```
-Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the Clear of that time; the rest are complete.
+Since     : 2026-08-31 15:02:11 - 12 file(s) hold only what was written after the Clear of that time; the other files were not cut at a mark.
 ```
 
 It says `Clear` or `Mark`, whichever was run - or "Clear or Mark" where the files disagree, which

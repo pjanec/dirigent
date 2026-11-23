@@ -76,14 +76,18 @@ namespace Dirigent.Web
 			public string? operation { get; set; }
 		}
 
-		Task RunFileDefs( MarkOperation.EKind kind, string id )
+		async Task RunFileDefs( MarkOperation.EKind kind, string id )
 		{
+			await ApiOps.DiscardBody( HttpContext );
 			var q = HttpContext.GetRequestQueryData();
-			return Run( () => MarkOperation.StartForFileDefs( _master, kind, id, q["machine"], q["app"] ) );
+			await Run( () => MarkOperation.StartForFileDefs( _master, kind, id, q["machine"], q["app"] ) );
 		}
 
-		Task RunApp( MarkOperation.EKind kind, string id )
-			=> Run( () => MarkOperation.StartForApp( _master, kind, id ) );
+		async Task RunApp( MarkOperation.EKind kind, string id )
+		{
+			await ApiOps.DiscardBody( HttpContext );
+			await Run( () => MarkOperation.StartForApp( _master, kind, id ) );
+		}
 
 		async Task Run( Func<MarkOperation> start )
 		{

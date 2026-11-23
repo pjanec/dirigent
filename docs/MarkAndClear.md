@@ -320,7 +320,7 @@ before the end. With only `until` given, each file starts where it would without
 Window    : 2026-11-21 14:00:00 - 15:00:00 (local; asked for: each log from the last record at or before the start to the first record at or after the end)
 ```
 
-An open start is written as "the marks", an open end as "now". `_sitestate.json` has `logsSince` and `logsUntil`.
+An open start is written as "the marks", an open end as "now". `_sitestate.json` has `logsSince` and `logsUntil` - plain times, local with the UTC beside it (`2026-11-21 14:00:00 (UTC 12:00:00)`): `logsSince` is the start asked for, or without one the earliest mark a file was cut at; `logsUntil` is the end asked for.
 
 The window also **chooses the files** of the clearable definitions - see [Files](Files.md#a-time-window-chooses-the-files).
 

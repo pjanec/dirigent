@@ -42,6 +42,7 @@ namespace Dirigent.Web
 		{
 			using var textReader = HttpContext.OpenRequestText();
 			var line = textReader.ReadLine();
+			await textReader.ReadToEndAsync(); // the rest is not used, but has to be read - see ApiOps.DiscardBody
 
 			// nothing to run is a request not understood, not a command that answered nothing
 			if( string.IsNullOrWhiteSpace( line ) )

@@ -175,6 +175,7 @@ namespace Dirigent.Web
 		[Route( HttpVerbs.Delete, "/downloads/{id}" )]
 		public async Task DeleteDownload( string id )
 		{
+			await ApiOps.DiscardBody( HttpContext );
 			var guid = ParseId( id );
 
 			var op = _master.AddSynchronousOp( () => _master.DownloadJobs.Delete( guid ) );

@@ -647,7 +647,7 @@ not apply (`TailBytes` and `MaxTotalBytes` still do). The application that start
 A definition that is **not** `Clearable` (a configuration file) is chosen by its own limits and collected whole, window or not - so a package of logs and configs gives the windowed logs and the
 current configs. Either end may be given alone: `since` only is up to now, `until` only is from the marks (the default start) up to `until`, and then `MaxFiles`/`MaxSeconds` still choose, as if collected at `until`. An entry cut by a window is named `<name>.window<ext>`
 (`app.window.log`). See [Files](Files.md#a-time-window-chooses-the-files) for how a window selects, including a remark on the creation time of a recreated file. The archive's `_comment.txt` has a
-`Window` line, `_sitestate.json` has `logsSince` and `logsUntil`.
+`Window` line, `_sitestate.json` has `logsSince` and `logsUntil` - plain times, local with the UTC beside it (`2026-11-21 14:00:00 (UTC 12:00:00)`): `logsSince` is the start asked for, or without one the earliest mark a file was cut at; `logsUntil` is the end asked for.
 
 **One zip, and its layout.** A job makes one archive however many items there are.
 

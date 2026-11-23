@@ -67,6 +67,45 @@ namespace Dirigent.SystemTests
 				http.GetAsync( $"{root}/appdefs/m1.nosuch/location" ).GetAwaiter().GetResult().StatusCode );
 		}
 
+		/// <summary>
+		/// A route that takes no body must still answer a caller that sends one - '{}' with a JSON content type is what a
+		/// generic client sends, and Windows PowerShell asks with Expect: 100-continue first. Unread, the body arrived on a
+		/// connection the server had answered and closed, and the caller got a reset instead of the answer.
+		/// </summary>
+		[TestMethod()]
+		public void ARouteWithoutABodyAnswersACallerThatSendsOne()
+		{
+			using var world = SystemWorld.Start( "LoggingWorld", withHttp: true );
+
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 90 ) };
+			var root = $"http://127.0.0.1:{world.HttpPort}/api";
+
+			var calls = new (HttpMethod Method, string Route, System.Net.HttpStatusCode Expected)[]
+			{
+				( HttpMethod.Post, "filedefs/logs.all/mark", System.Net.HttpStatusCode.OK ),
+				( HttpMethod.Post, "filedefs/logs.all/unmark", System.Net.HttpStatusCode.OK ),
+				( HttpMethod.Post, "appdefs/m1.camera/unmark", System.Net.HttpStatusCode.OK ),
+				( HttpMethod.Post, $"scripts/{Guid.NewGuid()}/kill", System.Net.HttpStatusCode.NotFound ),
+				( HttpMethod.Delete, $"downloads/{Guid.NewGuid()}", System.Net.HttpStatusCode.NotFound ),
+			};
+
+			foreach( var (method, route, expected) in calls )
+			{
+				for( int i = 0; i < 3; i++ ) // a reset is a race; give it a few chances
+				{
+					using var request = new HttpRequestMessage( method, $"{root}/{route}" )
+					{
+						Content = new StringContent( "{}", System.Text.Encoding.UTF8, "application/json" ),
+					};
+					request.Headers.ExpectContinue = true;
+
+					var response = http.Send( request );
+					var text = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+					Assert.AreEqual( expected, response.StatusCode, $"{method} {route}: {text}" );
+				}
+			}
+		}
+
 		[TestMethod()]
 		public void TheManualIsServedAndAMarkIsAnsweredWithAReportOverHttp()
 		{
@@ -570,7 +609,9 @@ namespace Dirigent.SystemTests
 			Assert.IsFalse( text.Contains( "before the checkpoint" ), $"nothing from before the checkpoint: {text}" );
 
 			using var comment = new StreamReader( zip.GetEntry( "_comment.txt" )!.Open() );
-			StringAssert.Contains( comment.ReadToEnd(), "Since     :", "the cover note says the time asked for" );
+			var cover = comment.ReadToEnd();
+			StringAssert.Contains( cover, "Window    :", "the cover note says the time asked for" );
+			Assert.IsFalse( cover.Contains( "Since     :" ), $"the Window line says where the files start; no mark line repeats it: {cover}" );
 		}
 
 		[TestMethod()]

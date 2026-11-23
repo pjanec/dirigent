@@ -63,6 +63,23 @@ namespace Dirigent.Web
 			return res;
 		}
 
+		/// <summary>
+		/// Reads the body of a request that takes none, and throws it away. Called first by every such route.
+		/// </summary>
+		/// <remarks>
+		/// A caller may send a body anyway - '{}' with a JSON content type is what a generic client sends, and Windows
+		/// PowerShell first asks with Expect: 100-continue. Left unread, it arrived on a connection the server had already
+		/// answered and closed, and the caller got a reset ("forcibly closed by the remote host") instead of the answer -
+		/// with the operation done. Read in full, the connection ends cleanly.
+		/// </remarks>
+		public static async Task DiscardBody( IHttpContext ctx )
+		{
+			if( !ctx.Request.HasEntityBody ) return;
+			var buffer = new byte[4096];
+			var stream = ctx.Request.InputStream;
+			while( await stream.ReadAsync( buffer, 0, buffer.Length ) > 0 ) { }
+		}
+
 		/// <summary>The body of a request as JSON; null when there is none. A body that is not valid JSON is a 400.</summary>
 		public static async Task<T?> ReadBody<T>( IHttpContext ctx ) where T : class
 		{

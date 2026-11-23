@@ -443,11 +443,11 @@ namespace Dirigent.Scripts.BuiltIn
 							siteState = await Dirig.ComposeSiteStateAsync( new SiteStateExtras()
 							{
 								Comment = args.Comment,
-								// the cover note's line without its label: "2026-11-20 13:20:09 - 2 file(s) hold only what ..."
-								LogsSince = _sinceUtc is DateTime since
-									? $"{since.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for); {WithoutLabel( MarkWindow() )}"
-									: WithoutLabel( MarkWindow() ),
-								LogsUntil = _untilUtc is DateTime until ? $"{until.ToLocalTime():yyyy-MM-dd HH:mm:ss} (asked for)" : null,
+								// plain times for a program to read (the sentences are in _comment.txt): the start asked for, or
+								// else the earliest mark a file was cut at; the end asked for
+								LogsSince = _sinceUtc is DateTime since ? Stamp( since )
+									: EarliestMark() is DateTime mark ? Stamp( mark.ToUniversalTime() ) : null,
+								LogsUntil = _untilUtc is DateTime until ? Stamp( until ) : null,
 								Selection = selectionLabels?.ToList() ?? new List<string>() { title },
 							} );
 						}
@@ -901,7 +901,8 @@ namespace Dirigent.Scripts.BuiltIn
 			// What the archive covers, when a Clear or a Mark drew the line: the difference between
 			// "these are the logs" and "these are the logs of one run" is the first thing whoever opens
 			// the archive needs to know, and it belongs at the top rather than in each entry's header.
-			var marked = MarkWindow();
+			// (with a 'since' asked for, the Window line has said where the files start - this would repeat it as a mark)
+			var marked = _sinceUtc is null ? MarkWindow() : null;
 			if( marked is not null ) text.AppendLine( marked );
 
 			text.AppendLine();
@@ -1024,12 +1025,6 @@ namespace Dirigent.Scripts.BuiltIn
 			return text.ToString();
 		}
 
-		/// <summary>
-		/// The line saying that this archive holds one run rather than the whole history, or null if
-		/// no mark applied to any of the collected files.
-		/// </summary>
-		static string? WithoutLabel( string? line ) => line is null ? null : System.Text.RegularExpressions.Regex.Replace( line, @"^\w+\s*:\s*", "" );
-
 		/// <summary>The cover note's line for a window: an open start is "the marks", an open end is "now".</summary>
 		string WindowLine()
 		{
@@ -1045,6 +1040,10 @@ namespace Dirigent.Scripts.BuiltIn
 				+ " to the first record at or after the end)";
 		}
 
+		/// <summary>
+		/// The line saying that this archive holds one run rather than the whole history, or null if
+		/// no mark applied to any of the collected files.
+		/// </summary>
 		string? MarkWindow()
 		{
 			var marks = ( from st in _slaveTasks
@@ -1064,9 +1063,18 @@ namespace Dirigent.Scripts.BuiltIn
 
 			return earliest.HasValue
 					? $"Since     : {earliest:yyyy-MM-dd HH:mm:ss} - {files} file(s) hold only what was"
-						+ $" written after the {drawnBy} of that time; the rest are complete."
+						+ $" written after the {drawnBy} of that time; the other files were not cut at a mark."
 					: $"Since     : {files} file(s) hold only what was written after the {drawnBy}.";
 		}
+
+		/// <summary>The earliest mark (local time) any file of this archive was cut at, or null.</summary>
+		DateTime? EarliestMark()
+			=> ( from st in _slaveTasks
+				 where st.Result is not null && st.Result.MarkedFileCount > 0 && st.Result.EarliestMark.HasValue
+				 select st.Result!.EarliestMark ).Min();
+
+		/// <summary>A time as _sitestate.json writes its times: local, with the UTC beside it.</summary>
+		static string Stamp( DateTime utc ) => $"{utc.ToLocalTime():yyyy-MM-dd HH:mm:ss} (UTC {utc:HH:mm:ss})";
 
 		/// <summary>
 		/// A machine and the addresses that identify it.

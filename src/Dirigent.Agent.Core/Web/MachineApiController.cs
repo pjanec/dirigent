@@ -148,6 +148,7 @@ namespace Dirigent.Web
 
 		async Task Power( string id, string what, EShutdownMode mode )
 		{
+			await ApiOps.DiscardBody( HttpContext );
 			await ApiOps.OnMaster( _master, () =>
 			{
 				if( _master.GetMachineDef( id ) is null ) throw HttpException.NotFound( $"No machine '{id}' is defined." );
@@ -165,6 +166,7 @@ namespace Dirigent.Web
 		[Route( HttpVerbs.Post, "/machinedefs/{id}/wakeup" )]
 		public async Task WakeUp( string id )
 		{
+			await ApiOps.DiscardBody( HttpContext );
 			await ApiOps.OnMaster( _master, () =>
 			{
 				if( _master.GetMachineDef( id ) is null ) throw HttpException.NotFound( $"No machine '{id}' is defined." );
