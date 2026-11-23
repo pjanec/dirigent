@@ -83,8 +83,22 @@ namespace Dirigent
 		/// <param name="msg"></param>
 		public void Send( Net.Message msg )
 		{
-			// send to everyone else
-			_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
+			// A message for one client goes to that client only. It used to go to everyone, and every receiver threw
+			// away what was not for it: a script started on one machine (with its arguments - a resolved file tree can
+			// be tens of KB) crossed the network once per connected agent and GUI.
+			var target = msg switch
+			{
+				StartScriptMessage m => m.HostClientId,
+				RunActionMessage m => m.HostClientId,
+				UserNotificationMessage m => m.HostClientId,
+				_ => null,
+			};
+
+			if( !string.IsNullOrEmpty( target ) )
+				_server.SendToSingle( msg, target );
+			else
+				// send to everyone else
+				_server.SendToAllSubscribed( msg, EMsgRecipCateg.All );
 			// process also on master
 			_server.BufferMessageReceived( msg );
 		}

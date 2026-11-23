@@ -238,8 +238,9 @@ namespace Dirigent
 			_lastCheckpointDue = DateTime.UtcNow;
 			try
 			{
+				// plan-owned like the marking at the start: no message box to anybody, every interval
 				_checkpoint = Web.MarkOperation.StartForFileDefIds( _master, Web.MarkOperation.EKind.Checkpoint, Def.MarkFiles,
-								string.Join( ";", Def.MarkFiles ) );
+								string.Join( ";", Def.MarkFiles ), planOwned: true );
 			}
 			catch( Exception e )
 			{

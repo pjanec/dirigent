@@ -587,6 +587,12 @@ namespace Dirigent.SystemTests
 				$"a checkpoint within 40 s: {state}\nplan: {plan}\nmaster log:\n" + string.Join( "\n", new StreamReader( new FileStream( world.Files.LogOf( world.Files.MasterMachine ), FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) ).ReadToEnd().Split( '\n' )
 					.Where( l => l.Contains( "Plan run" ) || l.Contains( "heckpoint" ) || l.Contains( "Mark" ) || l.Contains( "ERROR" ) || l.Contains( "WARN" ) ).TakeLast( 30 ) ) );
 
+			// a checkpoint is the plan's own business: no message box for anybody (it once sent one to every client, every interval)
+			Thread.Sleep( 2000 );
+			var traffic = Json( http.GetStringAsync( $"{root}/status" ).GetAwaiter().GetResult() ).GetProperty( "traffic" );
+			Assert.IsFalse( traffic.GetProperty( "sent" ).EnumerateArray().Any( t => t.GetProperty( "type" ).GetString() == "UserNotificationMessage" ),
+				$"no notification from the marking or the checkpoints: {traffic}" );
+
 			Thread.Sleep( 1500 );
 			var since = DateTime.UtcNow;
 			Thread.Sleep( 1500 );

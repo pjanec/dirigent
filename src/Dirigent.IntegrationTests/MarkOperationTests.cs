@@ -41,6 +41,23 @@ namespace Dirigent.IntegrationTests
 			return JsonSerializer.Deserialize<FileDefFilesResult>( lines[0].Substring( $"FILES:{fileDefId}:".Length ) )!;
 		}
 
+		/// <summary>
+		/// A script the master starts on a machine goes to that machine only. It used to go to every connected agent and GUI,
+		/// each throwing it away - with the resolved file tree in its arguments, that was most of a checkpoint's traffic.
+		/// </summary>
+		[TestMethod()]
+		public async Task AScriptStartedOnAMachineIsSentToThatMachineOnly()
+		{
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Worlds.MarkableWorld(), GuiPerMachine = true } );
+
+			bed.Master.Traffic.Reset();
+			await Run( bed, "MarkFiles run.pkg", "MARKED" );
+
+			// one marking script per machine (m1, m2) - not one per connected client (two agents, two GUIs, the operator)
+			var starts = bed.Master.Traffic.Snapshot().sent.SingleOrDefault( t => t.type == "StartScriptMessage" );
+			Assert.AreEqual( 2, starts?.messages ?? 0, "a start for each machine's marking script, sent to that machine" );
+		}
+
 		[TestMethod()]
 		public async Task AMarkListsTheClearableFilesAndSkipsTheOthersAndThePreviewShowsTheLine()
 		{
