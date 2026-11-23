@@ -6,192 +6,11 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Net;
 using NetCoreServer;
+using System.Security.Cryptography.X509Certificates;
 using System.Collections.Concurrent;
 
 namespace Dirigent.Net
 {
-
-	/// <summary>
-	/// Client session created by the server for communicating with the client.
-	/// </summary>
-	class MessageSession : NetCoreServer.TcpSession
-	{
-		private static readonly log4net.ILog log = log4net.LogManager.GetLogger( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
-
-		public Net.ClientIdent? Ident { get; private set; }
-
-		/// <summary>
-		/// Client's name (agent's machineID or non-agent's uuid).
-		/// Known as soon as the client sends a ClientIdent message (null till that time)
-		/// </summary>
-		public string Name => Ident?.Sender ?? string.Empty;
-
-
-		private MsgPackCodec _msgCodec;
-		private Server _server;
-
-		/// <summary>Buffer for async received messages (msgs stays there until passed to server's buffer during <see cref="Poll"/>)</summary>
-		private ConcurrentQueue<object> _msgsReceived = new ConcurrentQueue<object>(); 
-
-
-		public MessageSession( Server server ) : base( server )
-		{
-			_server = server;
-			_msgCodec = new MsgPackCodec();
-			_msgCodec.Traffic = server.Traffic;
-			_msgCodec.MessageReceived = OnMessageReceived;
-			_msgCodec.DecodeFailed = OnDecodeFailed;
-		}
-
-		/// <summary>Whether any message of this session has been decoded yet.</summary>
-		private volatile bool _decodedAny;
-
-		/// <summary>The master has refused this client; whatever else it sends is dropped.</summary>
-		private bool _refused;
-
-		private bool _unreadableHandled;
-
-		/// <summary>The address the client connected from, for the log.</summary>
-		public string RemoteAddress
-		{
-			get
-			{
-				try { return ( Socket.RemoteEndPoint as IPEndPoint )?.Address.ToString() ?? "?"; }
-				catch { return "?"; }
-			}
-		}
-
-		// Async!
-		void OnMessageReceived( Net.Message instance )
-		{
-			_decodedAny = true;
-			_msgsReceived.Enqueue( instance );
-		}
-
-		// Async!
-		// A client of an older Dirigent speaks an encoding this master cannot decode, and says so by its very first message
-		// being unreadable. Say that once, rather than an error per message, and hang up.
-		void OnDecodeFailed( Exception error )
-		{
-			if( _decodedAny )
-			{
-				log.Error( $"Deserialize<{typeof( Net.Message ).FullName}> failed: {error.Message} {error.InnerException}" );
-				return;
-			}
-
-			if( _unreadableHandled ) return;
-			_unreadableHandled = true;
-
-			_server.OnFirstMessageUnreadable( RemoteAddress );
-			Disconnect();
-		}
-
-		/// <summary>Tells the client why it is not wanted and hangs up.</summary>
-		void Refuse( string reason )
-		{
-			_refused = true;
-			try
-			{
-				var ms = new System.IO.MemoryStream();
-				MsgPackCodec.Serialize<Net.Message>( ms, new RejectedMessage( reason ) );
-				Send( ms.GetBuffer(), 0, ms.Position ); // synchronous, so that it is out before the connection closes
-				_server.Traffic.Sent( typeof( RejectedMessage ), ms.Position );
-			}
-			catch( Exception ex )
-			{
-				log.Warn( $"Could not tell {RemoteAddress} that it is refused: {ex.Message}" );
-			}
-			Disconnect();
-		}
-
-		/// <summary>
-		/// Whether the client wants the state feed (see <see cref="FeedRequestMessage"/>). A client that has not said wants it.
-		/// </summary>
-		public volatile bool WantsFeed = true;
-
-		public bool WantsReceiveMessage( EMsgRecipCateg msgCategory )
-		{
-			return ( msgCategory & Ident?.SubscribedTo ) != 0;
-		}
-
-		// puts all messages received sincle last call to server's queue
-		public void Poll()
-		{
-			for( int i=_msgsReceived.Count; i > 0; i-- ) // just those reveived so far, not more
-			{
-				if( _msgsReceived.TryDequeue( out var m ) )
-				{
-					if( _refused ) continue;
-
-					var msg = m as Message;
-					if( msg != null )
-					{
-						// process client identification messages
-						var ident = msg as Net.ClientIdent;
-						if( ident != null )
-						{
-							if( ident.ProtocolVersion != Protocol.Version )
-							{
-								var reason = $"{ident.Sender} at {RemoteAddress} speaks protocol {ident.ProtocolVersion}, this master {Protocol.Version} - update it to {Protocol.ProductVersion}";
-								log.Warn( reason );
-								Refuse( reason );
-								continue;
-							}
-							SetIdent( ident );
-						}
-
-						// put message to server's buffer
-						_server.BufferMessageReceived( msg );
-					}
-				}
-			}
-		}
-
-		void SetIdent( Net.ClientIdent ident )
-		{
-			//_outgMsgMask = ident.SubscribedTo;
-			//Name = ident.Sender;
-			Ident = ident;
-
-			// notify server
-			_server.ClientIdentified( this );
-		}
-
-
-		//public void BroadcastMessage<T>( T msg )
-		//{
-		//	var ms = new System.IO.MemoryStream();
-		//	_msgCodec.Serialize( ms, msg );
-		//	_server.Multicast( ms.GetBuffer(), 0, ms.Position );
-		//}
-
-		// Async!
-		protected override void OnConnected()
-		{
-			log.Info( $"TCP session with Id {Id} connected!" );
-
-			_server.OnSessionConnected( this );
-		}
-
-		// Async!
-		protected override void OnDisconnected()
-		{
-			log.Info( $"TCP session with Id {Id} disconnected!" );
-			_server.OnSessionDisconnected( this );
-		}
-
-		// Async!
-		protected override void OnReceived( byte[] buffer, long offset, long size )
-		{
-			_msgCodec.ReceivedMessagePart( buffer, offset, size );
-		}
-
-		protected override void OnError( SocketError error )
-		{
-			log.Error( $"TCP session caught an error with code {error}" );
-		}
-
-	}
 
 	/// <summary>
 	/// Receives messages from any connected clients and puts them all into a single buffer to be periodically polled.
@@ -199,7 +18,7 @@ namespace Dirigent.Net
 	/// Outgoing multicast messages are sent just to the clients that are subscribed to the message category.
 	/// Outgoing multicast messages are not sent only to clients who already identified themselves by sending a ClientIdent message.
 	/// </summary>
-    public class Server : NetCoreServer.TcpServer
+    public class Server : Disposable
 	{
 		/// <summary>Called from <see cref="Poll"/> for each received message</summary>
 		public Action<Net.Message>? MessageReceived;
@@ -211,6 +30,24 @@ namespace Dirigent.Net
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 		private int _port;
+
+		/// <summary>What the master port is: plain TCP, or TLS with the proof of the site secret both ways.</summary>
+		public SecuritySettings Security { get; }
+
+		/// <summary>The certificate presented on a secured port, made at start; null when the port is plain.</summary>
+		private readonly X509Certificate2? _certificate;
+
+		/// <summary>The hash of that certificate as the clients see it: what the proof of the master is bound to.</summary>
+		internal byte[] CertHash { get; } = Array.Empty<byte>();
+
+		/// <summary>The transport: <see cref="PlainListener"/> or <see cref="TlsListener"/>; the sessions it makes do the same work over either.</summary>
+		private readonly IListener _listener;
+
+		/// <summary>Whether too many wrong proofs have come from an address.</summary>
+		internal ProofFailureLimiter ProofFailures { get; } = new();
+
+		/// <summary>Says once per address and ten minutes that a TLS handshake failed.</summary>
+		private readonly AddressLogLimiter _tlsFailureLog = new( Protocol.UnreadableClientLogInterval );
 
 		/// <summary>Clients just asynchronously connected but not yet madea vaialable for synchronous use</summary>
 		private Queue<MessageSession> _connectingClients = new Queue<MessageSession>();
@@ -234,24 +71,44 @@ namespace Dirigent.Net
 		public TrafficStats Traffic { get; }
 
 		/// <param name="traffic">where to count the traffic; the process-wide <see cref="TrafficStats.Default"/> if not given</param>
-		public Server( int port, TrafficStats? traffic = null )
-			: base( IPAddress.Any, port )
+		/// <param name="security">null or <see cref="SecuritySettings.Off"/>: plain TCP as always. Otherwise TLS, and no client is accepted before it has proved it knows the site secret.</param>
+		public Server( int port, TrafficStats? traffic = null, SecuritySettings? security = null )
 		{
 			Traffic = traffic ?? TrafficStats.Default;
+			Security = security ?? SecuritySettings.Off;
 			this._port = port;
 			_msgCodec = new MsgPackCodec();
 
-			Start();
+			if( Security.Secured )
+			{
+				_certificate = MasterCertificate.Create();
+				CertHash = SiteProof.CertHash( _certificate );
+				var context = new SslContext( System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13, _certificate );
+				_listener = new TlsListener( this, context, port );
+			}
+			else
+			{
+				_listener = new PlainListener( this, port );
+			}
+
+			_listener.Start();
 		}
 
-		protected override void Dispose( bool disposingManagedResources )
+		protected override void Dispose( bool disposing )
 		{
-			base.Dispose( disposingManagedResources );
+			if( disposing )
+			{
+				_listener.Dispose();
+				_certificate?.Dispose();
+			}
+			base.Dispose( disposing );
 		}
 
-		protected override TcpSession CreateSession()
+		/// <summary>The handshake of a TLS session failed before any message: a plain client, an old one, or one with security off.</summary>
+		internal void OnTlsHandshakeFailed( string address )
 		{
-			return new MessageSession( this );
+			if( _tlsFailureLog.ShouldLog( address ) )
+				log.Warn( $"{address}: TLS handshake failed - is security on and the same version on that machine?" );
 		}
 
 		// async!
@@ -326,6 +183,15 @@ namespace Dirigent.Net
 					_connectedClients[s.Id] = s;
 					log.Debug( $"Connected: {s.Id}" );
 				}
+			}
+
+			// a connection that has not been proved in time is closed: one that connects and says nothing must not hold a place
+			if( Security.Secured )
+			{
+				var now = DateTime.UtcNow;
+				foreach( var session in _connectedClients.Values )
+					if( !session.Established && now - session.ConnectedAt > Security.HandshakeTimeout )
+						session.TimeOut( Security.HandshakeTimeout );
 			}
 
 			// process clients that has disconnected since last tick

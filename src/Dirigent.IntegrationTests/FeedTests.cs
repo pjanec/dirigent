@@ -37,7 +37,7 @@ namespace Dirigent.IntegrationTests
 			public Viewer( TestBed.TestBed bed, string name )
 			{
 				var ident = new ClientIdent( name, EMsgRecipCateg.Gui );
-				Client = new Net.Client( ident, "127.0.0.1", bed.MasterPort, autoConn: true, traffic: Traffic );
+				Client = new Net.Client( ident, "127.0.0.1", bed.MasterPort, autoConn: true, traffic: Traffic, security: bed.Security );
 				Repo = new ReflectedStateRepo( Client, string.Empty, bed.TempRoot );
 				Client.MessageReceived += m => Received.Add( m );
 			}

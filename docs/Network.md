@@ -70,3 +70,23 @@ master does: whatever an agent says - the client state every second at the least
 disconnects or is silent for 3 seconds the master marks its apps `Offline`, which is a change and goes to the GUIs like any other.
 `AppState.IsOffline` is that flag (or: the app has never been reported); GUIs and the REST `offline` field use it, and the "offline for N sec"
 of a GUI counts from the last news of the agent. A client state shows "offline for N sec" only once the client is not connected.
+
+### The secured master port
+
+With [security](Security.md) on or audit the master port is TLS, and a client is only let in after a handshake that proves that both ends
+know the site secret. Between the TLS handshake and the `ClientIdent` three more messages are exchanged:
+
+1. client to master: `Hello { ProtocolVersion, ClientNonce[32] }` - the protocol version is checked here, as it is for `ClientIdent`;
+2. master to client: `Challenge { MasterNonce[32], MasterProof }`, with
+   `MasterProof = HMAC-SHA256(secret, "dirigent-master" | ClientNonce | MasterNonce | certHash)`;
+3. client to master: `Proof { ClientProof }`, with
+   `ClientProof = HMAC-SHA256(secret, "dirigent-client" | ClientNonce | MasterNonce | certHash)`, sent only after the client has checked `MasterProof`.
+
+`certHash` is the SHA-256 of the master's certificate (its DER). The certificate is self-signed (ECDSA P-256), made in memory at every start of
+the master and never stored, so nothing can be pinned; the client accepts any certificate and hashes the one it was shown. Because the
+proofs are bound to that hash, a program between the client and the master - which has to show a certificate of its own - cannot pass them on: the client
+computes the check over *its* certificate, the master over its own, and they differ. The two labels differ, so a proof of the master is no use as one of
+a client. The master compares with a constant-time comparison.
+
+Anything but the expected message, a wrong proof, or a handshake not completed within 10 seconds closes the connection. More than five wrong proofs from one address
+within a minute make the master close new connections from that address at once for a minute. A refused client asks again no faster than every 30 seconds.

@@ -58,7 +58,13 @@ The options can be specified either on the command line (prefixed with double da
 
  `--isMaster 0|1` .... run master component `Diregent.Agent.exe` only
 
- `--CLIPort 5050` ... Command Line Interface port number. Passed to the master process when `--IsMaster 1` is used.
+ `--CLIPort 5050` ... Command Line Interface port number, or `off` for no telnet CLI at all. Passed to the master process when `--IsMaster 1` is used. With `--security on` or `audit` the CLI is off unless a port is named here - see [Security](Security.md).
+
+ `--security off|audit|on` ... whether the master port is secured with TLS and the site secret. Default `off`. Every process of a site must have the same value. Also the `Security` setting in the exe's `.config`; never in the SharedConfig. See [Security](Security.md).
+
+ `--siteSecretFile site.secret` ... the file holding the site secret (at least 32 characters). Default: `site.secret` in the folder of the LocalConfig.xml, then in the folder of the executable. Also `SiteSecretFile` in the `.config`.
+
+ `--tokenPublicKeyFile remoting-public.pem` ... the public key that checks REST tokens (a later step uses it). Default: `remoting-public.pem`, searched like the secret.
 
  `--httpPort 8877` ... Web API port number. -1 to disable the web api. Passed to the master process when `--IsMaster 1` is used.
 

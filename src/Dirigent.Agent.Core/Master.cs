@@ -212,12 +212,23 @@ namespace Dirigent
             log.Info( $"Running Master at IP {ac.LocalIP}, port {ac.MasterPort}, cliPort {ac.CliPort}" );
             InitializeCommon( ac, rootForRelativePaths );
 
-            // Production server
-            _server = new Server( ac.MasterPort, Traffic );
+            // Production server: plain TCP, or TLS and the site secret when security is on (see docs/Security.md)
+            var security = ac.LoadSecurity();
+            log.Info( security.Secured ? $"The master port is secured (Security={security.Mode})." : "The master port is not secured (Security=off)." );
+            _server = new Server( ac.MasterPort, Traffic, security );
 
-            // Telnet/CLI
-            log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);
-            _telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
+            // Telnet/CLI: any command, from anybody who reaches the port. Off with --CLIPort off, and when security is on unless a port is named.
+            if( ac.CliEnabled )
+            {
+                log.InfoFormat("Command Line Interface running on port {0}", ac.CliPort);
+                if( ac.CliUnauthenticatedWhileSecured )
+                    log.Warn( $"The telnet CLI runs on port {ac.CliPort} although security is on: it runs every command for anybody who can reach that port, with no check. Use --CLIPort off to switch it off." );
+                _telnetServer = new TelnetServer( "0.0.0.0", ac.CliPort, _cliProc );
+            }
+            else
+            {
+                log.Info( ac.CliOff ? "The Command Line Interface is off (CLIPort=off)." : "The Command Line Interface is off: security is on and no CLIPort is named." );
+            }
 
             // Load shared config from file
             var sharedConfig = LoadSharedConfig( ac.SharedCfgFileName );

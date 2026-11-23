@@ -80,7 +80,7 @@ namespace Dirigent
 			_debug = Tools.BoolFromString( _ac.Debug );
 
 			_clientIdent = new Net.ClientIdent() { Sender = machineId, SubscribedTo = Net.EMsgRecipCateg.Agent };
-			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
+			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true, security: _ac.LoadSecurity() );
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 
 			_reflStates = new ReflectedStateRepo( _client, machineId, _rootForRelativePaths, _ac.DownloadFolder );

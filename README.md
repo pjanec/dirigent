@@ -63,6 +63,8 @@ It depends on .net 6.0, running on Windows (fully featured) and Linux (limited f
 
 [Network protocol](docs/Network.md)
 
+[Security: TLS and the site secret](docs/Security.md)
+
 [Design notes (not up to date)](docs/Design-notes.md)
 
 [Test harness](docs/TestHarness.md)

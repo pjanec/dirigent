@@ -46,12 +46,12 @@ namespace Dirigent.TestBed
 		readonly List<Net.UserNotificationMessage> _notifications = new();
 		readonly object _notificationsLock = new();
 
-		internal Operator( string name, string masterIp, int masterPort, string rootForRelativePaths )
+		internal Operator( string name, string masterIp, int masterPort, string rootForRelativePaths, SecuritySettings? security = null )
 		{
 			Name = name;
 
 			var ident = new Net.ClientIdent() { Sender = name, SubscribedTo = Net.EMsgRecipCateg.Gui };
-			_client = new Net.Client( ident, masterIp, masterPort, autoConn: true );
+			_client = new Net.Client( ident, masterIp, masterPort, autoConn: true, security: security );
 			_client.MessageReceived += OnMessage;
 
 			// no local agent, hence no local machine

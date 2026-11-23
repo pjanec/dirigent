@@ -40,7 +40,7 @@ namespace Dirigent.Gui
 			_rootForRelativePaths = PathUtils.GetRootForRelativePaths( _ac.SharedCfgFileName, _ac.RootForRelativePaths );
 			log.Debug( $"Running with masterIp={_ac.MasterIP}, masterPort={_ac.MasterPort}" );
 			_clientIdent = new Net.ClientIdent(	_ac.ClientId, Net.EMsgRecipCateg.Gui ); // client name will be assigned automatically (a guid)
-			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true );
+			_client = new Net.Client( _clientIdent, _ac.MasterIP, _ac.MasterPort, autoConn: true, security: _ac.LoadSecurity() );
 			_client.MessageReceived += OnMessage;
 			_reflStates = new ReflectedStateRepo( _client, _ac.MachineId, _rootForRelativePaths );
 			_txKillAll = _wnd.GetImage("Resources/skull.png");

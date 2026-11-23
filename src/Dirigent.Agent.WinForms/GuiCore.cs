@@ -70,7 +70,7 @@ namespace Dirigent.Gui.WinForms
 			PlanRepo = new List<PlanDef>();
 			ScriptRepo = new List<ScriptDef>();
 
-			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true );
+			Client = new Net.Client( _clientIdent, ac.MasterIP, ac.MasterPort, autoConn: true, security: ac.LoadSecurity() );
 			Client.MessageReceived += OnMessage;
 			ReflStates = new ReflectedStateRepo( Client, machineId, _rootForRelativePaths, _ac.DownloadFolder );
 			

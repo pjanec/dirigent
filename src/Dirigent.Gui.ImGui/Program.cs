@@ -18,6 +18,7 @@ namespace Dirigent.Gui
 		AlreadyRunning = 1,
 		CmdLineError = 2,
 		ExceptionError = 3,
+		SecurityConfigError = 5, // security is on and the site secret is missing or invalid; never falls back to open
 	}
 
 	static class Program
@@ -27,6 +28,24 @@ namespace Dirigent.Gui
 				( System.Reflection.MethodBase.GetCurrentMethod()?.DeclaringType );
 
 
+
+		/// <summary>
+		/// With security on or audit the site secret has to be there and be valid, or the program does not start - there is no falling back to open.
+		/// </summary>
+		static bool SecurityLoads( AppConfig ac )
+		{
+			try
+			{
+				ac.LoadSecurity();
+				return true;
+			}
+			catch( SecurityConfigException ex )
+			{
+				log.Error( ex.Message );
+				Console.Error.WriteLine( ex.Message );
+				return false;
+			}
+		}
 
 		/// <summary>
 		/// The main entry point for the application.
@@ -50,6 +69,10 @@ namespace Dirigent.Gui
 				{
 					log.Error( "Error parsing command line arguments.\n" + ac.GetUsageHelpText() );
 					exitCode = EAppExitCode.CmdLineError;
+				}
+				else if( !SecurityLoads( ac ) )
+				{
+					exitCode = EAppExitCode.SecurityConfigError;
 				}
 				else
 				{

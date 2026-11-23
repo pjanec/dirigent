@@ -167,3 +167,8 @@ Cleanup runs when the master starts, before each new job and hourly. **It touche
 Dirigent's own:** subfolders of `ArchiveFolder` whose name is a guid *and* that contain a `job.json`.
 Anything else in the folder is left alone, and so is a job that is running now. A folder that
 cannot be deleted (a file in use) is skipped and tried again on the next pass.
+
+## Security files
+
+The site secret of a [secured](Security.md) site is looked for in `site.secret` in the folder of this LocalConfig.xml, before the folder of the executable.
+Nothing about security is in the LocalConfig.xml, or the SharedConfig: the `Security` setting is `--security` on the command line or `Security` in the exe's `.config`.

@@ -94,8 +94,17 @@ namespace Dirigent
 		[Option( "isMaster", Required = false, Default = "", HelpText = "Start Master process automatically [0|1]." )]
 		public string IsMaster { get; set; } = string.Empty;
 
-		[Option( "CLIPort", Required = false, Default = 0, HelpText = "Command Line Interface TCP port (master only)." )]
-		public int CLIPort { get; set; }
+		[Option( "CLIPort", Required = false, Default = "", HelpText = "Command Line Interface TCP port (master only), or off for no telnet CLI. With --security on or audit the CLI is off unless a port is given." )]
+		public string CLIPort { get; set; } = string.Empty;
+
+		[Option( "security", Required = false, Default = "", HelpText = "Whether the master port is secured with TLS and the site secret [off|audit|on]. Default off. Never in the shared config." )]
+		public string Security { get; set; } = string.Empty;
+
+		[Option( "siteSecretFile", Required = false, Default = "", HelpText = "File holding the site secret (at least 32 characters). Default: site.secret in the folder of the LocalConfig.xml, then in the folder of the executable." )]
+		public string SiteSecretFile { get; set; } = string.Empty;
+
+		[Option( "tokenPublicKeyFile", Required = false, Default = "", HelpText = "File holding the public key that checks REST tokens. Default: remoting-public.pem next to the LocalConfig.xml, then next to the executable." )]
+		public string TokenPublicKeyFile { get; set; } = string.Empty;
 
 		[Option( "httpPort", Required = false, Default = 0, HelpText = "Web server port (master only, -1=no web server)." )]
 		public int HttpPort { get; set; }
@@ -131,6 +140,50 @@ namespace Dirigent
 		public string ClientId = "";
 		public int MasterPort = 5045;
 		public int CliPort = 5050;
+
+		/// <summary>A port was named for the telnet CLI, by the command line or the .config - as opposed to the default.</summary>
+		public bool CliPortExplicit = false;
+
+		/// <summary>The CLIPort said <c>off</c>: no telnet CLI.</summary>
+		public bool CliOff = false;
+
+		/// <summary>
+		/// Whether the master starts the telnet CLI. It runs any command without checking who asks, so with security on or audit it is
+		/// off unless somebody named its port.
+		/// </summary>
+		public bool CliEnabled => !CliOff && ( CliPortExplicit || !SecurityConfigured );
+
+		/// <summary>The telnet CLI is on although the master is secured, because its port was named: it asks nobody anything.</summary>
+		public bool CliUnauthenticatedWhileSecured => CliEnabled && SecurityConfigured;
+
+		/// <summary>Off, audit or on, as written; empty = off.</summary>
+		public string Security = "";
+
+		public string SiteSecretFile = "";
+		public string TokenPublicKeyFile = "";
+
+		/// <summary>Set up by <see cref="LoadSecurity"/>, or given in memory (the test bed). Null until then: nothing is secured.</summary>
+		public SecuritySettings? SecuritySettings;
+
+		/// <summary>Whether security is on or audit, by the text of the setting or by what was loaded.</summary>
+		public bool SecurityConfigured => SecuritySettings?.Secured ?? SafeMode() != ESecurityMode.Off;
+
+		ESecurityMode SafeMode()
+		{
+			try { return Dirigent.SecuritySettings.ParseMode( Security ); }
+			catch( SecurityConfigException ) { return ESecurityMode.On; } // a bad value is an error at LoadSecurity; until then, the cautious reading
+		}
+
+		/// <summary>
+		/// Reads the security setting and, if it is on or audit, the site secret. Every process that talks to the master calls this at start, and does not
+		/// start if it throws.
+		/// </summary>
+		/// <exception cref="SecurityConfigException">the setting is not off|audit|on, or the secret is missing, unreadable or too short</exception>
+		public SecuritySettings LoadSecurity()
+		{
+			SecuritySettings ??= Dirigent.SecuritySettings.Load( Dirigent.SecuritySettings.ParseMode( Security ), SiteSecretFile, TokenPublicKeyFile, LocalCfgFileName, AppContext.BaseDirectory );
+			return SecuritySettings;
+		}
 		public int HttpPort = 8877;
 		public string MasterIP = "127.0.0.1";
 		public string LogFileName = "";
@@ -250,7 +303,10 @@ namespace Dirigent
 			if( Common.Properties.Settings.Default.StartupScriptParams != "" ) StartupScriptParams = Common.Properties.Settings.Default.StartupScriptParams;
 			if( Common.Properties.Settings.Default.StartHidden != "" ) StartHidden = Common.Properties.Settings.Default.StartHidden;
 			if( Common.Properties.Settings.Default.IsMaster != "" ) IsMaster = Common.Properties.Settings.Default.IsMaster;
-			if( Common.Properties.Settings.Default.CLIPort != 0 ) CliPort = Common.Properties.Settings.Default.CLIPort;
+			ApplyCliPort( Common.Properties.Settings.Default.CLIPort, "the CLIPort setting" );
+			if( Common.Properties.Settings.Default.Security != "" ) Security = Common.Properties.Settings.Default.Security;
+			if( Common.Properties.Settings.Default.SiteSecretFile != "" ) SiteSecretFile = Common.Properties.Settings.Default.SiteSecretFile;
+			if( Common.Properties.Settings.Default.TokenPublicKeyFile != "" ) TokenPublicKeyFile = Common.Properties.Settings.Default.TokenPublicKeyFile;
 			if( Common.Properties.Settings.Default.HttpPort != 0 ) HttpPort = Common.Properties.Settings.Default.HttpPort;
 			if( Common.Properties.Settings.Default.TickPeriod != 0 ) TickPeriod = Common.Properties.Settings.Default.TickPeriod;
 			if( Common.Properties.Settings.Default.MasterTickPeriod != 0 ) MasterTickPeriod = Common.Properties.Settings.Default.MasterTickPeriod;
@@ -305,7 +361,10 @@ namespace Dirigent
 				if( options.ArchiveMaxBytes != 0 ) ArchiveMaxBytes = options.ArchiveMaxBytes;
 				if( options.ServeArchives != "" ) ServeArchives = options.ServeArchives;
 				if( options.IsMaster != "" ) IsMaster = options.IsMaster;
-				if( options.CLIPort != 0 ) CliPort = options.CLIPort;
+				ApplyCliPort( options.CLIPort, "--CLIPort" );
+				if( options.Security != "" ) Security = options.Security;
+				if( options.SiteSecretFile != "" ) SiteSecretFile = options.SiteSecretFile;
+				if( options.TokenPublicKeyFile != "" ) TokenPublicKeyFile = options.TokenPublicKeyFile;
 				if( options.HttpPort != 0 ) HttpPort = options.HttpPort;
 				if( options.TickPeriod != 0 ) TickPeriod = options.TickPeriod;
 				if( options.MasterTickPeriod != 0 ) MasterTickPeriod = options.MasterTickPeriod;
@@ -361,6 +420,23 @@ namespace Dirigent
 			}
 
 
+		}
+
+		/// <summary>Takes the text of the CLIPort option or setting: a port, 0 for the default, or off.</summary>
+		void ApplyCliPort( string? text, string where )
+		{
+			if( !CliPortSetting.TryParse( text, out var kind, out var port ) )
+			{
+				log.Error( $"{where}: '{text}' is neither a port number nor 'off'." );
+				HadErrors = true;
+				return;
+			}
+
+			switch( kind )
+			{
+				case CliPortSetting.EKind.Off: CliOff = true; CliPortExplicit = false; break;
+				case CliPortSetting.EKind.Port: CliOff = false; CliPortExplicit = true; CliPort = port; break;
+			}
 		}
 
 		static void SetLogFileName( string newName )

@@ -29,7 +29,7 @@ namespace Dirigent.IntegrationTests
 		[TestMethod()]
 		public async Task AClientSpeakingAnotherProtocolVersionIsRefusedAndToldWhy()
 		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine() } );
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine(), SecurityOff = true /* about the plain port: raw plain clients, plain-port log lines */ } );
 
 			var ident = new ClientIdent( "oldtimer", EMsgRecipCateg.Gui ) { ProtocolVersion = Protocol.Version - 1 };
 			using var client = new Net.Client( ident, "127.0.0.1", bed.MasterPort, autoConn: true );
@@ -56,7 +56,7 @@ namespace Dirigent.IntegrationTests
 		[TestMethod()]
 		public async Task ARefusedClientAsksAgainSlowly()
 		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine() } );
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine(), SecurityOff = true /* about the plain port: raw plain clients, plain-port log lines */ } );
 
 			var ident = new ClientIdent( "oldtimer", EMsgRecipCateg.Gui ) { ProtocolVersion = Protocol.Version + 1 };
 			using var client = new Net.Client( ident, "127.0.0.1", bed.MasterPort, autoConn: true );
@@ -71,7 +71,7 @@ namespace Dirigent.IntegrationTests
 		[TestMethod()]
 		public async Task GarbageAsTheFirstMessageClosesTheSessionAndTheMasterSaysWhy()
 		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine() } );
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine(), SecurityOff = true /* about the plain port: raw plain clients, plain-port log lines */ } );
 
 			var garbage = Enumerable.Range( 0, 40 ).Select( i => (byte) ( 0xC1 + i % 7 ) ).ToArray(); // 0xC1 is never valid MessagePack
 			await SendAndExpectClose( bed.MasterPort, garbage );
@@ -86,7 +86,7 @@ namespace Dirigent.IntegrationTests
 		[TestMethod()]
 		public async Task TheFirstMessageOfAnOlderDirigentIsRecognisedAsUnreadable()
 		{
-			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine() } );
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = Scenario.OneMachine(), SecurityOff = true /* about the plain port: raw plain clients, plain-port log lines */ } );
 
 			// 3.1.19 wrote every object as a map with the field names as text
 			var oldIdent = new Dictionary<string, object>() { { "Sender", "m9" }, { "SubscribedTo", 1 } };

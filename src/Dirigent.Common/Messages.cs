@@ -57,6 +57,9 @@ namespace Dirigent.Net
 	[MessagePack.Union( 143, typeof( WakeUpMessage ) )]
 	[MessagePack.Union( 144, typeof( RejectedMessage ) )]
 	[MessagePack.Union( 145, typeof( FeedRequestMessage ) )]
+	[MessagePack.Union( 146, typeof( HelloMessage ) )]
+	[MessagePack.Union( 147, typeof( ChallengeMessage ) )]
+	[MessagePack.Union( 148, typeof( ProofMessage ) )]
 
 
 
@@ -674,6 +677,60 @@ namespace Dirigent.Net
 		public FeedRequestMessage( bool wanted ) { Wanted = wanted; }
 
 		public override string ToString() => $"FeedRequest wanted={Wanted}";
+	}
+
+	/// <summary>
+	/// Client to master, the first message on a secured master port (after TLS, before ClientIdent): the protocol version it speaks and a
+	/// nonce for the proof of the site secret. See <see cref="SiteProof"/>.
+	/// </summary>
+	[MessagePack.MessagePackObject]
+	public class HelloMessage : Message
+	{
+		[MessagePack.Key( 1 )]
+		public int ProtocolVersion = Protocol.Version;
+
+		[MessagePack.Key( 2 )]
+		public byte[] ClientNonce = Array.Empty<byte>();
+
+		[MessagePack.SerializationConstructor]   // else the one constructor whose parameter matches a member is taken, and Sender is not set
+		public HelloMessage() {}
+		public HelloMessage( byte[] clientNonce ) { ClientNonce = clientNonce; }
+
+		public override string ToString() => $"Hello protocol={ProtocolVersion}";
+	}
+
+	/// <summary>
+	/// Master to client: its own nonce and its proof that it knows the site secret, bound to the certificate it presents. The client checks it
+	/// against the certificate <i>it</i> saw, so a relay in between - which presents a certificate of its own - cannot pass it on.
+	/// </summary>
+	[MessagePack.MessagePackObject]
+	public class ChallengeMessage : Message
+	{
+		[MessagePack.Key( 1 )]
+		public byte[] MasterNonce = Array.Empty<byte>();
+
+		[MessagePack.Key( 2 )]
+		public byte[] MasterProof = Array.Empty<byte>();
+
+		[MessagePack.SerializationConstructor]   // else the one constructor whose parameter matches a member is taken, and Sender is not set
+		public ChallengeMessage() {}
+		public ChallengeMessage( byte[] masterNonce, byte[] masterProof ) { MasterNonce = masterNonce; MasterProof = masterProof; }
+
+		public override string ToString() => "Challenge";
+	}
+
+	/// <summary>Client to master: its proof that it knows the site secret. Only after the master has checked it is a ClientIdent accepted.</summary>
+	[MessagePack.MessagePackObject]
+	public class ProofMessage : Message
+	{
+		[MessagePack.Key( 1 )]
+		public byte[] ClientProof = Array.Empty<byte>();
+
+		[MessagePack.SerializationConstructor]   // else the one constructor whose parameter matches a member is taken, and Sender is not set
+		public ProofMessage() {}
+		public ProofMessage( byte[] clientProof ) { ClientProof = clientProof; }
+
+		public override string ToString() => "Proof";
 	}
 
 	/// <summary>

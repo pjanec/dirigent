@@ -220,12 +220,45 @@ namespace Dirigent.Common.Properties
 
 		[global::System.Configuration.ApplicationScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-		[global::System.Configuration.DefaultSettingValueAttribute( "5050" )]
-		public int CLIPort
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string CLIPort
 		{
 			get
 			{
-				return ( ( int )( this["CLIPort"] ) );
+				return ( ( string )( this["CLIPort"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string Security
+		{
+			get
+			{
+				return ( ( string )( this["Security"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string SiteSecretFile
+		{
+			get
+			{
+				return ( ( string )( this["SiteSecretFile"] ) );
+			}
+		}
+
+		[global::System.Configuration.ApplicationScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute( "" )]
+		public string TokenPublicKeyFile
+		{
+			get
+			{
+				return ( ( string )( this["TokenPublicKeyFile"] ) );
 			}
 		}
 

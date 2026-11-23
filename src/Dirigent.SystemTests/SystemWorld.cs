@@ -39,6 +39,15 @@ namespace Dirigent.SystemTests
 		public string Root => Files.Root;
 
 		public int MasterPort { get; }
+
+		/// <summary>The world runs with <c>--security on</c>: TLS and the site secret in the file beside LocalConfig.xml.</summary>
+		public bool Secured { get; private set; }
+
+		/// <summary>The site secret of a secured world.</summary>
+		public string Secret { get; private set; } = "";
+
+		/// <summary>A secured world names the telnet CLI's port only if asked to: with security on it is off otherwise.</summary>
+		public bool CliNamed { get; private set; } = true;
 		public int CliPort { get; }
 
 		/// <summary>The web server's port, or -1 when it was not asked for (0 would mean 8877).</summary>
@@ -85,9 +94,12 @@ namespace Dirigent.SystemTests
 		/// leave the console windows visible instead of minimized. Off by default: a test run must
 		/// not throw windows at whoever is using the machine.
 		/// </param>
+		/// <param name="secured">start every process with <c>--security on</c>; the secret is in site.secret beside the LocalConfig.xml, where they find it</param>
+		/// <param name="cliNamed">when secured: whether the master is given <c>--CLIPort</c>. Without it the CLI is off, and the world is driven over HTTP.</param>
 		public static SystemWorld Start( string scenario = "LoggingWorld", bool withHttp = false,
-				bool visible = false )
+				bool visible = false, bool secured = false, bool cliNamed = true )
 		{
+			if( secured && !cliNamed ) withHttp = true; // the only way left to look at it
 			var root = Path.Combine( Path.GetTempPath(), "DirigentTier3",
 					Guid.NewGuid().ToString( "N" ).Substring( 0, 6 ) );
 
@@ -96,6 +108,14 @@ namespace Dirigent.SystemTests
 			var world = new SystemWorld( files, scenario,
 					masterPort: FreePort(), cliPort: FreePort(),
 					httpPort: withHttp ? FreePort() : -1 );
+
+			world.Secured = secured;
+			world.CliNamed = cliNamed;
+			if( secured )
+			{
+				world.Secret = Guid.NewGuid().ToString( "N" ) + Guid.NewGuid().ToString( "N" );
+				File.WriteAllText( Path.Combine( Path.GetDirectoryName( files.LocalConfig )!, "site.secret" ), world.Secret );
+			}
 
 			try
 			{
@@ -114,6 +134,45 @@ namespace Dirigent.SystemTests
 			}
 
 			return world;
+		}
+
+		/// <summary>The names of the clients the master says are connected, over the web API.</summary>
+		public HashSet<string> ConnectedClientsOverHttp()
+		{
+			using var http = new HttpClient() { Timeout = TimeSpan.FromSeconds( 5 ) };
+			var json = http.GetStringAsync( $"http://127.0.0.1:{HttpPort}/api/clients" ).GetAwaiter().GetResult();
+			using var doc = System.Text.Json.JsonDocument.Parse( json );
+			return doc.RootElement.EnumerateArray()
+				.Where( c => c.GetProperty( "state" ).GetProperty( "connected" ).GetBoolean() )
+				.Select( c => c.GetProperty( "id" ).GetString()! ).ToHashSet();
+		}
+
+		/// <summary>
+		/// Starts one more agent of this world, for a test of who gets in: with the secret the world's files hold, or with the one in <paramref name="secretFile"/>.
+		/// It is taken over by the world, which kills it at the end.
+		/// </summary>
+		public Process StartExtraAgent( string machine, string? secretFile = null )
+		{
+			var args = new List<string>()
+			{
+				"--machineId", machine,
+				"--mode", "daemon",
+				"--masterIp", "127.0.0.1",
+				"--masterPort", MasterPort.ToString(),
+				"--sharedConfigFile", Files.SharedConfig,
+				"--localConfigFile", Files.LocalConfig,
+				"--agentStatusFolder", Path.Combine( Root, "status-" + machine ),
+				"--downloadFolder", Files.DownloadFolder,
+				"--logFile", Files.LogOf( machine ),
+				"--rootForRelativePaths", Files.Root,
+				"--isMaster", "0",
+			};
+			if( Secured ) args.AddRange( new[] { "--security", "on" } );
+			if( secretFile is not null ) args.AddRange( new[] { "--siteSecretFile", secretFile } );
+
+			var process = StartProcess( Tool( "Dirigent.Agent.Console", "Dirigent.Agent.exe" ), args, Files.Root, visible: false );
+			Adopt( machine, process );
+			return process;
 		}
 
 		void StartAgents( bool visible )
@@ -137,9 +196,12 @@ namespace Dirigent.SystemTests
 					"--isMaster", isMaster ? "1" : "0",
 				};
 
+				if( Secured ) args.AddRange( new[] { "--security", "on" } );
+
 				if( isMaster )
 				{
-					args.AddRange( new[] { "--CLIPort", CliPort.ToString(), "--httpPort", HttpPort.ToString() } );
+					if( CliNamed ) args.AddRange( new[] { "--CLIPort", CliPort.ToString() } );
+					args.AddRange( new[] { "--httpPort", HttpPort.ToString() } );
 				}
 
 				_agents.Add( new Agent()
@@ -155,6 +217,8 @@ namespace Dirigent.SystemTests
 		void WaitUntilEverybodyIsConnected()
 			=> WaitUntil( "the master answers and every agent is connected", StartTimeout, () =>
 			{
+				if( !CliNamed ) return Files.Machines.All( m => ConnectedClientsOverHttp().Contains( m ) );
+
 				var lines = CliList( "GetAllClientsState", TimeSpan.FromSeconds( 3 ) );
 
 				return Files.Machines.All(

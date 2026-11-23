@@ -46,6 +46,19 @@ namespace Dirigent.TestBed
 		/// <summary>Besides the operator, one more GUI client (an <see cref="Operator"/>) per machine, as every machine of a real site runs one.</summary>
 		public bool GuiPerMachine;
 
+		/// <summary>
+		/// Secure the master port with this site secret, given in memory: TLS, and the proof of the secret both ways, for the master, every agent and every GUI
+		/// of the bed. Null: not secured - unless the environment variable <c>DIRIGENT_TEST_SECURITY=1</c> is set, which gives every bed a secret of its own so
+		/// that a whole suite can be run over TLS. <see cref="SecurityOff"/> opts a test out of that.
+		/// </summary>
+		public string? SiteSecret;
+
+		/// <summary>The security settings themselves, for a test that needs more than a secret (a short handshake timeout, say). Wins over <see cref="SiteSecret"/>.</summary>
+		public SecuritySettings? Security;
+
+		/// <summary>The test is about a plain port and stays plain even when <c>DIRIGENT_TEST_SECURITY=1</c>.</summary>
+		public bool SecurityOff;
+
 		/// <summary>Keep the temporary folder behind for inspection.</summary>
 		public bool KeepTempRoot;
 
@@ -58,6 +71,12 @@ namespace Dirigent.TestBed
 	public sealed class TestBed : Disposable
 	{
 		public string RunTag { get; }
+
+		/// <summary>How the master port of this bed is secured; <see cref="SecuritySettings.Off"/> for a plain one. What a client of its own has to be given to get in.</summary>
+		public SecuritySettings Security { get; }
+
+		/// <summary>Whether the environment asks for every bed to be secured (<c>DIRIGENT_TEST_SECURITY=1</c>).</summary>
+		public static bool SecurityRequestedByEnvironment => Environment.GetEnvironmentVariable( "DIRIGENT_TEST_SECURITY" ) == "1";
 		public string TempRoot { get; }
 		public string SharedConfigPath { get; }
 		public string TestAppPath { get; }
@@ -108,6 +127,9 @@ namespace Dirigent.TestBed
 		{
 			_opts = opts;
 			RunTag = Isolation.NewRunTag();
+
+			var secret = opts.SiteSecret ?? ( SecurityRequestedByEnvironment && !opts.SecurityOff ? Guid.NewGuid().ToString( "N" ) + Guid.NewGuid().ToString( "N" ) : null );
+			Security = opts.Security ?? ( secret is null ? SecuritySettings.Off : SecuritySettings.WithSecret( secret ) );
 			TempRoot = Isolation.CreateTempRoot( RunTag );
 			TestAppPath = TestAppLocator.Find();
 
@@ -157,12 +179,12 @@ namespace Dirigent.TestBed
 			// "{machineId}_gui_{guid}". That name is how a download works out whose download folder
 			// the files belong in - by address it could not, every machine here being 127.0.0.1.
 			OperatorMachine = _machineIds.Values.First();
-			Operator = new Operator( $"{OperatorMachine}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot );
+			Operator = new Operator( $"{OperatorMachine}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot, Security );
 
 			if( opts.GuiPerMachine )
 			{
 				foreach( var machineId in _machineIds.Values.Skip( 1 ) )
-					_extraGuis.Add( new Operator( $"{machineId}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot ) );
+					_extraGuis.Add( new Operator( $"{machineId}_gui_{Guid.NewGuid():N}", "127.0.0.1", MasterPort, TempRoot, Security ) );
 			}
 
 			_pump = new Thread( PumpLoop ) { IsBackground = true, Name = $"dirigent-testbed-{RunTag}" };
@@ -658,6 +680,8 @@ namespace Dirigent.TestBed
 				MasterIP = "127.0.0.1",
 				MasterPort = masterPort,
 				CliPort = cliPort,
+				CliPortExplicit = true,  // the tests drive the CLI; with security on it would otherwise be off
+				SecuritySettings = Security,
 				HttpPort = 0,            // the web server binds http://*:port, which needs a URL ACL
 				SharedCfgFileName = SharedConfigPath,
 				LocalCfgFileName = "",   // no tools needed yet
