@@ -65,6 +65,7 @@ Everything under `/api` answers errors in this shape - including the ban and a p
 * **File previews** (`…/files`) resolve the file definitions on the agents that own the files, which means a
   look at the file systems of those machines. That takes anything from milliseconds to many seconds, and a machine
   that is off or slow only affects its own entries - see [Files, “When something is not there”](Files.md#When-something-is-not-there).
+* **Crashes** (`GET /api/crashes`) read the event log of every machine, all at once: about a second, more for a long window or with `details=1`; a machine that is off only affects its own line.
 * **Download jobs** (`POST /api/downloads`) start a collection that runs for as long as it takes. The call returns
   at once with a job id; you poll the job, optionally with `?wait=N` (seconds to hold the answer, at most 120).
 
@@ -179,6 +180,7 @@ no MAC known (it never connected and SharedConfig gives none): 409 with the reas
 | GET | [`/api/appversions`](#GET-apiappversions) | The versions of the applications, each listed once (`?machine=`) | [`GetAppVersions`](CLI.md#GetAppVersions) |
 | GET | [`/api/help`](#GET-apihelp), [`/api/help/{doc}`](#GET-apihelpdoc) | This documentation, from the running master | |
 | GET | [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) | The actual files of an application instance | [`GetAppFiles`](CLI.md#GetAppFiles) |
+| GET | [`/api/crashes`](#GET-apicrashes) | Crashes, hangs, exits, reboots of the site's programs from the event log (`?since=&until=&component=&app=&machine=&kind=&id=&newestPerApp=&details=1`) | [`GetCrashes`](CLI.md#GetCrashes) |
 | GET | [`/api/appstates`](#GET-apiappstates) | State of all applications | [`GetAllAppsState`](CLI.md#GetAllAppsState) |
 | GET | [`/api/appstates/{id}`](#GET-apiappstatesid) | State of one application (also `/api/appstate/{id}`) | [`GetAppState`](CLI.md#GetAppState) |
 | GET | [`/api/plandefs`](#GET-apiplandefs) | All plan definitions | |
@@ -327,7 +329,7 @@ them in one call**: a tool showing the applications asks this, not `/api/appstat
  {"id": "m1.tracker","state": {"code": "Terminated (3)","flags": "S","plan": null,"pid": null,"exitCode": 3, ...}}]
 ```
 
-`component` is the application's `Component` (null for none). Besides the text `code` and the `flags`: `plan` the application was last started in (null for none); `pid` while it runs;
+`component` is the application's `Component` (null for none). `lastExits` lists the last (at most 10, newest first) exits of the application that Dirigent did not cause - `time`, `exitCode`, `pid`, `startedAt`, `plan`, `willRestart`, `restartsRemaining` - kept in the master's memory and **lost when the master restarts**; they are also listed by [`/api/crashes`](#GET-apicrashes). Besides the text `code` and the `flags`: `plan` the application was last started in (null for none); `pid` while it runs;
 `startedAt` - when its current or last process was started - and `endedAt` - when that process ended, null while it runs (both UTC, by the clock of its agent; null if it never ran); `exitCode`
 once it was started and has ended on its own (null while it runs, after a kill, or before any start); `restartsRemaining` before its agent
 gives up restarting it (-1 = without limit, null = not counted yet); `cpu` and `gpu` in percent and `memoryMB` of the process as its agent
@@ -361,6 +363,95 @@ described under [Files and downloads](#GET-apiappdefsidfiles).
 #### GET /api/appstate/{id}
 
 The older name of [`/api/appstates/{id}`](#GET-apiappstatesid); the same answer, still accepted.
+
+## Crashes
+
+### GET /api/crashes
+
+**What crashed on the site, read from the Windows event log of each machine** - only the programs of the site (the executables of the
+application definitions, compared by full path without regard to case, by file name when an event names only that; Dirigent's own
+programs count as the component `Dirigent`) and the machine-level events. A tool asks the master only: no remote event-log access, no list
+of "our" programs of its own. Every connected machine is asked, all at once; a machine that is off is reported as such and does not
+fail the call.
+
+```
+GET /api/crashes?component=Viewer&since=2026-11-21T14:00:00%2B02:00&details=1
+```
+
+```json
+{ "crashes": [
+    { "id": "m1/2026-11-21T12:03:11Z/1234", "kind": "crash", "machine": "m1",
+      "app": "m1.viewer", "apps": ["m1.viewer"], "component": "Viewer",
+      "exe": "C:\\Apps\\Viewer\\Viewer.exe", "exeVersion": "5.2.0.118", "time": "2026-11-21T12:03:11Z",
+      "exceptionCode": "0xc0000005", "exceptionText": null,
+      "faultingModule": "foo.dll", "faultingModuleVersion": "1.4.2.0", "faultingOffset": "0x0000000000012345",
+      "signature": "Viewer.exe|foo.dll|0xc0000005|0x12345", "processId": 1234, "exitCode": null,
+      "dump": { "path": "C:\\Dumps\\Viewer.exe.1234.dmp", "unc": "\\\\10.0.0.1\\C\\Dumps\\Viewer.exe.1234.dmp", "exists": true, "size": 123456789 },
+      "werReport": "C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive\\AppCrash_Viewer.exe_...\\Report.wer",
+      "startedAt": "2026-11-21T11:00:00Z", "uptimeSeconds": 3791.0, "plan": "plan1" } ],
+  "machines": [ { "machine": "m1", "status": "ok", "coverage": { "oldestEvent": "2026-10-30T08:12:44Z" }, "cut": false },
+                { "machine": "m2", "status": "not connected", "coverage": { "oldestEvent": null }, "cut": false } ],
+  "totals": { "crashes": 1, "dumpBytes": 123456789 } }
+```
+
+**The filters** - query parameters, a list as repeated parameters or comma-separated, the plural spelling accepted too. **Different filters AND,
+the values of one filter OR.**
+
+| Parameter | Matches |
+| --- | --- |
+| `since`, `until` | the crash time. ISO 8601 with an offset, or UTC without one, as for [downloads](#The-selection); `until` before `since` is a 400. **Without either: the last 7 days**; with `until` alone, the 7 days before it |
+| `component` | the entry's `component` - the names of the collection checkboxes |
+| `app` | application ids, with the wildcards of the configuration: `m1.viewer`, `*.viewer`, `m?.render*`; an id without a machine (`viewer`) matches the application on any machine |
+| `machine` | the machine id (wildcards too) |
+| `kind` | `crash`, `managed`, `hang`, `reboot`, `bugcheck`, `gpuReset`, `exit` |
+| `id` | exactly these entries, as listed before |
+| `newestPerApp` | only the newest N entries of each application (entries without an application are all kept) |
+| `details=1` | adds `versions` and `machineInfo` to each entry - see below |
+
+An entry without a component is dropped only by `component`; every other filter lists it - nothing vanishes silently.
+
+**The kinds.**
+
+| `kind` | From | |
+| --- | --- | --- |
+| `crash` | `Application Error` 1000 with the `Windows Error Reporting` 1001 of the same crash | the report id links them |
+| `managed` | `.NET Runtime` 1026 (exception type and the first lines, at most 5) with the 1000 of the same process within seconds - **one entry** | |
+| `hang` | `Application Hang` 1002 | |
+| `reboot` | `System`: Kernel-Power 41 / EventLog 6008 (one entry per reboot) | no application |
+| `bugcheck` | `System`: BugCheck 1001; `dump` says whether `MEMORY.DMP` or a minidump exists | no application |
+| `gpuReset` | `System`: Display 4101 - the display driver stopped responding and recovered | no application |
+| `exit` | **no event**: Dirigent saw the process end without having killed it - see below | `exitCode` |
+
+**The entry.** `id` is `<machine>/<UTC time>/<pid>` and stable (machine-level entries have the kind in place of the pid), so a tool can ask for exactly
+the entries it listed. `signature` is `exe file name|module|code|offset` (module-relative, leading zeros trimmed): the same bug crashing again has the
+same signature. **`app` is the application the exe belongs to; when several applications share the exe and nothing tells them apart, `app` is `null`
+and `apps` lists all candidates - Dirigent never guesses.** (If Dirigent started the process, the pid settles it.) `component` is the application's
+`Component`; `null` when there is no application or the candidates' components differ. `dump` is the dump Windows Error Reporting names, or else the
+file `<exe>.<pid>.dmp` in the folder the `LocalDumps` setting of Windows Error Reporting names (read from the registry, never changed); the
+master adds `unc` through the machine's share, as the file listings do. `werReport` is the path of `Report.wer`. Where a dump is expected and is not
+there, `exists` is `false`. `time` is UTC.
+
+**Uptime and plan at the crash.** When the process is one Dirigent launched - found by its pid in the history of exits below, or in the state of the
+application while that process still runs - the entry has `startedAt`, `uptimeSeconds` and `plan`: "crashed 3 s after start" and "crashed after 6 h"
+are different bugs.
+
+**Dirigent's own exit history.** The master notes every exit of an application that it did not cause (it was running, then it was not, and was not
+being killed), the last 10 per application: time, exit code, pid, start time, plan and whether a restart is coming. It is in
+[`/api/appstates`](#GET-apiappstates) as `lastExits`, and an exit that no event of the log explains (the same application and process within 30 seconds)
+is listed here as `kind: "exit"` - this covers a process that exits with an error code, is killed from outside or leaves no event. **The history is
+kept in the master's memory: it is lost when the master restarts.**
+
+**`machines`** says what each machine answered: `status` is `ok`, `not connected`, `not supported` (not Windows) or `error: ...`.
+`coverage.oldestEvent` is how far back the machine's Application log reaches - the log is a ring buffer, so a busy machine may have lost last month's
+crashes; "no crash recorded" and "no record kept" are told apart by it. At most 500 entries are read per machine and the reading is bounded in time;
+`cut: true` says a limit was hit (the newest entries are the ones kept).
+
+**With `details=1`** each entry also has `versions` - the file and product version of the crashed exe and the version, size and time of every DLL in its
+folder, the faulting module first (no hashes) - and `machineInfo` - operating system and build, uptime, CPU, RAM total and free, free space of
+each fixed drive, graphics adapters with driver version and date (read from the registry, no WMI), once per machine. Without it the answer is
+small; ask for details for the crashes you show.
+
+(CLI: [`GetCrashes`](CLI.md#GetCrashes).)
 
 ## Plans
 
@@ -489,6 +580,12 @@ collected is what is marked:
 * `fileDefs` - file definitions or packages by `id`; `machine` and `app` are optional per item, and `id`, `machine` and `app` take the wildcards of a
   [`<FileRef>`](Files.md#fileref). A wildcard item may match several definitions. In a JSON body the wildcards need no escaping, unlike in a URL path.
 * `apps` - applications, `m1.a` or `m1.a@plan1`, the definition picked as for [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles).
+* `crashes` - **crashes to look up and collect**, with the filters of [`GET /api/crashes`](#GET-apicrashes) (in a body as the lists `components`, `apps`, `machines`, `kinds`, `ids` -
+  the singular `component`, `app`, ... with one value or a list are accepted too - `since`, `until`, `newestPerApp`) and what to take of each crash:
+  `"dumps": true|false` (default true), `"context": true|false` (default true), `"maxDumpBytes": n`. It is combined with `fileDefs` and `apps` in one request and one archive,
+  or given alone: then nothing but the crashes is collected. Without its own `since`/`until` the crashes take those of the request, else the last 7 days.
+  **The request names crashes, never paths**: the agents look the crashes up again with the same filters, and only the dumps Windows recorded for those crashes - or that lie in the
+  application's own dump folders (its file definitions whose `Id` starts with `dump`) - are added. See [Crashes in a download](#Crashes-in-a-download).
 * **All the items are looked up before anything runs.** An item that matches nothing is a `404` whose message names it; an empty selection - no items, or an item
   without an `id` - is a `400`.
 * There is **no deduplication across items**. A file that two items reach is listed under both, counted in both and, in a download, in the folder of each, each copy
@@ -521,7 +618,8 @@ Previews the files of a [selection](#The-selection). **Read-only**: nothing is m
 `items` has one entry per selected item, in the order of the selection, in the shape of the single route's answer: that of
 [`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp) for a file definition item, that of [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) for an application.
 Every file carries what the single routes give, and `app` and `fileDefId` (see below). The `totals` of the answer are the sum of the totals of the items.
-Unknown item: 404; empty selection: 400.
+Unknown item: 404; empty selection (no items and no `crashes`): 400. With **`crashes`** the answer also has `crashes` - what [`GET /api/crashes`](#GET-apicrashes) answers for those filters - and the dumps a download would collect
+(those that are there and not above `maxDumpBytes`) are added to `totals.files`, `totals.bytes` and `totals.bytesToCollect`.
 
 The body may also hold a **time window**, `"since"` and/or `"until"` (ISO 8601; without an offset UTC), exactly as [`POST /api/downloads`](#POST-apidownloads) takes it: the preview then lists **the files the window selects** -
 for the `Clearable` definitions every file written within it, instead of what their `MaxFiles` and `MaxSeconds` give; the other definitions are previewed as ever - so the preview and the collection agree on the files.
@@ -648,6 +746,33 @@ A definition that is **not** `Clearable` (a configuration file) is chosen by its
 current configs. Either end may be given alone: `since` only is up to now, `until` only is from the marks (the default start) up to `until`, and then `MaxFiles`/`MaxSeconds` still choose, as if collected at `until`. An entry cut by a window is named `<name>.window<ext>`
 (`app.window.log`). See [Files](Files.md#a-time-window-chooses-the-files) for how a window selects, including a remark on the creation time of a recreated file. The archive's `_comment.txt` has a
 `Window` line, `_sitestate.json` has `logsSince` and `logsUntil` - plain times, local with the UTC beside it (`2026-11-21 14:00:00 (UTC 12:00:00)`): `logsSince` is the start asked for, or without one the earliest mark a file was cut at; `logsUntil` is the end asked for.
+
+#### Crashes in a download
+
+```json
+{ "crashes": { "components": ["Viewer"], "since": "2026-11-21T14:00:00+02:00", "dumps": true } }
+```
+
+The agents look the crashes up again - the same code and filters as [`GET /api/crashes`](#GET-apicrashes) - and put into the archive, **for every machine that took part**:
+
+* `<machine>/_crashes.json` - **always, also when `crashes` was not asked for**: the records of the collection's window (without a window the last 7 days; with `crashes`, those the filters select), records only, with
+  the machine's `status`, how far back its log reaches (`oldestEvent`), `cut` and `notes`. (With a single machine the archive has no machine folder: the file is at the root, as every file then is.)
+* `_sitestate.json`: per application `crashes` - how many are in the window - and `lastCrash` (`time`, `kind`).
+* with `crashes`: **a folder per crash**, `<machine>/crashes/<local time yyyy-MM-dd_HH-mm-ss>_<app or exe>/` with
+  * the dump, whole - **never cut**. A dump bigger than `maxDumpBytes` is left out, and `_crashes.json` (`notes`) and the cover note say which and why;
+  * `crash.json` - the entry, with uptime and plan, and what Dirigent knew of the process: start time, restarts left, the exit code it saw, `RestartOnCrash`;
+  * `versions.json` - the exe's file and product version and every DLL of its folder (version, size, time, SHA-256), the faulting module first; Dirigent's own version; the application's version as [`/api/appversions`](#GET-apiappversions) reports it;
+  * `launch.json` - how it was started: program, working folder, command line (declared and expanded), the plan's variables and **only the environment variables the shared config sets for the application**
+    (`<Env>`, `<Local>`) - never the inherited environment. **The value of a variable whose name contains `SECRET`, `TOKEN`, `PASSWORD` or `KEY`, or ends with `_PAT`, in any case, is written as `"***"`**;
+  * `Report.wer` of that crash, when Windows wrote one;
+  * `events.txt` - the events of the crash, and the other errors and warnings of the `Application` and `System` logs in the 2 minutes before it;
+  * `machine.json` - the facts of `details=1` of [`/api/crashes`](#GET-apicrashes), once per machine.
+
+  `"context": false` gives only the dumps, `"dumps": false` only the context. The cover note (`_comment.txt`) lists per crash folder what is in it and what is missing, and why - no dump (Windows recorded none and none is in the
+  application's dump folders), too big, no `Report.wer`.
+
+A crash's dump is looked for, in this order: the dump the report of Windows Error Reporting names; the file `<exe>.<pid>.dmp` of the `LocalDumps` folders; the application's own dump folders - the file named `<exe>.<pid>.dmp`, else the
+newest `.dmp` written within a minute after the crash. The preview ([`POST /api/files/query`](#POST-apifilesquery)) with `crashes` answers the entries and the machines under `crashes` and counts the dumps - those that would be collected - in `totals`.
 
 **One zip, and its layout.** A job makes one archive however many items there are.
 

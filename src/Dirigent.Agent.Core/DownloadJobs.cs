@@ -192,6 +192,19 @@ namespace Dirigent
 
 			request.ToWindow(); // an 'until' before the 'since' is the caller's mistake: a 400
 
+			// The crashes: asked for (and then collected), or not - the records of the window are in every archive. The master hands over what
+			// only it knows: the exits of its applications, what runs, the components.
+			{
+				var now = DateTime.UtcNow;
+				var asked = request.crashes?.ResolveWith( request.since, request.until, now );
+				args.Crashes = new Dirigent.Crashes.CrashDownloadArgs()
+				{
+					Asked = asked,
+					Window = asked ?? new Dirigent.Crashes.CrashFilter() { since = request.since, until = request.until }.Resolve( now ),
+					Merger = Web.CrashQuery.SnapshotMerger( master ),
+				};
+			}
+
 			// every item is looked up before anything starts, an unknown one named in the error
 			FileSelection selection;
 			try
@@ -204,6 +217,11 @@ namespace Dirigent
 				throw new ArgumentException( "Either 'fileDef' (with an id), 'app' or a selection ('fileDefs', 'apps') is needed." );
 			}
 
+			if( selection.Count == 0 )
+			{
+				// crashes only: nothing to name, the script collects the crash folders
+			}
+			else
 			if( selection.Count == 1 )
 			{
 				// one item: the collection and the archive are what they have always been

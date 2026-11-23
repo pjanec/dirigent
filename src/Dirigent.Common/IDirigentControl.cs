@@ -186,6 +186,12 @@ namespace Dirigent
 
 		/// <summary>What was asked to be collected, as the cover note names it.</summary>
 		public List<string> Selection = new();
+
+		/// <summary>The crashes of each application in the window of the collection, for the crashes and lastCrash of the apps.</summary>
+		public List<Crashes.CrashSummaryItem> Crashes = new();
+
+		/// <summary>Whether the machines looked for crashes at all (then an app with none has a count of 0).</summary>
+		public bool CrashesLooked;
 	}
 
 

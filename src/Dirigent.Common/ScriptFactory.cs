@@ -103,6 +103,7 @@ namespace Dirigent
 			AddScript( Scripts.BuiltIn.ResolveVfsPath._Name, () => new Scripts.BuiltIn.ResolveVfsPath() );
 			AddScript( Scripts.BuiltIn.ListVfsNodes._Name, () => new Scripts.BuiltIn.ListVfsNodes() );
 			AddScript( Scripts.BuiltIn.ResolveAppLocations._Name, () => new Scripts.BuiltIn.ResolveAppLocations() );
+			AddScript( Scripts.BuiltIn.QueryCrashes._Name, () => new Scripts.BuiltIn.QueryCrashes() );
 			AddScript( Scripts.BuiltIn.DownloadZipped._Name, () => new Scripts.BuiltIn.DownloadZipped() );
 			AddScript( Scripts.BuiltIn.DownloadZippedSlave._Name, () => new Scripts.BuiltIn.DownloadZippedSlave() );
 			AddScript( Scripts.BuiltIn.MergeZipped._Name, () => new Scripts.BuiltIn.MergeZipped() );

@@ -998,6 +998,54 @@ namespace Dirigent.Commands
 	}
 
 	/// <summary>
+	/// The crashes of the programs of the site: `GetCrashes [since=] [until=] [component=] [app=] [machine=] [kind=] [id=] [newestPerApp=] [details=1]`.
+	/// Lists are comma-separated. `CRASHES:&lt;json&gt;` and then `END` - the answer of GET /api/crashes.
+	/// </summary>
+	[CliResponse( Terminator = ETerminator.End )]
+	public class GetCrashes : DirigentControlCommand
+	{
+		System.Threading.Tasks.Task<Crashes.CrashListing>? _task;
+		bool _finished;
+
+		public GetCrashes( Master ctrl, string requestorId )
+			: base( ctrl, requestorId )
+		{
+		}
+
+		public override bool Finished => _finished;
+
+		public override void Execute()
+		{
+			var options = Tools.ParseKeyValList( args );
+
+			Web.CrashQuery query;
+			try
+			{
+				query = Web.CrashQuery.Prepare( ctrl, Web.CrashFilterParser.Parse( options ), Tools.TryGetValueIgnoreKeyCase( options, "details", out var d ) && Web.CrashFilterParser.IsTrue( d ) );
+			}
+			catch( ArgumentException e )
+			{
+				throw new Exception( e.Message );
+			}
+
+			_task = System.Threading.Tasks.Task.Run( () => query.RunAsync() );
+		}
+
+		public override void Tick()
+		{
+			if( _task is null || !_task.IsCompleted ) return;
+
+			_finished = true;
+
+			if( _task.IsFaulted )
+				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
+
+			WriteResponse( "CRASHES:" + Web.AppFilesResult.ToJson( _task.Result ) );
+			WriteResponse( "END" );
+		}
+	}
+
+	/// <summary>
 	/// The common part of the commands drawing a line under files, or taking it away. They start the existing
 	/// MarkFiles / ClearFiles / UnmarkFiles script, wait for it - `timeout=&lt;seconds&gt;`, 60 by default, 300 at
 	/// most - and answer `MARKED:&lt;json&gt;` (`CLEARED:`, `UNMARKED:`) and `END`: the same report as the REST calls.

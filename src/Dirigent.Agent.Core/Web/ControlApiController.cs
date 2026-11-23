@@ -175,7 +175,7 @@ namespace Dirigent.Web
 		{
 			var appDef = _master.GetAppDef( appId ) ?? throw HttpException.NotFound( $"No application '{appId}' is defined." );
 			var appState = _master.GetAppState( appId ) ?? throw HttpException.NotFound( $"No state of application '{appId}'." );
-			return new AppState( appDef, _master.GetPlanState( planName ?? "" ), appState );
+			return new AppState( appDef, _master.GetPlanState( planName ?? "" ), appState, _master.ExitHistory.Of( appId ) );
 		}
 
 		async Task<AppState> AppOp( string id, string what )

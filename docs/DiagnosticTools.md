@@ -148,14 +148,48 @@ Logs grow across runs, so a collection takes **only what was written since a lin
 
 On a real site a mark made the difference between 224 MB and 4 MB for the logs of one run.
 
-## 8. A tool's session, end to end
+## 8. Crashes
+
+"Give me the crashes of the Viewer component since Tuesday 14:00": the tool asks the master and nothing else - **no event-log access to the
+machines, no list of "our" executables, no UNC to every machine.** Each agent reads its own Windows event log and knows the programs of the
+site (the executables of the application definitions) and each application's component.
+
+```
+GET /api/crashes?component=Viewer&since=2026-11-21T14:00:00%2B02:00           the list, newest first
+GET /api/crashes?component=Viewer&since=...&details=1                         + versions of the exe and its DLLs, the machine's OS/RAM/disks/GPU
+GET /api/crashes?kind=reboot,bugcheck,gpuReset                                the machine-level events (no application)
+GET /api/crashes?app=m1.viewer&newestPerApp=1                                 the latest crash of one application
+```
+
+* **Said what it is.** `kind` (`crash`, `managed` - an unhandled .NET exception, `hang`, `exit`, `reboot`, `bugcheck`, `gpuReset`), `app` and
+  `component` (`null` where the exe is shared by applications that differ: `apps` lists the candidates - not guessed), the exe and its version, the
+  faulting module, exception code and offset, a `signature` that is the same when the same bug crashes again, and **the dump** (`path`, a `unc` through
+  the machine's share, `exists`, `size`) when Windows wrote one: from the report, or from the `LocalDumps` folder (`<exe>.<pid>.dmp`).
+* **Uptime and plan.** The crash of a process Dirigent launched says when it was started, in which plan, and after how long it crashed.
+* **No event, still listed.** An application that exits with an error code, or is killed from outside, leaves no event; Dirigent saw it end without
+  having killed it, and the entry has `kind: "exit"` with the `exitCode`. The same history is `lastExits` in `/api/appstates`. It is kept in the
+  master's memory and is lost when the master restarts.
+* **What to trust.** `machines[]` says per machine `ok`, `not connected`, `not supported` or an error, how far back its log reaches
+  (`coverage.oldestEvent` - the log is a ring buffer) and whether a limit cut the answer (`cut`). "No crash recorded" is a statement only for a machine
+  with status `ok` whose `oldestEvent` is before your window.
+* **The window.** Without `since`/`until` the last 7 days. `until` before `since` is a 400. `totals.dumpBytes` is the size of the dumps listed.
+* **Collecting them.** "The dumps of component X since T": `POST /api/downloads` with `{"crashes": {"components": ["X"], "since": "T", "dumps": true}}` - alone, or beside `fileDefs` and `apps` and the same window in one
+  request and one archive. `POST /api/files/query` with the same `crashes` previews it (the entries, and the dump sizes in `totals`). The request names crashes, never paths; the agents look them up again. Per crash the archive has a folder with
+  the dump (whole, never cut: a dump above `maxDumpBytes` is left out and the cover note says so), `crash.json`, `versions.json` (with SHA-256 of the DLLs, to find the matching symbols), `launch.json` (secrets masked),
+  `Report.wer`, `events.txt` and `machine.json`; `"context": false` gives only the dumps. Every archive, asked or not, has `_crashes.json` (the records of its window) and the per-application `crashes`/`lastCrash` in `_sitestate.json`.
+  Besides Windows' own, the dumps of an application's file definitions whose id starts with `dump` are searched.
+* **Reading the dump.** Dirigent hands out the path; the access is Windows' - see the share notes of section 6.
+  Dumps exist only where Windows is set to write them (`LocalDumps` in the registry; Dirigent never changes that setting).
+
+## 9. A tool's session, end to end
 
 ```
 GET  /api                                         what is this, where is the manual
 GET  /api/status                                  site name, Dirigent version, who is connected
 GET  /api/machinedefs                             machines: online? shares?
 GET  /api/appversions                             the versions on the site, each once -> compatibility check
-GET  /api/appstates                               what runs, what ended and how (startedAt, endedAt, exitCode)
+GET  /api/appstates                               what runs, what ended and how (startedAt, endedAt, exitCode, lastExits)
+GET  /api/crashes?since=...&component=...         what crashed, with dumps and uptime (details=1 for versions and machine facts)
 GET  /api/filedefs?type=FilePackage               the checkboxes: packages with a component
 POST /api/files/query        {selection, since, until}  the files and sizes for the ticked boxes (and the time window)
 POST /api/downloads          {selection, "comment":"Bug 4711", "name":"Bug 4711 - Lab 2", "since":"2026-11-21T14:00:00Z", "until":"2026-11-21T15:00:00Z"}

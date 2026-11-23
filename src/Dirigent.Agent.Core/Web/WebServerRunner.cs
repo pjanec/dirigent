@@ -126,6 +126,7 @@ namespace Dirigent.Web
                 .WithWebApi("/api", JsonResponse, m => m
                     .WithController( () => new PlanApiController( master ) )
                     .WithController( () => new AppApiController( master ) )
+                    .WithController( () => new CrashApiController( master ) )
                     .WithController( () => new DownloadApiController( master ) )
                     .WithController( () => new HelpApiController() )
                     .WithController( () => new MarkApiController( master ) )

@@ -88,6 +88,17 @@ namespace Dirigent.TestBed.Scenarios
 				.App( "m1.ticker", a => a.LongRunning().WithLogNode( clearable: true ) )
 				.Plan( "run", p => p.App( "m1.ticker" ).Attribute( "MarkFiles", "log" ).Attribute( "MarkInterval", "10" ) );
 
+		/// <summary>
+		/// Two applications that really crash a couple of seconds after they start - an access violation and an unhandled .NET
+		/// exception - both in the plan "pc". They share the program, so nothing but the process id tells them apart.
+		/// </summary>
+		public static Scenario CrashWorld()
+			=> OneMachine()
+				.App( "m1.native", a => a.Args( "--crash native --crash-after 2" ).Attribute( "Component", "Native" )
+					.RawXml( "<Folder Id='dump.main' Title='Dumps' Path='{temp}\\dumps' Mask='*.dmp'/>" ) )
+				.App( "m1.managed", a => a.Args( "--crash managed --crash-after 2" ).Attribute( "Component", "Managed" ) )
+				.Plan( "pc", "m1.native", "m1.managed" );
+
 		/// <summary>The guid of the script ControlWorld defines.</summary>
 		public const string ControlScriptId = "7B3C1E90-1111-2222-3333-444455556677";
 
@@ -118,6 +129,7 @@ namespace Dirigent.TestBed.Scenarios
 			{ "WaitingWorld", WaitingWorld },
 			{ "ControlWorld", ControlWorld },
 			{ "CheckpointWorld", CheckpointWorld },
+			{ "CrashWorld", CrashWorld },
 		};
 
 		/// <summary>The named preset, or an exception naming the ones that do exist.</summary>

@@ -156,7 +156,7 @@ namespace Dirigent.Scripts.BuiltIn
 			return loc;
 		}
 
-		static void FillFileFacts( TPath p )
+		public static void FillFileFacts( TPath p )
 		{
 			if( string.IsNullOrEmpty( p.LocalPath ) || !File.Exists( p.LocalPath ) ) return;
 

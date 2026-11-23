@@ -127,6 +127,9 @@ namespace Dirigent
 		/// <summary>The download jobs of REST and the CLI.</summary>
 		public DownloadJobs DownloadJobs => _downloadJobs;
 
+		/// <summary>The last unexpected exits of each app, kept in memory (lost when the master restarts).</summary>
+		public Crashes.ExitHistory ExitHistory { get; } = new();
+
 		public bool WantsQuit { get; set; }
 		public Dictionary<AppIdTuple, AppState> AppsState => _allAppStates.AppStates;
 
@@ -464,7 +467,11 @@ namespace Dirigent
 						foreach( var( appId, appState ) in m.AppsState )
 						{
 							appState.LastChange += localTimeDelta; // recalc to master's time
-							
+
+							// an app that was running and is not, without our killing it, is written down
+							_allAppStates.AppStates.TryGetValue( appId, out var before );
+							ExitHistory.Observe( appId, before, appState, DateTime.UtcNow );
+
 							_allAppStates.AddOrUpdate( appId, appState );
 						}
 					}
