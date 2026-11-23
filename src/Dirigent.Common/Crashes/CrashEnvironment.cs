@@ -21,6 +21,9 @@ namespace Dirigent.Crashes
 		public Func<string, long?> FileSize { get; set; } = CrashFacts.FileSize;
 		public Func<string, IReadOnlyList<string>> LocalDumpFolders { get; set; } = CrashFacts.LocalDumpFolders;
 		public Func<string, DateTime, string?> FindMiniDump { get; set; } = CrashFacts.FindMiniDump;
+		/// <summary>The dump files of a folder, as a listing: path, time written (UTC), size.</summary>
+		public Func<string, IEnumerable<(string path, DateTime writtenUtc, long size)>> ListDumps { get; set; } = CrashFacts.ListDumps;
+
 		public string WindowsDir { get; set; } = Environment.GetFolderPath( Environment.SpecialFolder.Windows );
 
 		/// <summary>Dirigent's own programs (full paths).</summary>
@@ -28,6 +31,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>The versions of an exe and the DLLs beside it.</summary>
 		public Func<string, CrashVersions?> ReadVersions { get; set; } = CrashFacts.ReadVersions;
+
+		/// <summary>The same with the SHA-256 of each file - what a download collects.</summary>
+		public Func<string, CrashVersions?> ReadVersionsWithHashes { get; set; } = path => CrashFacts.ReadVersions( path, true );
 
 		public Func<CrashMachineInfo> ReadMachineInfo { get; set; } = CrashFacts.ReadMachineInfo;
 
@@ -48,6 +54,7 @@ namespace Dirigent.Crashes
 				FileSize = FileSize,
 				LocalDumpFolders = LocalDumpFolders,
 				FindMiniDump = t => FindMiniDump( WindowsDir, t ),
+				ListDumps = ListDumps,
 				WindowsDir = WindowsDir,
 			};
 	}
@@ -117,6 +124,12 @@ namespace Dirigent.Crashes
 			}
 		}
 
+		public static IEnumerable<(string path, DateTime writtenUtc, long size)> ListDumps( string folder )
+		{
+			if( !Directory.Exists( folder ) ) return Array.Empty<(string, DateTime, long)>();
+			return new DirectoryInfo( folder ).GetFiles( "*.dmp" ).Select( f => (f.FullName, f.LastWriteTimeUtc, f.Length) ).ToList();
+		}
+
 		/// <summary>This process, and the programs Dirigent ships beside it.</summary>
 		public static IEnumerable<string> OwnExes()
 		{
@@ -134,7 +147,10 @@ namespace Dirigent.Crashes
 
 		const int _maxFiles = 500;
 
-		public static CrashVersions? ReadVersions( string exePath )
+		public static CrashVersions? ReadVersions( string exePath ) => ReadVersions( exePath, false );
+
+		/// <summary>With hashes: the SHA-256 of the exe's files too (what a download collects, not the listing).</summary>
+		public static CrashVersions? ReadVersions( string exePath, bool hashes )
 		{
 			try
 			{
@@ -150,10 +166,23 @@ namespace Dirigent.Crashes
 					{
 						string? version = null;
 						try { version = FileVersionInfo.GetVersionInfo( f.FullName ).FileVersion; } catch( Exception ) { }
-						res.files.Add( new CrashFileVersion { name = f.Name, version = version, size = f.Length, modified = f.LastWriteTimeUtc } );
+						res.files.Add( new CrashFileVersion { name = f.Name, version = version, size = f.Length, modified = f.LastWriteTimeUtc, sha256 = hashes ? Sha256( f.FullName ) : null } );
 					}
 				}
 				return res;
+			}
+			catch( Exception )
+			{
+				return null;
+			}
+		}
+
+		public static string? Sha256( string path )
+		{
+			try
+			{
+				using var stream = new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete );
+				return Convert.ToHexString( System.Security.Cryptography.SHA256.HashData( stream ) ).ToLowerInvariant();
 			}
 			catch( Exception )
 			{

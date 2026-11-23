@@ -11,6 +11,7 @@ namespace Dirigent.Crashes
 		public int Pid;
 		public DateTime? StartedAt;
 		public string? Plan;
+		public int? RestartsRemaining;
 	}
 
 	/// <summary>

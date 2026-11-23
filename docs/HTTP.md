@@ -329,7 +329,7 @@ them in one call**: a tool showing the applications asks this, not `/api/appstat
  {"id": "m1.tracker","state": {"code": "Terminated (3)","flags": "S","plan": null,"pid": null,"exitCode": 3, ...}}]
 ```
 
-`component` is the application's `Component` (null for none). `lastExits` lists the last (at most 10, newest first) exits of the application that Dirigent did not cause - `time`, `exitCode`, `pid`, `startedAt`, `plan`, `willRestart` - kept in the master's memory and **lost when the master restarts**; they are also listed by [`/api/crashes`](#GET-apicrashes). Besides the text `code` and the `flags`: `plan` the application was last started in (null for none); `pid` while it runs;
+`component` is the application's `Component` (null for none). `lastExits` lists the last (at most 10, newest first) exits of the application that Dirigent did not cause - `time`, `exitCode`, `pid`, `startedAt`, `plan`, `willRestart`, `restartsRemaining` - kept in the master's memory and **lost when the master restarts**; they are also listed by [`/api/crashes`](#GET-apicrashes). Besides the text `code` and the `flags`: `plan` the application was last started in (null for none); `pid` while it runs;
 `startedAt` - when its current or last process was started - and `endedAt` - when that process ended, null while it runs (both UTC, by the clock of its agent; null if it never ran); `exitCode`
 once it was started and has ended on its own (null while it runs, after a kill, or before any start); `restartsRemaining` before its agent
 gives up restarting it (-1 = without limit, null = not counted yet); `cpu` and `gpu` in percent and `memoryMB` of the process as its agent
@@ -580,6 +580,12 @@ collected is what is marked:
 * `fileDefs` - file definitions or packages by `id`; `machine` and `app` are optional per item, and `id`, `machine` and `app` take the wildcards of a
   [`<FileRef>`](Files.md#fileref). A wildcard item may match several definitions. In a JSON body the wildcards need no escaping, unlike in a URL path.
 * `apps` - applications, `m1.a` or `m1.a@plan1`, the definition picked as for [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles).
+* `crashes` - **crashes to look up and collect**, with the filters of [`GET /api/crashes`](#GET-apicrashes) (in a body as the lists `components`, `apps`, `machines`, `kinds`, `ids` -
+  the singular `component`, `app`, ... with one value or a list are accepted too - `since`, `until`, `newestPerApp`) and what to take of each crash:
+  `"dumps": true|false` (default true), `"context": true|false` (default true), `"maxDumpBytes": n`. It is combined with `fileDefs` and `apps` in one request and one archive,
+  or given alone: then nothing but the crashes is collected. Without its own `since`/`until` the crashes take those of the request, else the last 7 days.
+  **The request names crashes, never paths**: the agents look the crashes up again with the same filters, and only the dumps Windows recorded for those crashes - or that lie in the
+  application's own dump folders (its file definitions whose `Id` starts with `dump`) - are added. See [Crashes in a download](#Crashes-in-a-download).
 * **All the items are looked up before anything runs.** An item that matches nothing is a `404` whose message names it; an empty selection - no items, or an item
   without an `id` - is a `400`.
 * There is **no deduplication across items**. A file that two items reach is listed under both, counted in both and, in a download, in the folder of each, each copy
@@ -612,7 +618,8 @@ Previews the files of a [selection](#The-selection). **Read-only**: nothing is m
 `items` has one entry per selected item, in the order of the selection, in the shape of the single route's answer: that of
 [`/api/filedefs/{id}/files`](#GET-apifiledefsidfilesmachineapp) for a file definition item, that of [`/api/appdefs/{id}/files`](#GET-apiappdefsidfiles) for an application.
 Every file carries what the single routes give, and `app` and `fileDefId` (see below). The `totals` of the answer are the sum of the totals of the items.
-Unknown item: 404; empty selection: 400.
+Unknown item: 404; empty selection (no items and no `crashes`): 400. With **`crashes`** the answer also has `crashes` - what [`GET /api/crashes`](#GET-apicrashes) answers for those filters - and the dumps a download would collect
+(those that are there and not above `maxDumpBytes`) are added to `totals.files`, `totals.bytes` and `totals.bytesToCollect`.
 
 The body may also hold a **time window**, `"since"` and/or `"until"` (ISO 8601; without an offset UTC), exactly as [`POST /api/downloads`](#POST-apidownloads) takes it: the preview then lists **the files the window selects** -
 for the `Clearable` definitions every file written within it, instead of what their `MaxFiles` and `MaxSeconds` give; the other definitions are previewed as ever - so the preview and the collection agree on the files.
@@ -739,6 +746,33 @@ A definition that is **not** `Clearable` (a configuration file) is chosen by its
 current configs. Either end may be given alone: `since` only is up to now, `until` only is from the marks (the default start) up to `until`, and then `MaxFiles`/`MaxSeconds` still choose, as if collected at `until`. An entry cut by a window is named `<name>.window<ext>`
 (`app.window.log`). See [Files](Files.md#a-time-window-chooses-the-files) for how a window selects, including a remark on the creation time of a recreated file. The archive's `_comment.txt` has a
 `Window` line, `_sitestate.json` has `logsSince` and `logsUntil` - plain times, local with the UTC beside it (`2026-11-21 14:00:00 (UTC 12:00:00)`): `logsSince` is the start asked for, or without one the earliest mark a file was cut at; `logsUntil` is the end asked for.
+
+#### Crashes in a download
+
+```json
+{ "crashes": { "components": ["Viewer"], "since": "2026-11-21T14:00:00+02:00", "dumps": true } }
+```
+
+The agents look the crashes up again - the same code and filters as [`GET /api/crashes`](#GET-apicrashes) - and put into the archive, **for every machine that took part**:
+
+* `<machine>/_crashes.json` - **always, also when `crashes` was not asked for**: the records of the collection's window (without a window the last 7 days; with `crashes`, those the filters select), records only, with
+  the machine's `status`, how far back its log reaches (`oldestEvent`), `cut` and `notes`. (With a single machine the archive has no machine folder: the file is at the root, as every file then is.)
+* `_sitestate.json`: per application `crashes` - how many are in the window - and `lastCrash` (`time`, `kind`).
+* with `crashes`: **a folder per crash**, `<machine>/crashes/<local time yyyy-MM-dd_HH-mm-ss>_<app or exe>/` with
+  * the dump, whole - **never cut**. A dump bigger than `maxDumpBytes` is left out, and `_crashes.json` (`notes`) and the cover note say which and why;
+  * `crash.json` - the entry, with uptime and plan, and what Dirigent knew of the process: start time, restarts left, the exit code it saw, `RestartOnCrash`;
+  * `versions.json` - the exe's file and product version and every DLL of its folder (version, size, time, SHA-256), the faulting module first; Dirigent's own version; the application's version as [`/api/appversions`](#GET-apiappversions) reports it;
+  * `launch.json` - how it was started: program, working folder, command line (declared and expanded), the plan's variables and **only the environment variables the shared config sets for the application**
+    (`<Env>`, `<Local>`) - never the inherited environment. **The value of a variable whose name contains `SECRET`, `TOKEN`, `PASSWORD` or `KEY`, or ends with `_PAT`, in any case, is written as `"***"`**;
+  * `Report.wer` of that crash, when Windows wrote one;
+  * `events.txt` - the events of the crash, and the other errors and warnings of the `Application` and `System` logs in the 2 minutes before it;
+  * `machine.json` - the facts of `details=1` of [`/api/crashes`](#GET-apicrashes), once per machine.
+
+  `"context": false` gives only the dumps, `"dumps": false` only the context. The cover note (`_comment.txt`) lists per crash folder what is in it and what is missing, and why - no dump (Windows recorded none and none is in the
+  application's dump folders), too big, no `Report.wer`.
+
+A crash's dump is looked for, in this order: the dump the report of Windows Error Reporting names; the file `<exe>.<pid>.dmp` of the `LocalDumps` folders; the application's own dump folders - the file named `<exe>.<pid>.dmp`, else the
+newest `.dmp` written within a minute after the crash. The preview ([`POST /api/files/query`](#POST-apifilesquery)) with `crashes` answers the entries and the machines under `crashes` and counts the dumps - those that would be collected - in `totals`.
 
 **One zip, and its layout.** A job makes one archive however many items there are.
 

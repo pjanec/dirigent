@@ -715,6 +715,14 @@ stations.
 </Shared>
 ```
 
+## Crashes in the Archive
+
+Every archive has `_crashes.json` per machine - the crash records of the collection's window (without a window, the last 7 days), read from the event log of the machine - and `_sitestate.json` counts the crashes of each application
+(`crashes`, `lastCrash`). A request can also ask for the crashes themselves, alone or beside files and the same window: `"crashes": { "components": ["Viewer"], "dumps": true }`. Each crash then gets a folder
+`<machine>/crashes/<time>_<app>/` with the dump (whole - `maxDumpBytes` leaves a bigger one out and says so), `crash.json`, `versions.json`, `launch.json` (names containing SECRET, TOKEN, PASSWORD or KEY, or ending in `_PAT`, are masked),
+`Report.wer`, `events.txt` and `machine.json`; `_comment.txt` lists what is in each folder and what is missing and why. To have an application's own dump folder searched, give its file definition an `Id` starting with `dump`
+(`dump.main`). See [Crashes in a download](HTTP.md#Crashes-in-a-download).
+
 ## Tips and Best Practices
 
 1. **Consistent Naming**: Use consistent ID naming patterns (`{appname}_log`, or `log.vision.*`

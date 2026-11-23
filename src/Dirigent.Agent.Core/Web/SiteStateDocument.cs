@@ -50,6 +50,17 @@ namespace Dirigent.Web
 			public string? endedAt { get; set; }
 			public int? exitCode { get; set; }
 			public string? exe { get; set; }
+
+			/// <summary>How many crashes of the application are in the window of the collection; absent when the collecting machines did not look.</summary>
+			public int? crashes { get; set; }
+
+			public LastCrash? lastCrash { get; set; }
+		}
+
+		public class LastCrash
+		{
+			public string time { get; set; } = string.Empty;
+			public string kind { get; set; } = string.Empty;
 		}
 
 		static readonly JsonSerializerOptions _json = new()
@@ -97,11 +108,13 @@ namespace Dirigent.Web
 
 			var query = AppLocationQuery.PrepareAll( master, null );
 
-			return Finish( doc, states, query );
+			return Finish( doc, states, query, extras.Crashes, extras.CrashesLooked );
 		}
 
-		static async Task<string?> Finish( Doc doc, List<AppState> states, AppLocationQuery query )
+		static async Task<string?> Finish( Doc doc, List<AppState> states, AppLocationQuery query, List<Dirigent.Crashes.CrashSummaryItem> crashes, bool crashesLooked )
 		{
+			var crashesOf = crashes.GroupBy( c => c.App, StringComparer.OrdinalIgnoreCase ).ToDictionary( g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase );
+
 			var locations = await query.ResolveAsync();
 			var exeOf = locations.ToDictionary( l => l.app, l => l.exe.localPath ?? NullIfEmpty( l.exe.declared ) );
 
@@ -119,6 +132,8 @@ namespace Dirigent.Web
 							 endedAt = Local( s.state.endedAt ),
 							 exitCode = s.state.exitCode,
 							 exe = exeOf.TryGetValue( id, out var exe ) ? exe : null,
+							 crashes = crashesLooked ? ( crashesOf.TryGetValue( id, out var c ) ? c.Count : 0 ) : null,
+							 lastCrash = crashesOf.TryGetValue( id, out var lc ) ? new LastCrash() { time = Local( lc.Last )!, kind = lc.LastKind } : null,
 						 } ).ToList();
 
 			return JsonSerializer.Serialize( doc, _json );

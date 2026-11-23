@@ -14,6 +14,9 @@ namespace Dirigent.Crashes
 		public int Id;
 		public DateTime TimeUtc;
 
+		/// <summary>1 critical, 2 error, 3 warning, 4 information.</summary>
+		public int Level = 4;
+
 		/// <summary>The values of the event's Data elements, in order.</summary>
 		public List<string> Data = new();
 
@@ -32,6 +35,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>(provider name, event id); a provider matches by its name.</summary>
 		public List<(string provider, int id)> Wanted = new();
+
+		/// <summary>When set, every provider and id counts, but only events of this level or more severe (1 critical .. 4 information).</summary>
+		public int? MaxLevel;
 
 		/// <summary>No more than this many events are read - the newest first.</summary>
 		public int MaxEvents = 5000;
@@ -72,6 +78,8 @@ namespace Dirigent.Crashes
 			ev.Provider = Child( system, "Provider" )?.Attribute( "Name" )?.Value ?? string.Empty;
 			ev.Id = int.Parse( Child( system, "EventID" )?.Value ?? "0", CultureInfo.InvariantCulture );
 
+			if( int.TryParse( Child( system, "Level" )?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var level ) ) ev.Level = level;
+
 			var created = Child( system, "TimeCreated" )?.Attribute( "SystemTime" )?.Value;
 			if( created is not null )
 				ev.TimeUtc = DateTime.Parse( created, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal );
@@ -93,8 +101,10 @@ namespace Dirigent.Crashes
 		/// <summary>The XPath of the Event Log API: the providers and ids asked for, within the times.</summary>
 		public static string BuildXPath( CrashEventQuery q )
 		{
-			var wanted = string.Join( " or ", q.Wanted.Select( w =>
-				$"(Provider[@Name='{w.provider.Replace( "'", "" )}'] and EventID={w.id})" ) );
+			var wanted = q.MaxLevel is int level
+				? $"Level>=1 and Level<={level}"
+				: string.Join( " or ", q.Wanted.Select( w =>
+					$"(Provider[@Name='{w.provider.Replace( "'", "" )}'] and EventID={w.id})" ) );
 
 			string T( DateTime t ) => t.ToUniversalTime().ToString( "yyyy-MM-ddTHH:mm:ss.fff'Z'", CultureInfo.InvariantCulture );
 

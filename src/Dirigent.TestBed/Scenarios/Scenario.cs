@@ -94,7 +94,8 @@ namespace Dirigent.TestBed.Scenarios
 		/// </summary>
 		public static Scenario CrashWorld()
 			=> OneMachine()
-				.App( "m1.native", a => a.Args( "--crash native --crash-after 2" ).Attribute( "Component", "Native" ) )
+				.App( "m1.native", a => a.Args( "--crash native --crash-after 2" ).Attribute( "Component", "Native" )
+					.RawXml( "<Folder Id='dump.main' Title='Dumps' Path='{temp}\\dumps' Mask='*.dmp'/>" ) )
 				.App( "m1.managed", a => a.Args( "--crash managed --crash-after 2" ).Attribute( "Component", "Managed" ) )
 				.Plan( "pc", "m1.native", "m1.managed" );
 

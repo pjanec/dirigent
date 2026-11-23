@@ -73,6 +73,12 @@ namespace Dirigent.Scripts.BuiltIn
 			// FileMarkStore.WhereToEndUntil. Null: to the end of the file, as ever.
 			public DateTime? UntilUtc;
 
+			/// <summary>
+			/// The crashes of this machine: what was asked for (null when nothing was) and what only the master knows. The slave looks
+			/// them up itself, with the filters; the archive gets <c>_crashes.json</c> always and the crash folders when asked. Null (an older master): none.
+			/// </summary>
+			public Crashes.CrashSlaveArgs? Crashes;
+
 			public override string ToString() => $"{Container} => {DestinationFolder}/{ZipFileBaseName}";
 		};
 
@@ -121,6 +127,9 @@ namespace Dirigent.Scripts.BuiltIn
 			/// </summary>
 			//[MessagePack.Key( 5 )]
 			public string MarkedBy = string.Empty;
+
+			/// <summary>What this machine says of its crashes; null when it was not asked to look.</summary>
+			public Crashes.CrashSlaveReport? Crashes;
 		}
 
 		/// <summary>
@@ -184,17 +193,40 @@ namespace Dirigent.Scripts.BuiltIn
 			_markedBy.Clear();
 		}
 
-		protected override Task<string?> Run()
+		// the crashes of this machine, looked up before the archive is written - see TArgs.Crashes
+		Crashes.CrashPlan? _crashPlan;
+
+		protected override async Task<string?> Run()
 		{
 			_args = Tools.Deserialize<TArgs>( Args );
 			if( _args is null ) throw new NullReferenceException("Args == null");
+
+			if( _args.Crashes is not null )
+			{
+				try
+				{
+					_crashPlan = await Crashes.CrashCollector.PlanAsync( Dirig, _args.Crashes, ScriptCrashEnv(), DateTime.UtcNow );
+				}
+				catch( OperationCanceledException )
+				{
+					throw;
+				}
+				catch( Exception e )
+				{
+					// the crash part must never stop the files from being collected
+					log.Warn( $"Could not look up the crashes of {Dirig.Name}: {e}" );
+					_crashPlan = new Crashes.CrashPlan();
+					_crashPlan.Report.Problem = $"the crashes could not be looked up: {Tools.JustFirstLine( e.Message )}";
+					_crashPlan.RecordsJson = "{ \"status\": \"error\" }";
+				}
+			}
 
 			//throw new Exception( "Hey, test exception from a script! " + _Name );
 
 			var destFileName = $"{_args.ZipFileBaseName}_{Dirig.Name}.zip";
 
 			// what is ahead of us, so that the progress can be a fraction rather than a byte count
-			_bytesTotal = TotalBytesToCollect( _args.Container! );
+			_bytesTotal = TotalBytesToCollect( _args.Container! ) + ( _crashPlan is null ? 0 : Crashes.CrashCollector.BytesOf( _crashPlan ) );
 			ReportProgress( null, force: true );
 
 			// exceptions gathered along the way - they do not stop the download
@@ -212,8 +244,9 @@ namespace Dirigent.Scripts.BuiltIn
 
 				// one word only when every file agrees; a mixture is not worth naming
 				MarkedBy = _markedBy.Count == 1 ? _markedBy.First() : string.Empty,
+				Crashes = _crashPlan?.Report,
 			};
-			return Task.FromResult( Tools.Serialize(result) )!;
+			return Tools.Serialize( result );
 		}
 
 		/// <summary>
@@ -259,6 +292,8 @@ namespace Dirigent.Scripts.BuiltIn
 						var usedEntryNames = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 
 						AddLocalFiles( _args!.Container!, string.Empty, zip, usedEntryNames, exceptions, notes );
+
+						AddCrashes( zip, usedEntryNames, exceptions );
 
 						AddNotes( zip, usedEntryNames, notes );
 					}
@@ -468,6 +503,29 @@ namespace Dirigent.Scripts.BuiltIn
 						}
 					}
 				}
+			}
+		}
+
+		/// <summary>The environment the crash lookup runs in - the real one, or a test's.</summary>
+		Crashes.CrashEnvironment ScriptCrashEnv() => QueryCrashes.EnvironmentFactory( Dirig.MachineId );
+
+		/// <summary>_crashes.json, and the crash folders when they were asked for.</summary>
+		void AddCrashes( ZipArchive zip, HashSet<string> usedEntryNames, List<Exception> exceptions )
+		{
+			if( _crashPlan is null ) return;
+
+			try
+			{
+				_filesCollected += Crashes.CrashCollector.Write( zip, _crashPlan, name => MakeUniqueEntryName( name, usedEntryNames ),
+					n => { _bytesDone += n; ReportProgress( "crashes" ); }, CancellationToken );
+			}
+			catch( OperationCanceledException )
+			{
+				throw;
+			}
+			catch( Exception e )
+			{
+				exceptions.Add( e );
 			}
 		}
 

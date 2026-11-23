@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Dirigent.Crashes
 {
@@ -48,6 +50,9 @@ namespace Dirigent.Crashes
 		public string? version { get; set; }
 		public long size { get; set; }
 		public DateTime modified { get; set; }
+
+		/// <summary>Only in what a download collects; the listing has no hashes.</summary>
+		public string? sha256 { get; set; }
 	}
 
 	/// <summary>Which build crashed: the exe's version and what lies beside it. No hashes here.</summary>
@@ -143,6 +148,35 @@ namespace Dirigent.Crashes
 			=> $"{machine}/{utc.ToUniversalTime():yyyy-MM-ddTHH:mm:ss}Z/{suffix}";
 	}
 
+	/// <summary>
+	/// What a download of crashes asks for: the filters of the listing and what to take of each crash. Without
+	/// <see cref="dumps"/> only the records are collected; without <see cref="context"/> only the dumps.
+	/// </summary>
+	public class CrashSelection : CrashFilter
+	{
+		public bool dumps { get; set; } = true;
+		public bool context { get; set; } = true;
+
+		/// <summary>A dump bigger than this is left out (and the archive says so); dumps are never cut. Null: no limit.</summary>
+		public long? maxDumpBytes { get; set; }
+
+		/// <summary>
+		/// The selection with its window resolved: its own since/until, else those of the request they are part of, else the last 7 days.
+		/// </summary>
+		/// <exception cref="ArgumentException">until is earlier than since</exception>
+		public CrashSelection ResolveWith( DateTime? requestSince, DateTime? requestUntil, DateTime nowUtc )
+		{
+			var copy = (CrashSelection) MemberwiseClone();
+			copy.since ??= requestSince;
+			copy.until ??= requestUntil;
+			return (CrashSelection) copy.Resolve( nowUtc );
+		}
+
+		/// <summary>The bytes of dumps the selection would collect from the entries: only the dumps that are there, and not bigger than the limit.</summary>
+		public long DumpBytesOf( IEnumerable<CrashEntry> entries )
+			=> !dumps ? 0 : entries.Where( e => e.dump is { exists: true } && ( maxDumpBytes is null || ( e.dump.size ?? 0 ) <= maxDumpBytes ) ).Sum( e => e.dump!.size ?? 0 );
+	}
+
 	/// <summary>How far back one machine's log reaches.</summary>
 	public class CrashCoverage
 	{
@@ -185,13 +219,37 @@ namespace Dirigent.Crashes
 		public DateTime? since { get; set; }
 		public DateTime? until { get; set; }
 
+		[JsonConverter( typeof( StringOrListConverter ) )]
 		public List<string> components { get; set; } = new();
 
 		/// <summary>App ids, with the wildcards of the config ("*", "?").</summary>
+		[JsonConverter( typeof( StringOrListConverter ) )]
 		public List<string> apps { get; set; } = new();
+
+		[JsonConverter( typeof( StringOrListConverter ) )]
 		public List<string> machines { get; set; } = new();
+
+		[JsonConverter( typeof( StringOrListConverter ) )]
 		public List<string> kinds { get; set; } = new();
+
+		[JsonConverter( typeof( StringOrListConverter ) )]
 		public List<string> ids { get; set; } = new();
+
+		// The singular names of the query parameters, accepted in a JSON body too - one value or a list. Read only: they add to the lists above.
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull ), Newtonsoft.Json.JsonIgnore, JsonConverter( typeof( StringOrListConverter ) )]
+		public List<string>? component { get => null; set => components.AddRange( value ?? new() ); }
+
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull ), Newtonsoft.Json.JsonIgnore, JsonConverter( typeof( StringOrListConverter ) )]
+		public List<string>? app { get => null; set => apps.AddRange( value ?? new() ); }
+
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull ), Newtonsoft.Json.JsonIgnore, JsonConverter( typeof( StringOrListConverter ) )]
+		public List<string>? machine { get => null; set => machines.AddRange( value ?? new() ); }
+
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull ), Newtonsoft.Json.JsonIgnore, JsonConverter( typeof( StringOrListConverter ) )]
+		public List<string>? kind { get => null; set => kinds.AddRange( value ?? new() ); }
+
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull ), Newtonsoft.Json.JsonIgnore, JsonConverter( typeof( StringOrListConverter ) )]
+		public List<string>? id { get => null; set => ids.AddRange( value ?? new() ); }
 
 		/// <summary>Only the newest N entries of each app; null = all.</summary>
 		public int? newestPerApp { get; set; }
@@ -285,6 +343,39 @@ namespace Dirigent.Crashes
 				res.Add( e );
 			}
 			return res;
+		}
+	}
+}
+
+namespace Dirigent.Crashes
+{
+	/// <summary>A JSON string or an array of strings, read as a list: <c>"app": "m1.a"</c> and <c>"apps": ["m1.a", "m2.*"]</c> are both what a tool writes.</summary>
+	public class StringOrListConverter : JsonConverter<List<string>>
+	{
+		public override List<string>? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
+		{
+			var res = new List<string>();
+			switch( reader.TokenType )
+			{
+				case JsonTokenType.Null:
+					return res;
+				case JsonTokenType.String:
+					res.Add( reader.GetString() ?? "" );
+					return res;
+				case JsonTokenType.StartArray:
+					while( reader.Read() && reader.TokenType != JsonTokenType.EndArray )
+						res.Add( reader.TokenType == JsonTokenType.String ? reader.GetString() ?? "" : throw new JsonException( "A list of strings is expected." ) );
+					return res;
+				default:
+					throw new JsonException( "A string or a list of strings is expected." );
+			}
+		}
+
+		public override void Write( Utf8JsonWriter writer, List<string> value, JsonSerializerOptions options )
+		{
+			writer.WriteStartArray();
+			foreach( var v in value ) writer.WriteStringValue( v );
+			writer.WriteEndArray();
 		}
 	}
 }

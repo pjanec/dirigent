@@ -70,6 +70,8 @@ namespace Dirigent.Scripts.BuiltIn
 			/// <summary>Collect what was written until this time (UTC): each clearable file ends at the first record at or after it - see DownloadZippedSlave.TArgs.UntilUtc.</summary>
 			public DateTime? UntilUtc;
 
+			/// <summary>The crashes to collect, and what only the master knows of them; null for none (the records of the window are collected all the same by a master that sends this).</summary>
+			public Crashes.CrashDownloadArgs? Crashes;
 
 		};
 
@@ -188,6 +190,8 @@ namespace Dirigent.Scripts.BuiltIn
 				//    nothing is watching
 				//  - a caller hands over an already resolved tree (tool actions still need to
 				//    resolve first for their FILE_PATH, so they arrive this way)
+				// only crashes asked for: nothing but the crash folders (and the records) is collected
+				var crashOnly = args.Crashes?.Asked is not null && args.VfsNode is null && args.Node is null && ( args.Items is null || args.Items.Count == 0 );
 				var multi = args.Items is { Count: > 1 };
 				List<string>? selectionLabels = null;
 				var vfsNode = args.VfsNode;
@@ -196,6 +200,11 @@ namespace Dirigent.Scripts.BuiltIn
 					( vfsNode, selectionLabels ) = await ResolveItems( args.Items!, result );
 					if( vfsNode is null )
 						throw new Exception( "Nothing was found for any of the selected items: " + string.Join( "; ", result.NotCollected.Concat( result.Errors ) ) );
+				}
+				else
+				if( vfsNode is null && crashOnly )
+				{
+					vfsNode = new VFolderDef() { Title = "Crashes" };
 				}
 				else
 				if( vfsNode is null )
@@ -240,6 +249,21 @@ namespace Dirigent.Scripts.BuiltIn
 				// collect all individual machines
 				var allMachines = new HashSet<string>();
 				CollectMachines( container, allMachines );
+
+				// the crashes asked for are looked up on every machine that has applications (and matches the filter)
+				var crashAsked = args.Crashes?.Asked;
+				var allAppDefs = args.Crashes is null ? new List<AppDef>() : ( await Dirig.GetAllAppsDefAsync() ).Select( kv => kv.Value ).ToList();
+				if( crashAsked is not null )
+				{
+					foreach( var m in allAppDefs.Select( d => d.Id.MachineId ).Where( m => !string.IsNullOrEmpty( m ) ).Distinct( StringComparer.OrdinalIgnoreCase ) )
+						if( crashAsked.machines.Count == 0 || crashAsked.machines.Any( p => ListVfsNodes.IsMatch( p.Trim(), m ) ) )
+							allMachines.Add( m );
+				}
+
+				// where each application keeps its dumps, for the crashes that have none from Windows
+				Dictionary<string, List<string>>? dumpFolders = null;
+				if( crashAsked is { dumps: true } )
+					dumpFolders = await Crashes.CrashDumpFolders.ResolveAsync( allAppDefs, node => Dirig.ResolveAsync( node, false, false ) );
 
 				// find machines that are online
 				var clientStates = (await Dirig.GetAllClientsStateAsync()).ToDictionary( x => x.Key, y => y.Value );
@@ -379,6 +403,7 @@ namespace Dirigent.Scripts.BuiltIn
 						CollectingMachines = collecting,
 						SinceUtc = args.SinceUtc,
 						UntilUtc = args.UntilUtc,
+						Crashes = args.Crashes is null ? null : MakeCrashArgs( args.Crashes, mach, dumpFolders ),
 					};
 					globalsAssigned = true;
 
@@ -409,6 +434,9 @@ namespace Dirigent.Scripts.BuiltIn
 					// DownloadZippedSlave.TResult.NotCollected
 					if( st.Result is not null )
 						result.NotCollected.AddRange( st.Result.NotCollected );
+
+					if( st.Result?.Crashes?.Problem is string crashProblem )
+						result.Errors.Add( $"{st.MachineName}: {crashProblem}" );
 
 					// no archive from this machine, so nothing of its own to say why - see
 					// SlaveTask.Failure
@@ -450,6 +478,8 @@ namespace Dirigent.Scripts.BuiltIn
 									: EarliestMark() is DateTime mark ? Stamp( mark.ToUniversalTime() ) : null,
 								LogsUntil = _untilUtc is DateTime until ? Stamp( until ) : null,
 								Selection = selectionLabels?.ToList() ?? new List<string>() { title },
+								CrashesLooked = _slaveTasks.Any( x => x.Result?.Crashes is not null ),
+								Crashes = _slaveTasks.Where( x => x.Result?.Crashes is not null ).SelectMany( x => x.Result!.Crashes!.PerApp ).ToList(),
 							} );
 						}
 						catch( Exception e )
@@ -899,6 +929,9 @@ namespace Dirigent.Scripts.BuiltIn
 			var failures = DescribeFailures();
 			if( failures is not null ) text.Append( failures );
 
+			var crashes = DescribeCrashes();
+			if( crashes is not null ) text.Append( crashes );
+
 			// What the archive covers, when a Clear or a Mark drew the line: the difference between
 			// "these are the logs" and "these are the logs of one run" is the first thing whoever opens
 			// the archive needs to know, and it belongs at the top rather than in each entry's header.
@@ -1024,6 +1057,45 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			return text.ToString();
+		}
+
+		/// <summary>What the crash folders hold and what is missing, per machine; null when no crash was asked for.</summary>
+		string? DescribeCrashes()
+		{
+			var lines = ( from st in _slaveTasks
+						  where st.Result?.Crashes is not null && st.Result.Crashes.Lines.Count > 0
+						  orderby st.MachineName, StringComparer.OrdinalIgnoreCase
+						  select st ).ToList();
+			if( lines.Count == 0 ) return null;
+
+			var text = new StringBuilder();
+			text.AppendLine();
+			text.AppendLine( "Crashes (a folder per crash; what is in it, and what is missing and why):" );
+			foreach( var st in lines )
+			{
+				text.AppendLine( $"    {st.MachineName}: {st.Result!.Crashes!.Count} crash(es)" );
+				foreach( var line in st.Result.Crashes.Lines ) text.AppendLine( $"        {line}" );
+			}
+			return text.ToString();
+		}
+
+		/// <summary>What one machine slave is told of the crashes: the request, the master knowledge of that machine applications, its dump folders.</summary>
+		static Crashes.CrashSlaveArgs MakeCrashArgs( Crashes.CrashDownloadArgs all, string machine, Dictionary<string, List<string>>? dumpFolders )
+		{
+			bool Mine( string app ) => app.StartsWith( machine + ".", StringComparison.OrdinalIgnoreCase );
+
+			var merger = new Crashes.CrashMerger();
+			foreach( var kv in all.Merger.Exits.Where( kv => Mine( kv.Key ) ) ) merger.Exits[kv.Key] = kv.Value;
+			foreach( var kv in all.Merger.Running.Where( kv => Mine( kv.Key ) ) ) merger.Running[kv.Key] = kv.Value;
+			foreach( var kv in all.Merger.ComponentOf.Where( kv => Mine( kv.Key ) ) ) merger.ComponentOf[kv.Key] = kv.Value;
+
+			return new Crashes.CrashSlaveArgs()
+			{
+				Asked = all.Asked,
+				Window = all.Window,
+				Merger = merger,
+				DumpFolders = dumpFolders?.Where( kv => Mine( kv.Key ) ).ToDictionary( kv => kv.Key, kv => kv.Value ),
+			};
 		}
 
 		/// <summary>The cover note's line for a window: an open start is "the marks", an open end is "now".</summary>

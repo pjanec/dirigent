@@ -22,17 +22,34 @@ namespace Dirigent.Web
 		readonly bool _details;
 		readonly List<string> _machines;
 		readonly HashSet<string> _connected;
-		readonly CrashMerger _merger = new();
+		readonly CrashMerger _merger;
+		readonly List<Dirigent.AppDef> _defs;
+
+		/// <summary>What the master knows of the processes it launched: the exits, the running ones, the components. Master thread only.</summary>
+		public static CrashMerger SnapshotMerger( Master master )
+		{
+			var merger = new CrashMerger();
+			foreach( var kv in master.GetAllAppsDef() )
+				merger.ComponentOf[kv.Key.ToString()] = string.IsNullOrEmpty( kv.Value.Component ) ? null : kv.Value.Component;
+
+			foreach( var kv in master.ExitHistory.Snapshot() )
+				merger.Exits[kv.Key.ToString()] = kv.Value;
+
+			foreach( var kv in master.GetAllAppsState() )
+				if( kv.Value.Running && kv.Value.PID > 0 )
+					merger.Running[kv.Key.ToString()] = new RunningProcess { Pid = kv.Value.PID, StartedAt = kv.Value.StartedAt, Plan = kv.Value.PlanName, RestartsRemaining = kv.Value.RestartsRemaining == Dirigent.AppState.RESTARTS_UNITIALIZED ? null : kv.Value.RestartsRemaining };
+			return merger;
+		}
 
 		CrashQuery( Master master, CrashFilter filter, bool details )
 		{
 			_master = master;
 			_filter = filter;
 			_details = details;
+			_merger = SnapshotMerger( master );
 
 			var apps = master.GetAllAppsDef().ToList();
-			foreach( var kv in apps )
-				_merger.ComponentOf[kv.Key.ToString()] = string.IsNullOrEmpty( kv.Value.Component ) ? null : kv.Value.Component;
+			_defs = apps.Select( kv => kv.Value ).ToList();
 
 			_machines = apps.Select( kv => kv.Key.MachineId ).Concat( master.GetAllMachinesDef().Select( m => m.Id ) )
 						.Where( m => !string.IsNullOrEmpty( m ) )
@@ -41,12 +58,6 @@ namespace Dirigent.Web
 						.OrderBy( m => m, StringComparer.OrdinalIgnoreCase ).ToList();
 
 			_connected = ( from kv in master.GetAllClientsState() where kv.Value.Connected select kv.Key ).ToHashSet( StringComparer.OrdinalIgnoreCase );
-			foreach( var kv in master.ExitHistory.Snapshot() )
-				_merger.Exits[kv.Key.ToString()] = kv.Value;
-
-			foreach( var kv in master.GetAllAppsState() )
-				if( kv.Value.Running && kv.Value.PID > 0 )
-					_merger.Running[kv.Key.ToString()] = new RunningProcess { Pid = kv.Value.PID, StartedAt = kv.Value.StartedAt, Plan = kv.Value.PlanName };
 		}
 
 		/// <summary>Master thread only.</summary>
@@ -54,8 +65,22 @@ namespace Dirigent.Web
 		public static CrashQuery Prepare( Master master, CrashFilter filter, bool details )
 			=> new( master, filter.Resolve( DateTime.UtcNow ), details );
 
+		Dictionary<string, List<string>> _dumpFolders = new();
+
 		public async Task<CrashListing> RunAsync()
 		{
+			// where the applications keep their dumps (the "dump*" file definitions), for the crashes Windows recorded no dump for
+			Dictionary<string, List<string>> dumpFolders;
+			try
+			{
+				dumpFolders = await CrashDumpFolders.ResolveAsync( _defs.Where( d => _connected.Contains( d.Id.MachineId ) ), node => _master.ResolveAsync( node, false, false ) );
+			}
+			catch( Exception )
+			{
+				dumpFolders = new();
+			}
+			_dumpFolders = dumpFolders;
+
 			var perMachine = await Task.WhenAll( _machines.Select( AskMachine ) );
 
 			var listing = new CrashListing();
@@ -92,7 +117,12 @@ namespace Dirigent.Web
 			{
 				var result = await _master.RunScriptAsync<Scripts.BuiltIn.QueryCrashes.TArgs, Scripts.BuiltIn.QueryCrashes.TResult>(
 					machine, Scripts.BuiltIn.QueryCrashes._Name, null,
-					new Scripts.BuiltIn.QueryCrashes.TArgs() { Filter = _filter, Details = _details },
+					new Scripts.BuiltIn.QueryCrashes.TArgs()
+					{
+						Filter = _filter,
+						Details = _details,
+						DumpFolders = _dumpFolders.Where( kv => kv.Key.StartsWith( machine + ".", StringComparison.OrdinalIgnoreCase ) ).ToDictionary( kv => kv.Key, kv => kv.Value ),
+					},
 					$"Reading the crashes of {machine}", out _ );
 
 				if( result is null ) throw new Exception( $"{machine} answered nothing sensible." );

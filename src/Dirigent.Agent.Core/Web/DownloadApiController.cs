@@ -105,7 +105,18 @@ namespace Dirigent.Web
 			// the items are looked up on the master thread, resolving them (which waits for the agents) is not
 			FileSelection? selection = null;
 			FileWindow? window = null;
-			var op = _master.AddSynchronousOp( () => { window = request.ToWindow(); selection = FileSelection.Parse( _master, request ); } );
+			CrashQuery? crashQuery = null;
+			Dirigent.Crashes.CrashSelection? crashSelection = null;
+			var op = _master.AddSynchronousOp( () =>
+			{
+				window = request.ToWindow();
+				selection = FileSelection.Parse( _master, request );
+				if( request.crashes is not null )
+				{
+					crashSelection = request.crashes.ResolveWith( request.since, request.until, DateTime.UtcNow );
+					crashQuery = CrashQuery.Prepare( _master, crashSelection, false );
+				}
+			} );
 			await op.WaitAsync();
 
 			if( op.Exception is AppFilesNotFoundException ) throw HttpException.NotFound( op.Exception.Message );
@@ -113,6 +124,19 @@ namespace Dirigent.Web
 			if( op.Exception != null ) throw op.Exception;
 
 			var result = await selection!.ResolveAsync( includeContent, window );
+
+			if( crashQuery is not null )
+			{
+				// what a collection of the crashes would hold: the dumps, with their sizes, in the totals
+				var listing = await crashQuery.RunAsync();
+				var dumpBytes = crashSelection!.DumpBytesOf( listing.crashes );
+				listing.totals.dumpBytes = dumpBytes;
+				result.crashes = listing;
+				result.totals.bytes += dumpBytes;
+				result.totals.bytesToCollect += dumpBytes;
+				result.totals.files += crashSelection.dumps ? listing.crashes.Count( e => e.dump is { exists: true } && ( crashSelection.maxDumpBytes is null || ( e.dump.size ?? 0 ) <= crashSelection.maxDumpBytes ) ) : 0;
+			}
+
 			await SendJson( result.ToJson() );
 		}
 

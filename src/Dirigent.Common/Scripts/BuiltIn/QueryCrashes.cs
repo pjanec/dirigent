@@ -38,6 +38,9 @@ namespace Dirigent.Scripts.BuiltIn
 			/// <summary>Add the versions of the crashed programs and the facts of the machine.</summary>
 			public bool Details;
 
+			/// <summary>The dump folders of the applications of the machine (their "dump*" file definitions, resolved by the master), by app id.</summary>
+			public Dictionary<string, List<string>>? DumpFolders;
+
 			public override string ToString() => "crashes";
 		}
 
@@ -71,29 +74,14 @@ namespace Dirigent.Scripts.BuiltIn
 				return Tools.Serialize( result );
 			}
 
-			var table = await BuildTable( env, machine );
-			var ctx = env.MakeContext( machine, table, now );
-			var source = env.Source!;
-
-			var to = filter.until ?? now;
-			var appEvents = source.Read( new CrashEventQuery
-			{
-				Log = "Application",
-				FromUtc = filter.since!.Value.AddMinutes( -1 ),
-				ToUtc = to + CrashBuilder.WerDelay,
-				Wanted = CrashBuilder.ApplicationWanted,
-			} );
-
 			var wantsMachineLevel = filter.kinds.Count == 0 || filter.kinds.Any( k => CrashKind.IsMachineLevel( k ) );
-			var sysEvents = wantsMachineLevel
-				? source.Read( new CrashEventQuery { Log = "System", FromUtc = filter.since.Value, ToUtc = to, Wanted = CrashBuilder.SystemWanted } )
-				: new CrashEventResult();
+			var gathered = await CrashGatherer.ReadAsync( Dirig, env, filter.since!.Value, filter.until, wantsMachineLevel, args.DumpFolders );
 
-			var entries = CrashBuilder.Build( appEvents.Events.Concat( sysEvents.Events ), ctx )
+			var entries = gathered.Entries
 							.Where( e => filter.Matches( e, deferAmbiguous: true ) )
 							.ToList();
 
-			result.Cut = appEvents.Cut || sysEvents.Cut;
+			result.Cut = gathered.Cut;
 			if( entries.Count > MaxEntries )
 			{
 				entries = entries.Take( MaxEntries ).ToList();
@@ -101,7 +89,7 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			result.Entries = entries;
-			result.Coverage.oldestEvent = source.OldestEvent( "Application" );
+			result.Coverage.oldestEvent = gathered.OldestEvent;
 
 			if( args.Details )
 			{
@@ -116,52 +104,6 @@ namespace Dirigent.Scripts.BuiltIn
 			}
 
 			return Tools.Serialize( result );
-		}
-
-		/// <summary>The programs of this machine's app definitions - expanded as the launcher expands them - and Dirigent's own.</summary>
-		async Task<CrashAppTable> BuildTable( CrashEnvironment env, string machine )
-		{
-			var table = new CrashAppTable();
-
-			var defs = ( await Dirig.GetAllAppsDefAsync() )
-						.Select( kv => kv.Value )
-						.Where( d => string.Equals( d.Id.MachineId, machine, StringComparison.OrdinalIgnoreCase ) )
-						.ToList();
-
-			// all at once: the agent answers each spec on its next tick
-			var apps = await Task.WhenAll( defs.Select( async d =>
-			{
-				try
-				{
-					var spec = await Dirig.ResolveAppLaunchSpecAsync( d );
-					if( spec is null ) return null;
-
-					var pe = spec.ParseExe();
-					if( pe.ExeType == EExeType.DirigentCmd || pe.ReservedName is not null || string.IsNullOrWhiteSpace( pe.Path ) )
-						return null; // runs no program of its own
-
-					var file = spec.GetFileName( pe );
-					var rooted = System.IO.Path.IsPathRooted( file );
-					return new CrashApp
-					{
-						App = d.Id.ToString(),
-						Component = string.IsNullOrEmpty( d.Component ) ? null : d.Component,
-						ExePath = rooted ? file : null,
-						ExeName = System.IO.Path.GetFileName( rooted ? file : pe.Path ),
-						StartDir = spec.GetWorkingDirectory(),
-						CmdLine = pe.CmdLine,
-					};
-				}
-				catch( Exception e )
-				{
-					log.Debug( $"Cannot tell the program of {d.Id}: {e.Message}" );
-					return null;
-				}
-			} ) );
-
-			table.Apps.AddRange( apps.Where( a => a is not null ).Select( a => a! ) );
-			table.OwnExes.AddRange( env.OwnExes() );
-			return table;
 		}
 	}
 }

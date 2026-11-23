@@ -31,6 +31,13 @@ namespace Dirigent.Web
 		/// <summary>The end of the time window - see <see cref="since"/>.</summary>
 		public DateTime? until { get; set; }
 
+		/// <summary>
+		/// Crashes to look up and collect: the filters of GET /api/crashes, and what to take of each - <c>dumps</c>, <c>context</c>,
+		/// <c>maxDumpBytes</c>. Combines with the files of the same request; alone, it is a collection of crashes only.
+		/// </summary>
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull )]
+		public Dirigent.Crashes.CrashSelection? crashes { get; set; }
+
 		static DateTime? Utc( DateTime? t )
 			=> t is DateTime x ? ( x.Kind == DateTimeKind.Local ? x.ToUniversalTime() : DateTime.SpecifyKind( x, DateTimeKind.Utc ) ) : null;
 
@@ -61,6 +68,10 @@ namespace Dirigent.Web
 
 		/// <summary>The sum of the items' totals. A file reached through two items counts twice, as it is in two folders of a download.</summary>
 		public FilesTotals totals { get; set; } = new();
+
+		/// <summary>The crashes asked for - the entries, the machines and the dump bytes; their dumps are in <see cref="totals"/> too.</summary>
+		[JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull )]
+		public Dirigent.Crashes.CrashListing? crashes { get; set; }
 
 		public string ToJson() => AppFilesResult.ToJson( this );
 	}
@@ -115,8 +126,8 @@ namespace Dirigent.Web
 			if( !string.IsNullOrEmpty( singleApp ) ) apps.Add( singleApp );
 			if( request?.apps is not null ) apps.AddRange( request.apps );
 
-			if( fileDefs.Count == 0 && apps.Count == 0 )
-				throw new ArgumentException( "Nothing is selected: 'fileDefs' and 'apps' are both empty." );
+			if( fileDefs.Count == 0 && apps.Count == 0 && request?.crashes is null )
+				throw new ArgumentException( "Nothing is selected: 'fileDefs', 'apps' and 'crashes' are all empty." );
 
 			var sel = new FileSelection();
 

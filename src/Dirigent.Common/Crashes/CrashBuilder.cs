@@ -22,6 +22,12 @@ namespace Dirigent.Crashes
 		/// <summary>The path of the first existing minidump written around a time, or null.</summary>
 		public Func<DateTime, string?> FindMiniDump = _ => null;
 
+		/// <summary>The dump folders of an application (its file definitions whose id starts with "dump"), resolved; empty for none.</summary>
+		public Func<string, IReadOnlyList<string>> AppDumpFolders = _ => Array.Empty<string>();
+
+		/// <summary>The dump files of a folder: path, time written (UTC), size.</summary>
+		public Func<string, IEnumerable<(string path, DateTime writtenUtc, long size)>> ListDumps = _ => Array.Empty<(string, DateTime, long)>();
+
 		/// <summary>The Windows folder - where MEMORY.DMP is.</summary>
 		public string WindowsDir = @"C:\Windows";
 	}
@@ -53,6 +59,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>The exception code of an unhandled exception of the CLR.</summary>
 		public const string ClrExceptionCode = "0xe0434352";
+
+		/// <summary>A dump with no name of the crash is the one written within this after it.</summary>
+		public static readonly TimeSpan DumpAfterCrash = TimeSpan.FromMinutes( 1 );
 
 		public const int MaxExceptionLines = 5;
 		const int _maxLineChars = 300;
@@ -163,6 +172,10 @@ namespace Dirigent.Crashes
 
 		/// <summary>All the entries the events make, newest first; only the site's programs and the machine-level ones.</summary>
 		public static List<CrashEntry> Build( IEnumerable<RawEvent> events, CrashContext ctx )
+			=> Build( events, ctx, null );
+
+		/// <param name="matched">when given, receives the events of each entry (by its id): the 1000, the 1001, the 1026, ...</param>
+		public static List<CrashEntry> Build( IEnumerable<RawEvent> events, CrashContext ctx, Dictionary<string, List<RawEvent>>? matched )
 		{
 			var all = events.OrderBy( e => e.TimeUtc ).ToList();
 			var res = new List<CrashEntry>();
@@ -219,17 +232,24 @@ namespace Dirigent.Crashes
 			foreach( var c in crashes.Concat( standalone ).Concat( hangs ) )
 			{
 				var entry = MakeAppEntry( c, ctx );
-				if( entry is not null ) res.Add( entry );
+				if( entry is null ) continue;
+				res.Add( entry );
+				matched?.TryAdd( entry.id, new[] { c.E1000, c.E1026, c.Hang, c.Wer }.Where( x => x is not null ).Select( x => x! ).ToList() );
 			}
 
 			res.AddRange( MakeReboots( all, ctx ) );
 
 			foreach( var ev in all )
 			{
+				CrashEntry? machineLevel = null;
 				if( ( Is( ev, ProviderBugCheck, 1001 ) || Is( ev, ProviderBugCheckShort, 1001 ) ) )
-					res.Add( MakeBugCheck( ev, ctx ) );
+					machineLevel = MakeBugCheck( ev, ctx );
 				else if( Is( ev, ProviderDisplay, 4101 ) )
-					res.Add( MakeGpuReset( ev, ctx ) );
+					machineLevel = MakeGpuReset( ev, ctx );
+
+				if( machineLevel is null ) continue;
+				res.Add( machineLevel );
+				matched?.TryAdd( machineLevel.id, new() { ev } );
 			}
 
 			return res.OrderByDescending( e => e.time ).ThenBy( e => e.id, StringComparer.Ordinal ).ToList();
@@ -338,7 +358,48 @@ namespace Dirigent.Crashes
 					e.dump = new CrashDump { path = Path.Combine( folders[0], file ), exists = false };
 			}
 
+			// the dump folders of the application itself - what a report or LocalDumps did not find
+			if( e.dump is not { exists: true } && owner.Candidates.Count > 0 )
+			{
+				var found = FindInAppDumpFolders( owner.Candidates.Select( a => a.App ).Distinct().SelectMany( a => ctx.AppDumpFolders( a ) ).Distinct( StringComparer.OrdinalIgnoreCase ),
+									ctx, name, e.processId, e.time );
+				if( found is not null ) e.dump = found;
+			}
+
 			return e;
+		}
+
+		/// <summary>
+		/// The dump of a crash among the files of folders: the one named for the exe and process (<c>exe.1234.dmp</c>), else the
+		/// newest written within a minute after the crash.
+		/// </summary>
+		static CrashDump? FindInAppDumpFolders( IEnumerable<string> folders, CrashContext ctx, string? exeName, int? pid, DateTime crashTime )
+		{
+			var files = new List<(string path, DateTime writtenUtc, long size)>();
+			foreach( var f in folders )
+			{
+				try { files.AddRange( ctx.ListDumps( f ) ); }
+				catch( Exception ) { } // a folder we cannot read has no dump for us
+			}
+			var picked = PickDump( files, exeName, pid, crashTime );
+			return picked is null ? null : new CrashDump { path = picked.Value.path, exists = true, size = picked.Value.size };
+		}
+
+		/// <summary>Pure: which of the files is the dump of the crash.</summary>
+		public static (string path, DateTime writtenUtc, long size)? PickDump( IEnumerable<(string path, DateTime writtenUtc, long size)> files, string? exeName, int? pid, DateTime crashTime )
+		{
+			var list = files.ToList();
+
+			if( exeName is not null && pid is not null )
+			{
+				var named = $"{exeName}.{pid}.dmp";
+				var exact = list.Where( f => string.Equals( Path.GetFileName( f.path ), named, StringComparison.OrdinalIgnoreCase ) ).OrderByDescending( f => f.writtenUtc ).ToList();
+				if( exact.Count > 0 ) return exact[0];
+			}
+
+			var near = list.Where( f => f.writtenUtc >= crashTime.AddSeconds( -2 ) && f.writtenUtc <= crashTime + DumpAfterCrash )
+							.OrderByDescending( f => f.writtenUtc ).ToList();
+			return near.Count > 0 ? near[0] : null;
 		}
 
 		static IEnumerable<CrashEntry> MakeReboots( List<RawEvent> all, CrashContext ctx )

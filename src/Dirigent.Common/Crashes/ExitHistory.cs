@@ -16,6 +16,9 @@ namespace Dirigent.Crashes
 
 		/// <summary>The application is set to start again (a restarter was waiting for the exit).</summary>
 		public bool willRestart { get; set; }
+
+		/// <summary>Restarts left when it ended (-1 = without limit); null when not counted.</summary>
+		public int? restartsRemaining { get; set; }
 	}
 
 	/// <summary>
@@ -55,6 +58,7 @@ namespace Dirigent.Crashes
 				startedAt = ( after.StartedAt ?? before.StartedAt ) is DateTime s ? Utc( s ) : null,
 				plan = string.IsNullOrEmpty( after.PlanName ) ? ( string.IsNullOrEmpty( before.PlanName ) ? null : before.PlanName ) : after.PlanName,
 				willRestart = after.Restarting || before.Restarting,
+				restartsRemaining = after.RestartsRemaining == AppState.RESTARTS_UNITIALIZED ? null : after.RestartsRemaining,
 			};
 
 			lock( _lock )

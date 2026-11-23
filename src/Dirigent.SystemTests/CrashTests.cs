@@ -169,6 +169,51 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( 1, JsonDocument.Parse( Ask( "component=Managed&kind=managed" ) ).RootElement.GetProperty( "crashes" ).GetArrayLength() );
 			Assert.AreEqual( 0, JsonDocument.Parse( Ask( "component=Nothing" ) ).RootElement.GetProperty( "crashes" ).GetArrayLength() );
 			Assert.AreEqual( 1, JsonDocument.Parse( Ask( "app=*.native&newestPerApp=1&kind=managed" ) ).RootElement.GetProperty( "crashes" ).GetArrayLength() );
+
+			// ---- collecting: a dump put where the application's dump definition points, found by the name of the exe and the process ----
+			var nativePid = native.GetProperty( "processId" ).GetInt32();
+			var dumpFolder = System.IO.Path.Combine( world.Root, "dumps" );
+			System.IO.Directory.CreateDirectory( dumpFolder );
+			var placed = System.IO.Path.Combine( dumpFolder, $"Dirigent.TestApp.exe.{nativePid}.dmp" );
+			System.IO.File.WriteAllText( placed, "a dump the test made" );
+
+			System.Net.Http.StringContent Json( string s ) => new( s, System.Text.Encoding.UTF8, "application/json" );
+			var request = $"{{\"crashes\":{{\"app\":\"m1.native\",\"since\":\"{started:yyyy-MM-ddTHH:mm:ssZ}\",\"dumps\":true}}}}";
+
+			// the preview: the entry and the dump in the totals
+			var preview = JsonDocument.Parse( http.PostAsync( $"{root}/files/query", Json( request ) ).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult() ).RootElement;
+			Assert.AreEqual( 1, preview.GetProperty( "crashes" ).GetProperty( "crashes" ).GetArrayLength(), preview.ToString().Replace( "{", "(" ) );
+			Assert.IsTrue( preview.GetProperty( "totals" ).GetProperty( "bytes" ).GetInt64() > 0, "the dump is in the totals" );
+
+			var started2 = http.PostAsync( $"{root}/downloads", Json( request ) ).GetAwaiter().GetResult();
+			Assert.AreEqual( System.Net.HttpStatusCode.Accepted, started2.StatusCode );
+			var jobId = JsonDocument.Parse( started2.Content.ReadAsStringAsync().GetAwaiter().GetResult() ).RootElement.GetProperty( "id" ).GetString();
+
+			JsonElement job = default;
+			world.WaitUntil( "the download of the crash finishes", TimeSpan.FromSeconds( 90 ), () =>
+			{
+				job = JsonDocument.Parse( http.GetStringAsync( $"{root}/downloads/{jobId}?wait=5" ).GetAwaiter().GetResult() ).RootElement.Clone();
+				return job.GetProperty( "status" ).GetString() != "Running";
+			} );
+			Assert.AreEqual( "Finished", job.GetProperty( "status" ).GetString(), job.ToString() );
+
+			var archive = job.GetProperty( "archives" )[0].GetProperty( "name" ).GetString();
+			var bytes = http.GetByteArrayAsync( $"{root}/downloads/{jobId}/archives/{archive}" ).GetAwaiter().GetResult();
+			using var zip = new System.IO.Compression.ZipArchive( new System.IO.MemoryStream( bytes ) );
+			var names = zip.Entries.Select( e => e.FullName ).ToList();
+			var listed = string.Join( " | ", names );
+
+			var folder = names.Where( n => n.StartsWith( "crashes/" ) ).Select( n => n.Substring( 0, n.LastIndexOf( '/' ) ) ).Distinct().ToList();
+			Assert.AreEqual( 1, folder.Count, listed );
+			StringAssert.EndsWith( folder[0], "_m1.native", listed );
+
+			foreach( var file in new[] { "crash.json", "versions.json", "launch.json", "events.txt", "machine.json" } )
+				Assert.IsTrue( names.Contains( $"{folder[0]}/{file}" ), $"{file} in {listed}" );
+			Assert.IsTrue( names.Any( n => n.StartsWith( folder[0] + "/" ) && n.EndsWith( ".dmp" ) ), $"a dump in {listed}" );
+			Assert.IsTrue( names.Contains( "_crashes.json" ), listed );
+
+			var crashJson = new System.IO.StreamReader( zip.GetEntry( $"{folder[0]}/crash.json" )!.Open() ).ReadToEnd();
+			Assert.IsTrue( crashJson.Contains( "\"pc\"" ), "the plan the crash happened in: " + crashJson.Replace( "{", "(" ) );
 			}
 		}
 

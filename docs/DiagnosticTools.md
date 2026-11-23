@@ -173,6 +173,11 @@ GET /api/crashes?app=m1.viewer&newestPerApp=1                                 th
   (`coverage.oldestEvent` - the log is a ring buffer) and whether a limit cut the answer (`cut`). "No crash recorded" is a statement only for a machine
   with status `ok` whose `oldestEvent` is before your window.
 * **The window.** Without `since`/`until` the last 7 days. `until` before `since` is a 400. `totals.dumpBytes` is the size of the dumps listed.
+* **Collecting them.** "The dumps of component X since T": `POST /api/downloads` with `{"crashes": {"components": ["X"], "since": "T", "dumps": true}}` - alone, or beside `fileDefs` and `apps` and the same window in one
+  request and one archive. `POST /api/files/query` with the same `crashes` previews it (the entries, and the dump sizes in `totals`). The request names crashes, never paths; the agents look them up again. Per crash the archive has a folder with
+  the dump (whole, never cut: a dump above `maxDumpBytes` is left out and the cover note says so), `crash.json`, `versions.json` (with SHA-256 of the DLLs, to find the matching symbols), `launch.json` (secrets masked),
+  `Report.wer`, `events.txt` and `machine.json`; `"context": false` gives only the dumps. Every archive, asked or not, has `_crashes.json` (the records of its window) and the per-application `crashes`/`lastCrash` in `_sitestate.json`.
+  Besides Windows' own, the dumps of an application's file definitions whose id starts with `dump` are searched.
 * **Reading the dump.** Dirigent hands out the path; the access is Windows' - see the share notes of section 6.
   Dumps exist only where Windows is set to write them (`LocalDumps` in the registry; Dirigent never changes that setting).
 
