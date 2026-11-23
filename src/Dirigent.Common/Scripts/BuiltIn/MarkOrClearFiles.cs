@@ -131,7 +131,8 @@ namespace Dirigent.Scripts.BuiltIn
 				{
 					var slaveArgs = new MarkFilesSlave.TArgs()
 					{
-						Container = container,
+						// its own files only (the slave would skip the others anyway) - see VfsNodeDef.ForMachine
+						Container = container.ForMachine( mach, includeGlobals: !globalsAssigned ),
 						Operation = Operation,
 						IncludeGlobals = !globalsAssigned, // the first machine takes the machine-less files
 					};

@@ -146,6 +146,30 @@ namespace Dirigent
 		/// </summary>
 		public string Component = string.Empty;
 
+		/// <summary>
+		/// A copy of this resolved tree holding only the files of the given machine - and, if <paramref name="includeGlobals"/>,
+		/// the files of no machine. The containers all stay, with their notes; the files are shared, not copied.
+		/// </summary>
+		/// <remarks>
+		/// For the scripts a marking or a download starts on each machine: each acts on its own files only, and used to be
+		/// sent the whole site's tree - 146 KB per machine on a 7-machine site, at every checkpoint of a running plan.
+		/// The test for "its own" is the one those scripts apply.
+		/// </remarks>
+		public VfsNodeDef ForMachine( string machineId, bool includeGlobals )
+		{
+			var copy = (VfsNodeDef) MemberwiseClone();
+			copy.Children = new List<VfsNodeDef>();
+
+			foreach( var child in Children )
+			{
+				if( child.IsContainer )
+					copy.Children.Add( child.ForMachine( machineId, includeGlobals ) );
+				else if( child.MachineId == machineId || ( string.IsNullOrEmpty( child.MachineId ) && includeGlobals ) )
+					copy.Children.Add( child );
+			}
+
+			return copy;
+		}
 
 		public override string ToString()
 		{

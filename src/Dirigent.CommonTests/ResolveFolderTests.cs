@@ -420,7 +420,9 @@ namespace Dirigent.Tests
 
 		// ---- a time window chooses the files of the Clearable definitions ----
 
-		static readonly DateTime _runsAt = new DateTime( 2026, 11, 21, 12, 0, 0, DateTimeKind.Utc );
+		// noon of yesterday: the runs must stay within the definition's MaxSeconds (2 days) of now, or the limits alone
+		// leave nothing - a fixed date made these tests fail two days after they were written
+		static readonly DateTime _runsAt = DateTime.UtcNow.Date.AddDays( -1 ).AddHours( 12 );
 
 		/// <summary>Three runs of an application, each its own log: 12:00-13:00, 14:00-15:00 and 16:00-17:00.</summary>
 		void MakeThreeRuns()
@@ -463,7 +465,7 @@ namespace Dirigent.Tests
 		{
 			MakeThreeRuns();
 
-			// the afternoon of the 21st: two runs, though only one file is asked for
+			// the afternoon: two runs, though only one file is asked for
 			var window = new FileWindow() { SinceUtc = _runsAt.AddHours( 2 ), UntilUtc = _runsAt.AddHours( 7 ) };
 			var resolved = ResolveIn( NewestRunLog( clearable: true ), window );
 

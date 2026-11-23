@@ -369,7 +369,8 @@ namespace Dirigent.Scripts.BuiltIn
 					var slaveScriptName = DownloadZippedSlave._Name;
 					var slaveScriptArgs = new DownloadZippedSlave.TArgs()
 					{
-						Container = container,
+						// its own files only (the slave would skip the others anyway) - see VfsNodeDef.ForMachine
+						Container = container.ForMachine( mach, includeGlobals: !globalsAssigned ),
 						DestinationFolder = uncSlaveDestination,
 						LocalDestinationFolder = localSlaveDestination,
 						DestinationIsLocal = destinationIsLocal,
