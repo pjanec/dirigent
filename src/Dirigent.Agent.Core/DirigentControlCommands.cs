@@ -408,13 +408,25 @@ namespace Dirigent.Commands
 
 		public override void Execute()
 		{
+			var (argsStruct, machineId) = ParseArgs( args );
+			ctrl.Terminate( _requestorId, argsStruct, machineId );
+			WriteResponse( "ACK" );
+		}
+
+		/// <summary>
+		/// killApps=0|1 (default 1, as Dirigent has always done) and machineId=. "killApps=0" used to be ignored - only "1" was looked
+		/// at, on top of a default of true - so the apps were killed whatever was asked; the saved state of each agent then said "killed"
+		/// while slow-closing apps lived on, and a restarted agent had nothing to adopt.
+		/// </summary>
+		public static (TerminateArgs Args, string MachineId) ParseArgs( IList<string> args )
+		{
 			var argsStruct = new TerminateArgs() { KillApps = true };
 
 			var argsDict = Tools.ParseKeyValList( args );
 			string valStr;
 			if ( Tools.TryGetValueIgnoreKeyCase( argsDict, "killApps", out valStr ) )
 			{
-				if ( valStr == "1" ) argsStruct.KillApps = true;
+				argsStruct.KillApps = Tools.BoolFromString( valStr );
 			}
 
 			string machineId = "";
@@ -423,8 +435,7 @@ namespace Dirigent.Commands
 				machineId = valStr;
 			}
 
-			ctrl.Terminate( _requestorId, argsStruct, machineId );
-			WriteResponse( "ACK" );
+			return (argsStruct, machineId);
 		}
 	}
 
