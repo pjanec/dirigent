@@ -15,8 +15,14 @@ it does not talk to a bug tracker or anything else outside the site.
 
 * The API is on the **master** machine, port **8877** (`--httpPort`). It and every path it hands out use the **site's
   own addresses**, so the tool runs on a machine of the site network (or through a tunnel into it).
-* **There is no authentication**: whoever reaches the port can start and kill applications. Keep the tool and the port
-  inside the site.
+* **Authentication depends on the site's `Security` setting** (`GET /api` says which: `"authentication": "off" | "audit" | "on"`).
+  * `off`: no authentication - whoever reaches the port can start and kill applications. Keep the tool and the port inside the site.
+  * `on`: every call but `GET /api` and `/api/help` needs `Authorization: Bearer <token>` (an ES256 JWT); without it 401, with too
+    little scope 403. A diagnostic tool needs **`read`** (every GET, the archive fetch included, and `POST /api/files/query`) and
+    **`control`** for `POST /api/downloads` and `DELETE /api/downloads/{id}` - so a token with `"scope": "read control"`.
+  * `audit`: the same checks, but only logged; nothing is refused.
+  * Dirigent issues no tokens: the site's key holder does. See [Security](Security.md) and
+    [Authentication](HTTP.md#authentication).
 * Knowing only the address is enough: **`GET /`** redirects to **`GET /api`**, which answers what this is (version, site
   name, master, shared config), where the manual is, the order of first questions, the limits, and every route with a
   link to its section of the manual.
@@ -177,7 +183,7 @@ GET /api/crashes?app=m1.viewer&newestPerApp=1                                 th
   (`coverage.oldestEvent` - the log is a ring buffer) and whether a limit cut the answer (`cut`). "No crash recorded" is a statement only for a machine
   with status `ok` whose `oldestEvent` is before your window.
 * **The window.** Without `since`/`until` the last 7 days. `until` before `since` is a 400. `totals.dumpBytes` is the size of the dumps listed.
-* **Collecting them.** "The dumps of component X since T": `POST /api/downloads` with `{"crashes": {"components": ["X"], "since": "T", "dumps": true}}` - alone, or beside `fileDefs` and `apps` and the same window in one
+* **Collecting them** (a download, so the `control` scope when the site's security is on - see section 1). "The dumps of component X since T": `POST /api/downloads` with `{"crashes": {"components": ["X"], "since": "T", "dumps": true}}` - alone, or beside `fileDefs` and `apps` and the same window in one
   request and one archive. `POST /api/files/query` with the same `crashes` previews it (the entries, and the dump sizes in `totals`). The request names crashes, never paths; the agents look them up again. Per crash the archive has a folder with
   the dump (whole, never cut: a dump above `maxDumpBytes` is left out and the cover note says so), `crash.json`, `versions.json` (with SHA-256 of the DLLs, to find the matching symbols), `launch.json` (secrets masked),
   `Report.wer`, `events.txt` and `machine.json`; `"context": false` gives only the dumps. Every archive, asked or not, has `_crashes.json` (the records of its window) and the per-application `crashes`/`lastCrash` in `_sitestate.json`.
@@ -186,6 +192,9 @@ GET /api/crashes?app=m1.viewer&newestPerApp=1                                 th
   Dumps exist only where Windows is set to write them (`LocalDumps` in the registry; Dirigent never changes that setting).
 
 ## 9. A tool's session, end to end
+
+With the site's security on, every line but the first carries `Authorization: Bearer <token>`; the token needs `read`,
+and `control` for the two `downloads` calls that change something (`POST`, `DELETE`) - see section 1.
 
 ```
 GET  /api                                         what is this, where is the manual
