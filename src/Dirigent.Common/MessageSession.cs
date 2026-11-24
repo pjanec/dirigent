@@ -108,7 +108,18 @@ namespace Dirigent.Net
 		private bool _unreadableHandled;
 
 		/// <summary>The address the client connected from, for the log.</summary>
-		public string RemoteAddress => _address;
+		/// <remarks>
+		/// Looked up when first needed if the connect callback has not run yet: a fast client's first bytes can be received and fail to
+		/// decode before it does, and "?" then made the once-per-address log line come out twice for the same address.
+		/// </remarks>
+		public string RemoteAddress
+		{
+			get
+			{
+				if( _address == "?" ) RememberAddress();
+				return _address;
+			}
+		}
 
 		void RememberAddress()
 		{
@@ -126,7 +137,10 @@ namespace Dirigent.Net
 		public void OnTransportConnected()
 		{
 			RememberAddress();
-			log.Info( $"{( _secured ? "TLS" : "TCP" )} session with Id {Id} connected from {_address}!" );
+			// on a secured port nothing of TLS has happened yet at this point - say so, rather than "TLS session connected" before a handshake that may fail
+			log.Info( _secured
+				? $"Connection {Id} accepted from {RemoteAddress}; TLS handshake and site-secret proof follow"
+				: $"TCP session with Id {Id} connected from {RemoteAddress}!" );
 
 			_server.OnSessionConnected( this );
 		}
@@ -137,7 +151,7 @@ namespace Dirigent.Net
 		/// </summary>
 		public void OnTransportHandshaking()
 		{
-			if( _server.ProofFailures.IsBlocked( _address ) )
+			if( _server.ProofFailures.IsBlocked( RemoteAddress ) )
 			{
 				_closeLogged = true;
 				Disconnect();
@@ -161,7 +175,7 @@ namespace Dirigent.Net
 
 			// a secured session that never got through the TLS handshake: not one of ours (a plain client, an old one, one with security off)
 			if( _secured && !_tlsDone && !_closeLogged )
-				_server.OnTlsHandshakeFailed( _address );
+				_server.OnTlsHandshakeFailed( RemoteAddress );
 
 			_server.OnSessionDisconnected( this );
 		}
@@ -181,13 +195,17 @@ namespace Dirigent.Net
 		{
 			_decodedAny = true;
 
+			// A message on a secured session can only have been decrypted after the TLS handshake - but the callback saying so may
+			// not have run yet (the first bytes can be received first). Take the handshake as done rather than closing a good client.
+			if( _secured && _handshake == EHandshake.Connecting ) OnTransportReady();
+
 			switch( _handshake )
 			{
 				case EHandshake.Established:
 					if( instance is HelloMessage or ChallengeMessage or ProofMessage )
 					{
 						// not a thing to say once in: on a plain port a client that speaks TLS has no business here, on a secured one it is a client gone mad
-						Close( $"{_address}: unexpected {instance.GetType().Name}; closing" );
+						Close( $"{RemoteAddress}: unexpected {instance.GetType().Name}; closing" );
 						return;
 					}
 					_msgsReceived.Enqueue( instance );
@@ -195,16 +213,16 @@ namespace Dirigent.Net
 
 				case EHandshake.AwaitHello:
 					if( instance is HelloMessage hello ) OnHello( hello );
-					else Close( $"{_address}: {instance.GetType().Name} before the Hello of the handshake; closing" );
+					else Close( $"{RemoteAddress}: {instance.GetType().Name} before the Hello of the handshake; closing" );
 					break;
 
 				case EHandshake.AwaitProof:
 					if( instance is ProofMessage proof ) OnProof( proof );
-					else Close( $"{_address}: {instance.GetType().Name} before the Proof of the handshake; closing" );
+					else Close( $"{RemoteAddress}: {instance.GetType().Name} before the Proof of the handshake; closing" );
 					break;
 
 				default:
-					Close( $"{_address}: a message before the TLS handshake was done; closing" );
+					Close( $"{RemoteAddress}: a message before the TLS handshake was done; closing" );
 					break;
 			}
 		}
@@ -220,7 +238,7 @@ namespace Dirigent.Net
 		{
 			if( hello.ProtocolVersion != Protocol.Version )
 			{
-				var reason = $"a client at {_address} speaks protocol {hello.ProtocolVersion}, this master {Protocol.Version} - update it to {Protocol.ProductVersion}";
+				var reason = $"a client at {RemoteAddress} speaks protocol {hello.ProtocolVersion}, this master {Protocol.Version} - update it to {Protocol.ProductVersion}";
 				_closeLogged = true;
 				log.Warn( reason );
 				Refuse( reason );
@@ -229,7 +247,7 @@ namespace Dirigent.Net
 
 			if( hello.ClientNonce is null || hello.ClientNonce.Length != SiteProof.NonceLength )
 			{
-				Close( $"{_address}: a Hello without a proper nonce; closing" );
+				Close( $"{RemoteAddress}: a Hello without a proper nonce; closing" );
 				return;
 			}
 
@@ -258,15 +276,15 @@ namespace Dirigent.Net
 		void FailedProof()
 		{
 			_closeLogged = true;
-			log.Warn( $"{_address}: wrong site secret (or not the same Dirigent)" );
-			if( _server.ProofFailures.Record( _address, out var blockedNow ) && blockedNow )
-				log.Warn( $"{_address}: more than {ProofFailureLimiter.MaxFailures} failed proofs within {ProofFailureLimiter.Window.TotalSeconds:0} s - connections from it are closed at once for {ProofFailureLimiter.BlockFor.TotalSeconds:0} s" );
+			log.Warn( $"{RemoteAddress}: wrong site secret (or not the same Dirigent)" );
+			if( _server.ProofFailures.Record( RemoteAddress, out var blockedNow ) && blockedNow )
+				log.Warn( $"{RemoteAddress}: more than {ProofFailureLimiter.MaxFailures} failed proofs within {ProofFailureLimiter.Window.TotalSeconds:0} s - connections from it are closed at once for {ProofFailureLimiter.BlockFor.TotalSeconds:0} s" );
 		}
 
 		/// <summary>The handshake took too long: the client is closed out.</summary>
 		public void TimeOut( TimeSpan limit )
 		{
-			Close( $"{_address}: the handshake was not completed within {limit.TotalSeconds:0.#} s; closing" );
+			Close( $"{RemoteAddress}: the handshake was not completed within {limit.TotalSeconds:0.#} s; closing" );
 		}
 
 		void SendMessage( Net.Message msg )
