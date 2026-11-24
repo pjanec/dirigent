@@ -104,7 +104,10 @@ namespace Dirigent.Tests
 			var table = new CrashAppTable();
 			table.Apps.Add( new CrashApp { App = "m1.viewer", ExePath = @"C:\Apps\Viewer\Viewer.exe", ExeName = "Viewer.exe" } );
 			var ctx = new CrashContext { Machine = "m1", Table = table };
-			ctx.FindWerReport = ( name, path, time ) => name == "Viewer.exe" && ( time - T0 ).Duration() < TimeSpan.FromSeconds( 1 ) ? @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_Viewer.exe_x\Report.wer" : null;
+			ctx.WerReports = ( from, to ) => new[]
+			{
+				WerReports.Parse( Sample( T0 ), @"C:\ProgramData\Microsoft\Windows\WER\ReportQueue\AppCrash_Viewer.exe_x\Report.wer" ),
+			};
 
 			var ev = new RawEvent
 			{
@@ -177,7 +180,7 @@ namespace Dirigent.Tests
 
 			var marked = CrashCollector.MarkChanged( v, T0, now );
 
-			Assert.IsNull( marked.files[0].modifiedAfterCrash );
+			Assert.AreEqual( false, marked.files[0].modifiedAfterCrash, "false, not absent, for a file unchanged since" );
 			Assert.AreEqual( true, marked.files[1].modifiedAfterCrash );
 			Assert.AreEqual( true, marked.files[2].modifiedAfterCrash );
 			Assert.AreEqual( now, marked.collectedAt );

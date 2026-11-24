@@ -51,6 +51,22 @@ namespace Dirigent.Tests
 		}
 
 		[TestMethod()]
+		public void AFolderTouchedDaysAfterTheCrashIsStillFoundByItsCreationAndEventTime()
+		{
+			var root = Path.Combine( Path.GetTempPath(), "WerTest_" + Guid.NewGuid().ToString( "N" ) );
+			try
+			{
+				// Windows re-processed the queued report four days later: the folder was written then, but made and described at the crash
+				var report = Folder( root, "AppCrash_ConsoleAp_queued", Report( T0, @"C:\Apps\ConsoleApp.exe", "ConsoleApp.exe" ), T0.AddDays( 4 ) );
+				Directory.SetCreationTimeUtc( Path.GetDirectoryName( report )!, T0 );
+				File.SetCreationTimeUtc( report, T0 );
+
+				Assert.AreEqual( report, WerReports.Find( "ConsoleApp.exe", @"C:\Apps\ConsoleApp.exe", T0, new[] { root } ) );
+			}
+			finally { try { Directory.Delete( root, true ); } catch { } }
+		}
+
+		[TestMethod()]
 		public void TheNameInTheReportIsTriedInOrderAndTheReportsAreReadOncePerLookup()
 		{
 			var root = Path.Combine( Path.GetTempPath(), "WerTest_" + Guid.NewGuid().ToString( "N" ) );
@@ -66,6 +82,61 @@ namespace Dirigent.Tests
 				Assert.AreEqual( packaged, WerReports.Find( "Packaged.exe", null, T0, new[] { root }, cache ), "read once" );
 			}
 			finally { try { Directory.Delete( root, true ); } catch { } }
+		}
+
+		// ---- two crashes, two reports ------------------------------------------------------------------
+
+		static WerReportInfo Rep( string name, DateTime t, string? sessionGuid = null )
+			=> WerReports.Parse( Report( t, @"C:\Apps\ConsoleApp.exe", "ConsoleApp.exe" ) + ( sessionGuid is null ? "" : "AppSessionGuid=" + sessionGuid + "\r\n" ), name );
+
+		static CrashEntry Crash( string id, DateTime t, int? pid = null )
+			=> new() { id = id, kind = CrashKind.Crash, time = t, processId = pid, exe = @"C:\Apps\ConsoleApp.exe" };
+
+		static Dictionary<string, string?> Assigned( DateTime t1, DateTime t2, params WerReportInfo[] reports )
+		{
+			var ctx = new CrashContext { Machine = "m1" };
+			ctx.Table.Apps.Add( new CrashApp { App = "m1.c", ExePath = @"C:\Apps\ConsoleApp.exe", ExeName = "ConsoleApp.exe" } );
+			ctx.WerReports = ( from, to ) => reports;
+
+			var events = new[] { 7744, 9616 }.Zip( new[] { t1, t2 } ).Select( x => new RawEvent
+			{
+				Provider = CrashBuilder.ProviderAppError, Id = 1000, TimeUtc = x.Second,
+				Data = new() { "ConsoleApp.exe", "1.0", "", "foo.dll", "1.0", "", "c0000005", "0000000000012345", "0x" + x.First.ToString( "x" ), "", @"C:\Apps\ConsoleApp.exe", "", "", "", "" },
+			} );
+
+			return CrashBuilder.Build( events, ctx ).ToDictionary( e => e.processId!.Value.ToString(), e => e.werReport );
+		}
+
+		[TestMethod()]
+		public void TwoCrashesFiveSecondsApartEachGetTheirOwnReportInEitherOrder()
+		{
+			var a = Rep( "report-a", T0.AddSeconds( 1 ) );   // 1 s after the first crash
+			var b = Rep( "report-b", T0.AddSeconds( 6 ) );   // 1 s after the second
+
+			foreach( var order in new[] { new[] { a, b }, new[] { b, a } } )
+			{
+				var got = Assigned( T0, T0.AddSeconds( 5 ), order );
+				Assert.AreEqual( "report-a", got["7744"] );
+				Assert.AreEqual( "report-b", got["9616"] );
+			}
+		}
+
+		[TestMethod()]
+		public void AReportTakenByANearerCrashIsNotGivenAgainAndTheProcessIdOverridesNearness()
+		{
+			// both reports fit both crashes in time; one report only is nearer to the second crash than the first
+			var only = Rep( "only", T0.AddSeconds( 4 ) );
+			var got = Assigned( T0, T0.AddSeconds( 5 ), only );
+			Assert.IsNull( got["7744"], "the nearer crash has it" );
+			Assert.AreEqual( "only", got["9616"] );
+
+			// the report names its process: it goes to that crash, though the other is nearer
+			var named = Rep( "named", T0.AddSeconds( 4 ), "00001e40-0002-001d-8e98-a271dfe8dc01" ); // 0x1e40 = 7744
+			var other = Rep( "other", T0.AddSeconds( 8 ), "00002590-0002-001d-8e98-a271dfe8dc01" ); // 0x2590 = 9616
+			var byPid = Assigned( T0, T0.AddSeconds( 5 ), other, named );
+			Assert.AreEqual( "named", byPid["7744"] );
+			Assert.AreEqual( "other", byPid["9616"] );
+			Assert.AreEqual( 7744, named.Pid );
 		}
 
 		// ---- the version of the crashed file -----------------------------------------------------------

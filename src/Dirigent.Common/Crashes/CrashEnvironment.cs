@@ -21,7 +21,8 @@ namespace Dirigent.Crashes
 		public Func<string, long?> FileSize { get; set; } = CrashFacts.FileSize;
 		public Func<string, IReadOnlyList<string>> LocalDumpFolders { get; set; } = CrashFacts.LocalDumpFolders;
 		/// <summary>The Report.wer of a crash: program name, program path, crash time (UTC).</summary>
-		public Func<string?, string?, DateTime, string?> FindWerReport { get; set; }
+		/// <summary>The reports of Windows Error Reporting written around the times (UTC), as read from its folders.</summary>
+		public Func<DateTime, DateTime, IEnumerable<WerReportInfo>> WerReports { get; set; }
 
 		readonly WerReports.Cache _werCache = new(); // one environment is one query: the reports are read once
 
@@ -48,7 +49,7 @@ namespace Dirigent.Crashes
 
 		public CrashEnvironment()
 		{
-			FindWerReport = ( name, path, time ) => WerReports.Find( name, path, time, null, _werCache );
+			WerReports = ( from, to ) => Crashes.WerReports.List( from, to, null, _werCache );
 		}
 
 		public static CrashEnvironment Real()
@@ -68,7 +69,7 @@ namespace Dirigent.Crashes
 				FileSize = FileSize,
 				LocalDumpFolders = LocalDumpFolders,
 				FindMiniDump = t => FindMiniDump( WindowsDir, t ),
-				FindWerReport = FindWerReport,
+				WerReports = WerReports,
 				FileWritten = FileWritten,
 				FileVersion = FileVersion,
 				ListDumps = ListDumps,

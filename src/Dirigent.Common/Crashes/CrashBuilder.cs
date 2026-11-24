@@ -29,7 +29,7 @@ namespace Dirigent.Crashes
 		public Func<string, IEnumerable<(string path, DateTime writtenUtc, long size)>> ListDumps = _ => Array.Empty<(string, DateTime, long)>();
 
 		/// <summary>The report of a crash found by what it says (program, event time): exe name, exe path, crash time (UTC). Null when none.</summary>
-		public Func<string?, string?, DateTime, string?> FindWerReport = ( _, _, _ ) => null;
+		public Func<DateTime, DateTime, IEnumerable<WerReportInfo>> WerReports = ( _, _ ) => Array.Empty<WerReportInfo>();
 
 		/// <summary>The FileVersion string of a file, or null when it has none or is not there.</summary>
 		public Func<string, string?> FileVersion = _ => null;
@@ -249,6 +249,8 @@ namespace Dirigent.Crashes
 				matched?.TryAdd( entry.id, new[] { c.E1000, c.E1026, c.Hang, c.Wer }.Where( x => x is not null ).Select( x => x! ).ToList() );
 			}
 
+			AssignReports( res, ctx );
+
 			res.AddRange( MakeReboots( all, ctx ) );
 
 			foreach( var ev in all )
@@ -265,6 +267,27 @@ namespace Dirigent.Crashes
 			}
 
 			return res.OrderByDescending( e => e.time ).ThenBy( e => e.id, StringComparer.Ordinal ).ToList();
+		}
+
+		/// <summary>One report for each crash, by what the reports say: nearest in time, the process id where the report has one, none twice.</summary>
+		static void AssignReports( List<CrashEntry> entries, CrashContext ctx )
+		{
+			if( entries.Count == 0 ) return;
+
+			var reports = ctx.WerReports( entries.Min( e => e.time ), entries.Max( e => e.time ) ).ToList();
+			if( reports.Count == 0 ) return;
+
+			var assigned = Dirigent.Crashes.WerReports.Assign( entries.Select( e => new Dirigent.Crashes.WerReports.CrashToMatch
+			{
+				Key = e.id,
+				ExeName = e.exe is null ? null : e.exe.Substring( e.exe.LastIndexOfAny( new[] { (char) 92, '/' } ) + 1 ),
+				ExePath = e.exe is not null && e.exe.IndexOf( (char) 92 ) >= 0 ? e.exe : null, // a bare name tells nothing of the folder
+				TimeUtc = e.time,
+				Pid = e.processId,
+			} ), reports );
+
+			foreach( var e in entries )
+				if( assigned.TryGetValue( e.id, out var r ) ) e.werReport = r.Path;
 		}
 
 		static CrashEntry? MakeAppEntry( Crash c, CrashContext ctx )
@@ -349,8 +372,6 @@ namespace Dirigent.Crashes
 
 			// The report of the crash: found by what it says - its event time and its program - and not by the 1001, which Windows logs
 			// again, days later, for the reports it kept queued.
-			var foundReport = ctx.FindWerReport( name, path ?? owner.Candidates.Select( a => a.ExePath ).FirstOrDefault( p => p is not null ), e.time );
-			if( foundReport is not null ) e.werReport = foundReport;
 
 			// the dump: from the report when it names one, else the file LocalDumps would write
 			string? dumpPath = null;
