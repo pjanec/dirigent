@@ -852,7 +852,7 @@ Terminates Dirigent agents on all the computers (or just on specified machine), 
 
  `Terminate [killApps=0|1] [machineId=<machineId>]`
 
-If *killApps* option is "1", Dirigent tries to kill all apps before terminating itself. Default = "0".
+If *killApps* is "1" (the default when it is left out), Dirigent tries to kill all apps before terminating itself; with "0" the apps keep running, and an agent started again later takes them over. (Before 3.1.19.38 "0" was ignored and the apps were always killed.)
 
 Warning: Dirigent does not make sure the apps really get killed. It terminates itself right after issuing the kill command to the operating system for each of the running app managed by the Dirigent.
 
