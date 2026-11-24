@@ -57,7 +57,7 @@ namespace Dirigent.Crashes
 		/// <summary>Only in what a download collects; the listing has no hashes.</summary>
 		public string? sha256 { get; set; }
 
-		/// <summary>Set (true) when the file was written after the crash: it is not what crashed. Only in what a download collects.</summary>
+		/// <summary>True when the file was written after the crash (it is not what crashed), false when not. Set by details=1 of the listing and in the downloads' versions.json.</summary>
 		public bool? modifiedAfterCrash { get; set; }
 	}
 

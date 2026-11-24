@@ -146,6 +146,7 @@ namespace Dirigent.IntegrationTests
 
 			Assert.AreEqual( "9.9", crash.versions!.exeFileVersion );
 			Assert.AreEqual( "foo.dll", crash.versions.files[0].name, "the faulting module first" );
+			Assert.IsTrue( crash.versions.files.All( f => f.modifiedAfterCrash == false ), "unchanged since the crash is false, not absent" );
 			Assert.AreEqual( "Test OS", crash.machineInfo!.os );
 		}
 

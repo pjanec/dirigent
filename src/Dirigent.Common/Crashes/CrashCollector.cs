@@ -324,7 +324,7 @@ namespace Dirigent.Crashes
 			var files = v.files.Select( f => new CrashFileVersion
 			{
 				name = f.name, version = f.version, size = f.size, modified = f.modified, sha256 = f.sha256,
-				modifiedAfterCrash = f.modified.ToUniversalTime() > crashUtc ? true : null,
+				modifiedAfterCrash = f.modified.ToUniversalTime() > crashUtc,
 			} ).ToList();
 
 			var changed = files.Count( f => f.modifiedAfterCrash == true );
