@@ -228,6 +228,9 @@ namespace Dirigent.SystemTests
 			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, response.StatusCode, response.Content.ReadAsStringAsync().GetAwaiter().GetResult() );
 
 			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, http.GetAsync( $"{root}/crashes?since=yesterday-ish" ).GetAwaiter().GetResult().StatusCode );
+			Assert.AreEqual( System.Net.HttpStatusCode.BadRequest, http.GetAsync( $"{root}/crashes?groupBy=app" ).GetAwaiter().GetResult().StatusCode );
+			var grouped = JsonDocument.Parse( http.GetStringAsync( $"{root}/crashes?groupBy=signature" ).GetAwaiter().GetResult() ).RootElement;
+			Assert.IsTrue( grouped.TryGetProperty( "groups", out _ ) && grouped.TryGetProperty( "ungrouped", out _ ) && !grouped.TryGetProperty( "crashes", out _ ) );
 
 			// and a plain call answers: the listing, the machines, the totals
 			var ok = http.GetAsync( $"{root}/crashes" ).GetAwaiter().GetResult();

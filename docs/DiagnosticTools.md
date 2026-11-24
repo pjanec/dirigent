@@ -166,6 +166,10 @@ GET /api/crashes?app=m1.viewer&newestPerApp=1                                 th
   faulting module, exception code and offset, a `signature` that is the same when the same bug crashes again, and **the dump** (`path`, a `unc` through
   the machine's share, `exists`, `size`) when Windows wrote one: from the report, or from the `LocalDumps` folder (`<exe>.<pid>.dmp`).
 * **Uptime and plan.** The crash of a process Dirigent launched says when it was started, in which plan, and after how long it crashed.
+* **The same bug, once.** `GET /api/crashes?groupBy=signature` groups the crashes of one bug - after the filters - with the count, the first and last time, the machines, applications and versions, and **the `ids` of every crash**, so each
+  can still be listed (`?id=`), collected (`crashes.ids`) and inspected alone. A native crash is grouped by exe, faulting module, exception code and offset in the module; an unhandled .NET exception by exe, exception type and top frame; a hang by exe.
+  **Exits, reboots, blue screens and display resets are never grouped, and neither is a crash whose identity is unreliable** - an unknown module or a `StackHash...` placeholder, an offset of 0, no exception code, no 1026 event for a managed one:
+  those are in `ungrouped`, in full. Better one line too many than two different bugs merged.
 * **No event, still listed.** An application that exits with an error code, or is killed from outside, leaves no event; Dirigent saw it end without
   having killed it, and the entry has `kind: "exit"` with the `exitCode`. The same history is `lastExits` in `/api/appstates`. It is kept in the
   master's memory and is lost when the master restarts.

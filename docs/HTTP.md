@@ -437,6 +437,7 @@ the values of one filter OR.**
 | `newestPerApp` | only the newest N entries of each application (entries without an application are all kept) |
 | `details=1` | adds `versions` and `machineInfo` to each entry - see below |
 | `timeout` | seconds one machine may take to answer, 1 to 3600; default 60 |
+| `groupBy` | `signature`: group the crashes of one bug - see below |
 
 An entry without a component is dropped only by `component`; every other filter lists it - nothing vanishes silently.
 
@@ -477,6 +478,28 @@ not given to that machine's agent at all - the master logs a warning naming both
 `coverage.oldestEvent` is how far back the machine's Application log reaches - the log is a ring buffer, so a busy machine may have lost last month's
 crashes; "no crash recorded" and "no record kept" are told apart by it. At most 500 entries are read per machine and the reading is bounded in time;
 `cut: true` says a limit was hit (the newest entries are the ones kept).
+
+**Grouping - `?groupBy=signature`.** The same bug crashing again and again is one line: the filters apply first (`newestPerApp` too), then the crashes are grouped by what identifies the bug.
+The answer has no `crashes`; it has `groups`, `ungrouped`, and `machines` and `totals` as above:
+
+```json
+{ "groups": [ { "key": "crash|viewer.exe|foo.dll|0xc0000005|0x12345", "kind": "crash", "exe": "Viewer.exe",
+                "faultingModule": "foo.dll", "exceptionCode": "0xc0000005", "faultingOffset": "0x12345",
+                "count": 14, "first": "2026-11-17T08:01:12Z", "last": "2026-11-21T12:03:11Z",
+                "machines": ["m1", "m2"], "apps": ["m1.viewer", "m2.viewer"], "exeVersions": ["5.2.0.118", "5.2.0.121"],
+                "ids": ["m2/2026-11-21T12:03:11Z/1234", "m1/2026-11-20T09:14:55Z/777", "..."] } ],
+  "ungrouped": [ { "id": "m1/...", "kind": "crash", "...": "the full entries" } ],
+  "machines": [ ... ], "totals": { "crashes": 20, "dumpBytes": 0 } }
+```
+
+* **`ids` lists every crash of the group, newest first**, so each can still be listed alone (`?id=`), collected (`crashes.ids` of a [download](#Crashes-in-a-download)) and inspected.
+* Groups are ordered by `count`, then by `last`, both descending. `ungrouped` is in full, newest first.
+* **Which crashes are grouped.** The key of a `crash` is the exe file name (any case), the faulting module, the exception code and the offset within the module; of a `managed` one the exe, the .NET exception type and the top frame of the stack
+  (the first `at ...` line of the 1026 text, without its arguments, file and line); of a `hang` the exe. The message of an exception, the machine, the version and the time are not part of the key.
+* **Which are always shown alone, and why.** `exit`, `reboot`, `bugcheck` and `gpuReset` are never grouped: they say nothing of a bug in a program. A `crash` or `managed` one whose **identity is not reliable** stays in `ungrouped`:
+  a missing or placeholder module (empty, `unknown`, or a `StackHash...` Windows made up), no or zero offset, no exception code, no exe; a `managed` one with no exception type or no top frame (no 1026 event).
+  Better one line too many than two different bugs merged.
+* An unknown value of `groupBy` is a `400`. Without `groupBy` nothing changes.
 
 **With `details=1`** each entry also has `versions` - the file and product version of the crashed exe and the version, size and time of every DLL in its
 folder, the faulting module first (no hashes) - and `machineInfo` - operating system and build, uptime, CPU, RAM total and free, free space of

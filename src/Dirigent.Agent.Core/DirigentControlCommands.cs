@@ -1016,6 +1016,7 @@ namespace Dirigent.Commands
 	public class GetCrashes : DirigentControlCommand
 	{
 		System.Threading.Tasks.Task<Crashes.CrashListing>? _task;
+		bool _grouped;
 		bool _finished;
 
 		public GetCrashes( Master ctrl, string requestorId )
@@ -1032,6 +1033,7 @@ namespace Dirigent.Commands
 			Web.CrashQuery query;
 			try
 			{
+				_grouped = Tools.TryGetValueIgnoreKeyCase( options, "groupBy", out var groupBy ) && Crashes.CrashGroups.IsGrouping( groupBy );
 				query = Web.CrashQuery.Prepare( ctrl, Web.CrashFilterParser.Parse( options ), Tools.TryGetValueIgnoreKeyCase( options, "details", out var d ) && Web.CrashFilterParser.IsTrue( d ),
 					Tools.TryGetValueIgnoreKeyCase( options, "timeout", out var t ) ? Web.CrashFilterParser.ParseTimeout( t ) : null );
 			}
@@ -1052,7 +1054,7 @@ namespace Dirigent.Commands
 			if( _task.IsFaulted )
 				throw new Exception( Tools.JustFirstLine( _task.Exception!.GetBaseException().Message ) );
 
-			WriteResponse( "CRASHES:" + Web.AppFilesResult.ToJson( _task.Result ) );
+			WriteResponse( "CRASHES:" + ( _grouped ? Web.AppFilesResult.ToJson( Crashes.CrashGroups.Of( _task.Result ) ) : Web.AppFilesResult.ToJson( _task.Result ) ) );
 			WriteResponse( "END" );
 		}
 	}

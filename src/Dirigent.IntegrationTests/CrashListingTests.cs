@@ -53,16 +53,18 @@ namespace Dirigent.IntegrationTests
 			};
 
 		FakeSource _m1Log = new();
+		FakeSource _m2Log = new();
 
 		[TestInitialize()]
 		public void SetUp()
 		{
 			Diagnostics.ClearLog();
 			_m1Log = new FakeSource { Oldest = DateTime.UtcNow.AddDays( -20 ) };
+			_m2Log = new FakeSource { Oldest = DateTime.UtcNow.AddDays( -20 ) };
 
 			QueryCrashes.EnvironmentFactory = machine => new CrashEnvironment
 			{
-				Source = machine == "m1" ? _m1Log : new FakeSource(),
+				Source = machine == "m1" ? _m1Log : machine == "m2" ? _m2Log : new FakeSource(),
 				ReadMachineInfo = () => new CrashMachineInfo { os = "Test OS", ramTotalMB = 1024 },
 				ReadVersions = path => new CrashVersions { exeFileVersion = "9.9", files = { new() { name = "a.dll" }, new() { name = "foo.dll", version = "1.4.2.0" } } },
 			};
@@ -268,6 +270,58 @@ namespace Dirigent.IntegrationTests
 
 			CollectionAssert.AreEqual( new[] { "M1" }, list.machines.Select( m => m.machine ).ToArray(), "one machine, in the spelling of its definition" );
 			Assert.AreEqual( "ok", list.machines[0].status );
+		}
+
+		[TestMethod()]
+		public async Task GroupBySignatureGivesTheBugsWithEveryIdAndTheUnreliableCrashesAlone()
+		{
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = World() } );
+			var t = DateTime.UtcNow.AddMinutes( -30 );
+
+			// the same bug on both machines, and a crash whose module is unknown - which stays alone
+			var onM1 = E1000( t, bed.TestAppPath, 101 );
+			var onM2 = E1000( t.AddMinutes( 3 ), bed.TestAppPath, 202 );
+			var unreliable = E1000( t.AddMinutes( 6 ), bed.TestAppPath, 303, module: "unknown" );
+			_m1Log.Events.AddRange( new[] { onM1, unreliable } );
+			_m2Log.Events.Add( onM2 );
+
+			var lines = await bed.SendCliCommandAsync( "GetCrashes kind=crash groupBy=signature", Timeout );
+			Assert.AreEqual( "END", lines[1], string.Join( " | ", lines ) );
+			var doc = JsonDocument.Parse( lines[0].Substring( "CRASHES:".Length ) ).RootElement;
+
+			Assert.IsFalse( doc.TryGetProperty( "crashes", out _ ), "the grouped answer has groups and ungrouped instead" );
+			var group = doc.GetProperty( "groups" ).EnumerateArray().Single();
+			Assert.AreEqual( 2, group.GetProperty( "count" ).GetInt32() );
+			Assert.AreEqual( "crash", group.GetProperty( "kind" ).GetString() );
+			Assert.AreEqual( "foo.dll", group.GetProperty( "faultingModule" ).GetString() );
+			CollectionAssert.AreEqual( new[] { "m1", "m2" }, group.GetProperty( "machines" ).EnumerateArray().Select( x => x.GetString() ).ToArray() );
+			var ids = group.GetProperty( "ids" ).EnumerateArray().Select( x => x.GetString()! ).ToList();
+			Assert.AreEqual( 2, ids.Count );
+			StringAssert.StartsWith( ids[0], "m2/", "newest first" );
+
+			var alone = doc.GetProperty( "ungrouped" ).EnumerateArray().Single();
+			Assert.AreEqual( 303, alone.GetProperty( "processId" ).GetInt32(), "the full entry" );
+			Assert.AreEqual( 3, doc.GetProperty( "totals" ).GetProperty( "crashes" ).GetInt32() );
+			Assert.AreEqual( 2, doc.GetProperty( "machines" ).GetArrayLength() );
+
+			// each crash of the group can still be asked for alone
+			var one = await Ask( bed, "id=" + ids[1] );
+			Assert.AreEqual( 1, one.crashes.Count );
+			Assert.AreEqual( ids[1], one.crashes[0].id );
+
+			// without groupBy nothing changes
+			Assert.AreEqual( 3, ( await Ask( bed, "kind=crash" ) ).crashes.Count );
+		}
+
+		[TestMethod()]
+		public async Task AnUnknownGroupByIsAnError()
+		{
+			using var bed = await TestBed.TestBed.StartAsync( new TestBedOptions() { Scenario = World() } );
+
+			var lines = await bed.SendCliCommandAsync( "GetCrashes groupBy=app", Timeout );
+
+			StringAssert.Contains( string.Join( " | ", lines ), "groupBy" );
+			Assert.IsFalse( lines.Any( l => l.StartsWith( "CRASHES:" ) ) );
 		}
 
 		[TestMethod()]

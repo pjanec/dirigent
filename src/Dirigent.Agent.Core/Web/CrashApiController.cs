@@ -27,10 +27,12 @@ namespace Dirigent.Web
 			var q = HttpContext.GetRequestQueryData();
 
 			CrashQuery? query = null;
+			var grouped = false;
 			var op = _master.AddSynchronousOp( () =>
 			{
 				try
 				{
+					grouped = CrashGroups.IsGrouping( q["groupBy"] );
 					query = CrashQuery.Prepare( _master, CrashFilterParser.Parse( q ), CrashFilterParser.IsTrue( q["details"] ), CrashFilterParser.ParseTimeout( q["timeout"] ) );
 				}
 				catch( ArgumentException e )
@@ -42,7 +44,7 @@ namespace Dirigent.Web
 			if( op.Exception != null ) throw op.Exception;
 
 			var listing = await query!.RunAsync();
-			await HttpContext.SendStringAsync( AppFilesResult.ToJson( listing ), "application/json", ApiOps.Utf8 );
+			await HttpContext.SendStringAsync( grouped ? AppFilesResult.ToJson( CrashGroups.Of( listing ) ) : AppFilesResult.ToJson( listing ), "application/json", ApiOps.Utf8 );
 		}
 	}
 }

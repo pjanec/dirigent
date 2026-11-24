@@ -585,7 +585,7 @@ The versions of the applications, each listed once with the machines and applica
 The crashes, hangs, unexpected exits, reboots, blue screens and display driver resets of the programs of the site, from the event log of
 each machine - the answer of [`GET /api/crashes`](HTTP.md#GET-apicrashes), with the same filters (lists are comma-separated, times are ISO 8601).
 
-  `GetCrashes [since=<time>] [until=<time>] [component=A,B] [app=m1.*] [machine=m1] [kind=crash,managed] [id=...] [newestPerApp=1] [details=1] [timeout=<seconds>]`
+  `GetCrashes [since=<time>] [until=<time>] [component=A,B] [app=m1.*] [machine=m1] [kind=crash,managed] [id=...] [newestPerApp=1] [details=1] [timeout=<seconds>] [groupBy=signature]`
 
 Without `since` and `until`: the last 7 days. `until` before `since`, or a time that is none, is an error.
 
